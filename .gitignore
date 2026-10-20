@@ -26,6 +26,8 @@ models/xgb_FD001_baseline.joblib
 # scratch / generated
 *.executed.ipynb
 _exec_*.log
+_api.log
+_ablate_meta.log
 _exec_v3.log
 _v3_*.log
 nb_exec_*.log
