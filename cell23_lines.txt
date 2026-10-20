@@ -1,0 +1,25 @@
+Line 0: import json
+Line 1: import pathlib
+Line 2: import time
+Line 3: 
+Line 4: import joblib
+Line 5: from IPython.display import display
+Line 6: from sklearn.ensemble import RandomForestRegressor
+Line 7: from sklearn.linear_model import LinearRegression
+Line 8: from sklearn.pipeline import make_pipeline
+Line 9: 
+Line 10: # Mismo set de features que el baseline: 21 sensores + 3 settings = 24
+Line 11: SENSOR_COLS = [c for c in COLS if c.startswith('s')]
+Line 12: N_SENSORS = len(SENSOR_COLS)
+Line 13: print(f'features: {N_SENSORS} -> {SENSOR_COLS}')
+Line 14: 
+Line 15: # RUL real de test por motor: fuente de verdad para evaluar
+Line 16: rul_txt = pathlib.Path('archive/CMaps/RUL_FD001.txt').read_text(encoding='utf-8')
+Line 17: rul_vals = [int(x) for x in rul_txt.replace('\r', '').split()]
+Line 18: rul_df = pd.DataFrame({'engine_id': range(1, len(rul_vals) + 1), 'RUL_real': rul_vals})
+Line 19: rul_df['RUL_real'] = rul_df['RUL_real'].clip(upper=CLIP)
+Line 20: 
+Line 21: print(f'motores test: {len(rul_df)} | RUL real min {rul_df.RUL_real.min()} '
+Line 22:       f'media {rul_df.RUL_real.mean():.1f} max {rul_df.RUL_real.max()}')
+Line 23: display(rul_df.head(3))
+Line 24: 

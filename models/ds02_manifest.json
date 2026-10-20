@@ -1,0 +1,103 @@
+{
+  "format_version": 1,
+  "code_version": "4.1.0",
+  "dataset": "DS02",
+  "seed": 42,
+  "python": "3.12.10",
+  "tensorflow": "2.21.0",
+  "sklearn": "1.9.1",
+  "unit_partition": {
+    "fit": [
+      2,
+      5,
+      10,
+      18,
+      20
+    ],
+    "holdout": [
+      16
+    ],
+    "test": [
+      11,
+      14,
+      15
+    ]
+  },
+  "model_shape": {
+    "scaler_n_features": 18,
+    "n_op": 4,
+    "lgb_n_features": 93,
+    "bilstm_input_shape": [
+      null,
+      50,
+      19
+    ],
+    "bilstm_params": 154253
+  },
+  "inference_contract": {
+    "window_size": 50,
+    "beta": 1.0,
+    "ema_span": 5,
+    "cycle_channel": true
+  },
+  "scaler_fingerprint_mean_first4": [
+    21930.0395,
+    0.6249,
+    68.613,
+    475.0123
+  ],
+  "metrics": {
+    "reference_row": {
+      "Modelo": "Hybrid Stacking (beta=1.00) + EMA5",
+      "RMSE": 5.523,
+      "MAE": 4.795,
+      "R2": 0.9126,
+      "NASA_Score": 3435.8
+    },
+    "beta": 1.0,
+    "mean_std": [
+      {
+        "Modelo": "LightGBM standalone",
+        "RMSE": "7.098 \u00b1 0.034",
+        "MAE": "5.572 \u00b1 0.034",
+        "R2": "0.8557 \u00b1 0.0014",
+        "NASA_Score": "5772.5 \u00b1 50.1"
+      },
+      {
+        "Modelo": "BiLSTM standalone",
+        "RMSE": "6.554 \u00b1 0.673",
+        "MAE": "5.105 \u00b1 0.670",
+        "R2": "0.8761 \u00b1 0.0257",
+        "NASA_Score": "4806.2 \u00b1 883.0"
+      },
+      {
+        "Modelo": "Hybrid + EMA5",
+        "RMSE": "5.523 \u00b1 0.001",
+        "MAE": "4.795 \u00b1 0.001",
+        "R2": "0.9126 \u00b1 0.0001",
+        "NASA_Score": "3435.6 \u00b1 0.7"
+      }
+    ]
+  },
+  "protocol": {
+    "preprocessing": "fit units only",
+    "beta": "grouped out-of-fold",
+    "seeds": [
+      42,
+      7,
+      123
+    ],
+    "window": 50,
+    "stride": 100,
+    "step_train": 3,
+    "step_test": 2
+  },
+  "artifacts": {
+    "ensemble_sha256": "fcde12accec083e24c52e6b593ee59a4a3936186f42597445791dcfb9e2fea09",
+    "bilstm_sha256": "fd82ea04b7d86db061118a54d294791ab581660f32902592c4ac5ba116d8a635",
+    "bilstm_bytes": 1935767,
+    "ensemble_bytes": 468986
+  },
+  "keras": "3.15.1",
+  "lightgbm": "4.7.0"
+}

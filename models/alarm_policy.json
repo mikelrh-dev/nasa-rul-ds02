@@ -1,0 +1,89 @@
+{
+ "version": "v3.0.0",
+ "modelo": "LightGBM + features de salud",
+ "dataset_calibracion": "FD001",
+ "metodo": "coste FN*20 + FP*1 sobre OOF por motor",
+ "T_crit": 22.0,
+ "T_warn": 28.0,
+ "evento": "RUL real < 15",
+ "regla_elegida": "q10 < T*",
+ "reglas": {
+  "media < T*": {
+   "alarmas": 11,
+   "tp": 8,
+   "fp": 3,
+   "fn": 1,
+   "recall": 88.9,
+   "precision": 72.7,
+   "coste": 23
+  },
+  "media < 15 (fijo)": {
+   "alarmas": 9,
+   "tp": 7,
+   "fp": 2,
+   "fn": 2,
+   "recall": 77.8,
+   "precision": 77.8,
+   "coste": 42
+  },
+  "q90 < 30": {
+   "alarmas": 0,
+   "tp": 0,
+   "fp": 0,
+   "fn": 9,
+   "recall": 0.0,
+   "precision": 0.0,
+   "coste": 180
+  },
+  "q10 < 15": {
+   "alarmas": 11,
+   "tp": 8,
+   "fp": 3,
+   "fn": 1,
+   "recall": 88.9,
+   "precision": 72.7,
+   "coste": 23
+  },
+  "q10 < T*": {
+   "alarmas": 18,
+   "tp": 9,
+   "fp": 9,
+   "fn": 0,
+   "recall": 100.0,
+   "precision": 50.0,
+   "coste": 9
+  },
+  "media < T* o q10 < 15": {
+   "alarmas": 11,
+   "tp": 8,
+   "fp": 3,
+   "fn": 1,
+   "recall": 88.9,
+   "precision": 72.7,
+   "coste": 23
+  }
+ },
+ "metricas_test": {
+  "T": 22.0,
+  "alarmas": 11,
+  "tp": 8,
+  "fp": 3,
+  "fn": 1,
+  "recall": 88.9,
+  "precision": 72.7,
+  "coste": 23
+ },
+ "metricas_fijo_15": {
+  "T": 15.0,
+  "alarmas": 9,
+  "tp": 7,
+  "fp": 2,
+  "fn": 2,
+  "recall": 77.8,
+  "precision": 77.8,
+  "coste": 42
+ },
+ "cobertura_80": 81.0,
+ "rmse_test": 13.5,
+ "mae_test": 10.21
+}
