@@ -1,0 +1,137 @@
+{
+ "xgb": {
+  "rmse_train": 14.02,
+  "rmse_test": 26.16,
+  "mae_test": 20.27,
+  "n": 100
+ },
+ "lstm2": {
+  "rmse_train": 11.57,
+  "rmse_test": 15.13,
+  "mae_test": 11.21,
+  "n": 100
+ },
+ "rf": {
+  "rmse_train": 10.73,
+  "rmse_test": 16.53,
+  "mae_test": 12.17,
+  "t": 116.5,
+  "n": 100
+ },
+ "lgb": {
+  "rmse_train": 7.34,
+  "rmse_test": 13.42,
+  "mae_test": 10.33,
+  "t": 6.8,
+  "n": 100
+ },
+ "lr": {
+  "rmse_train": 16.61,
+  "rmse_test": 15.94,
+  "mae_test": 13.07,
+  "t": 1.4,
+  "n": 100
+ },
+ "best": {
+  "nombre": "B: Bidirectional LSTM 100-50 + Dropout 0.2 (w=30)",
+  "window": 30,
+  "rmse_train": 11.05,
+  "rmse_test": 14.78,
+  "mae_test": 11.58,
+  "n": 100,
+  "rmse_test_mismo_n": 14.77,
+  "n_mismo_n": 93,
+  "epochs": 25,
+  "tiempo": 239.9
+ },
+ "variantes": [
+  {
+   "nombre": "A: LSTM 3 capas 100-64-32 + Dropout 0.2 (w=30)",
+   "rmse_train": 12.54,
+   "rmse_test": 15.93,
+   "mae_test": 11.47,
+   "rmse_test_mismo_n": 16.16,
+   "n": 100,
+   "tiempo": 281.4
+  },
+  {
+   "nombre": "B: Bidirectional LSTM 100-50 + Dropout 0.2 (w=30)",
+   "rmse_train": 11.05,
+   "rmse_test": 14.78,
+   "mae_test": 11.58,
+   "rmse_test_mismo_n": 14.77,
+   "n": 100,
+   "tiempo": 239.9
+  },
+  {
+   "nombre": "C: LSTM 2 capas 100-50 + Dropout 0.2 (w=50)",
+   "rmse_train": 10.49,
+   "rmse_test": 15.01,
+   "mae_test": 10.99,
+   "rmse_test_mismo_n": 15.01,
+   "n": 93,
+   "tiempo": 341.8
+  }
+ ],
+ "semaforo_real": {
+  "ROJO": 9,
+  "AMARILLO": 16,
+  "VERDE": 75
+ },
+ "semaforo": [
+  {
+   "Modelo": "XGBoost",
+   "n": 100,
+   "ROJO": 0,
+   "AMARILLO": 4,
+   "VERDE": 96,
+   "aciertos zona": 76,
+   "aciertos_pct": 76.0
+  },
+  {
+   "Modelo": "Random Forest",
+   "n": 100,
+   "ROJO": 7,
+   "AMARILLO": 11,
+   "VERDE": 82,
+   "aciertos zona": 85,
+   "aciertos_pct": 85.0
+  },
+  {
+   "Modelo": "LightGBM",
+   "n": 100,
+   "ROJO": 10,
+   "AMARILLO": 11,
+   "VERDE": 79,
+   "aciertos zona": 89,
+   "aciertos_pct": 89.0
+  },
+  {
+   "Modelo": "Linear Regression",
+   "n": 100,
+   "ROJO": 8,
+   "AMARILLO": 6,
+   "VERDE": 86,
+   "aciertos zona": 87,
+   "aciertos_pct": 87.0
+  },
+  {
+   "Modelo": "LSTM 2 capas",
+   "n": 100,
+   "ROJO": 12,
+   "AMARILLO": 14,
+   "VERDE": 74,
+   "aciertos zona": 92,
+   "aciertos_pct": 92.0
+  },
+  {
+   "Modelo": "LSTM best (30 ciclos)",
+   "n": 100,
+   "ROJO": 10,
+   "AMARILLO": 12,
+   "VERDE": 78,
+   "aciertos zona": 90,
+   "aciertos_pct": 90.0
+  }
+ ]
+}

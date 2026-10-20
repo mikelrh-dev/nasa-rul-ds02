@@ -1,0 +1,80 @@
+# openspec/config.yaml
+# C-MAPSS / N-CMAPSS RUL prediction — SDD configuration
+# Authored 2026-10-19 alongside the ds02-production-hardening change.
+
+schema: spec-driven
+
+context: |
+  Project: remaining-useful-life (RUL) prediction for turbofan engines, covering
+           two datasets — C-MAPSS FD001 (text) and N-CMAPSS DS02 (HDF5).
+  Stack:   Python 3.12 virtualenv (`.venv`), TensorFlow 2.21.0, LightGBM 4.7.0,
+           scikit-learn 1.9.1, numpy 2.5.4, pandas 3.0.6, h5py, joblib, nbformat,
+           matplotlib.
+  Env caveat: the committed DS02 notebook outputs were produced under the SYSTEM
+           Python 3.10.0 (TensorFlow 2.21.0, LightGBM 4.6.0, scikit-learn 1.5.1),
+           NOT under `.venv`, even though the notebook's kernelspec displays
+           ".venv (3.12.10)". Re-execute inside `.venv` before treating the
+           recorded metrics as reproducible.
+  Source of truth: the executed notebooks. `02_DS02_ensemble_RUL.ipynb` holds the
+           DS02 hybrid stacking pipeline (17 cells: 9 markdown + 8 code, all code
+           cells executed with no error outputs); `notebook_nasa_fd001.ipynb` holds
+           the FD001 pipeline. Notebooks are GENERATED as pure nbformat builders by
+           `scripts/build_*.py` and MUST be regenerated, never hand-edited.
+  Persistence: `ensemble.joblib` and `scaler.joblib`, each duplicated under
+           `models/`. The FD001 v3 bundle is `models/v3_bundle.joblib`, served by
+           `scripts/predict.py`.
+  Metrics: RMSE, MAE, R^2 and the NASA scoring function — which is a SUM of
+           asymmetric exponentials, exp(-d/13) when RUL is underestimated and
+           exp(d/10) when it is overestimated, and applies NO 125-cycle clamp on
+           the DS02 path.
+  Style:   SDD artifacts in English. Requirements use RFC 2119 keywords and
+           Given/When/Then scenarios.
+
+strict_tdd: false
+
+testing:
+  runner: none
+  rationale: "No test runner is configured for the ML notebooks. Verification is by re-executing the notebook and comparing the recorded metrics. strict_tdd stays false; re-evaluate if a pytest suite lands."
+  layers:
+    unit: false
+    integration: false
+    e2e: false
+
+rules:
+  proposal:
+    - Include a rollback plan for risky changes
+    - State which artifacts stay byte-compatible under the change
+    - Name the affected capability (rul-prediction-ds02) and link the deployed spec
+  specs:
+    - Use Given/When/Then for every scenario
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Record every hyperparameter, feature count and metric exactly as measured; never round or approximate
+    - State the NASA score is a SUM and that the DS02 path applies no 125-cycle clamp
+  design:
+    - Include Mermaid diagrams with accTitle/accDescr, classDef only and snake_case node ids
+    - Document architecture decisions with rationale and the alternatives rejected
+    - Document known limitations and the evidence behind each decision
+  tasks:
+    - Group by phase, use hierarchical numbering (1, 1.1, 1.2)
+    - Keep each task completable in one session
+    - Attach the acceptance check that closes each task
+  apply:
+    guidelines:
+      - Never modify notebooks in place; regenerate them from scripts/build_*.py
+      - Never modify files under models/, archive/ or existing scripts/ without explicit approval
+      - Preserve the recorded metrics; a change that alters them is a new experiment, not a refactor
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+    guidelines:
+      - Do not retrain models in CI (no test runner is configured)
+      - Re-execute the notebook and compare the four recorded test rows against the SOTA table
+  archive:
+    - Warn before merging destructive deltas (REMOVED or renamed requirements)
+    - Update openspec/specs/rul-prediction-ds02/spec.md when archiving
+
+specs:
+  - rul-prediction-ds02

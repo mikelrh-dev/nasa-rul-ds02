@@ -1,0 +1,38 @@
+# environment
+.venv/
+*.egg-info/
+build/
+dist/
+
+# python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# datasets and archives — never commit 15 GB
+archive/
+archive.zip
+*.h5
+
+# but keep the keras artifact that ships with the demo
+!models/bilstm_ds02.keras
+
+# oversized FD001 boosters (regenerable from notebook_nasa_fd001.ipynb; the DS02
+# demo does not need them, and 89 MB in git is not acceptable)
+models/rf_FD001_baseline.joblib
+models/lgb_FD001_baseline.joblib
+models/xgb_FD001_baseline.joblib
+
+# scratch / generated
+*.executed.ipynb
+_exec_*.log
+_exec_v3.log
+_v3_*.log
+nb_exec_*.log
+probe_*.log
+cells_*.txt
+_probe_*.npy
+_probe_*.h5
+
+# streamlit
+.streamlit/

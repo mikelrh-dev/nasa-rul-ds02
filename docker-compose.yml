@@ -1,0 +1,36 @@
+# docker compose up --build
+#
+# The dataset (~2.3 GB) is mounted read-only rather than baked into the image.
+# Put N-CMAPSS_DS02-006.h5 in ./archive/CCMaps/ before starting the dashboard.
+services:
+  api:
+    build: .
+    image: ds02-rul:4.1.0
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./archive:/app/archive:ro
+    environment:
+      DS02_ARTIFACT: /app/models/ensemble.joblib
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  dashboard:
+    build: .
+    image: ds02-rul:4.1.0
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./archive:/app/archive:ro
+    environment:
+      DS02_ARTIFACT: /app/models/ensemble.joblib
+    command: >
+      streamlit run app/dashboard.py
+      --server.address 0.0.0.0 --server.port 8501 --server.headless true
+    depends_on:
+      api:
+        condition: service_healthy

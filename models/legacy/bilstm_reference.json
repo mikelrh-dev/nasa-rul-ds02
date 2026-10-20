@@ -1,0 +1,40 @@
+{
+  "python": "3.10.0",
+  "window_size": 50,
+  "n_op": 4,
+  "beta": 1.0,
+  "ema_span": 5,
+  "paradigm": "Hybrid Stacking (BiLSTM dual-pooling + LGBM residualizado + RidgeCV/LGBM meta + EMA5)",
+  "input_shape": [
+    null,
+    50,
+    19
+  ],
+  "n_params": 154253,
+  "layer_names": [
+    "InputLayer",
+    "BatchNormalization",
+    "Bidirectional",
+    "Dropout",
+    "Bidirectional",
+    "Dropout",
+    "Lambda",
+    "GlobalAveragePooling1D",
+    "GlobalMaxPooling1D",
+    "Concatenate",
+    "Dropout",
+    "Dense",
+    "Dense"
+  ],
+  "scaler_n_features": 18,
+  "scaler_mean_first4": [
+    21901.01683290586,
+    0.6237844009078715,
+    68.54858216950387,
+    475.00964505533904
+  ],
+  "lgb_n_features": 93,
+  "lgb_objective": "quantile",
+  "lgb_alpha": 0.35,
+  "n_ridges": 14
+}

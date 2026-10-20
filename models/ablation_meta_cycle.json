@@ -1,0 +1,65 @@
+{
+  "hybrid_with_cycle": {
+    "Modelo": "",
+    "RMSE": 5.522,
+    "MAE": 4.795,
+    "R2": 0.9126,
+    "NASA_Score": 3435.3
+  },
+  "meta_with_cycle": {
+    "ridge_coef": [
+      0.002,
+      0.0124,
+      -98.3974
+    ],
+    "ridge_intercept": 61.9788,
+    "ridge_alpha": 0.01,
+    "lgb_meta_importances": [
+      0,
+      0,
+      720
+    ]
+  },
+  "hybrid_without_cycle": {
+    "Modelo": "",
+    "RMSE": 5.568,
+    "MAE": 3.742,
+    "R2": 0.9112,
+    "NASA_Score": 3233.3
+  },
+  "meta_without_cycle": {
+    "ridge_coef": [
+      0.3393,
+      0.6885
+    ],
+    "ridge_intercept": -2.1391,
+    "ridge_alpha": 297.63514416313194,
+    "lgb_meta_importances": [
+      309,
+      411
+    ]
+  },
+  "ols_on_cycle_only": {
+    "Modelo": "",
+    "RMSE": 14.327,
+    "MAE": 13.148,
+    "R2": 0.4121,
+    "NASA_Score": 20267.6
+  },
+  "ols_on_cycle_only_ema5": {
+    "Modelo": "",
+    "RMSE": 14.365,
+    "MAE": 13.201,
+    "R2": 0.4089,
+    "NASA_Score": 20380.9
+  },
+  "constant_mean": {
+    "Modelo": "",
+    "RMSE": 20.022,
+    "MAE": 17.059,
+    "R2": -0.1482,
+    "NASA_Score": 48840.3
+  },
+  "delta_rmse_no_cycle": 0.046,
+  "conclusion": "Removing cyc_norm from every component changes RMSE by +0.046 (5.522 -> 5.568), MAE from 4.795 to 3.742 and NASA from 3435.3 to 3233.3. With the cycle available the meta-learner puts 100% of its weight on it and ignores both base models; without it the weight spreads over p_lstm=0.34 and p_lgb=0.69. OLS on the cycle alone scores 14.327 RMSE, so the clock is not the source of the accuracy \u2014 it is a shortcut the learner prefers when offered."
+}
