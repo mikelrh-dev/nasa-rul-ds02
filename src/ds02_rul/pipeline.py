@@ -20,6 +20,13 @@ from .features import build_windows, fit_preprocessing
 from .metrics import calculate_nasa_score, evaluate_predictions
 from .model import build_champion_bilstm
 
+# The median (alpha=0.50) was tried and REJECTED on the confirmatory test read,
+# even though it won on grouped out-of-fold dev by a wide margin (branch 9.11 ->
+# 8.18 RMSE, hybrid 13.15 -> 12.09). On test, holding the BiLSTM fixed, it costs
+# the branch 7.11 -> 9.12 and the hybrid 4.24 -> 4.59: dev engines are long-lived
+# and under-predicted, test engines are shorter, so raising the quantile helps the
+# regime that dev over-represents and hurts the one test is. The dev gate cannot
+# arbitrate this, which is the finding recorded in ADR-007.
 LGB_PARAMS = dict(
     objective="quantile",
     alpha=0.35,

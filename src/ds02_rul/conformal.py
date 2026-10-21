@@ -26,12 +26,20 @@ def _bin_index(pred: np.ndarray, edges) -> np.ndarray:
 
 
 def fit_conformal(y_true, pred, target: float = 0.90, edges=DEFAULT_EDGES,
-                  min_rows: int = 100) -> dict:
+                  min_rows: int = 100, debias: bool = False) -> dict:
     """Fit a per-bin asymmetric band from signed residuals `y_true - pred`.
 
     Bins with fewer than `min_rows` observations fall back to the global
     quantiles, so a sparse tail does not produce a band drawn from a handful of
     points.
+
+    `debias=True` subtracts the per-bin median residual before taking the
+    quantiles, so the band measures *dispersion* instead of absorbing the point
+    estimate's level bias. On this project the split models under-predict at high
+    RUL, which makes both residual quantiles negative there and collapses the
+    band to one side; the de-biased variant keeps it two-sided. It is a
+    diagnostic, not the shipped calibration: a de-biased band stops covering
+    exactly where the model is biased, which is information, not a defect.
     """
     y_true = np.asarray(y_true, dtype=np.float64).ravel()
     pred = np.asarray(pred, dtype=np.float64).ravel()
@@ -40,7 +48,8 @@ def fit_conformal(y_true, pred, target: float = 0.90, edges=DEFAULT_EDGES,
 
     alpha = (1.0 - float(target)) / 2.0
     resid = y_true - pred
-    global_lo, global_hi = np.quantile(resid, [alpha, 1.0 - alpha])
+    global_shift = float(np.median(resid)) if debias else 0.0
+    global_lo, global_hi = np.quantile(resid - global_shift, [alpha, 1.0 - alpha])
     idx = _bin_index(pred, edges)
 
     bins = []
@@ -48,7 +57,8 @@ def fit_conformal(y_true, pred, target: float = 0.90, edges=DEFAULT_EDGES,
         mask = idx == b
         n = int(mask.sum())
         if n >= min_rows:
-            lo, hi = np.quantile(resid[mask], [alpha, 1.0 - alpha])
+            shift = float(np.median(resid[mask])) if debias else 0.0
+            lo, hi = np.quantile(resid[mask] - shift, [alpha, 1.0 - alpha])
             source = "bin"
         else:
             lo, hi = global_lo, global_hi
@@ -65,7 +75,9 @@ def fit_conformal(y_true, pred, target: float = 0.90, edges=DEFAULT_EDGES,
         })
 
     return {
-        "method": "split-conformal, per predicted-RUL bin, asymmetric",
+        "method": "split-conformal, per predicted-RUL bin, asymmetric"
+                  + (", level-debiased" if debias else ""),
+        "debias": bool(debias),
         "target_coverage": float(target),
         "alpha_each_side": round(float(alpha), 4),
         "edges": [None if np.isinf(float(e)) else float(e) for e in edges],
