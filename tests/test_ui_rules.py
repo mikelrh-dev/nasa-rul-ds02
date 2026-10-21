@@ -3,15 +3,19 @@
 Tres cosas han de sostenerse:
 
 1. la corrección no inventa ni pierde ventanas y deja la lectura cruda a la vista;
-2. el punto corregido es monótono por unidad y la banda sigue conteniéndolo;
-3. el tablero sigue renderizando con la corrección activada.
+2. el punto corregido es el extremo del ajuste isotónico causal por unidad y la
+   banda sigue conteniéndolo;
+3. el tablero sigue renderizando con la corrección activada, arranca con el
+   interruptor apagado y no describe la corrección como monotonicidad estricta.
 
 Run:  python -m pytest tests -q
 """
 from __future__ import annotations
 
 import os
+import re
 import sys
+import unicodedata
 
 import numpy as np
 import pytest
@@ -99,6 +103,94 @@ def test_el_tablero_rendea_con_la_correccion_activada():
     assert app.toggle, "el interruptor de corrección tiene que existir"
     app.toggle[0].set_value(True).run()
     assert not app.exception, app.exception
+    assert len(app.tabs) == 5
+
+
+# ------------------------------------------- garantías de superficie (3.1)
+BANNED = (
+    "monotonia estricta",
+    "estrictamente monoton",
+    "serie monotona",
+    "serie no creciente",
+    "regla de monotonia",
+    "R2b_MONOTONIA",
+    "R2b_MONOTONICO",
+)
+NEGADORES = ("no", "nunca", "ni")
+
+
+def _plano(texto: str) -> str:
+    """Minúsculas, sin tildes y con los espacios colapsados."""
+    sin_tildes = unicodedata.normalize("NFKD", texto)
+    sin_tildes = "".join(c for c in sin_tildes if not unicodedata.combining(c))
+    return " ".join(sin_tildes.casefold().split())
+
+
+def _infracciones(texto: str) -> list[str]:
+    """Formulaciones prohibidas, salvo que la misma frase las niegue."""
+    hallazgos = []
+    for frase in re.split(r"(?<=[.;:!?])\s+|\n+", texto):
+        plano = _plano(frase)
+        if not plano:
+            continue
+        palabras = set(re.findall(r"[a-z0-9_]+", plano))
+        for prohibida in BANNED:
+            if _plano(prohibida) in plano and not palabras & set(NEGADORES):
+                hallazgos.append(f"{prohibida!r} en: {frase.strip()}")
+    return hallazgos
+
+
+def test_la_copia_no_dice_monotonia_estricta():
+    """Los textos de la app y las seis frases vivas no sobreafirman."""
+    for nombre in ("dashboard_ds02.py", "ui_rules.py"):
+        with open(os.path.join(APP, nombre), encoding="utf-8") as fh:
+            assert not _infracciones(fh.read()), nombre
+
+    for nombre, _condicion, _efecto, _prioridad, porque in (
+            R.REGLAS_CORRECCION + R.REGLAS_DECISION):
+        assert not _infracciones(nombre), nombre
+        assert not _infracciones(porque), porque
+
+    # La frase que sí debe aparecer es la correcta.
+    assert "isotonico" in _plano(R.REGLAS_CORRECCION[0][4])
+
+
+def _conformal():
+    """Carga `ds02_rul.conformal` sin ejecutar el `__init__` (importa Keras)."""
+    import types
+
+    if "ds02_rul" not in sys.modules:
+        paquete = types.ModuleType("ds02_rul")
+        paquete.__path__ = [os.path.join(ROOT, "src", "ds02_rul")]
+        sys.modules["ds02_rul"] = paquete
+    from ds02_rul import conformal
+
+    return conformal
+
+
+@needs_cache
+def test_la_cobertura_en_test_es_total():
+    """Sobre las 6 196 ventanas corregidas, la verdad cae dentro de la banda."""
+    corregido = UR.corregir_ventanas(L.get_windows())
+    assert len(corregido) == 6196
+    cobertura = _conformal().empirical_coverage(
+        corregido["y_true"].to_numpy(),
+        corregido["lower"].to_numpy(),
+        corregido["upper"].to_numpy(),
+    )
+    assert cobertura == 1.0
+
+
+@needs_cache
+def test_el_interruptor_arranca_apagado():
+    """Una sesión nueva muestra la lectura cruda, sin tocar el interruptor."""
+    from streamlit.testing.v1 import AppTest
+
+    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=180)
+    app.run()
+    assert not app.exception, app.exception
+    assert app.toggle, "el interruptor de corrección tiene que existir"
+    assert app.toggle[0].value is False
     assert len(app.tabs) == 5
 
 

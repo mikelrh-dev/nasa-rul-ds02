@@ -4,8 +4,8 @@ Los casos de estado salen de la particion de test congelada: la ventana que
 termina en `(unidad, ciclo)` se corta de la cache de telemetria
 (`app/cache/ds02_rows.parquet`) y el historial son las ventanas anteriores de
 esa misma unidad (`app/cache/ds02_windows.parquet`), en orden de ciclo. El
-historial es lo que hace posible la regla de monotonía: sin pasado no hay
-restriccion que imponer.
+historial es lo que hace posible la corrección isotónica causal: sin pasado no
+hay tendencia que imponer.
 
 El caso de seguridad es sintetico a proposito: lleva un dato imposible y un
 punto valido, de modo que si la regla de seguridad no ganara, las de estado

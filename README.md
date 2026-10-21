@@ -225,6 +225,48 @@ rul = ensemble.predict(raw_windows, cycles, units)   # (n, 50, 18) -> (n,)
 
 ---
 
+## Rules layer — opt-in correction (`mia/`)
+
+Two passes over an existing prediction: **correction** (R2b, R6) then
+**decision** (R1, R7, R8, R9). It is post-processing — no retraining, no refit,
+nothing written under `models/`.
+
+| Rule | Pass | Priority | Effect |
+| --- | --- | --- | --- |
+| `R2b_ISOTONICO_CAUSAL` | correction | 2 | corrected point: extremum of the causal prefix fit |
+| `R6_BANDA` | correction | 1 | band recalibrated over the corrected point |
+| `R1_SEGURIDAD` | decision | 10 | `SIN_DECISION` when the datum is impossible |
+| `R9_HANGAR` | decision | 3 | `L_inf < 25` → `HANGAR` |
+| `R8_INSPECCION` | decision | 2 | `25 <= L_inf < 30` → `INSPECCION` |
+| `R7_APTO` | decision | 1 | `L_inf >= 30` → `APTO` |
+
+**The toggle is off by default.** Off is the cached reading, the one that
+reproduces `models/ds02_manifest.json` (RMSE 4.289 / MAE 3.179 / R² 0.9473 /
+NASA 2310.6 over the 6 196 windows). On shows the corrected point and the
+recalibrated band; the raw values stay in `pred_enviada`, `lower_enviada` and
+`upper_enviada`, so both readings remain available.
+
+**R2b is an isotonic fit, not a monotonicity rule**
+([ADR-009](docs/decisions/ADR-009-r2b-is-an-isotonic-fit-not-a-monotonicity-rule.md)).
+The prefix fit is non-increasing; the returned series can rise, by up to
+**+1.328848** cycles. Forcing strict monotonicity collapses the rule to R2:
+10.737 / 21053.0 OOF against 9.623 / 18713.9 for R2b.
+
+The calibration is frozen: **14 915** pure OOF rows (units 2, 5, 10, 18, 20;
+unit 16 excluded as in-sample), coverage **0.9012** OOF and **1.0000** on the
+test panel, with the point inside its band on all 6 196 windows.
+
+Re-check it — the figures are recomputed from `_p1_oof_cache.npz`, not quoted:
+
+```bash
+python scripts/freeze_rules_evidence.py
+```
+
+It prints the monotonicity table and exits non-zero on drift; the measurement is
+written up in [`INFORME_reglas_oof.md` §13](INFORME_reglas_oof.md).
+
+---
+
 ## Reproduce
 
 ```bash
@@ -250,8 +292,9 @@ regenerate; never hand-edit the `.ipynb`.
 FD001-era scripts whose names match pytest's default globs
 (`recalcular_test.py`, `test_fixed_pipeline.py`, `test_lstm_clean.py`,
 `test_xgb_rolling.py`). They run a full pipeline at import time — and the FD001
-loader clamps at 125 cycles, which the DS02 path must never do — so they are
-scripts, not tests, and a bare `pytest` collects only the real suite (11 tests).
+loader clamps at 125 cycles, which the DS02 path must never do —so they are scripts, not tests, and a bare `pytest` collects only the real suite.
+Run it with `python -m pytest tests -q`; the count is not written here because it
+changes with every change.
 
 ---
 
@@ -261,7 +304,7 @@ scripts, not tests, and a bare `pytest` collects only the real suite (11 tests).
 src/ds02_rul/          importable pipeline (pooling, residualizer, ensemble, stacking, persistence)
 scripts/               builder, migration, ablation, CLI, probes
 app/                   FastAPI service, Streamlit dashboards, live-evaluation seam
-tests/                 artifact contract tests (10)
+tests/                 pytest suite: artifact contract, DSS, rules layer
 openspec/              SDD: deployed spec, change proposal, tasks
 models/                artifacts + manifest + ablation results
 02_DS02_ensemble_RUL.ipynb   executed notebook (generated)

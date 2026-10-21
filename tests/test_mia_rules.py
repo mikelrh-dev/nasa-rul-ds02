@@ -4,7 +4,7 @@ Se comprueban cuatro cosas:
 
 1. la forma del motor (tuplas de cinco y retorno `decision`/`usadas`/`porque`);
 2. que los casos de `mia/casos.py` salen todos en BIEN;
-3. que la corrección es causal, monótona y no rompe el invariante de la banda;
+3. que la corrección es causal, isotónica en el prefijo y no rompe el invariante de la banda;
 4. que la calibración congelada es la que dice ser (14 915 filas, sin unidad 16).
 
 Run:  python -m pytest tests -q
