@@ -1,0 +1,180 @@
+{
+  "format_version": 1,
+  "generated_at": "2026-10-21T17:02:52+00:00",
+  "dataset": "DS02",
+  "source": {
+    "h5": "archive/CCMaps/N-CMAPSS_DS02-006.h5",
+    "stride": 100,
+    "window": 50,
+    "step": 2,
+    "op_names": [
+      "alt",
+      "Mach",
+      "TRA",
+      "T2"
+    ],
+    "sensor_names": [
+      "T24",
+      "T30",
+      "T48",
+      "T50",
+      "P15",
+      "P2",
+      "P21",
+      "P24",
+      "Ps30",
+      "P40",
+      "P50",
+      "Nf",
+      "Nc",
+      "Wf"
+    ]
+  },
+  "artifact": {
+    "ensemble": "models\\ensemble.joblib",
+    "ensemble_sha256": "0acd795b0906389d46b7dc433249438e15b3ee899b1a5bc2cbd8624a6fe6d502",
+    "manifest": "models\\ds02_manifest.json",
+    "manifest_sha256": "051e0af40613e09ff87aeccb1209e8b1fe10b99800c73277b0c79dc301a65332",
+    "paradigm": "Hybrid Stacking (BiLSTM triple-pooling + LGBM residualizado + RidgeCV/LGBM meta + EMA5)",
+    "beta": 1.0,
+    "ema_span": 5,
+    "conformal_target_coverage": 0.9
+  },
+  "counts": {
+    "windows": 6196,
+    "rows": 12538,
+    "units": {
+      "11": {
+        "rows": 6635,
+        "windows": 3293,
+        "first_cycle": 1,
+        "last_cycle": 59,
+        "rows_per_cycle": 112.46,
+        "density_vs_fit": 0.951
+      },
+      "14": {
+        "rows": 1568,
+        "windows": 760,
+        "first_cycle": 1,
+        "last_cycle": 76,
+        "rows_per_cycle": 20.63,
+        "density_vs_fit": 0.175
+      },
+      "15": {
+        "rows": 4335,
+        "windows": 2143,
+        "first_cycle": 1,
+        "last_cycle": 67,
+        "rows_per_cycle": 64.7,
+        "density_vs_fit": 0.547
+      }
+    },
+    "fit_engine_rows_per_cycle": 118.23
+  },
+  "metrics": {
+    "rmse": 4.2892,
+    "mae": 3.1792,
+    "macro_rmse": 4.9026,
+    "per_unit_rmse": {
+      "11.0": 3.7728,
+      "14.0": 8.175,
+      "15.0": 2.76
+    },
+    "per_unit": {
+      "11": {
+        "windows": 3293,
+        "rmse": 3.773,
+        "mae": 3.096,
+        "bias": 3.0637,
+        "mae_by_band": {
+          "[0, 25)": {
+            "windows": 1429,
+            "mae": 1.2615
+          },
+          "[25, 50)": {
+            "windows": 1359,
+            "mae": 4.9293
+          },
+          "[50, 75)": {
+            "windows": 505,
+            "mae": 3.3551
+          },
+          "[75, inf)": {
+            "windows": 0,
+            "mae": null
+          }
+        }
+      },
+      "14": {
+        "windows": 760,
+        "rmse": 8.175,
+        "mae": 6.134,
+        "bias": -5.144,
+        "mae_by_band": {
+          "[0, 25)": {
+            "windows": 273,
+            "mae": 1.2919
+          },
+          "[25, 50)": {
+            "windows": 233,
+            "mae": 4.3708
+          },
+          "[50, 75)": {
+            "windows": 254,
+            "mae": 12.9563
+          },
+          "[75, inf)": {
+            "windows": 0,
+            "mae": null
+          }
+        }
+      },
+      "15": {
+        "windows": 2143,
+        "rmse": 2.76,
+        "mae": 2.259,
+        "bias": -2.201,
+        "mae_by_band": {
+          "[0, 25)": {
+            "windows": 819,
+            "mae": 0.8504
+          },
+          "[25, 50)": {
+            "windows": 810,
+            "mae": 2.8009
+          },
+          "[50, 75)": {
+            "windows": 514,
+            "mae": 3.6488
+          },
+          "[75, inf)": {
+            "windows": 0,
+            "mae": null
+          }
+        }
+      }
+    },
+    "mae_by_band": {
+      "[0, 25)": {
+        "windows": 2521,
+        "mae": 1.1312
+      },
+      "[25, 50)": {
+        "windows": 2402,
+        "mae": 4.1574
+      },
+      "[50, 75)": {
+        "windows": 1273,
+        "mae": 5.3894
+      },
+      "[75, inf)": {
+        "windows": 0,
+        "mae": null
+      }
+    }
+  },
+  "defaults": {
+    "threshold_airworthy": 30.0,
+    "threshold_aog": 25.0
+  }
+}

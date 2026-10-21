@@ -1,0 +1,168 @@
+"""Reglas del motor (MIA). Dos pasadas: corrección (B) y decisión (A).
+
+Cada regla es una tupla de cinco datos, siempre en este orden:
+
+    (nombre, condicion, efecto, prioridad, porque)
+
+* `condicion(caso) -> bool` — ¿se cumple?
+* `efecto` — diccionario de campos a escribir en la ficha, o una función
+  `caso -> dict` cuando el efecto se calcula (las reglas de corrección).
+* `prioridad` — gana la de número más alto; se aplica una sola vez por pasada.
+* `porque` — frase corta que explica la regla a quien pregunte.
+
+Los números `R2b` y `R6` conservan la numeración del informe de medición
+(`INFORME_reglas_oof.md`); `R1` es la regla de seguridad y `R7/R8/R9` son los
+umbrales conformales 30/25 documentados en ADR-008.
+"""
+from __future__ import annotations
+
+import json
+import os
+
+import numpy as np
+
+CALIBRACION_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "calibracion_banda.json")
+
+APTO = "APTO"
+INSPECCION = "INSPECCION"
+HANGAR = "HANGAR"
+SIN_DECISION = "SIN_DECISION"
+
+_calibracion = None
+
+
+# ------------------------------------------------------------------ helpers
+def cargar_calibracion() -> dict:
+    """Banda recalibrada sobre el punto corregido (14 915 filas OOF puras)."""
+    global _calibracion
+    if _calibracion is None:
+        with open(CALIBRACION_PATH, encoding="utf-8") as fh:
+            _calibracion = json.load(fh)
+    return _calibracion
+
+
+def pava_causal_no_creciente(serie) -> np.ndarray:
+    """Ajuste isotonico no creciente de cada prefijo (PAVA en linea).
+
+    El valor en la posición `t` depende solo de las posiciones `<= t`, asi que la
+    correccion es estrictamente causal: ninguna prediccion mira hacia delante.
+    """
+    valores: list[float] = []
+    pesos: list[float] = []
+    out = np.empty(len(serie), dtype=np.float64)
+    for i, v in enumerate(np.asarray(serie, dtype=np.float64)):
+        valores.append(float(v))
+        pesos.append(1.0)
+        while len(valores) >= 2 and valores[-2] < valores[-1]:
+            v2, w2 = valores.pop(), pesos.pop()
+            v1, w1 = valores.pop(), pesos.pop()
+            valores.append((v1 * w1 + v2 * w2) / (w1 + w2))
+            pesos.append(w1 + w2)
+        out[i] = valores[-1]
+    return out
+
+
+def _indice_tramo(punto: float, edges) -> int:
+    edges = np.asarray(edges, dtype=np.float64)
+    return int(np.clip(np.searchsorted(edges, punto, side="right") - 1,
+                       0, len(edges) - 2))
+
+
+def banda_recalibrada(punto: float, calibracion: dict) -> tuple[float, float]:
+    """Banda sobre el punto corregido, con los cuantiles de la recalibracion.
+
+    Los bordes no cruzan el punto y el inferior no baja de cero, igual que la
+    banda enviada: un intervalo que excluyera a su propio centro seria un bug.
+    """
+    tramo = calibracion["bins"][_indice_tramo(punto, calibracion["edges"])]
+    lower = float(punto) + float(tramo["q_low"])
+    upper = float(punto) + float(tramo["q_high"])
+    lower = min(lower, punto)
+    upper = max(upper, punto)
+    if punto >= 0.0:
+        lower = max(lower, 0.0)
+    return lower, upper
+
+
+def _datos_validos(caso: dict) -> bool:
+    return not caso.get("alertas_datos")
+
+
+# ------------------------------------------------- pasada B: correccion
+def si_R2b_MONOTONIA(caso: dict) -> bool:
+    """Hay historial de la misma unidad y un punto que corregir."""
+    return bool(caso.get("historial")) and "rul_punto" in caso
+
+
+def efecto_R2b_MONOTONIA(caso: dict) -> dict:
+    """Aplica la monotonía causal al historial + el punto actual."""
+    serie = [float(r) for _, r in caso["historial"]] + [float(caso["rul_punto"])]
+    corregido = float(pava_causal_no_creciente(serie)[-1])
+    return {"rul_punto": corregido, "corregido_por_monotonia": True}
+
+
+def si_R6_BANDA(caso: dict) -> bool:
+    """Hay punto (corregido o no) al que trasladar la banda."""
+    return "rul_punto" in caso
+
+
+def efecto_R6_BANDA(caso: dict) -> dict:
+    """Recalibra la banda sobre el punto corregido."""
+    lower, upper = banda_recalibrada(float(caso["rul_punto"]), cargar_calibracion())
+    return {
+        "limite_inferior": lower,
+        "limite_superior": upper,
+        "banda_recalibrada": True,
+    }
+
+
+# -------------------------------------------------- pasada A: decision
+def si_R1_SEGURIDAD(caso: dict) -> bool:
+    """Un dato imposible invalida la decision, tenga el riesgo que tenga."""
+    return bool(caso.get("alertas_datos"))
+
+
+def efecto_R1_SEGURIDAD(caso: dict) -> dict:
+    motivo = "; ".join(str(a) for a in caso["alertas_datos"])
+    return {
+        "decision": SIN_DECISION,
+        "motivo": f"dato imposible, no se decide: {motivo}",
+    }
+
+
+def si_R7_APTO(caso: dict) -> bool:
+    return _datos_validos(caso) and caso["limite_inferior"] >= caso["umbrales"]["apto"]
+
+
+def si_R8_INSPECCION(caso: dict) -> bool:
+    if not _datos_validos(caso):
+        return False
+    u = caso["umbrales"]
+    return u["hangar"] <= caso["limite_inferior"] < u["apto"]
+
+
+def si_R9_HANGAR(caso: dict) -> bool:
+    return _datos_validos(caso) and caso["limite_inferior"] < caso["umbrales"]["hangar"]
+
+
+# ------------------------------------------------------------- las listas
+REGLAS_CORRECCION = [
+    ("R2b_MONOTONIA", si_R2b_MONOTONIA, efecto_R2b_MONOTONIA, 2,
+     "el desgaste es monotono: la RUL de una unidad no crece con el ciclo"),
+    ("R6_BANDA", si_R6_BANDA, efecto_R6_BANDA, 1,
+     "la banda se recalibra sobre el punto ya corregido, no sobre el crudo"),
+]
+
+REGLAS_DECISION = [
+    ("R1_SEGURIDAD", si_R1_SEGURIDAD, efecto_R1_SEGURIDAD, 10,
+     "con un dato imposible no se decide nada, tenga el riesgo que tenga"),
+    ("R9_HANGAR", si_R9_HANGAR, {"decision": HANGAR}, 3,
+     "L_inf por debajo del umbral de hangar: la unidad no vuela"),
+    ("R8_INSPECCION", si_R8_INSPECCION, {"decision": INSPECCION}, 2,
+     "L_inf entre los dos umbrales: inspeccion programada"),
+    ("R7_APTO", si_R7_APTO, {"decision": APTO}, 1,
+     "L_inf por encima del umbral de apto: sigue en servicio"),
+]
+
+reglas = REGLAS_CORRECCION + REGLAS_DECISION
