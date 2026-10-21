@@ -45,8 +45,18 @@ def cargar_calibracion() -> dict:
 def pava_causal_no_creciente(serie) -> np.ndarray:
     """Ajuste isotonico no creciente de cada prefijo (PAVA en linea).
 
-    El valor en la posición `t` depende solo de las posiciones `<= t`, asi que la
-    correccion es estrictamente causal: ninguna prediccion mira hacia delante.
+    Devuelve, para cada posicion `t`, el valor del extremo del ajuste monotono
+    del prefijo `1..t`. Dos propiedades y una limitacion, dichas sin rodeos:
+
+    * **Es causal**: el valor en `t` depende solo de las posiciones `<= t`.
+    * **El ajuste de cada prefijo es no creciente**: la tendencia estimada no
+      sube con el ciclo, que es la restriccion fisica del desgaste.
+    * **La secuencia devuelta NO es estrictamente no creciente**: el extremo del
+      ajuste puede subir unos decimos cuando llega un punto alto. La envolvente
+      estrictamente monótona de esta secuencia es, por identidad,
+      `np.minimum.accumulate(serie)` — es decir, exactamente la regla R2
+      (running-min) que se midio y se descarto. Asi que si lo que se quiere es
+      monotonia estricta, la regla es R2 y no esta.
     """
     valores: list[float] = []
     pesos: list[float] = []
@@ -69,20 +79,27 @@ def _indice_tramo(punto: float, edges) -> int:
                        0, len(edges) - 2))
 
 
-def banda_recalibrada(punto: float, calibracion: dict) -> tuple[float, float]:
-    """Banda sobre el punto corregido, con los cuantiles de la recalibracion.
+def banda_recalibrada_vector(puntos, calibracion: dict) -> tuple[np.ndarray, np.ndarray]:
+    """Vectoriza `banda_recalibrada` para un array de puntos.
 
     Los bordes no cruzan el punto y el inferior no baja de cero, igual que la
     banda enviada: un intervalo que excluyera a su propio centro seria un bug.
     """
-    tramo = calibracion["bins"][_indice_tramo(punto, calibracion["edges"])]
-    lower = float(punto) + float(tramo["q_low"])
-    upper = float(punto) + float(tramo["q_high"])
-    lower = min(lower, punto)
-    upper = max(upper, punto)
-    if punto >= 0.0:
-        lower = max(lower, 0.0)
+    puntos = np.asarray(puntos, dtype=np.float64).ravel()
+    edges = np.asarray(calibracion["edges"], dtype=np.float64)
+    idx = np.clip(np.searchsorted(edges, puntos, side="right") - 1, 0, len(edges) - 2)
+    q_low = np.asarray([b["q_low"] for b in calibracion["bins"]], dtype=np.float64)[idx]
+    q_high = np.asarray([b["q_high"] for b in calibracion["bins"]], dtype=np.float64)[idx]
+    lower = np.minimum(puntos + q_low, puntos)
+    upper = np.maximum(puntos + q_high, puntos)
+    lower = np.where(puntos >= 0.0, np.clip(lower, 0.0, None), lower)
     return lower, upper
+
+
+def banda_recalibrada(punto: float, calibracion: dict) -> tuple[float, float]:
+    """Banda sobre un unico punto, con los cuantiles de la recalibracion."""
+    lower, upper = banda_recalibrada_vector([punto], calibracion)
+    return float(lower[0]), float(upper[0])
 
 
 def _datos_validos(caso: dict) -> bool:
@@ -90,16 +107,16 @@ def _datos_validos(caso: dict) -> bool:
 
 
 # ------------------------------------------------- pasada B: correccion
-def si_R2b_MONOTONIA(caso: dict) -> bool:
+def si_R2b_ISOTONICO(caso: dict) -> bool:
     """Hay historial de la misma unidad y un punto que corregir."""
     return bool(caso.get("historial")) and "rul_punto" in caso
 
 
-def efecto_R2b_MONOTONIA(caso: dict) -> dict:
-    """Aplica la monotonía causal al historial + el punto actual."""
+def efecto_R2b_ISOTONICO(caso: dict) -> dict:
+    """Sustituye el punto por el extremo del ajuste isotonico del prefijo."""
     serie = [float(r) for _, r in caso["historial"]] + [float(caso["rul_punto"])]
     corregido = float(pava_causal_no_creciente(serie)[-1])
-    return {"rul_punto": corregido, "corregido_por_monotonia": True}
+    return {"rul_punto": corregido, "corregido_por_isotonico": True}
 
 
 def si_R6_BANDA(caso: dict) -> bool:
@@ -148,8 +165,9 @@ def si_R9_HANGAR(caso: dict) -> bool:
 
 # ------------------------------------------------------------- las listas
 REGLAS_CORRECCION = [
-    ("R2b_MONOTONIA", si_R2b_MONOTONIA, efecto_R2b_MONOTONIA, 2,
-     "el desgaste es monotono: la RUL de una unidad no crece con el ciclo"),
+    ("R2b_ISOTONICO_CAUSAL", si_R2b_ISOTONICO, efecto_R2b_ISOTONICO, 2,
+     "la tendencia del desgaste no sube con el ciclo: se toma el extremo del "
+     "ajuste isotonico causal del historial"),
     ("R6_BANDA", si_R6_BANDA, efecto_R6_BANDA, 1,
      "la banda se recalibra sobre el punto ya corregido, no sobre el crudo"),
 ]

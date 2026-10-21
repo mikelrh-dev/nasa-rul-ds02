@@ -3,8 +3,8 @@
 Dos familias de reglas (medidas en `INFORME_reglas_oof.md`):
 
 * **Corrección (pasada B)** — modifican el número antes de evaluarlo:
-  `R2b_MONOTONIA` (PAVA causal no creciente) y `R6_BANDA` (recalibrado de la
-  banda conformal sobre el punto corregido).
+  `R2b_ISOTONICO_CAUSAL` (ajuste isotonico causal del historial) y `R6_BANDA`
+  (recalibrado de la banda conformal sobre el punto corregido).
 * **Decisión (pasada A)** — traducen el número en una acción:
   `R1_SEGURIDAD` (dato imposible → no decidir) y los umbrales conformales
   30/25 de ADR-008 (`R7_APTO`, `R8_INSPECCION`, `R9_HANGAR`).
