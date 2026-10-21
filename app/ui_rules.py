@@ -48,7 +48,7 @@ def corregir_ventanas(windows: pd.DataFrame) -> pd.DataFrame:
     for unit in frame["unit"].unique():
         mascara = (frame["unit"] == unit).to_numpy()
         sub = frame.loc[mascara]
-        # Orden lexicografico por (ciclo, start_index): la monotonía es causal.
+        # Orden lexicografico por (ciclo, start_index): asi el ajuste es causal.
         orden = np.lexsort((sub["start_index"].to_numpy(), sub["cycle"].to_numpy()))
         serie = sub["pred"].to_numpy(dtype=np.float64)[orden]
         posiciones = sub.index.to_numpy()[orden]
@@ -59,7 +59,7 @@ def corregir_ventanas(windows: pd.DataFrame) -> pd.DataFrame:
     frame["lower"] = lower
     frame["upper"] = upper
     frame["corregida"] = True
-    frame["correccion"] = "R2b monotonía causal + R6 banda recalibrada"
+    frame["correccion"] = "R2b isotonico causal + R6 banda recalibrada"
     return frame
 
 
