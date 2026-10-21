@@ -18,6 +18,30 @@ def calculate_nasa_score(y_true, y_pred) -> float:
     return float(np.sum(score))
 
 
+def macro_rmse(y_true, y_pred, units) -> dict:
+    """Mean of the per-engine RMSEs, each engine weighing 1/n regardless of size.
+
+    The window-weighted RMSE is dominated by the engine with the most windows.
+    Reporting both is the point: on DS02 the weighted figure (4.26) is kinder
+    than the macro one (4.88) because the worst engine is also the smallest.
+    """
+    y_true = np.asarray(y_true, dtype=np.float64).ravel()
+    y_pred = np.asarray(y_pred, dtype=np.float64).ravel()
+    units = np.asarray(units).ravel()
+    per_unit = {}
+    for unit in np.unique(units):
+        mask = units == unit
+        per_unit[float(unit)] = round(
+            float(np.sqrt(np.mean((y_true[mask] - y_pred[mask]) ** 2))), 4
+        )
+    values = list(per_unit.values())
+    return {
+        "per_unit_rmse": per_unit,
+        "macro_rmse": round(float(np.mean(values)), 4) if values else None,
+        "n_units": len(values),
+    }
+
+
 def evaluate_predictions(y_true, y_pred, model_name: str = "Modelo") -> dict:
     """Return RMSE / MAE / R2 / NASA as a flat dict, rounded for display."""
     return {

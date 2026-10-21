@@ -126,12 +126,14 @@ differently and SHALL NOT be summed twice.
 - THEN its length is exactly 93
 - AND the train and test tabular matrices have shapes `(17450, 93)` and `(6196, 93)`
 
-#### Scenario: Cycle is a first-class predictor
+#### Scenario: Cycle is a first-class predictor in the base models only
 
 - GIVEN the accumulated cycle of the window's last row
 - WHEN `cyc_norm` is computed
 - THEN it is `cycle / 100.0`
-- AND the same value is supplied to the meta-learner as its third meta-feature
+- AND it is supplied to both base models — as channel 19 of the BiLSTM sequence and as
+  feature 93 of the tabular summary
+- AND it is **not** supplied to the meta-learner, whose design is `[pred_lstm, pred_lgb]`
 
 ### Requirement: LightGBM quantile contract
 
@@ -206,7 +208,7 @@ producing train `(17450, 50, 19)` and test `(6196, 50, 19)`.
 
 ### Requirement: Out-of-sample stacking contract
 
-The capability SHALL build meta-features `Z = [pred_lstm, pred_lgb, cyc_norm]` and SHALL fit
+The capability SHALL build meta-features `Z = [pred_lstm, pred_lgb]` and SHALL fit
 two meta-learners on the validation holdout rows:
 
 - a `RidgeCV(alphas=np.logspace(-2, 3, 20))`
@@ -219,11 +221,19 @@ The out-of-sample property SHALL hold for the **base models**: unit 16 SHALL nev
 the fitting data of the BiLSTM or the standalone LightGBM, so its predictions are genuine
 out-of-fold predictions. The property SHALL NOT be claimed for the meta-learner fit itself.
 
-#### Scenario: Meta-features are the two predictions plus cycle
+`cyc_norm` SHALL be offered to both base models — channel 19 of the BiLSTM sequence and
+feature 93 of the LightGBM tabular summary — because a fleet does know how many cycles an
+engine has flown. It SHALL NOT be offered to the stacking layer: when it was, the meta-learner
+put ~100 % of its weight on it (ridge coef `[0.0019, 0.0124, -98.4065]`, LightGBM importances
+`[0, 0, 720]`) and discarded both base models, so the "ensemble" was reading a counter. That
+shortcut is also what made the hybrid's seed spread collapse to ±0.001 RMSE.
+
+#### Scenario: Meta-features are the two predictions
 
 - GIVEN validation predictions from both base models
 - WHEN `Z` is assembled
-- THEN it has exactly three columns, in the order `[pred_lstm, pred_lgb, cyc_norm]`
+- THEN it has exactly two columns, in the order `[pred_lstm, pred_lgb]`
+- AND `cyc_norm` is not among them
 
 #### Scenario: Meta prediction is an equal blend
 
@@ -357,6 +367,64 @@ Two properties SHALL be preserved and stated wherever the metric is used:
 - GIVEN DS02 test targets above 125 cycles
 - WHEN metrics are computed
 - THEN the targets are used unmodified
+
+### Requirement: Per-engine metric
+
+The capability SHALL report a macro-RMSE — the unweighted mean of the per-engine RMSEs —
+alongside the window-weighted RMSE, and SHALL record both in the artifact manifest. Each test
+engine SHALL weigh `1/3` regardless of how many windows it contributes.
+
+The two figures answer different questions: the weighted one describes the scored rows, the
+macro one describes a randomly chosen engine.
+
+#### Scenario: Both figures are reported
+
+- GIVEN predictions over test units 11, 14 and 15
+- WHEN the metrics are reported
+- THEN the macro-RMSE is the arithmetic mean of the three per-engine RMSEs
+- AND the window-weighted RMSE is printed next to it
+- AND `manifest["macro_rmse"]` holds `per_unit_rmse`, `macro_rmse` and `n_units`
+
+#### Scenario: The gap is disclosed, not smoothed
+
+- GIVEN an engine with few windows and large error
+- WHEN the two figures differ
+- THEN the difference is reported
+- AND the per-engine table is shown so the cause is visible
+
+### Requirement: Calibrated prediction interval
+
+The capability SHALL expose a prediction band via `predict_interval(X, cycles, units) ->
+(point, lower, upper)`, calibrated by split conformal with **asymmetric** quantiles per bin of
+predicted RUL (the NASA penalty is asymmetric too).
+
+The calibration rows SHALL be out-of-fold with respect to the meta-learner: every row scored
+by a meta fitted on the other engines. `predict()` SHALL keep its signature and its point
+estimate unchanged.
+
+Realised coverage SHALL be reported per engine, together with the fraction of truths above the
+upper bound. A band that reaches its nominal coverage by being arbitrarily wide SHALL be
+described as a bound rather than an interval.
+
+#### Scenario: Band brackets the point estimate
+
+- GIVEN a bundle carrying a conformal calibration
+- WHEN `predict_interval` is called
+- THEN `lower <= point <= upper` for every row
+- AND `lower >= 0`
+
+#### Scenario: Point API is untouched
+
+- GIVEN the same bundle
+- WHEN `predict(X, cycles, units)` is called
+- THEN it returns exactly the same point estimates as before the band existed
+- AND the API and dashboard call sites require no change
+
+#### Scenario: Calibration provenance is recorded
+
+- GIVEN a saved bundle
+- WHEN the manifest is read
+- THEN `conformal.n_calibration`, `conformal.target_coverage` and the per-bin quantiles are present
 
 ### Requirement: Artifact persistence and reload
 

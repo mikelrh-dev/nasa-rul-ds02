@@ -36,8 +36,8 @@ The base models are fit on units **2, 5, 10, 18 and 20** only. Units **11, 14 an
 
 ### Grouped K-fold out-of-fold predictions over all six dev units
 - Pros: the textbook answer; every dev row gets an out-of-sample base prediction, the meta-learner trains on far more data, and the `beta` selection becomes honest because the meta-predictions used for scoring are out-of-sample.
-- Cons: 5 folds x a BiLSTM is not affordable on the CPU-only budget this project runs on. The recorded probes already contain a compute-starved run in which a **single epoch took 1 553 s**, and `scripts/probe_variants2.py` was truncated for the same reason.
-- Rejected on cost — but it is the correct long-term answer, and it is the remediation for the defect recorded below.
+- Cons: 5 folds x a BiLSTM is expensive on the CPU-only budget this project runs on. The recorded probes contain a compute-starved run in which a **single epoch took 1 553 s**.
+- **Measured in 2026-10-21 and rejected on the result, not on cost.** The three-fold OOF vector already exists and costs nothing extra to reuse, so the experiment was run: fitting the meta on the 14 915 out-of-fold windows of the five fit engines made it predict a mean of 39.9 on unit 16 against a true 31.5, and test RMSE grew monotonically with `beta` (4.04 at 0 → 10.17 at 1). The dev engines outlive the test engines, so the pooled fit learns a level prior that does not transfer. The `beta` selection it enables is honest, but a `beta` selected over a meta that cannot be trusted simply collapses to 0 and the ensemble is lost. Record: `INFORME_motor16_vs_oof.md`.
 
 ### A temporal split of the cycles
 - Pros: no unit is held out, so every unit contributes to training.
@@ -57,7 +57,7 @@ The base models are fit on units **2, 5, 10, 18 and 20** only. Units **11, 14 an
 ## Consequences
 
 - Unit 16 is unavailable for base-model hyper-parameter search. The base models are early-stopped on the same unit they are later stacked on, which is the coupling that makes the `beta` selection in-sample.
-- The meta-learner sees only 2 535 rows, which is why its capacity is deliberately low: `RidgeCV(alphas=np.logspace(-2, 3, 20))` plus `LGBMRegressor(max_depth=3, num_leaves=7, n_estimators=120, learning_rate=0.03, min_child_samples=20)`, averaged 50/50.
+- The meta-learner sees only 2 535 rows and is fitted on the same unit that early-stops the BiLSTM. That coupling is a known cost, but pooling engines to escape it was measured to be worse (see the out-of-fold alternative above). Its capacity is deliberately low: `RidgeCV(alphas=np.logspace(-2, 3, 20))` plus `LGBMRegressor(max_depth=3, num_leaves=7, n_estimators=120, learning_rate=0.03, min_child_samples=20)`, averaged 50/50.
 - **Recorded defect — `beta` is selected in-sample.** Because the meta-learner is fit on unit 16 and the `beta` grid is scored on those same unit-16 rows, the meta-prediction used for scoring is the meta-learner's own fit. The signature is visible in the recorded output:
 
   | `beta` | validation RMSE | validation NASA | criterion |

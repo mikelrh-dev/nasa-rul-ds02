@@ -60,12 +60,20 @@ def build_manifest(ensemble, metrics: dict, seed: int, dataset: str = "DS02", **
             "lgb_n_features": int(ensemble.lgb_standalone.n_features_in_),
             "bilstm_input_shape": [d if d is not None else None for d in model.input_shape],
             "bilstm_params": int(model.count_params()),
+            # The meta-learner's width is the whole point of the cycle-ablation
+            # revision: 2 columns means [p_lstm, p_lgb], 3 means the clock is back.
+            "meta_features": int(ensemble.ridge_meta.n_features_in_),
         },
+        # The calibrated prediction band travels with the bundle. The rows that
+        # taught the meta-learner are recorded separately as `meta_protocol`,
+        # which the notebook passes in.
+        "conformal": getattr(ensemble, "conformal", None),
         "inference_contract": {
             "window_size": int(ensemble.window_size),
             "beta": float(ensemble.beta),
             "ema_span": int(ensemble.ema_span),
             "cycle_channel": bool(model.input_shape[-1] == EXPECTED_N_FEATURES + 1),
+            "meta_features": int(ensemble.ridge_meta.n_features_in_),
         },
         "scaler_fingerprint_mean_first4": [round(float(v), 4) for v in ensemble.scaler.mean_[:4]],
         "metrics": metrics,

@@ -30,7 +30,12 @@ class HybridStackingEnsemble:
     lgb_standalone : lightgbm.LGBMRegressor
         Tabular branch over the 92/93-column window summary.
     ridge_meta, lgb_meta : estimators
-        Meta-learners over `[pred_lstm, pred_lgb, cyc_norm]`.
+        Meta-learners over `[pred_lstm, pred_lgb]`. The clock is deliberately not
+        offered to this layer: with `cyc_norm` available it carried ~100 % of
+        the weight and the "ensemble" was reading a counter.
+    conformal : dict or None
+        Calibrated prediction band (see `ds02_rul.conformal`). When present,
+        `predict_interval` returns `(point, lower, upper)`.
     residualizer : SensorResidualizer
     scaler : sklearn.preprocessing.StandardScaler
         Fitted on the 18 raw channels.
@@ -56,6 +61,7 @@ class HybridStackingEnsemble:
         ema_span: int = 5,
         bilstm_path: str | None = None,
         paradigm: str = PARADIGM,
+        conformal: dict | None = None,
     ):
         self.bilstm_model = bilstm_model
         self.lgb_standalone = lgb_standalone
@@ -70,6 +76,7 @@ class HybridStackingEnsemble:
         self.ema_span = int(ema_span)
         self.bilstm_path = bilstm_path
         self.paradigm = paradigm
+        self.conformal = conformal
 
     # ------------------------------------------------------------------ model
     def _resolve_model(self):
@@ -150,6 +157,24 @@ class HybridStackingEnsemble:
         p_raw = p_lstm + self.beta * (p_meta - p_lstm)
         p = causal_ema_by_unit(p_raw, units, cycles, span=self.ema_span)
         return np.clip(p, 0.0, None)
+
+    def predict_interval(self, X_raw_windows, cycles, units=None):
+        """Point prediction plus its calibrated band.
+
+        Separate from `predict` on purpose: the point-estimate contract used by
+        the API and the tests stays byte-for-byte what it was, and a caller that
+        wants uncertainty opts in.
+        """
+        from .conformal import apply_conformal
+
+        if self.conformal is None:
+            raise RuntimeError(
+                "this bundle has no conformal calibration; rebuild it with "
+                "conformal=fit_conformal(...) or call predict() for the point estimate"
+            )
+        point = self.predict(X_raw_windows, cycles, units)
+        lower, upper = apply_conformal(point, self.conformal)
+        return point, lower, upper
 
     # --------------------------------------------------------------- internals
     def _sequence(self, X_scaled: np.ndarray, cycles: np.ndarray, input_shape) -> np.ndarray:

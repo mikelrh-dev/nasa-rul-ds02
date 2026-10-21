@@ -36,7 +36,9 @@ Retain **LightGBM** (gradient-boosted trees, leaf-wise growth) as the tabular br
 
 Their errors are therefore only partially correlated, which is the precondition for stacking to help at all: a convex average needs *negative* error correlation to beat its best component (ADR-001), and a learned meta-learner needs the two branches to make *different* mistakes.
 
-`RidgeCV` is used as the meta-learner rather than a GBDT because the meta-learning set is small — 2 535 unit-16 windows — and the meta-features are only three-dimensional. A regularised linear model is the lowest-variance estimator that can combine two predictions plus a covariate without memorising the holdout. The audit confirms the point: the GBDT meta-learner already overfits those 2 535 rows, so a heavier meta-learner would be worse still.
+`RidgeCV` is used as the meta-learner rather than a GBDT because the meta-learning set is small — 2 535 unit-16 windows — and the meta-features are only **two**-dimensional (`[pred_lstm, pred_lgb]` since the clock was removed from this layer). A regularised linear model is the lowest-variance estimator that can combine two predictions without memorising the holdout. The audit confirms the point: the shallow GBDT meta-learner already overfits those 2 535 rows, so a heavier one would be worse still.
+
+Growing the meta-learning set was tried in 2026-10-21 and **rejected on measurement**, not on principle: pooling the 14 915 out-of-fold windows of the five fit engines inflated predictions on unit 16 (mean 39.9 against a true 31.5) because the dev engines live longer than the test engines, and test RMSE grew monotonically with `beta` (4.04 at 0 → 10.17 at 1). More rows did not buy a better mapping; it bought a level prior that does not transfer. See `INFORME_motor16_vs_oof.md`.
 
 ## Alternatives Considered
 
@@ -57,7 +59,7 @@ Their errors are therefore only partially correlated, which is the precondition 
 
 ### Gradient boosting as the meta-learner only (drop Ridge)
 - Pros: one fewer meta-model; more capacity to capture non-linear combinations.
-- Cons: 2 535 rows and 3 meta-features; capacity is exactly what must be constrained here. The audit already shows the shallow GBDT overfitting.
+- Cons: 2 535 rows and 2 meta-features; capacity is exactly what must be constrained here. The audit already shows the shallow GBDT overfitting, and enlarging the sample with pooled engines is measured to make the level worse, not the fit.
 - Rejected; the 50/50 Ridge + shallow-GBDT average is retained because the two meta-models fail differently.
 
 ## Consequences
