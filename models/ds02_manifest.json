@@ -5,7 +5,9 @@
   "seed": 42,
   "python": "3.12.10",
   "tensorflow": "2.21.0",
+  "keras": "3.15.1",
   "sklearn": "1.9.1",
+  "lightgbm": null,
   "unit_partition": {
     "fit": [
       2,
@@ -32,13 +34,78 @@
       50,
       19
     ],
-    "bilstm_params": 154253
+    "bilstm_params": 154253,
+    "meta_features": 2
+  },
+  "conformal": {
+    "method": "split-conformal, per predicted-RUL bin, asymmetric",
+    "target_coverage": 0.9,
+    "alpha_each_side": 0.05,
+    "edges": [
+      0.0,
+      25.0,
+      50.0,
+      75.0,
+      null
+    ],
+    "bins": [
+      {
+        "index": 0,
+        "pred_range": [
+          0.0,
+          25.0
+        ],
+        "n": 5695,
+        "q_low": -7.4741,
+        "q_high": 6.6185,
+        "source": "bin"
+      },
+      {
+        "index": 1,
+        "pred_range": [
+          25.0,
+          50.0
+        ],
+        "n": 5801,
+        "q_low": -14.1555,
+        "q_high": 14.7,
+        "source": "bin"
+      },
+      {
+        "index": 2,
+        "pred_range": [
+          50.0,
+          75.0
+        ],
+        "n": 5257,
+        "q_low": -22.7459,
+        "q_high": 16.7517,
+        "source": "bin"
+      },
+      {
+        "index": 3,
+        "pred_range": [
+          75.0,
+          null
+        ],
+        "n": 697,
+        "q_low": -21.1791,
+        "q_high": -15.3484,
+        "source": "bin"
+      }
+    ],
+    "global_quantiles": [
+      -20.5585,
+      14.6475
+    ],
+    "n_calibration": 17450
   },
   "inference_contract": {
     "window_size": 50,
     "beta": 1.0,
     "ema_span": 5,
-    "cycle_channel": true
+    "cycle_channel": true,
+    "meta_features": 2
   },
   "scaler_fingerprint_mean_first4": [
     21930.0395,
@@ -48,36 +115,57 @@
   ],
   "metrics": {
     "reference_row": {
-      "Modelo": "Hybrid Stacking (beta=1.00) + EMA5",
-      "RMSE": 5.523,
-      "MAE": 4.795,
-      "R2": 0.9126,
-      "NASA_Score": 3435.8
+      "Modelo": "Híbrido stacking (beta=1.00) + EMA5",
+      "RMSE": 4.313,
+      "MAE": 3.177,
+      "R2": 0.9467,
+      "NASA_Score": 2317.0
     },
     "beta": 1.0,
     "mean_std": [
       {
-        "Modelo": "LightGBM standalone",
-        "RMSE": "7.098 \u00b1 0.034",
-        "MAE": "5.572 \u00b1 0.034",
-        "R2": "0.8557 \u00b1 0.0014",
-        "NASA_Score": "5772.5 \u00b1 50.1"
+        "Modelo": "LightGBM solo",
+        "RMSE": "7.098 ± 0.034",
+        "MAE": "5.572 ± 0.034",
+        "R2": "0.8557 ± 0.0014",
+        "NASA_Score": "5772.5 ± 50.1"
       },
       {
-        "Modelo": "BiLSTM standalone",
-        "RMSE": "6.554 \u00b1 0.673",
-        "MAE": "5.105 \u00b1 0.670",
-        "R2": "0.8761 \u00b1 0.0257",
-        "NASA_Score": "4806.2 \u00b1 883.0"
+        "Modelo": "BiLSTM solo",
+        "RMSE": "6.337 ± 0.811",
+        "MAE": "4.872 ± 0.756",
+        "R2": "0.8837 ± 0.0305",
+        "NASA_Score": "4509.9 ± 1051.1"
       },
       {
-        "Modelo": "Hybrid + EMA5",
-        "RMSE": "5.523 \u00b1 0.001",
-        "MAE": "4.795 \u00b1 0.001",
-        "R2": "0.9126 \u00b1 0.0001",
-        "NASA_Score": "3435.6 \u00b1 0.7"
+        "Modelo": "Híbrido + EMA5",
+        "RMSE": "4.344 ± 0.075",
+        "MAE": "3.209 ± 0.058",
+        "R2": "0.9459 ± 0.0019",
+        "NASA_Score": "2338.2 ± 49.1"
       }
     ]
+  },
+  "macro_rmse": {
+    "per_unit_rmse": {
+      "11.0": 3.7623,
+      "14.0": 8.3194,
+      "15.0": 2.7357
+    },
+    "macro_rmse": 4.9391,
+    "n_units": 3
+  },
+  "meta_protocol": {
+    "fitted_on": "holdout unit 16",
+    "rows": 2535,
+    "units": [
+      16
+    ],
+    "rul_range": [
+      0.0,
+      62.0
+    ],
+    "oof_pooling": "measured and rejected (level prior does not transfer)"
   },
   "protocol": {
     "preprocessing": "fit units only",
@@ -93,11 +181,9 @@
     "step_test": 2
   },
   "artifacts": {
-    "ensemble_sha256": "fcde12accec083e24c52e6b593ee59a4a3936186f42597445791dcfb9e2fea09",
-    "bilstm_sha256": "fd82ea04b7d86db061118a54d294791ab581660f32902592c4ac5ba116d8a635",
+    "ensemble_sha256": "abb255bad9dbf49c46ddd78528392f83546db7df8603fa967427f71aee7cac21",
+    "bilstm_sha256": "98901fdd4a5b1c69add3339dc45dd8b808a85a29a655e89c29b1fe3c5a75faf3",
     "bilstm_bytes": 1935767,
-    "ensemble_bytes": 468986
-  },
-  "keras": "3.15.1",
-  "lightgbm": "4.7.0"
+    "ensemble_bytes": 468805
+  }
 }
