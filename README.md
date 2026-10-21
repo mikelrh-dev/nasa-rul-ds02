@@ -42,23 +42,39 @@ Same models, same protocol. The additions are two metrics, not extra accuracy.
 | LightGBM quantile 0.35 (standalone) | 7.098 ± 0.034 | 5.572 ± 0.034 | 0.8557 ± 0.0014 | 5772.5 ± 50.1 |
 | BiLSTM triple pooling (standalone) | 6.337 ± 0.811 | 4.872 ± 0.756 | 0.8837 ± 0.0305 | 4509.9 ± 1051.1 |
 | **Hybrid stacking + causal EMA5** | **4.344 ± 0.075** | **3.209 ± 0.058** | **0.9459 ± 0.0019** | **2338.2 ± 49.1** |
+| Hybrid, artifact currently on disk (2026-10-21, re-run) | 4.352 ± 0.055 | 3.221 ± 0.036 | 0.9458 ± 0.0013 | 2342.3 ± 28.0 |
 
-The 4.301 → 4.344 difference is TensorFlow CPU non-determinism between runs, not
-a change in the model: the base models and the `beta` protocol are untouched.
+The 4.301 → 4.344 → 4.352 differences are TensorFlow CPU non-determinism between
+runs, not a change in the model: the base models and the `beta` protocol are
+untouched. The spread between runs (±0.05) is the resolution at which any future
+change has to be judged, and it is why every claim in this repository is quoted
+with its seed spread.
 
 **Macro-RMSE, which the weighted figure hides.** Per engine: 11 → 3.762,
-14 → 8.319, 15 → 2.736. Unweighted mean **4.939**, against a window-weighted
-**4.313**. The gap of +0.63 is the cost of engine 14 having both the worst error
-and the fewest windows (760 of 6 196, yet 43.7 % of the squared error). The fleet
-average is kinder than what a randomly chosen engine suffers.
+14 → 8.319, 15 → 2.736 (current artifact: 3.773 / 8.175 / 2.760). Unweighted mean
+**4.939** (current: 4.903), against a window-weighted **4.313**. The gap of +0.6
+is the cost of engine 14 having both the worst error and the fewest windows (760 of
+6 196, yet 43.7 % of the squared error). The fleet average is kinder than what a
+randomly chosen engine suffers.
+
+**One thing was tried and reverted in this revision.** Moving the tabular objective
+to the median (`alpha=0.50`) won on every dev out-of-fold metric — branch 9.11 →
+8.18 RMSE, hybrid 13.15 → 12.09, NASA −14.6 % — and then lost on the confirmatory
+test read: at a fixed BiLSTM it costs the branch 7.11 → 9.12 and the hybrid
+4.236 → 4.588. `alpha=0.35` stands. The full record is `ADR-007`; the lesson is
+recorded there because it constrains every future change: **the dev gate can settle
+structural questions but cannot arbitrate the mix of regimes on this dataset.**
 
 **Prediction band (split conformal).** Target 90 %, realised **100 %** with a mean
-width of **24.8 cycles** — 25.0 / 25.3 / 24.2 per engine, and no truth above the
-upper bound. It is calibrated on the out-of-fold residuals of all six development
-engines, which come from weaker fold models than the shipped ones, so the band is
-**conservative by construction: a bound, not a decision-grade interval**. Narrowing
-it would need more engines, not more quantiles. `predict_interval()` returns
-`(point, lower, upper)`; `predict()` is unchanged.
+width of **26.41 cycles** — 26.92 / 26.03 / 25.75 per engine, and no truth outside
+the bound on either side. It is calibrated on the out-of-fold residuals of all six
+development engines, which come from weaker fold models than the shipped ones, so
+the band is **conservative by construction: a bound, not a decision-grade
+interval**. Recalibrating it on unit 16 to attack that width was measured and
+rejected: the interval collapses to **3.35 cycles at 31.4 % coverage** (41.4 %
+below, 27.2 % above), because the meta-learner is fitted on unit 16 and unit 16
+holds no row above 62 cycles, so no quantile fitted there can cover high life.
+`predict_interval()` returns `(point, lower, upper)`; `predict()` is unchanged.
 
 ---
 
@@ -173,11 +189,31 @@ ValueError: bad marshal data (unknown type code)     # even with the shim
 ## Interfaces
 
 ```bash
-python scripts/predict_ds02.py --unit 11 --window 0        # RUL 60.21 ciclos
+python scripts/predict_ds02.py --unit 11 --window 0        # RUL 60.27 ciclos
 python scripts/predict_ds02.py --unit 11 --all --json      # full trajectory
 uvicorn app.api:app --port 8000                            # POST /predict, GET /health
 streamlit run app/dashboard.py                             # curve per engine
+python scripts/build_ui_cache.py                           # once: app/cache for the DSS
+streamlit run app/dashboard_ds02.py                        # fleet hangar + conformal band
 ```
+
+The DSS reads `app/cache/` only — no HDF5, no TensorFlow at render time — and
+triages maintenance on the conformal lower bound (`docs/decisions/ADR-008-…`).
+
+Its fifth tab, *Evaluar unidad nueva*, scores a unit you bring: an example window,
+a grid you can paste into, or a CSV with `cycle` plus the 18 channels in dataset
+order (`alt, Mach, TRA, T2, T24 … Wf`). A window is **50 downsampled rows**
+(`STRIDE = 100`), not 50 consecutive records. The bundle loads on the first
+submit, never at page render, and nothing is written.
+
+Nothing in that tab is a bare acronym: every channel carries its physical
+meaning as a tooltip and in a glossary expander, with the observed DS02 range
+measured from `app/cache/ds02_rows.parquet`. A value outside that range (with a
+5 % margin) is **flagged, not rejected** — the model can score it, but the
+result would be outside the training domain — and a blank, correctly shaped 50×19
+CSV template is downloadable so nobody has to reconstruct the header by hand.
+The sidebar expander *Cómo leer esta pantalla* defines RUL, `L_inf`, the 90 % band,
+the three states and the window contract.
 
 ```python
 from ds02_rul.persistence import load_ensemble
@@ -204,11 +240,18 @@ jupyter nbconvert --to notebook --execute 02_DS02_ensemble_RUL.ipynb --inplace
 
 # measurements and checks
 python scripts/ablate_meta_cycle.py
-python -m pytest tests -q
+python -m pytest -q
 ```
 
 The notebook is a **build output**. Edit `scripts/build_02_notebook.py` and
 regenerate; never hand-edit the `.ipynb`.
+
+`pyproject.toml` pins `testpaths = ["tests"]` because `scripts/` holds four
+FD001-era scripts whose names match pytest's default globs
+(`recalcular_test.py`, `test_fixed_pipeline.py`, `test_lstm_clean.py`,
+`test_xgb_rolling.py`). They run a full pipeline at import time — and the FD001
+loader clamps at 125 cycles, which the DS02 path must never do — so they are
+scripts, not tests, and a bare `pytest` collects only the real suite (11 tests).
 
 ---
 
@@ -217,7 +260,7 @@ regenerate; never hand-edit the `.ipynb`.
 ```
 src/ds02_rul/          importable pipeline (pooling, residualizer, ensemble, stacking, persistence)
 scripts/               builder, migration, ablation, CLI, probes
-app/                   FastAPI service and Streamlit dashboard
+app/                   FastAPI service, Streamlit dashboards, live-evaluation seam
 tests/                 artifact contract tests (10)
 openspec/              SDD: deployed spec, change proposal, tasks
 models/                artifacts + manifest + ablation results
@@ -235,9 +278,10 @@ models/                artifacts + manifest + ablation results
   better: predictions on unit 16 averaged 39.9 against a true 31.5, and test RMSE
   rose from 4.04 to 10.17 as `beta` went 0 → 1, because the dev engines outlive
   the test engines. Recorded in `INFORME_motor16_vs_oof.md`.
-- The prediction band over-covers (100 % against a 90 % target, ~24.8 cycles
+- The prediction band over-covers (100 % against a 90 % target, ~26.4 cycles
   wide). Its calibration rows come from fold models that are weaker than the
-  shipped ones. It is a conservative bound, not a sharp interval.
+  shipped ones. It is a conservative bound, not a sharp interval, and the obvious
+  fix — calibrating on unit 16 — collapses to 31 % coverage (see the band section).
 - The `beta` fold vector still shows one of three folds selecting 0, so the
   shrinkage is poorly determined at the top of its range.
 - The BiLSTM is compute-bound on CPU (~165 s per fit) and its seed variance

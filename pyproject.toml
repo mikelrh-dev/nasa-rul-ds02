@@ -7,6 +7,17 @@ name = "ds02-rul"
 version = "4.1.0"
 description = "N-CMAPSS DS02 remaining-useful-life prediction: hybrid stacking ensemble"
 requires-python = ">=3.10"
+dependencies = [
+    "plotly>=6.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+# `scripts/` holds four FD001-era scripts whose names match pytest's default
+# globs (recalcular_test.py, test_fixed_pipeline.py, ...). They are executable
+# scripts that run a full pipeline at import time, not test modules, so a bare
+# `pytest` from the repository root used to die during collection. The DS02
+# suite is the only thing under `tests/`.
+testpaths = ["tests"]
