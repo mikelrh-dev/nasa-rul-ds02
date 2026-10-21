@@ -30,14 +30,14 @@ context: |
   Style:   SDD artifacts in English. Requirements use RFC 2119 keywords and
            Given/When/Then scenarios.
 
-strict_tdd: false
+strict_tdd: true
 
 testing:
-  runner: none
-  rationale: "No test runner is configured for the ML notebooks. Verification is by re-executing the notebook and comparing the recorded metrics. strict_tdd stays false; re-evaluate if a pytest suite lands."
+  runner: pytest
+  rationale: "`python -m pytest tests -q` collects the DS02 suite under `tests/` (artifact contract, DSS surface, rules layer). Pipeline correctness is still established by re-executing the notebook and comparing the recorded metrics; the suite never retrains and never writes under `models/`."
   layers:
-    unit: false
-    integration: false
+    unit: true
+    integration: true
     e2e: false
 
 rules:
@@ -63,19 +63,21 @@ rules:
       - Never modify notebooks in place; regenerate them from scripts/build_*.py
       - Never modify files under models/, archive/ or existing scripts/ without explicit approval
       - Preserve the recorded metrics; a change that alters them is a new experiment, not a refactor
-    tdd: false
-    test_command: ""
+    tdd: true
+    test_command: "python -m pytest tests -q"
   verify:
-    test_command: ""
+    test_command: "python -m pytest tests -q"
     build_command: ""
     coverage_threshold: 0
     guidelines:
-      - Do not retrain models in CI (no test runner is configured)
+      - Do not retrain models in CI; the suite reads `app/cache/` and `_p1_oof_cache.npz` only
       - Re-execute the notebook and compare the four recorded test rows against the SOTA table
   archive:
     - Warn before merging destructive deltas (REMOVED or renamed requirements)
-    - Update openspec/specs/rul-prediction-ds02/spec.md when archiving
+    - Update the deployed spec of every capability the change touches when archiving
 
 specs:
   - rul-prediction-ds02
   - ds02-dss-ui
+  - ds02-live-evaluation
+  - ds02-rules-engine

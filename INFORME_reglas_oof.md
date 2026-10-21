@@ -340,29 +340,32 @@ el recalibrado como artefacto nuevo.
 La sección 9 llamó a R2b "la versión defendible de la monotonía". El nombre es cómodo pero
 inexacto, y conviene decirlo con números.
 
-R2b es el **ajuste isotónico en línea del prefijo** (PAVA) y se toma su extremo. Eso garantiza que
-el ajuste sea no creciente en cada paso; no garantiza que la serie devuelta lo sea. Cuando el
-historial deja de sostener la caída, el extremo **sube**: incremento máximo por serie medido,
-**+1.328848** en las 5 unidades puras.
+R2b es el **ajuste isotónico en línea del prefijo** (PAVA): para cada `t`, el valor del último
+bloque del ajuste monótono de `y_1..t`, no creciente. Eso garantiza que el ajuste de cada prefijo
+sea no creciente en cada paso; no garantiza que la serie devuelta lo sea. Cuando el historial deja
+de sostener la caída, el extremo **sube**: incremento máximo por serie medido, **+1.328848** en
+las 5 unidades puras.
 
 Forzar la monotonía colapsa la regla en R2. `min(PAVA prefijo)` —causal y estrictamente no
 creciente— reproduce el running-min crudo en las cuatro cifras y en el incremento máximo
 (0.000000):
 
-| Instrumento | OOF RMSE | OOF NASA | Test RMSE | Test NASA |
+| Variante | OOF RMSE | OOF NASA | Test RMSE | Test NASA |
 | --- | --- | --- | --- | --- |
-| R2 running-min crudo (V1) | 10.737 | 21053.0 | 3.964 | 1906.6 |
-| R2b PAVA prefijo (V2) | 9.623 | 18713.9 | 4.173 | 2182.9 |
-| min(PAVA prefijo) (V3) | 10.737 | 21053.0 | 3.964 | 1906.6 |
+| Baseline | 9.491 | 19257.1 | 4.289 | 2310.6 |
+| R2 running-min crudo | 10.737 | 21053.0 | 3.964 | 1906.6 |
+| R2b extremo del ajuste isotonico | 9.623 | 18713.9 | 4.173 | 2182.9 |
+| min(R2b) | 10.737 | 21053.0 | 3.964 | 1906.6 |
 
 Conclusión: **la ganancia de R2b viene exactamente de permitir que el punto suba**. No existe una
 variante estrictamente no creciente que conserve la mejora; la disyuntiva real es R2b (mejor NASA
 en OOF, serie no monótona) o R2 (monótona, mejor NASA en test, peor en OOF). Cualquier texto que
 venda R2b como "monotonía estricta" describe una regla que no es la medida.
 
-La regla implementada se llama por eso `R2b_ISOTONICO_CAUSAL` y su docstring declara la limitación
-en vez de esconderla. La causalidad sí se respeta: cada valor usa solo el prefijo observado hasta
-ese ciclo, sin mirar el futuro.
+La regla implementada se llama por eso `R2b_ISOTONICO_CAUSAL`, no `R2b_MONOTONIA`, y su docstring
+declara la limitación en vez de esconderla. La causalidad sí se respeta: cada valor usa solo el
+prefijo observado hasta ese ciclo, sin mirar el futuro, y ese extremo del prefijo es el que se
+devuelve.
 
 ### 13.1 Estado de la implementación
 
@@ -374,55 +377,5 @@ ese ciclo, sin mirar el futuro.
 - `app/ui_rules.py` y el toggle de `app/dashboard_ds02.py` — la corrección entra **apagada** por
   defecto; la lectura cruda de la caché sigue siendo la que reproduce el contrato congelado de
   `models/ds02_manifest.json`.
-- 87 tests en verde (50 previos + 37 nuevos).
-
----
-
-## 13. Corrección al informe — la regla R2b no es estrictamente monótona
-
-Fecha: 2026-10-21, durante la implementación de `mia/`. Se re-comprobaron las 17 450 filas
-y apareció esto.
-
-### Qué se medía
-
-La regla `R2b` de las tablas de arriba es el **extremo del ajuste isotonico del prefijo**
-(PAVA en línea): para cada `t`, el valor del último bloque del ajuste monotono de
-`y_1..t`. Es causal y el ajuste de cada prefijo es no creciente.
-
-### Lo que no se cumple
-
-**La secuencia devuelta no es no creciente.** El extremo puede subir cuando llega un punto
-alto que se agrupa con el bloque anterior y sube su media. Incremento máximo medido sobre
-los motores dev: **+1.33 ciclos** (en las 14 915 filas puras).
-
-### La consecuencia importante
-
-La envolvente estrictamente monótona de esta secuencia es, por identidad,
-`np.minimum.accumulate(serie)` — **exactamente la regla R2** (running-min) que se midió y
-se descartó. Lo verificado sobre los dos paneles:
-
-| Variante | OOF RMSE | OOF NASA | Test RMSE | Test NASA |
-| --- | --- | --- | --- | --- |
-| Baseline | 9.491 | 19257.1 | 4.289 | 2310.6 |
-| R2 running-min crudo | 10.737 | 21053.0 | 3.964 | 1906.6 |
-| R2b extremo del ajuste isotonico | 9.623 | 18713.9 | 4.173 | 2182.9 |
-| min(R2b) | 10.737 | 21053.0 | 3.964 | 1906.6 |
-
-`min(R2b)` y `R2` dan los mismos números: la monotonia estricta de la regla **es** R2.
-
-### Qué se implementó en `mia/`
-
-La regla se llama **`R2b_ISOTONICO_CAUSAL`**, no `R2b_MONOTONIA`, y el nombre no miente:
-es causal y estima una tendencia monótona, pero no garantiza una secuencia no creciente. Su
-condición es la contractual (mira solo el historial ya observado) y la limitación queda
-escrita en el `docstring` y en este informe. La banda `mia/calibracion_banda.json` está
-calibrada sobre esta variante (14 915 filas puras, cobertura 0.9012) y `R6` se encarga de
-que la banda siga siendo coherente con el punto corregido.
-
-### Qué queda como alternativa
-
-Si lo que se quiere es **monotonia estricta**, la regla es R2 (running-min), que ayuda en
-test (RMSE −0.33, NASA −403.9) y perjudica en OOF (RMSE +1.25, NASA +1796) porque el
-modelo subestima los motores dev, largos. Esa decisión no es técnica: es una decisión de
-qué régimen de flota se quiere optimizar. El paquete está preparado para cambiar una por
-otra tocando una sola línea de `mia/reglas.py`.
+- `python -m pytest tests -q` — la suite en verde; el recuento no se escribe aquí porque cambia
+  con cada cambio.

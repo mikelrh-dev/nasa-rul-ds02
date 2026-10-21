@@ -40,9 +40,13 @@ loader if no HDF5 is found. **In the current run the fallback is dead code.**
 ├── src/ds02_rul/                  # importable DS02 pipeline (pooling, residualizer,
 │                                  #   ensemble, features, stacking, persistence, pipeline)
 ├── app/                           # FastAPI service + Streamlit dashboard
-├── tests/                         # artifact contract tests
+├── mia/                           # rules layer (opt-in post-processing)
+├── docs/decisions/                # ADR-001 … ADR-009
+├── tests/                         # pytest suite: artifact contract, DSS, rules layer
 ├── scripts/
 │   ├── build_02_notebook.py        # generator for the DS02 notebook (pure nbformat)
+│   ├── build_ui_cache.py           # DSS cache builder (app/cache)
+│   ├── freeze_rules_evidence.py    # gate for the rules-layer figures (RULES-06)
 │   ├── extract_legacy_artifact.py  # weight extraction (must run under Python 3.10)
 │   ├── repackage_artifact.py       # portable bundle from legacy weights (Python 3.10)
 │   ├── ablate_meta_cycle.py        # measures what the cycle counter buys
@@ -83,6 +87,21 @@ Champion/challenger hybrid stacking ensemble:
 
 Only the BiLSTM is trained on GPU/CPU-heavy compute; the tabular branch is seconds.
 
+### Rules layer — `mia/` (opt-in)
+
+Post-processing over an existing prediction, in two passes: correction
+(`R2b_ISOTONICO_CAUSAL`, `R6_BANDA`) then decision (`R1_SEGURIDAD`, `R9_HANGAR`,
+`R8_INSPECCION`, `R7_APTO`). Nothing is retrained and no artifact is written.
+The toggle in `app/dashboard_ds02.py` is **off by default**, and the raw cached
+reading remains the one that reproduces `models/ds02_manifest.json`.
+
+The calibration (`mia/calibracion_banda.json`) is frozen on 14 915 pure OOF rows
+(units 2, 5, 10, 18, 20; unit 16 excluded as in-sample), with coverage 0.9012 in
+OOF and 1.0000 on the test panel. `python scripts/freeze_rules_evidence.py`
+recomputes every figure and exits non-zero on drift. See
+[ADR-009](../docs/decisions/ADR-009-r2b-is-an-isotonic-fit-not-a-monotonicity-rule.md)
+and the [rules-engine spec](changes/2026-10-21-ds02-rules-layer/specs/ds02-rules-engine/spec.md).
+
 ## How to run
 
 ```bash
@@ -97,8 +116,13 @@ python scripts/predict.py --fd FD001 --engine 12 --cut 80
 python scripts/predict.py --fd FD001 --report
 ```
 
-There is **no test runner** in this project. Correctness is established by re-executing the
-notebook and comparing the recorded metrics against
+```bash
+# 4. Run the pytest suite
+python -m pytest tests -q
+```
+
+The suite never retrains and never writes under `models/`. Pipeline correctness is still
+established by re-executing the notebook and comparing the recorded metrics against
 [the deployed DS02 spec](specs/rul-prediction-ds02/spec.md).
 
 ## Notebook generation convention
@@ -128,6 +152,9 @@ bundle holds only fitted scikit-learn / LightGBM objects plus a path to the grap
 Every transform is fitted on the fit units `[2, 5, 10, 18, 20]` only, and `beta` is
 selected by grouped out-of-fold cross-validation. See
 [the change](changes/2026-10-20-ds02-honest-deployable/proposal.md).
+
+The rules layer in `mia/` is post-processing over the frozen prediction: it never
+retrains and is **not** part of this artifact contract.
 
 ## Artifact inventory
 
