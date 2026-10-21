@@ -30,6 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import ui_data_loader as L  # noqa: E402
 import ui_inference as INF  # noqa: E402
+import ui_rules as UR  # noqa: E402
 
 # ---------------------------------------------------------------- design tokens
 INK = "#e8eef7"
@@ -117,8 +118,6 @@ manifest = L.get_manifest()
 units = sorted(int(u) for u in windows["unit"].unique())
 max_life = int(windows["cycle"].max())
 global_metrics = L.global_metrics(windows)
-curves = {u: L.unit_curve(windows, u) for u in units}
-alarms = {u: L.first_alarm_cycle(curves[u], 25.0) for u in units}
 
 # ------------------------------------------------------------------- sidebar
 with st.sidebar:
@@ -163,6 +162,24 @@ with st.sidebar:
             icon=":material/rule:",
         )
         st.stop()
+
+    aplicar_reglas = st.toggle(
+        "Aplicar corrección de reglas",
+        value=False,
+        key="aplicar_reglas",
+        help=(
+            "Pasada B del motor de reglas (paquete mia/): R2b ajuste isotonico "
+            "causal y R6 banda conformal recalibrada sobre el punto corregido. "
+            "Apagado, la UI muestra la lectura cruda de la caché, que es la que "
+            "reproduce el contrato congelado del artefacto."
+        ),
+    )
+    if aplicar_reglas:
+        st.caption(
+            "Corrección activa: el punto pasa por el ajuste isotonico causal y la "
+            "banda se recalibra. La lectura cruda sigue en la caché y en la pestaña "
+            "de auditoría."
+        )
 
     st.caption(
         f"Caché con {provenance['counts']['windows']:,} ventanas y "
@@ -227,7 +244,14 @@ with st.sidebar:
             expanded=False,
         )
 
-snapshot = L.fleet_snapshot(windows, cycle, threshold_apto, threshold_aog)
+# La capa de reglas (mia/) es opcional y arranca apagada: con ella apagada la UI
+# muestra la lectura cruda de la caché, que es la que reproduce el contrato
+# congelado en models/ds02_manifest.json.
+frame = UR.corregir_ventanas(windows) if aplicar_reglas else windows
+curves = {u: L.unit_curve(frame, u) for u in units}
+alarms = {u: L.first_alarm_cycle(curves[u], 25.0) for u in units}
+correccion = UR.resumen_correccion(windows, frame) if aplicar_reglas else None
+snapshot = L.fleet_snapshot(frame, cycle, threshold_apto, threshold_aog)
 curve = curves[int(unit)]
 per_unit = L.per_unit_metrics(windows)
 unit_metrics = per_unit[per_unit["unit"] == unit].iloc[0]
@@ -302,6 +326,16 @@ with tab_fleet:
             f"{grounded} / {len(snapshot)}",
             f"en el ciclo {cycle}",
             border=True, icon=":material/local_shipping:", delta_color="off",
+        )
+
+    if correccion:
+        st.caption(
+            f"**Corrección de reglas activa** (pasada B del motor `mia/`): "
+            f"{correccion['ventanas_corregidas']:,} de {correccion['ventanas']:,} "
+            f"ventanas movidas ({correccion['porcentaje']} %) · "
+            f"Δ punto medio {correccion['delta_medio_punto']:+.2f} ciclos · "
+            f"Δ L_inf medio {correccion['delta_medio_l_inf']:+.2f}. "
+            "La lectura cruda de la caché sigue disponible en la pestaña de auditoría."
         )
 
     with st.container(border=True):
