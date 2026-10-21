@@ -47,8 +47,7 @@ _p1_*.npz
 # local backups — never part of the deliverable
 copiaSeguridad*.zip
 copiaseguridad*.zip
-copiaSeguridadv2/
-copiaSeguridadv3/
+copiaSeguridadv*/
 copiacuadernos/
 *.bak
 
