@@ -69,6 +69,22 @@ def test_manifest_declares_ds02_shape():
     assert 450 < mean4[3] < 500
 
 
+def test_manifest_pins_the_tabular_objective():
+    """The alpha=0.35 decision lives in code, so the artifact must record it.
+
+    ADR-003 chose the asymmetric quantile objective and ADR-007 rejected the
+    median alternative; without this field the shipped bundle cannot be
+    audited against either record, and the metrics would be cited next to a
+    model whose objective nobody can verify.
+    """
+    with open(os.path.join(MODELS, "ds02_manifest.json"), encoding="utf-8") as fh:
+        manifest = json.load(fh)
+    assert manifest["lightgbm"], "lightgbm version must not be null"
+    objective = manifest["lgb_objective"]
+    assert objective["objective"] == "quantile"
+    assert abs(float(objective["alpha"]) - 0.35) < 1e-9
+
+
 def test_last_step_pooling_matches_slice():
     import tensorflow as tf
 

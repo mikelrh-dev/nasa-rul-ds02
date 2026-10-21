@@ -2,7 +2,14 @@
 
 ## Status
 
-Accepted
+Accepted — **retained after the median was proposed and rejected on test, see
+[ADR-007](ADR-007-reject-median-objective-keep-quantile-035.md)**.
+
+Two caveats recorded there and not repaired in this document: the evidence cited
+below (`scripts/probe_q35.py`) was computed on the evaluation split and contains no
+median arm, so the "median was measured worse" claim was never supported by it. The
+value 0.35 stands because it is better on the deployment target (hybrid 4.24 vs
+4.59 at fixed BiLSTM), not because the reasoning below survived scrutiny.
 
 ## Date
 

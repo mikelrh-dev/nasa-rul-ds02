@@ -30,7 +30,8 @@ Their errors are different enough that a learned meta-learner can exploit the di
 | BiLSTM 2-layer + causal EMA (span 5) | 5.597 | 4.331 | 0.9103 | 3716.8 |
 | **Hybrid stacking (beta = 1.00, EMA 5)** | **4.301 ± 0.068** | **3.181 ± 0.021** | **0.9470 ± 0.0017** | **2315.6 ± 20.0** |
 | Hybrid, revision 2026-10-21 (same model, re-run) | 4.344 ± 0.075 | 3.209 ± 0.058 | 0.9459 ± 0.0019 | 2338.2 ± 49.1 |
-| Hybrid, macro-RMSE per engine (2026-10-21) | 4.939 | — | — | — |
+| Hybrid, re-run after the reverted `alpha` experiment (artifact on disk) | 4.352 ± 0.055 | 3.221 ± 0.036 | 0.9458 ± 0.0013 | 2342.3 ± 28.0 |
+| Hybrid, macro-RMSE per engine (2026-10-21) | 4.939 (current artifact 4.903) | — | — | — |
 
 The architectural core of the solution is a **physical separation of degradation from flight regime**: the 14 sensors are residualised against a degree-2 Ridge model of the 4 operational-condition channels before either model sees them, so that LightGBM reads degradation rather than pilot manoeuvre. That single change moved the standalone tabular branch from RMSE 13.349 to 7.087.
 
@@ -42,7 +43,7 @@ only (not re-selected per seed), the meta-learner is fitted on a single holdout
 unit (16) — pooling the five fit engines' out-of-fold vector was measured and
 **rejected**, because it learns a level prior from the longer-lived dev engines
 that does not transfer (§6.13) — and the prediction band over-covers (100 % at
-~24.8 cycles against a 90 % target) because its calibration residuals come from
+~26.4 cycles against a 90 % target) because its calibration residuals come from
 weaker fold models. That band is a bound, not a decision-grade interval.
 
 ---
@@ -320,9 +321,9 @@ def calculate_nasa_score(y_true, y_pred):
 | `scaler.joblib` | `StandardScaler` fit on the 18-dimensional `X_train_full` | repo root and `models/` |
 | `ensemble.joblib` | `HybridStackingEnsemble`: `bilstm_model` (Keras), `lgb_standalone`, `ridge_meta`, `lgb_meta`, `residualizer` (`poly_w` + 14 Ridge models + `res_scaler`), `scaler`, `scaler_w`, `n_op=4`, `window_size=50`, `beta=1.0`, `ema_span=5` | repo root and `models/` |
 | `bilstm_ds02.keras` | The Keras graph, persisted **natively** and referenced by path — the bundle never carries pickled bytecode, so nothing in it is Python-minor-version bound | `models/` |
-| `ds02_manifest.json` | Provenance: `code_version`, env versions, unit partition, `model_shape` (including `meta_features: 2`), `inference_contract`, DS02 scaler fingerprint, `mean ± std` table, artifact SHA-256 and byte sizes | `models/` |
+| `ds02_manifest.json` | Provenance: `code_version`, env versions (including `lightgbm`), `lgb_objective` (read off the fitted estimator, so the shipped `alpha` is auditable rather than asserted), unit partition, `model_shape` (including `meta_features: 2`), `inference_contract`, DS02 scaler fingerprint, `mean ± std` table, artifact SHA-256 and byte sizes | `models/` |
 
-The notebook reloads both artefacts and runs a one-sample inference check: **estimated RUL 60.21 cycles against a real 58.00**. The reload is bit-identical to the in-memory ensemble on the full test set (`np.allclose` at `atol=1e-5`).
+The notebook reloads both artefacts and runs a one-sample inference check: **estimated RUL 60.27 cycles against a real 58.00**. The reload is bit-identical to the in-memory ensemble on the full test set (`np.allclose` at `atol=1e-5`).
 
 The Keras model is persisted **as a separate native `.keras` file**, not pickled inside `ensemble.joblib`; `ds02_rul.persistence.load_ensemble` re-attaches it by path at load time.
 
@@ -463,7 +464,7 @@ Two consequences worth being explicit about:
 
 - **Re-packaging fixes deployability, not statistical honesty — that took a separate change.** The re-packaged artefact is written by Python 3.12's scikit-learn 1.9.1, so it carries **no** estimator version skew; the original carries an `InconsistentVersionWarning` (1.5.1 → 1.9.1) that the re-packaging eliminates. But re-packaging alone still left `beta` selected in-sample (§6.3) and the results single-seed (§6.5); both were closed later by `openspec/changes/2026-10-20-ds02-honest-deployable/`.
 
-The one check that still needs the real data pipeline is the notebook's own `60.21` vs `58.00` sample assertion, which requires `X_test_raw[:1]`. Persisting that window alongside the manifest closes the loop.
+The one check that still needs the real data pipeline is the notebook's own `60.27` vs `58.00` sample assertion, which requires `X_test_raw[:1]`. Persisting that window alongside the manifest closes the loop.
 
 ### 6.3 The `beta` shrinkage was selected in-sample — **closed**
 
@@ -658,12 +659,31 @@ difference between "what the fleet averages" and "what a random engine suffers".
 scored by a meta-learner fitted on the other engines — and `predict_interval()`
 returns `(point, lower, upper)` without touching `predict()`.
 
-Measured on test: target 90 %, realised **100 %**, mean width **24.8 cycles**
-(25.0 / 25.3 / 24.2 per engine), no truth above the upper bound. That is a
-conservative bound, not a sharp interval: the calibration rows come from fold
-models that are weaker than the shipped ones, so their residuals overstate the
-error. Narrowing it needs more engines, and tuning it against the test set is the
-one thing that would make it look good and mean nothing.
+Measured on test (6 196 windows, shipped bundle): target 90 %, realised **100 %**,
+mean width **26.41 cycles** (26.92 / 26.03 / 25.75 per engine), no truth outside
+the bound on either side. That is a conservative bound, not a sharp interval: the
+calibration rows come from fold models that are weaker than the shipped ones, so
+their residuals overstate the error. Narrowing it needs more engines, and tuning
+it against the test set is the one thing that would make it look good and mean
+nothing.
+
+**Recorded and rejected — recalibrating on unit 16.** Holding out nothing and
+instead exchanging the out-of-fold residuals for the engine-16 residuals of the
+*shipped* meta-learner looks like the obvious fix, because those residuals are the
+ones the deployed point model actually makes. It was measured:
+
+| calibration rows | coverage | mean width | below | above |
+|---|---|---|---|---|
+| out-of-fold, six dev engines (shipped) | 100.0 % | 26.41 | 0.0 % | 0.0 % |
+| **unit 16 residuals** | **31.4 %** | **3.35** | 41.4 % | 27.2 % |
+
+It fails for two structural reasons, not for want of a better quantile. The meta
+is *fitted* on unit 16, so those are in-sample residuals and the narrowest the
+model ever looks; and unit 16 contains no window above 62 cycles, so no quantile
+estimated there can bound a 100-cycle engine. Removing the unit-16 level bias
+first does not help either: it shifts the quantiles, it does not separate them.
+A 90 % band of ~12 cycles is **not reachable honestly on this partition** — it
+would need a whole engine reserved for the *final* model, and none is.
 
 **Recorded and rejected — the pooled-meta experiment.** Fitting the meta on the
 14 915 out-of-fold windows of the five fit engines (RUL up to 88) to widen its

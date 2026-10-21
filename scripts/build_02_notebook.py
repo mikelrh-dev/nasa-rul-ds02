@@ -504,8 +504,16 @@ print('huella de X_seq:', round(dev['X_seq'].nbytes / 1e6, 1), 'MB')
 md(r"""## 4 · Modelo base A — LightGBM cuantílico
 
 `objective='quantile', alpha=0.35` predice el percentil condicional 35, así que
-el pronóstico puntual se inclina a *subestimar* la RUL. Ese es el lado barato de
-la penalización NASA (`exp(-d/13)` frente a `exp(d/10)`).
+el pronóstico puntual se inclina a *subestimar* la RUL.
+
+**Se probó la mediana (0.50) y se rechazó en la lectura de test.** En `dev` fuera
+de fold la mediana ganaba claramente (rama 9.11 → 8.18 de RMSE, híbrido 13.15 →
+12.09, NASA −14,6 %), y aun así en test, con el mismo BiLSTM, cuesta 0.35 de RMSE
+en el híbrido (4.24 → 4.59) y 2.0 en la rama (7.11 → 9.12). La razón es la misma
+que explica el sesgo de vida alta: los motores de `dev` viven 63–89 ciclos y están
+subestimados, los de test son más cortos, así que subir el cuantil arregla el
+régimen que `dev` sobrerrepresenta y rompe el que test es. El barrido completo y
+el acta están en `INFORME_p3_capacidad_vs_informacion.md` y en `ADR-007`.
 """)
 code(r"""t0 = time.time()
 lgbm = make_lgbm(PRIMARY_SEED).fit(dev['X_tab'][fit_idx], dev['y'][fit_idx])
@@ -724,11 +732,17 @@ print()
 print('El motor con mas ventanas pesa mas en el global; el macro da voz igual a los tres.')
 """)
 
-md(r"""**Cómo leer la banda.** El intervalo se calibra por *split conformal* sobre el
-motor 16 —el único que el meta-aprendiz no vio— con cuantiles **asimétricos** por
-tramo de RUL predicha, porque la penalización NASA tampoco es simétrica. La
-cobertura se informa por motor: con tres unidades, una cobertura global sola no
-demuestra nada.""")
+md(r"""**Cómo leer la banda.** El intervalo es *split conformal* sobre los residuales
+**fuera de fold** de los seis motores de dev, con cuantiles **asimétricos** por
+tramo de RUL predicha, porque la penalización NASA tampoco es simétrica.
+
+Calibrar sobre el motor 16, que es lo que pide la intuición, se midió y se
+descarta por dos razones concretas: el meta-aprendiz se ajusta en el 16, así que
+sus residuales ahí son de *ajuste* y no de uso; y el 16 no tiene ni una fila por
+encima de 62 ciclos, de modo que ninguna banda calibrada en él puede cubrir el
+régimen de vida alta, que es justo donde el error se concentra. La celda siguiente
+publica las tres variantes para que la diferencia sea un número y no una opinión;
+la que viaja en el artefacto es la de fuera de fold.""")
 
 code(r"""# Calibracion sobre los residuales FUERA DE FOLD de los seis motores de dev:
 # cada fila la puntuo un meta ajustado en los otros motores, asi que la banda no
@@ -741,12 +755,49 @@ print(f"banda calibrada en {conformal['n_calibration']} ventanas fuera de fold "
       f"({len(np.unique(calib['units']))} motores, beta={calib['beta']:.2f}) "
       f"(objetivo {conformal['target_coverage']:.0%}, {conformal['alpha_each_side']:.0%} por lado)")
 print(pd.DataFrame(conformal['bins']).to_string(index=False))
+
+# Dos diagnosticos, no candidatos: se publican para que la eleccion sea explicita.
+# (a) sobre el motor 16 con el modelo final: mide el ajuste del meta, no su uso.
+p16 = ensemble.predict(dev['X_raw'][hold_idx], dev['meta']['cycle'].values[hold_idx],
+                       dev['meta']['unit'].values[hold_idx])
+conformal_16 = fit_conformal(dev['y'][hold_idx], p16, target=0.90)
+# (b) fuera de fold sin el sesgo de nivel: mide solo la dispersion.
+conformal_debiased = fit_conformal(calib['y'], calib['pred_ema'], target=0.90, debias=True)
+
+print()
+for nombre, banda in (('fuera de fold (enviada)', conformal),
+                      ('motor 16 (diagnostico)', conformal_16),
+                      ('fuera de fold sin sesgo (diagnostico)', conformal_debiased)):
+    anchos = [b['q_high'] - b['q_low'] for b in banda['bins']]
+    alto = banda['bins'][-1]
+    print(f"{nombre:40s} ancho medio {np.mean(anchos):6.2f} | "
+          f"tramo alto [{alto['q_low']:+.2f}, {alto['q_high']:+.2f}] n={alto['n']}")
 """)
 
 code(r"""point, lo, hi = ensemble.predict_interval(test['X_raw'], test['meta']['cycle'].values,
                                           test['meta']['unit'].values)
+
+# Una sola lectura de test: las tres bandas se miden aqui y se publican juntas.
+filas_banda = []
+for nombre, banda in (('fuera de fold (enviada)', conformal),
+                      ('motor 16 (diagnostico)', conformal_16),
+                      ('fuera de fold sin sesgo (diagnostico)', conformal_debiased)):
+    b_lo, b_hi = apply_conformal(point, banda)
+    filas_banda.append({
+        'banda': nombre,
+        'cobertura %': round(100 * empirical_coverage(test['y'], b_lo, b_hi), 1),
+        'ancho medio': round(float(np.mean(b_hi - b_lo)), 2),
+        'por debajo %': round(100 * float(np.mean(test['y'] < b_lo)), 1),
+        'por encima %': round(100 * float(np.mean(test['y'] > b_hi)), 1),
+    })
+print(pd.DataFrame(filas_banda).to_string(index=False))
+print()
+print('Nominal 90 %. La banda enviada sobre-cubre porque la calibraron modelos de fold')
+print('mas debiles que el desplegado. Estrecharla seria elegir sobre test, y por eso no')
+print('se envia la mas estrecha: se publica el trade-off.')
+print()
 cov = empirical_coverage(test['y'], lo, hi)
-print(f'cobertura global en test: {100 * cov:.1f} % | ancho medio {np.mean(hi - lo):.2f} ciclos')
+print(f'cobertura global en test (banda enviada): {100 * cov:.1f} % | ancho medio {np.mean(hi - lo):.2f} ciclos')
 print()
 
 cov_rows = []

@@ -7,6 +7,14 @@
 **Artefactos regenerados:** `models/ensemble.joblib`, `models/scaler.joblib`, `models/bilstm_ds02.keras`, `models/ds02_manifest.json` y copias en raíz
 **Verificación posterior:** `pytest tests -q` → 10 passed; `scripts/predict_ds02.py --unit 11 --window 0` → RUL 60.27
 
+> **Actualización 2026-10-21.** Este informe es el acta de la ejecución del 20-10
+> (71 celdas) y se conserva tal cual. Después, el experimento `alpha=0.50` se
+> rechazó en test y se revirtió (`ADR-007`): el cuaderno se regeneró a **77
+> celdas** y se re-ejecutó con 35 celdas de código y **0 errores**, dando híbrido
+> **4.352 ± 0.055** y macro-RMSE **4.903**. La suite pasó a **11 tests** y `pytest`
+> sin argumentos ya funciona desde la raíz (`testpaths = ["tests"]`). Los números
+> de este documento son los de aquella ejecución, no los vigentes.
+
 ---
 
 ## 1. El cuaderno no arrancaba: faltaba un import

@@ -37,10 +37,12 @@ def sha256_of(path: str) -> str:
 def build_manifest(ensemble, metrics: dict, seed: int, dataset: str = "DS02", **extra) -> dict:
     """Assemble the provenance record for a completed run."""
     import keras
+    import lightgbm
     import sklearn
     import tensorflow as tf
 
     model = ensemble._resolve_model()
+    lgb_params = ensemble.lgb_standalone.get_params()
     return {
         "format_version": 1,
         "code_version": extra.pop("code_version", "uncommitted"),
@@ -50,7 +52,15 @@ def build_manifest(ensemble, metrics: dict, seed: int, dataset: str = "DS02", **
         "tensorflow": tf.__version__,
         "keras": keras.__version__,
         "sklearn": sklearn.__version__,
-        "lightgbm": extra.pop("lightgbm", None),
+        "lightgbm": extra.pop("lightgbm", lightgbm.__version__),
+        # The tabular branch's objective is a decision with its own record
+        # (ADR-003, and ADR-007 for the rejected median experiment). Read it off
+        # the fitted estimator so the shipped bundle can be audited instead of
+        # trusted: the label in the notebook is prose, this is the artifact.
+        "lgb_objective": {
+            "objective": lgb_params.get("objective"),
+            "alpha": lgb_params.get("alpha"),
+        },
         "unit_partition": extra.pop(
             "unit_partition", {"fit": [2, 5, 10, 18, 20], "holdout": [16], "test": [11, 14, 15]}
         ),
