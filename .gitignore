@@ -36,8 +36,12 @@ cells_*.txt
 _probe_*.npy
 _probe_*.h5
 
-# streamlit
-.streamlit/
+# streamlit — keep the theme, never the secrets
+# Ignore the directory *contents*, not the directory, so the negation applies:
+# git does not descend into an ignored directory, so `.streamlit/` + `!…/file`
+# silently keeps the file ignored.
+.streamlit/*
+!.streamlit/config.toml
 
 # instrumentos P0/P1
 _p0_*.log
