@@ -66,6 +66,7 @@ cell_counts.txt
 # tool caches
 .atl/
 .freebuff/
+.hermes/
 
 # fleet records persisted by the Streamlit UI (per-machine state)
 app/registros_flota.json
