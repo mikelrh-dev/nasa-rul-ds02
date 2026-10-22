@@ -379,3 +379,16 @@ devuelve.
   `models/ds02_manifest.json`.
 - `python -m pytest tests -q` — la suite en verde; el recuento no se escribe aquí porque cambia
   con cada cambio.
+
+### 13.2 Guarda de muestra pequeña en el tramo alto
+
+El tramo `[75, ∞)` tiene 419 filas y su `q_high` es negativo (-15.3651). Como la banda recorta el
+lado superior al propio punto, al cruzar 75 ciclos el límite superior caía de 94.76 a 75.00
+(-19.76 ciclos) y el intervalo quedaba de una sola cara. `mia.reglas.banda_recalibrada_vector`
+aplica ahora una guarda: un tramo con menos de `MIN_FILAS_TRAMO = 500` filas toma el cuantil más
+conservador entre el suyo y el global (`min(q_low, -19.1707)`, `max(q_high, 17.1004)`).
+
+La regla **solo ensancha**: el lado inferior del tramo (-21.2133) sigue siendo el más conservador,
+así que no se mueve, y la cobertura no puede bajar. El cruce pasa de 19.76 a 2.66 ciclos y el
+tramo vuelve a tener dos caras (75.0 → 53.79 / 92.10). No se tocó el JSON congelado ni el ajuste
+conformal del artefacto: la guarda vive en la capa que aplica la banda, no en la que la ajusta.

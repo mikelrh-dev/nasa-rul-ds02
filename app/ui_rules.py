@@ -8,6 +8,11 @@ Toma el frame de ventanas ya cacheado y le aplica las dos reglas de correccion:
 * `R6_BANDA` — banda conformal recalibrada sobre el punto corregido, con los
   coeficientes congelados en `mia/calibracion_banda.json`.
 
+Despues corre la pasada A (`mia.motor`): R1_SEGURIDAD, R9_HANGAR, R8_INSPECCION
+y R7_APTO deciden el estado sobre el limite inferior, con los umbrales de la
+barra lateral. El estado no se reclasifica aqui: se pregunta al motor, de modo
+que la UI y el cuaderno de practica aplican exactamente las mismas reglas.
+
 No carga el modelo, no entrena nada y no escribe en `models/`: todo sale de la
 caché y de los coeficientes congelados. El frame de salida conserva las columnas
 originales como `pred_enviada` / `lower_enviada` / `upper_enviada` para que la
@@ -25,6 +30,7 @@ APP_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(APP_DIR)
 sys.path.insert(0, os.path.join(ROOT, "mia"))
 
+import motor as M  # noqa: E402
 import reglas as R  # noqa: E402
 
 COLUMNAS_COPIA = {
@@ -61,6 +67,86 @@ def corregir_ventanas(windows: pd.DataFrame) -> pd.DataFrame:
     frame["corregida"] = True
     frame["correccion"] = "R2b isotonico causal + R6 banda recalibrada"
     return frame
+
+
+# ------------------------------------------------- pasada A: decision
+def alertas_de_ventana(frame: pd.DataFrame) -> list[list[str]]:
+    """Alertas de validez por fila, las que alimentan `R1_SEGURIDAD`.
+
+    La cache congelada no trae filas invalidas, asi que en el tablero la lista
+    sale vacia y R1 no dispara: eso es informacion, no un fallo. Las rutas que
+    aceptan datos del usuario si pueden producir alertas.
+    """
+    low = frame["lower"].to_numpy(dtype=np.float64)
+    up = frame["upper"].to_numpy(dtype=np.float64)
+    punto = frame["pred"].to_numpy(dtype=np.float64)
+    alertas: list[list[str]] = []
+    for i in range(len(frame)):
+        fila = []
+        if not np.isfinite([low[i], punto[i], up[i]]).all():
+            fila.append("banda no finita en la ventana")
+        elif not (low[i] <= punto[i] <= up[i]):
+            fila.append("la banda no contiene a su punto")
+        if np.isfinite(low[i]) and low[i] < 0.0:
+            fila.append("limite inferior negativo")
+        alertas.append(fila)
+    return alertas
+
+
+def decidir_ventanas(frame: pd.DataFrame, umbrales: dict,
+                     alertas: list[list[str]] | None = None) -> pd.DataFrame:
+    """Aplica la pasada A del motor (`mia.motor`) a cada ventana.
+
+    Devuelve el frame con `decision`, `regla_decision` y `motivo_decision`. La
+    decision se lee del limite inferior y de los umbrales en vigor, no del punto.
+    """
+    if alertas is None:
+        alertas = alertas_de_ventana(frame)
+    umbrales = {"apto": float(umbrales["apto"]), "hangar": float(umbrales["hangar"])}
+    decisiones, reglas, motivos = [], [], []
+    for limite, fila_alertas in zip(frame["lower"].to_numpy(dtype=np.float64), alertas):
+        resultado = M.motor(
+            {"limite_inferior": float(limite),
+             "alertas_datos": list(fila_alertas),
+             "umbrales": umbrales},
+            [], R.REGLAS_DECISION,
+        )
+        decisiones.append(resultado["decision"])
+        reglas.append(" + ".join(resultado["usadas"]))
+        motivos.append(" \u00b7 ".join(resultado["porque"]))
+
+    out = frame.copy()
+    out["decision"] = decisiones
+    out["regla_decision"] = reglas
+    out["motivo_decision"] = motivos
+    return out
+
+
+def estado_por_ciclo(frame: pd.DataFrame) -> pd.DataFrame:
+    """Peor decision de cada (unidad, ciclo), leida de la fila mas restrictiva."""
+    if "decision" not in frame.columns:
+        raise ValueError("el frame no trae la pasada A; llama antes a decidir_ventanas")
+    idx = frame.groupby(["unit", "cycle"])["lower"].idxmin()
+    return frame.loc[idx, ["unit", "cycle", "lower", "decision",
+                          "regla_decision"]].reset_index(drop=True)
+
+
+def catalogo_decision() -> list[dict]:
+    """Las cuatro reglas de la pasada A, para pintarlas en la UI."""
+    return [{"regla": nombre, "prioridad": prioridad, "porque": porque}
+            for nombre, _condicion, _efecto, prioridad, porque in R.REGLAS_DECISION]
+
+
+def traza_decision(limite_inferior: float, umbrales: dict,
+                   alertas: list[str] | None = None) -> dict:
+    """Traza legible de la pasada A para una sola ficha."""
+    return M.motor(
+        {"limite_inferior": float(limite_inferior),
+         "alertas_datos": list(alertas or []),
+         "umbrales": {"apto": float(umbrales["apto"]),
+                      "hangar": float(umbrales["hangar"])}},
+        [], R.REGLAS_DECISION,
+    )
 
 
 def resumen_correccion(windows: pd.DataFrame, corregido: pd.DataFrame) -> dict:
