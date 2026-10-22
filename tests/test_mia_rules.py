@@ -211,4 +211,4 @@ def test_la_cobertura_pura_es_la_nominal():
 
 def test_el_informe_queda_en_el_repositorio():
     """El informe de medición es parte del entregable."""
-    assert os.path.exists(os.path.join(ROOT, "INFORME_reglas_oof.md"))
+    assert os.path.exists(os.path.join(ROOT, "docs/informes/informe-2026-10-21-reglas-oof.md"))

@@ -43,7 +43,7 @@ engines (14 915 windows, RUL 0–88) was implemented, measured and reverted. On
 unit 16 the pooled meta predicts a mean of 39.9 against a true 31.5, and the test
 RMSE grows monotonically with `beta` (4.04 at 0 → 10.17 at 1). The dev engines
 live longer than the test engines, so the pooled fit learns a **level prior that
-does not transfer**. Full record: [`INFORME_motor16_vs_oof.md`](../../../INFORME_motor16_vs_oof.md).
+does not transfer**. Full record: [`docs/informes/informe-2026-10-21-motor16-vs-oof.md`](../../../docs/informes/informe-2026-10-21-motor16-vs-oof.md).
 
 ## Impact
 

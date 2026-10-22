@@ -114,7 +114,7 @@ Two metric families exist in this repository and they do not agree exactly:
 
 | Source | unit 11 | unit 14 | unit 15 |
 | --- | --- | --- | --- |
-| `INFORME_ejecucion_cuaderno.md` (notebook, seed 42) | 3.724 | 8.044 | 2.882 |
+| `docs/informes/informe-2026-10-20-ejecucion-cuaderno.md` (notebook, seed 42) | 3.724 | 8.044 | 2.882 |
 | `ds02_manifest.json` (`macro_rmse.per_unit_rmse`) | 3.7728 | 8.175 | 2.760`*` |
 | `app/cache` (live, from the shipped bundle) | recomputed each build | recomputed | recomputed |
 

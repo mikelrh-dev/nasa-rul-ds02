@@ -35,9 +35,9 @@ Files: `app/ui_data_loader.py`, `app/ui_inference.py`, `app/dashboard_ds02.py`
 | # | Task | Status | Acceptance check |
 | --- | --- | --- | --- |
 | 4.1 | Bins under 500 rows may only widen the band | Done | at 75.0 the sides are `min(q_low, -19.1707)` and `max(q_high, 17.1004)`; crossing drop 2.66 cycles |
-| 4.2 | Document the guard in the measurement report | Done | `INFORME_reglas_oof.md` §13.2 names the rule and its threshold |
+| 4.2 | Document the guard in the measurement report | Done | `docs/informes/informe-2026-10-21-reglas-oof.md` §13.2 names the rule and its threshold |
 
-Files: `mia/reglas.py`, `INFORME_reglas_oof.md`, `AUDITORIA_ds02_2026-10-21.md`
+Files: `mia/reglas.py`, `docs/informes/informe-2026-10-21-reglas-oof.md`, `docs/informes/auditoria-2026-10-21-reglas.md`
 
 ## 5. Verification
 

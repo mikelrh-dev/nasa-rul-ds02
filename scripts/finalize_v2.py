@@ -1,9 +1,9 @@
-"""Vuelca la ejecución v2 al notebook final y regenera COMPARACION_NASA.md.
+"""Vuelca la ejecución v2 al notebook final y regenera docs/informes/informe-2026-10-18-comparacion-nasa-fd001.md.
 
 - Copia el notebook ejecutado (_run_v2.ipynb) a notebook_nasa_fd001.ipynb.
 - Sustituye la celda de conclusiones placeholder por la conclusión real
   construida a partir de models/v2_metrics.json.
-- Regenera COMPARACION_NASA.md con los mismos números.
+- Regenera docs/informes/informe-2026-10-18-comparacion-nasa-fd001.md con los mismos números.
 """
 import json
 import pathlib
@@ -192,9 +192,9 @@ def main():
     nb['cells'][-1]['source'] = CONCLUSION
     OUT.write_text(json.dumps(nb, ensure_ascii=False, indent=1), encoding='utf-8')
 
-    pathlib.Path('COMPARACION_NASA.md').write_text(MD_FOR_MD, encoding='utf-8')
+    pathlib.Path('docs/informes/informe-2026-10-18-comparacion-nasa-fd001.md').write_text(MD_FOR_MD, encoding='utf-8')
     print('notebook final:', OUT, '| celdas:', len(nb['cells']))
-    print('COMPARACION_NASA.md regenerado')
+    print('docs/informes/informe-2026-10-18-comparacion-nasa-fd001.md regenerado')
 
 
 if __name__ == '__main__':

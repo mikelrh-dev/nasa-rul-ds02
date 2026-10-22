@@ -10,7 +10,7 @@ Document, prove, record — kept literal. The layer works, so this change adds *
 file**, `scripts/freeze_rules_evidence.py`, and otherwise only text. It is the arbiter for
 RULES-06: rebuild the OOF instrument from `_p1_oof_cache.npz`, apply the shipped correction,
 re-fit the frozen calibration, compare every recomputable figure against
-`mia/calibracion_banda.json` and `INFORME_reglas_oof.md` §13, and print the monotonicity table
+`mia/calibracion_banda.json` and `docs/informes/informe-2026-10-21-reglas-oof.md` §13, and print the monotonicity table
 that §13 states in prose — so the report becomes regenerable instead of quotable. Nothing under
 `models/`, `src/` or `app/cache/` moves; `mia/` changes by one docstring line; the toggle stays
 off (RULES-07). New files follow their directory's language: English in `scripts/`, Spanish in
@@ -133,7 +133,7 @@ Baseline (raw EMA5)              9.491    19257.1       4.289      2310.6       
 V1 running-min                  10.737    21053.0       3.964      1906.6         13000     0.000000
 V2 prefix PAVA                   9.623    18713.9       4.173      2182.9         10715    +1.328848
 V3 min(prefix PAVA)             10.737    21053.0       3.964      1906.6         13000     0.000000
-* recorded in INFORME_reglas_oof.md §13 and models/ds02_manifest.json — not recomputed:
+* recorded in docs/informes/informe-2026-10-21-reglas-oof.md §13 and models/ds02_manifest.json — not recomputed:
   _p1_oof_cache.npz holds development rows only (RULES-06).
 ```
 
@@ -227,7 +227,7 @@ excluded as in-sample), coverage 0.9012 OOF / 1.0000 test, point inside the band
 all 6 196 test windows.
 
 Re-check it: `python scripts/freeze_rules_evidence.py`. Links: ADR-009,
-INFORME_reglas_oof.md §13.
+docs/informes/informe-2026-10-21-reglas-oof.md §13.
 ```
 
 Two adjacent stale counts go with it, because the section claims a test command and they

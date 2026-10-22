@@ -16,14 +16,14 @@ grounded right now* and *how much do I trust the number* — and it cannot be sh
 from a laptop that has no dataset on disk.
 
 The audit of the original UI plan
-([`planificaci_n_de_desarrollo_ui_streamlit.md`](../../../planificaci_n_de_desarrollo_ui_streamlit.md))
+([`docs/plans/planificacion_desarrollo_ui_streamlit.md`](../../../docs/plans/planificacion_desarrollo_ui_streamlit.md))
 also found four blockers that this proposal resolves explicitly:
 
 | Blocker | Finding | Resolution |
 | --- | --- | --- |
 | B1 — unreachable green state | With the proposed rule (`L_inf >= 50` = airworthy) **no unit is ever green**: the widest calibrated lower bound on the test split is ≈ 36 (point ≈ 60.6 minus the 24.47 quantile of the `[50, 75)` bin). | Thresholds re-based on the measured scale: airworthy at `L_inf >= 30`, preventive 25–30, AOG below 25. |
 | B2 — FD001 artifacts mixed into a DS02 story | `models/alarm_policy.json` and `models/test_eval_ultima_ventana.csv` are FD001/v3 products (`"dataset_calibracion": "FD001"`, engines 1–100). | Both are excluded, and a regression test asserts the UI never references them. |
-| B3 — hardcoded metrics | The plan hardcodes `2.88 / 3.72 / 8.04` and `1.12 / 4.17 / 5.35`, which come from `INFORME_ejecucion_cuaderno.md`, not from `ds02_manifest.json` (whose macro per-engine RMSEs are `2.76 / 3.77 / 8.18`). | Every figure is computed from the cached predictions; the manifest is displayed separately as the frozen audit contract. |
+| B3 — hardcoded metrics | The plan hardcodes `2.88 / 3.72 / 8.04` and `1.12 / 4.17 / 5.35`, which come from `docs/informes/informe-2026-10-20-ejecucion-cuaderno.md`, not from `ds02_manifest.json` (whose macro per-engine RMSEs are `2.76 / 3.77 / 8.18`). | Every figure is computed from the cached predictions; the manifest is displayed separately as the frozen audit contract. |
 | B4 — cache written into `models/` | The plan proposes `models/ds02_ui_telemetry_cache.csv`, contradicting its own golden rule and the repository rule that `models/` is immutable. | The cache lives in `app/cache/`, and `models/` is opened read-only. |
 
 Two smaller corrections: `app/dashboard.py` is **already** DS02 (not FD001) and

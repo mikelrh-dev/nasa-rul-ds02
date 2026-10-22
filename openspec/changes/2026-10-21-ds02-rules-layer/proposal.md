@@ -14,7 +14,7 @@ Not greenfield; nothing is rebuilt.
 
 ### In Scope
 
-- `ds02-rules-engine` spec from the code and `INFORME_reglas_oof.md`.
+- `ds02-rules-engine` spec from the code and `docs/informes/informe-2026-10-21-reglas-oof.md`.
 - `scripts/freeze_rules_evidence.py`: regenerates the calibration numbers from
   `_p1_oof_cache.npz`, prints the monotonicity table, fails on drift or missing cache.
 - ADR-009: R2b is an isotonic fit, not a monotonicity rule.

@@ -513,7 +513,7 @@ en el híbrido (4.24 → 4.59) y 2.0 en la rama (7.11 → 9.12). La razón es la
 que explica el sesgo de vida alta: los motores de `dev` viven 63–89 ciclos y están
 subestimados, los de test son más cortos, así que subir el cuantil arregla el
 régimen que `dev` sobrerrepresenta y rompe el que test es. El barrido completo y
-el acta están en `INFORME_p3_capacidad_vs_informacion.md` y en `ADR-007`.
+el acta están en `docs/informes/informe-2026-10-21-p3-capacidad-vs-informacion.md` y en `ADR-007`.
 """)
 code(r"""t0 = time.time()
 lgbm = make_lgbm(PRIMARY_SEED).fit(dev['X_tab'][fit_idx], dev['y'][fit_idx])
@@ -658,7 +658,7 @@ cuando la RUL real media es 31.5, y el error crece de forma monótona con `beta`
 RMSE 4.04 con `beta = 0`, 7.48 con 0.6 y 10.17 con 1. La razón es que los motores
 de ajuste viven más que los de test, así que el aprendiz agrupado aprende un
 **prior de nivel** que no transfiere. El experimento queda documentado en
-`INFORME_motor16_vs_oof.md`; las funciones que lo reproducen siguen en
+`docs/informes/informe-2026-10-21-motor16-vs-oof.md`; las funciones que lo reproducen siguen en
 `ds02_rul.stacking` (`fit_meta_learners`, `score_beta_holdout`).
 
 Las meta-características son **`[p_lstm, p_lgb]`**: dos columnas. `cyc_norm`
@@ -686,7 +686,7 @@ print('Nota: el experimento de ajustar el meta sobre el OOF de los cinco motores
 print('ajuste (14 915 ventanas, RUL hasta 88) se midio y se rechazo. Sobre el motor 16')
 print('el meta agrupado predice media 39.9 con RUL real 31.5 y el RMSE crece de 4.04')
 print('(beta=0) a 10.17 (beta=1): aprende un prior de nivel de los motores largos que')
-print('no transfiere a un motor corto. Ver INFORME_motor16_vs_oof.md.')
+print('no transfiere a un motor corto. Ver docs/informes/informe-2026-10-21-motor16-vs-oof.md.')
 """)
 code(r"""from ds02_rul import HybridStackingEnsemble
 
@@ -917,7 +917,7 @@ los cinco motores de ajuste (14 915 ventanas, RUL hasta 88) para que aprendiera 
 extrapolar. Sobre el motor 16 predice media 39.9 con RUL real 31.5 y el RMSE
 crece de 4.04 (`beta = 0`) a 10.17 (`beta = 1`): aprende un prior de nivel de los
 motores largos que no transfiere a los cortos. Detalle en
-`INFORME_motor16_vs_oof.md`.
+`docs/informes/informe-2026-10-21-motor16-vs-oof.md`.
 
 **La banda es conservadora, no afilada.** Se calibra sobre residuales fuera de
 fold, que vienen de modelos de fold más débiles que los desplegados; por eso

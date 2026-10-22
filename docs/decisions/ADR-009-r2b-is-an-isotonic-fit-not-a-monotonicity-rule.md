@@ -11,7 +11,7 @@ behaviour changes with this decision, only the claim made about it.
 
 ## Context
 
-§9 of `INFORME_reglas_oof.md` called R2b "the defensible version of monotonicity".
+§9 of `docs/informes/informe-2026-10-21-reglas-oof.md` called R2b "the defensible version of monotonicity".
 The label survived into tests, docstrings and UI copy, and it describes a rule
 that was never measured.
 

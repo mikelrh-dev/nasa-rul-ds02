@@ -22,7 +22,7 @@
 
 | Attempt | Measured outcome | Record |
 | --- | --- | --- |
-| Fit the meta-learners on the pooled OOF vector of the five fit engines | Unit-16 mean 39.9 vs true 31.5; test RMSE 4.04 → 10.17 as `beta` goes 0 → 1; hybrid degrades to the BiLSTM (5.77 vs 4.30) | `INFORME_motor16_vs_oof.md` |
+| Fit the meta-learners on the pooled OOF vector of the five fit engines | Unit-16 mean 39.9 vs true 31.5; test RMSE 4.04 → 10.17 as `beta` goes 0 → 1; hybrid degrades to the BiLSTM (5.77 vs 4.30) | `docs/informes/informe-2026-10-21-motor16-vs-oof.md` |
 
 The experiment is kept reproducible through `fit_meta_learners` and
 `score_beta_holdout` in `src/ds02_rul/stacking.py`, which are documented as the

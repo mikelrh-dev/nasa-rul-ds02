@@ -45,7 +45,7 @@ predicción puntual no cambia, y con ella tampoco los pesos.
 | Calibración doble | Dos bandas para el mismo punto: artefacto y JSON | `models/ds02_manifest.json` vs `mia/calibracion_banda.json` | No |
 | Tramos | Discontinuidad al cruzar 75 ciclos | `mia/calibracion_banda.json` (tramo 3, n=419) | No |
 | Reproducibilidad | La caché OOF no viaja en el repo | `.gitignore:49`, `scripts/p1_oof_cache.py` | No (ver matiz 1) |
-| Tests, specs y cifras | Ficheros de texto y de test | `tests/`, `openspec/`, `INFORME_reglas_oof.md` | No |
+| Tests, specs y cifras | Ficheros de texto y de test | `tests/`, `openspec/`, `docs/informes/informe-2026-10-21-reglas-oof.md` | No |
 
 ### Detalle de las capas que importan
 

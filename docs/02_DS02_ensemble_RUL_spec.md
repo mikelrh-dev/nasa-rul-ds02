@@ -691,7 +691,7 @@ extrapolation range was implemented and measured. On unit 16 it predicts a mean 
 39.9 against a true 31.5, and test RMSE rises monotonically with `beta`: 4.04 at
 0, 7.48 at 0.6, 10.17 at 1. The dev engines outlive the test engines, so the
 pooled fit learns a level prior that does not transfer. Reverted; the instrument
-stays in `stacking.py` and the record in `INFORME_motor16_vs_oof.md`.
+stays in `stacking.py` and the record in `docs/informes/informe-2026-10-21-motor16-vs-oof.md`.
 
 ### 6.14 Summary of debt
 

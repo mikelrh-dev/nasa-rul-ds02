@@ -1,6 +1,6 @@
 """Paquete MIA: motor de reglas sobre la predicción de RUL del DS02.
 
-Dos familias de reglas (medidas en `INFORME_reglas_oof.md`):
+Dos familias de reglas (medidas en `docs/informes/informe-2026-10-21-reglas-oof.md`):
 
 * **Corrección (pasada B)** — modifican el número antes de evaluarlo:
   `R2b_ISOTONICO_CAUSAL` (ajuste isotonico causal del historial) y `R6_BANDA`
