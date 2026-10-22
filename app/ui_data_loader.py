@@ -34,15 +34,28 @@ AIRWORTHY = "APTO"
 PREVENTIVE = "INSPECCION"
 AOG = "HANGAR"
 NO_DATA = "SIN_DATOS"
+# Estado que emite `R1_SEGURIDAD` cuando el dato es imposible: no es "sin datos",
+# es "no se decide". Se mantiene distinto para que la UI no los confunda.
+SIN_DECISION = "SIN_DECISION"
 
 DEFAULT_AIRWORTHY = 30.0
 DEFAULT_AOG = 25.0
+
+# Símbolo por estado: el color nunca va solo (daltónicos y pantallas malas).
+STATE_SYMBOLS = {
+    AIRWORTHY: "circle",
+    PREVENTIVE: "square",
+    AOG: "x",
+    NO_DATA: "diamond",
+    SIN_DECISION: "cross",
+}
 
 STATE_LABELS = {
     AIRWORTHY: "🟢 APTO PARA VUELO",
     PREVENTIVE: "🟡 INSPECCIÓN PROGRAMADA",
     AOG: "🔴 DERIVACIÓN A HANGAR (AOG)",
     NO_DATA: "⚪ SIN DATOS (aún sin vuelo)",
+    SIN_DECISION: "⛔ SIN DECISIÓN (dato imposible)",
 }
 
 ACTIONS = {
@@ -50,6 +63,7 @@ ACTIONS = {
     PREVENTIVE: "Inspección borescópica programada en la próxima escala.",
     AOG: "Orden de desmontaje HPT/LPT enviada a taller.",
     NO_DATA: "Sin telemetría evaluable en este ciclo.",
+    SIN_DECISION: "No se decide: corrige el dato imposible y vuelve a evaluar.",
 }
 
 # The dataset declares these names in the HDF5 (`W_var`, `X_s_var`). They are
@@ -162,8 +176,8 @@ def unit_curve(windows: pd.DataFrame, unit: int) -> pd.DataFrame:
     """Per-cycle series for one engine.
 
     The model scores a window every `step` rows, so a cycle carries many
-    predictions; the chart shows their mean and their worst (lowest) lower
-    bound, which is what the triage uses.
+    predictions. The chart draws the mean and the panel decides on the worst
+    (lowest) lower bound; both are kept so the difference stays visible.
     """
     frame = windows[windows["unit"] == int(unit)]
     if frame.empty:
@@ -182,6 +196,23 @@ def unit_curve(windows: pd.DataFrame, unit: int) -> pd.DataFrame:
         .reset_index(drop=True)
     )
     return grouped
+
+
+def _state_at_cycle(at_cycle: pd.DataFrame, lower: float,
+                   airworthy: float, aog: float) -> tuple[str, str]:
+    """Estado del ciclo y la regla que lo decidio.
+
+    Cuando el frame trae la pasada A (`decision` / `regla_decision`, de
+    `ui_rules.decidir_ventanas`), el estado se toma del motor `mia/` en la fila
+    mas restrictiva del ciclo. Si no la trae, se reclasifica el limite inferior
+    como siempre: el cargador sigue siendo usable sin la capa de reglas.
+    """
+    if "decision" in at_cycle.columns and len(at_cycle):
+        fila = at_cycle.loc[at_cycle["lower"].idxmin()]
+        estado = str(fila["decision"])
+        if estado in STATE_LABELS:
+            return estado, str(fila.get("regla_decision", ""))
+    return classify(lower, airworthy, aog), ""
 
 
 def fleet_snapshot(windows: pd.DataFrame, cycle: int,
@@ -204,12 +235,18 @@ def fleet_snapshot(windows: pd.DataFrame, cycle: int,
                 "clamped": False, "reached": False, "y_true": np.nan,
                 "pred": np.nan, "lower": np.nan, "upper": np.nan,
                 "state": NO_DATA, "action": ACTIONS[NO_DATA], "windows": 0,
-                "life": last,
+                "rule": "", "start_index": None, "life": last,
             })
             continue
         scored = min(int(cycle), last)
         at_cycle = frame[frame["cycle"] == scored]
         lower = float(at_cycle["lower"].min())
+        state, rule = _state_at_cycle(at_cycle, lower, airworthy, aog)
+        # La ventana que decide es la de menor limite inferior: se guarda su
+        # posicion para que la orden pueda citar el dato, no solo el ciclo.
+        peor = at_cycle.loc[at_cycle["lower"].idxmin()]
+        start_index = (int(peor["start_index"]) if "start_index" in at_cycle.columns
+                       else -1)
         rows.append({
             "unit": int(unit), "cycle": int(cycle), "scored_cycle": scored,
             "clamped": scored != int(cycle), "reached": True,
@@ -217,8 +254,10 @@ def fleet_snapshot(windows: pd.DataFrame, cycle: int,
             "pred": float(at_cycle["pred"].mean()),
             "lower": lower,
             "upper": float(at_cycle["upper"].max()),
-            "state": classify(lower, airworthy, aog),
-            "action": ACTIONS[classify(lower, airworthy, aog)],
+            "state": state,
+            "action": ACTIONS[state],
+            "rule": rule,
+            "start_index": start_index,
             "windows": int(len(at_cycle)),
             "life": last,
         })
@@ -294,14 +333,21 @@ def critical_zone_mae(windows: pd.DataFrame, threshold: float = DEFAULT_AOG) -> 
     return float(np.mean(np.abs(p - y)))
 
 
-def first_alarm_cycle(curve: pd.DataFrame,
-                      aog: float = DEFAULT_AOG) -> tuple[int | None, int | None]:
+def first_alarm_cycle(curve: pd.DataFrame, aog: float = DEFAULT_AOG,
+                      statistic: str = "lower_min") -> tuple[int | None, int | None]:
     """Cycles where the lower bound crosses AOG, and where truth crosses it.
 
     Reported together so a reader can see how early the alarm fires rather than
     being told the band is "conservative".
+
+    The statistic defaults to the cycle's **lowest** lower bound, which is the
+    same one `fleet_snapshot` uses to decide: the alarm and the state must not
+    answer "did it cross?" with different numbers. The mean is still available
+    for a chart line, but a mean that stays above the threshold while the worst
+    window is below it would hide the decision the operator is looking at.
     """
-    below = curve[curve["lower"] < aog]
+    column = statistic if statistic in curve.columns else "lower"
+    below = curve[curve[column] < aog]
     alarm = int(below["cycle"].iloc[0]) if not below.empty else None
     truth_below = curve[curve["y_true"] < aog]
     truth = int(truth_below["cycle"].iloc[0]) if not truth_below.empty else None
@@ -311,14 +357,30 @@ def first_alarm_cycle(curve: pd.DataFrame,
 # ------------------------------------------------------------------ work order
 def work_order(snapshot: pd.DataFrame, provenance: dict,
                airworthy: float = DEFAULT_AIRWORTHY,
-               aog: float = DEFAULT_AOG) -> dict:
-    """JSON-ready order for the units grounded at the simulated cycle."""
+               aog: float = DEFAULT_AOG,
+               banda: str = "artefacto (models/ds02_manifest.json)",
+               correccion: str | None = None) -> dict:
+    """JSON-ready order for the units grounded at the simulated cycle.
+
+    The document states which reading produced it: `banda` names the calibration
+    that set the limits and `correccion` the passes that moved the point. Without
+    them an order built with the rules layer on is indistinguishable from one
+    built on the raw cache.
+    """
     blocked = snapshot[snapshot["state"] == AOG]
     units = []
     for _, row in blocked.iterrows():
         units.append({
             "unidad": int(row["unit"]),
             "estado": AOG,
+            "regla": str(row.get("rule", "")),
+            "ventana_evaluada": {
+                "filas": int(provenance["source"]["window"]),
+                "step": int(provenance["source"]["step"]),
+                "ciclo": int(row["scored_cycle"]),
+                "start_index": int(row.get("start_index", -1)),
+                "ventanas_en_ciclo": int(row.get("windows", 0)),
+            },
             "ciclo_simulado": int(row["cycle"]),
             "ciclo_evaluado": int(row["scored_cycle"]),
             "rul_estimada": round(float(row["pred"]), 2),
@@ -333,6 +395,8 @@ def work_order(snapshot: pd.DataFrame, provenance: dict,
         "generado_en": pd.Timestamp.now().isoformat(timespec="seconds"),
         "dataset": "DS02",
         "artefacto_sha256": provenance["artifact"]["ensemble_sha256"],
+        "banda": banda,
+        "correccion": correccion or "ninguna (lectura cruda de la caché)",
         "ventana": {
             "size": provenance["source"]["window"],
             "step": provenance["source"]["step"],
@@ -346,11 +410,54 @@ def work_order(snapshot: pd.DataFrame, provenance: dict,
 
 def work_order_csv(order: dict) -> str:
     """Flat CSV companion to the JSON order (header only when nothing is blocked)."""
-    columns = ["unidad", "estado", "ciclo_simulado", "ciclo_evaluado", "rul_estimada",
-               "limite_inferior", "limite_superior", "rul_real", "motivo", "accion"]
+    columns = ["unidad", "estado", "regla", "ciclo_simulado", "ciclo_evaluado",
+               "rul_estimada", "limite_inferior", "limite_superior", "rul_real",
+               "motivo", "accion"]
     if not order["unidades"]:
         return ",".join(columns) + "\n"
-    return pd.DataFrame(order["unidades"])[columns].to_csv(index=False)
+    frame = pd.DataFrame(order["unidades"])
+    # La orden de una unidad externa no trae `rul_real` (no hay verdad): la
+    # columna se emite vacía en vez de romper el documento.
+    for column in columns:
+        if column not in frame.columns:
+            frame[column] = ""
+    return frame[columns].to_csv(index=False)
+
+
+def parte_disponibilidad(snapshot: pd.DataFrame, provenance: dict,
+                        airworthy: float = DEFAULT_AIRWORTHY,
+                        aog: float = DEFAULT_AOG) -> dict:
+    """Parte firmable cuando ninguna unidad está en hangar (también se audita).
+
+    La orden solo lista bloqueos; este parte deja constancia de que se miró la
+    flota entera y no había nada que derivar, con los mismos umbrales, banda y
+    huella que una orden. JSON-serializable, como `work_order`.
+    """
+    filas = []
+    for _, row in snapshot.iterrows():
+        filas.append({
+            "unidad": int(row["unit"]),
+            "estado": str(row["state"]),
+            "regla": str(row.get("rule", "")),
+            "ciclo_simulado": int(row["cycle"]),
+            "ciclo_evaluado": (None if pd.isna(row["scored_cycle"])
+                                else int(row["scored_cycle"])),
+            "rul_estimada": (None if pd.isna(row["pred"])
+                              else round(float(row["pred"]), 2)),
+            "limite_inferior": (None if pd.isna(row["lower"])
+                                 else round(float(row["lower"]), 2)),
+            "limite_superior": (None if pd.isna(row["upper"])
+                                 else round(float(row["upper"]), 2)),
+        })
+    return {
+        "documento": "Parte de disponibilidad — flota sin derivaciones",
+        "generado_en": pd.Timestamp.now().isoformat(timespec="seconds"),
+        "dataset": "DS02",
+        "artefacto_sha256": provenance["artifact"]["ensemble_sha256"],
+        "umbrales": {"apto_si_limite_inferior_ge": airworthy,
+                     "hangar_si_limite_inferior_lt": aog},
+        "unidades": filas,
+    }
 
 
 def thresholds_from(airworthy: float, aog: float) -> dict:

@@ -22,6 +22,9 @@ Exit codes, so CI can tell the three failures apart:
 mutates a frozen artifact by accident is a trap. `--write` re-freezes
 `mia/calibracion_banda.json` only, from the module constant, and only for fields
 outside tolerance; on a matching tree it prints `no change` and opens no file.
+When a **recorded figure** drifted it exits 4 and opens no file at all: freezing
+first and reporting afterwards would leave the artifact repaired on a run that
+failed.
 
 The word "skip" never appears in the output. A missing instrument is a failure,
 not a reason to pass — the test suite takes the opposite policy on purpose.
@@ -481,6 +484,17 @@ def run(expected: dict | None = None, cache: str | None = None,
     drifts = _quantile_drifts(committed, observed["fit"])
     failures = _compare(observed, expected)
 
+    if write and failures:
+        # Verify before freezing: a gate that repairs the file it validates turns
+        # a failed check into a passing one on the second run.
+        print("", file=stream)
+        print("freeze-rules-evidence: recorded figures drift; refusing to re-freeze",
+              file=stream)
+        for failure in failures:
+            print(f"  {failure}", file=stream)
+        print(f"  untouched:          {CALIBRACION}", file=stream)
+        return EXIT_DRIFT
+
     if write:
         changes = _write_frozen(committed, observed["fit"])
         if changes:
@@ -491,12 +505,6 @@ def run(expected: dict | None = None, cache: str | None = None,
         else:
             print("", file=stream)
             print("freeze-rules-evidence: no change", file=stream)
-        if failures:
-            print("", file=stream)
-            print("freeze-rules-evidence: recorded figures still drift", file=stream)
-            for failure in failures:
-                print(f"  {failure}", file=stream)
-            return EXIT_DRIFT
         return EXIT_OK
 
     if drifts:

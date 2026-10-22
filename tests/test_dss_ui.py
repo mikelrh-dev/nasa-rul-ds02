@@ -186,8 +186,8 @@ def test_empty_work_order_is_still_a_valid_document():
     assert order["unidades"] == []
     csv_text = L.work_order_csv(order)
     assert csv_text.strip().splitlines() == [
-        "unidad,estado,ciclo_simulado,ciclo_evaluado,rul_estimada,limite_inferior,"
-        "limite_superior,rul_real,motivo,accion"
+        "unidad,estado,regla,ciclo_simulado,ciclo_evaluado,rul_estimada,"
+        "limite_inferior,limite_superior,rul_real,motivo,accion"
     ]
 
 

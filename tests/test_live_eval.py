@@ -65,6 +65,25 @@ def test_short_table_is_rejected_with_counts():
 
 
 @needs_cache
+def test_a_table_over_the_row_cap_is_rejected_before_the_model():
+    """Un histórico completo son cientos de miles de ventanas: se corta antes."""
+    table, _ = INF.example_window()
+    larga = pd.concat([table] * (INF.MAX_FILAS // len(table) + 2), ignore_index=True)
+    larga["cycle"] = np.arange(len(larga), dtype=float)  # ciclos crecientes
+    assert len(larga) > INF.MAX_FILAS
+
+    aviso = INF.preflight(larga)
+    assert aviso["ok"] is False
+    assert aviso["ventanas"] == 0
+    assert f"{INF.MAX_FILAS:,}" in aviso["error"]
+    assert f"{len(larga):,}" in aviso["error"]
+
+    # El mismo tope protege la ruta de puntuación, antes de importar Keras.
+    with pytest.raises(ValueError, match="máximo"):
+        INF.score_table(larga)
+
+
+@needs_cache
 def test_wrong_channel_order_is_rejected_and_named():
     table, _ = INF.example_window()
     order = INF.channel_order()

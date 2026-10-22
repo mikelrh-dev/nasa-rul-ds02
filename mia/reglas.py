@@ -27,6 +27,9 @@ import numpy as np
 CALIBRACION_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "calibracion_banda.json")
 
+# Un tramo con menos filas que esto no puede estrechar la banda global.
+MIN_FILAS_TRAMO = 500
+
 APTO = "APTO"
 INSPECCION = "INSPECCION"
 HANGAR = "HANGAR"
@@ -87,12 +90,26 @@ def banda_recalibrada_vector(puntos, calibracion: dict) -> tuple[np.ndarray, np.
 
     Los bordes no cruzan el punto y el inferior no baja de cero, igual que la
     banda enviada: un intervalo que excluyera a su propio centro seria un bug.
+
+    **Guarda de muestra pequena.** Un tramo con menos de `MIN_FILAS_TRAMO` filas
+    no puede estrechar la banda: toma el cuantil mas conservador de los dos, el
+    del tramo y el global. El tramo `[75, inf)` tiene 419 filas y `q_high`
+    negativo; sin la guarda el limite superior se hundia ~19.8 ciclos al cruzar
+    75 y el intervalo quedaba de una sola cara. La regla solo ensancha, asi que
+    la cobertura no puede bajar.
     """
     puntos = np.asarray(puntos, dtype=np.float64).ravel()
     edges = np.asarray(calibracion["edges"], dtype=np.float64)
     idx = np.clip(np.searchsorted(edges, puntos, side="right") - 1, 0, len(edges) - 2)
-    q_low = np.asarray([b["q_low"] for b in calibracion["bins"]], dtype=np.float64)[idx]
-    q_high = np.asarray([b["q_high"] for b in calibracion["bins"]], dtype=np.float64)[idx]
+    bins = calibracion["bins"]
+    q_low = np.asarray([b["q_low"] for b in bins], dtype=np.float64)[idx]
+    q_high = np.asarray([b["q_high"] for b in bins], dtype=np.float64)[idx]
+    filas = np.asarray([b.get("n", 0) for b in bins], dtype=np.float64)[idx]
+    globales = calibracion.get("global_quantiles")
+    if globales:
+        escaso = filas < MIN_FILAS_TRAMO
+        q_low = np.where(escaso, np.minimum(q_low, float(globales[0])), q_low)
+        q_high = np.where(escaso, np.maximum(q_high, float(globales[1])), q_high)
     lower = np.minimum(puntos + q_low, puntos)
     upper = np.maximum(puntos + q_high, puntos)
     lower = np.where(puntos >= 0.0, np.clip(lower, 0.0, None), lower)

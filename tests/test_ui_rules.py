@@ -6,7 +6,9 @@ Tres cosas han de sostenerse:
 2. el punto corregido es el extremo del ajuste isotónico causal por unidad y la
    banda sigue conteniéndolo;
 3. el tablero sigue renderizando con la corrección activada, arranca con el
-   interruptor apagado y no describe la corrección como monotonicidad estricta.
+   interruptor apagado y no describe la corrección como monotonicidad estricta;
+4. la pasada de decisión la firma `mia.motor` (R1/R7/R8/R9), no una
+   reclasificación paralela, y el SHA-256 completo se muestra en la UI.
 
 Run:  python -m pytest tests -q
 """
@@ -18,6 +20,7 @@ import sys
 import unicodedata
 
 import numpy as np
+import pandas as pd
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -192,6 +195,67 @@ def test_el_interruptor_arranca_apagado():
     assert app.toggle, "el interruptor de corrección tiene que existir"
     assert app.toggle[0].value is False
     assert len(app.tabs) == 5
+
+
+# ------------------------------------------------- pasada A en la interfaz
+def test_la_pasada_a_viene_del_motor_de_reglas():
+    """R7/R8/R9 y la prioridad de R1 se resuelven en `mia.motor`."""
+    frame = pd.DataFrame({
+        "unit": [11, 11, 14],
+        "cycle": [1, 2, 1],
+        "pred": [40.0, 20.0, 31.0],
+        "lower": [35.0, 18.0, 25.5],
+        "upper": [45.0, 30.0, 40.0],
+    })
+    umbrales = {"apto": 30.0, "hangar": 25.0}
+    decidido = UR.decidir_ventanas(frame, umbrales)
+    assert decidido["decision"].tolist() == [L.AIRWORTHY, L.AOG, L.PREVENTIVE]
+    assert decidido["regla_decision"].tolist() == [
+        "R7_APTO", "R9_HANGAR", "R8_INSPECCION"
+    ]
+    assert "R9_HANGAR" in decidido.loc[1, "motivo_decision"]
+
+    con_alerta = UR.decidir_ventanas(
+        frame, umbrales, alertas=[["canal fuera de rango"], [], []],
+    )
+    assert con_alerta.loc[0, "decision"] == R.SIN_DECISION
+    assert "R1_SEGURIDAD" in con_alerta.loc[0, "regla_decision"]
+
+
+def test_el_estado_de_flota_sale_de_la_pasada_a():
+    """El snapshot toma estado y regla del motor cuando el frame los trae."""
+    frame = pd.DataFrame({
+        "unit": [11, 11, 14],
+        "cycle": [1, 2, 1],
+        "pred": [40.0, 20.0, 31.0],
+        "lower": [35.0, 18.0, 25.5],
+        "upper": [45.0, 30.0, 40.0],
+        "y_true": [41.0, 22.0, 30.0],
+        "start_index": [0, 0, 0],
+    })
+    decidido = UR.decidir_ventanas(frame, {"apto": 30.0, "hangar": 25.0})
+    snapshot = L.fleet_snapshot(decidido, 2)
+    u11 = snapshot[snapshot["unit"] == 11].iloc[0]
+    u14 = snapshot[snapshot["unit"] == 14].iloc[0]
+    assert (u11["state"], u11["rule"]) == (L.AOG, "R9_HANGAR")
+    assert (u14["state"], u14["rule"]) == (L.PREVENTIVE, "R8_INSPECCION")
+
+
+@needs_cache
+def test_la_ui_muestra_el_sha_completo():
+    """El SHA-256 se muestra entero y etiquetado, no un prefijo suelto."""
+    from streamlit.testing.v1 import AppTest
+
+    sha = L.get_provenance()["artifact"]["ensemble_sha256"]
+    assert len(sha) == 64
+    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=180)
+    app.run()
+    assert not app.exception, app.exception
+    codigos = [(element.value or "") for element in app.get("code")]
+    assert any(sha in texto for texto in codigos), codigos
+    # `st.badge` se expone como markdown con la sintaxis `:color-badge[...]`.
+    markdowns = [(element.value or "") for element in app.markdown]
+    assert any("SHA-256" in texto and sha[:8] in texto for texto in markdowns), markdowns
 
 
 @needs_cache
