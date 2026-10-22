@@ -1,4 +1,4 @@
-"""Cierra la v3: vuelca la ejecución al notebook final y regenera COMPARACION_NASA.md."""
+"""Cierra la v3: vuelca la ejecución al notebook final y regenera docs/informes/informe-2026-10-18-comparacion-nasa-fd001.md."""
 import json
 import pathlib
 
@@ -183,9 +183,9 @@ def main():
     assert nb['cells'][-1]['cell_type'] == 'markdown'
     nb['cells'][-1]['source'] = CONCLUSION
     OUT.write_text(json.dumps(nb, ensure_ascii=False, indent=1), encoding='utf-8')
-    (ROOT / 'COMPARACION_NASA.md').write_text(MD, encoding='utf-8')
+    (ROOT / 'docs/informes/informe-2026-10-18-comparacion-nasa-fd001.md').write_text(MD, encoding='utf-8')
     print('notebook final:', OUT, '| celdas:', len(nb['cells']))
-    print('COMPARACION_NASA.md regenerado')
+    print('docs/informes/informe-2026-10-18-comparacion-nasa-fd001.md regenerado')
 
 
 if __name__ == '__main__':

@@ -111,7 +111,7 @@ the same representation — but not a promise about a different fleet.
    UI says so rather than hiding it behind a number.
 2. **The life-length prior still applies.** Any unit living longer than ~63
    cycles inherits the under-prediction measured in
-   `INFORME_p0_p1_prior_de_vida.md`; the lower bound absorbs part of it.
+   `docs/informes/informe-2026-10-21-p0-p1-prior-de-vida.md`; the lower bound absorbs part of it.
 3. **The example is a real test window.** It is lifted from
    `app/cache/ds02_rows.parquet`, so it demonstrates the flow but is not
    independent evidence of generalisation.

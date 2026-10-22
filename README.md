@@ -263,7 +263,7 @@ python scripts/freeze_rules_evidence.py
 ```
 
 It prints the monotonicity table and exits non-zero on drift; the measurement is
-written up in [`INFORME_reglas_oof.md` §13](INFORME_reglas_oof.md).
+written up in [`docs/informes/informe-2026-10-21-reglas-oof.md` §13](docs/informes/informe-2026-10-21-reglas-oof.md).
 
 ---
 
@@ -306,9 +306,15 @@ scripts/               builder, migration, ablation, CLI, probes
 app/                   FastAPI service, Streamlit dashboards, live-evaluation seam
 tests/                 pytest suite: artifact contract, DSS, rules layer
 openspec/              SDD: deployed spec, change proposal, tasks
+docs/                  spec, decisions/ (ADR-001…009), informes/ (measurements), plans/
 models/                artifacts + manifest + ablation results
 02_DS02_ensemble_RUL.ipynb   executed notebook (generated)
 ```
+
+The measurements behind every claim above live in
+[`docs/informes/`](docs/informes/README.md), one document per question, indexed by
+date with a table of old→new names for anything still citing the pre-2026-10-22
+root filenames.
 
 ---
 
@@ -320,7 +326,7 @@ models/                artifacts + manifest + ablation results
   engines' out-of-fold vector was tried in 2026-10-21 and made things worse, not
   better: predictions on unit 16 averaged 39.9 against a true 31.5, and test RMSE
   rose from 4.04 to 10.17 as `beta` went 0 → 1, because the dev engines outlive
-  the test engines. Recorded in `INFORME_motor16_vs_oof.md`.
+  the test engines. Recorded in `docs/informes/informe-2026-10-21-motor16-vs-oof.md`.
 - The prediction band over-covers (100 % against a 90 % target, ~26.4 cycles
   wide). Its calibration rows come from fold models that are weaker than the
   shipped ones. It is a conservative bound, not a sharp interval, and the obvious

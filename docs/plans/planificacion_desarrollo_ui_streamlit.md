@@ -94,7 +94,7 @@ La aplicación debe configurarse en modo panorámico (`st.set_page_config(layout
 * **Gráfico de Precisión por Tramos de Vida (MAE por RUL Bin):**
   * Mostrar los datos del manifiesto: cómo en vida alta `[50, 75)` el MAE es `5.35`, en `[25, 50)` es `4.17`, pero en el tramo crítico **`[0, 25)` cae a `1.12` ciclos**.
 * **Panel Explicativo Estructurado (Cajas de información técnicas):**
-  * Incluir tres tarjetas visuales explicando las causas raíz descubiertas en los informes del repositorio (`INFORME_p0_p1_prior_de_vida.md`):
+  * Incluir tres tarjetas visuales explicando las causas raíz descubiertas en los informes del repositorio (`docs/informes/informe-2026-10-21-p0-p1-prior-de-vida.md`):
     1. **Complejidad Física:** Modo de fallo compuesto (degradación simultánea más agresiva).
     2. **Densidad de Muestreo (Hallazgo P0):** Menor cantidad de observaciones por ciclo de vuelo (~20 filas/ciclo frente a >110 en entrenamiento).
     3. **Sesgo del Prior de Vida y Mitigación Conformal:** Cómo la menor duración total del motor (75 ciclos) engaña al prior medio, y cómo el uso del **límite conformal inferior** en el Hangar Virtual actúa como red de seguridad para absorber este desfase.

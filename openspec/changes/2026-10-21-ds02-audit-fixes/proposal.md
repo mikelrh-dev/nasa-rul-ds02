@@ -2,7 +2,7 @@
 
 ## Why
 
-The 2026-10-21 audit of the DS02 rule layer (`AUDITORIA_ds02_2026-10-21.md`)
+The 2026-10-21 audit of the DS02 rule layer (`docs/informes/auditoria-2026-10-21-reglas.md`)
 found eighteen issues; none of them requires retraining the frozen artifacts.
 This change closes the ones that are pure code, calibration arithmetic, or
 provenance. The two items that need a model decision (unifying the two

@@ -208,7 +208,7 @@ same `[0, 25)` band the metrics use.
 The audit tab SHALL present engine 14 with measured facts, not narrative: its
 window count, its sampling density relative to the fit engines, its live RMSE,
 MAE and bias, and the error by RUL band. It SHALL state that the density
-hypothesis was **tested and discarded** (`INFORME_p0_p1_prior_de_vida.md`, bias
+hypothesis was **tested and discarded** (`docs/informes/informe-2026-10-21-p0-p1-prior-de-vida.md`, bias
 change −0.93 / −0.03 / +0.34 cycles) and that the evidence points to the
 life-prior level shift instead, which the lower-bound triage absorbs.
 

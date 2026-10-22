@@ -35,10 +35,10 @@ Spec y tareas alineadas: `openspec/changes/2026-10-21-ds02-engine-twin/`
 
 ### Estado del árbol
 
-Nada commiteado. Modificados: `INFORME_reglas_oof.md`, `app/dashboard_ds02.py`,
+Nada commiteado. Modificados: `docs/informes/informe-2026-10-21-reglas-oof.md`, `app/dashboard_ds02.py`,
 `app/ui_data_loader.py`, `app/ui_inference.py`, `app/ui_rules.py`, `mia/reglas.py`,
 `scripts/freeze_rules_evidence.py`, `tests/{test_dss_ui,test_live_eval,test_ui_rules}.py`.
-Nuevos: `app/hangar.py`, `app/twin.py`, `AUDITORIA_ds02_2026-10-21.md`, los dos
+Nuevos: `app/hangar.py`, `app/twin.py`, `docs/informes/auditoria-2026-10-21-reglas.md`, los dos
 `openspec/changes/…`, `tests/{test_twin,test_hangar,test_audit_fixes,test_engine_flow}.py`.
 
 `models/` y `app/cache/` no se tocaron; `scripts/freeze_rules_evidence.py` viene

@@ -4,7 +4,7 @@
 **Capability:** `ds02-rules-engine` (new)
 **Status:** Proposed
 **Sources of truth:** `mia/reglas.py`, `mia/motor.py`, `mia/calibracion_banda.json`,
-`INFORME_reglas_oof.md` §3, §5, §7 and §13
+`docs/informes/informe-2026-10-21-reglas-oof.md` §3, §5, §7 and §13
 
 The rules layer is an independent post-processing pass over the RUL prediction.
 It never retrains, refits or writes an artifact. Correction runs first (pass B);

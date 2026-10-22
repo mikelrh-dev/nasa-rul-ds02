@@ -42,6 +42,8 @@ loader if no HDF5 is found. **In the current run the fallback is dead code.**
 ├── app/                           # FastAPI service + Streamlit dashboard
 ├── mia/                           # rules layer (opt-in post-processing)
 ├── docs/decisions/                # ADR-001 … ADR-009
+├── docs/informes/                 # measurement reports and audits (one per question)
+├── docs/plans/                    # design plans (UI/DSS, external evolution plan)
 ├── tests/                         # pytest suite: artifact contract, DSS, rules layer
 ├── scripts/
 │   ├── build_02_notebook.py        # generator for the DS02 notebook (pure nbformat)

@@ -20,7 +20,7 @@ Two doubts motivated re-testing it:
 
 1. That argument assumes a roughly symmetric predictive distribution with a
    "small, constant" offset. At `y > 65` this pipeline under-predicts by
-   **16.8 cycles** (see `INFORME_p0_p1_prior_de_vida.md`), so pushing the forecast
+   **16.8 cycles** (see `docs/informes/informe-2026-10-21-p0-p1-prior-de-vida.md`), so pushing the forecast
    further down moves errors away from zero.
 2. ADR-003 cites `scripts/probe_q35.py`, which compares two `alpha=0.35`
    configurations against an L2 model, computes its metrics on the evaluation

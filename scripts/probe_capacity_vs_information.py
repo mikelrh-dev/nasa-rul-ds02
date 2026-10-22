@@ -39,7 +39,7 @@ from ds02_rul.features import build_windows, fit_preprocessing
 from ds02_rul.metrics import calculate_nasa_score
 
 # Same grouped folds as the OOF gate, so the numbers are comparable with
-# INFORME_p0_p1_prior_de_vida.md (units 16/20, 2/10, 5/18).
+# docs/informes/informe-2026-10-21-p0-p1-prior-de-vida.md (units 16/20, 2/10, 5/18).
 FOLDS = ((2.0, 10.0), (5.0, 18.0), (16.0, 20.0))
 WINDOW = 50
 STEP = 3
