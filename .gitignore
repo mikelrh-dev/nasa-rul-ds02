@@ -31,6 +31,8 @@ _ablate_meta.log
 _exec_v3.log
 _v3_*.log
 nb_exec_*.log
+# numbered execution logs (02_exec.log, 03_exec.log, ...) from any notebook dir
+*_exec.log
 probe_*.log
 cells_*.txt
 _probe_*.npy
@@ -54,6 +56,7 @@ copiaseguridad*.zip
 copiaSeguridadv*/
 copiacuadernos/
 *.bak
+notebooks/ds02_ensemble/artifacts/
 
 # scratch notebooks and dumps
 _run_v3.ipynb
@@ -63,3 +66,6 @@ cell_counts.txt
 # tool caches
 .atl/
 .freebuff/
+
+# fleet records persisted by the Streamlit UI (per-machine state)
+app/registros_flota.json
