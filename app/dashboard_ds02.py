@@ -34,6 +34,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import hangar as HGR  # noqa: E402
 import twin as T  # noqa: E402
+import ui_alta as A  # noqa: E402
 import ui_data_loader as L  # noqa: E402
 import ui_inference as INF  # noqa: E402
 import ui_rules as UR  # noqa: E402
@@ -69,6 +70,21 @@ def _guardar_registros() -> None:
 
 
 _cargar_registros()
+
+ALTA_KEY = "flota_alta"
+
+
+def _altas() -> list[dict]:
+    """Aeronaves de alta de esta sesión. Clave de `session_state`, sin disco."""
+    return list(st.session_state.get(ALTA_KEY) or [])
+
+
+def _etiqueta_unidad(unit: float) -> str:
+    """Matrícula de una aeronave de alta, o la etiqueta de la caché."""
+    for alta in _altas():
+        if float(alta["unit_id"]) == float(unit):
+            return str(alta["matricula"])
+    return L.UNIT_LABELS.get(int(unit), f"Unidad {int(unit)}")
 
 
 def _preflight_panel(pf: dict) -> None:
@@ -180,19 +196,39 @@ manifest = L.get_manifest()
 units = sorted(int(u) for u in windows["unit"].unique())
 max_life = int(windows["cycle"].max())
 
+# ------------------------------------------------------- escrituras diferidas
+# Un handler no puede escribir en la clave de un widget que ya se instanció:
+# Streamlit lo prohíbe (`StreamlitWidgetAlreadyInstantiatedError`) y la app
+# revienta en pantalla. La solución es dejar una bandera y aplicarla aquí, antes
+# de crear los widgets: en la siguiente pasada el widget nace con el valor ya en
+# `session_state`. Sin esto, «Incorporar unidad» y «Cargar escenario de demo»
+# rompían la app aunque su lógica fuera correcta.
+if st.session_state.get("_demo_pendiente"):
+    _demo = A.estado_demo()
+    st.session_state["preset"] = "Normal"
+    st.session_state["th_apto_Normal"] = _demo["umbrales"][0]
+    st.session_state["th_aog_Normal"] = _demo["umbrales"][1]
+    st.session_state["unit"] = _demo["unidad"]
+    st.session_state["cycle"] = _demo["ciclo"]
+    st.session_state.pop("_demo_pendiente", None)
+if st.session_state.get("_alta_pendiente") is not None:
+    st.session_state["unit"] = st.session_state.pop("_alta_pendiente")
+
 # ------------------------------------------------------------------- sidebar
 with st.sidebar:
     st.header("Guardia operativa", icon=":material/radar:")
+    _vistas = sorted(set(int(u) for u in units) | {int(a["unit_id"]) for a in _altas()})
+    _default = _vistas[0] if int(st.session_state.get("unit", _vistas[0])) not in _vistas else int(st.session_state.get("unit", _vistas[0]))
     unit = st.segmented_control(
         "Unidad de test",
-        units,
-        default=units[0],
+        _vistas,
+        default=_default,
         required=True,
-        format_func=lambda u: f"U{int(u)}",
+        format_func=lambda u: _etiqueta_unidad(float(u)),
         key="unit",
         help="Motores del conjunto de test DS02 (partición fija [11, 14, 15]).",
     )
-    st.caption(L.UNIT_LABELS.get(int(unit), f"Unidad {int(unit)}"))
+    st.caption(_etiqueta_unidad(float(unit)))
 
     cycle = st.slider(
         "Ciclo de vuelo simulado",
@@ -200,12 +236,60 @@ with st.sidebar:
         max_value=max_life,
         value=1,
         step=1,
+        key="cycle",
         help=(
             "Reloj de flota: se aplica a las tres unidades. Las que terminaron su vida "
             f"registrada se muestran en su último ciclo evaluado (vida máxima: {max_life})."
         ),
     )
 
+    st.subheader("Probar con un caso típico (sin datos)", icon=":material/library_add:")
+    st.caption(
+        "Sin CSV ni pegado: elige matrícula + perfil y aparece en flota. Para telemetría real usa la pestaña Evaluar unidad nueva."
+    )
+    with st.form("alta_avion"):
+        matricula = st.text_input(
+            "Matrícula", key="alta_matricula", value="",
+            help="Etiqueta de visualización. Mínimo 3 caracteres.",
+        )
+        perfil = st.selectbox("Perfil de desgaste", list(A.PERFILES), key="alta_perfil")
+        enviar = st.form_submit_button("Incorporar unidad",
+                                       icon=":material/add_circle:", type="primary")
+    if enviar:
+        try:
+            limpia = T.normalizar_id(matricula)
+        except ValueError as exc:
+            st.error(str(exc), icon=":material/rule:")
+        else:
+            unidad_p, ciclo_p = A.PERFILES[perfil]
+            altas = _altas()
+            try:
+                nuevo = A.ventanas_de_alta(windows, unidad_p, ciclo_p, A.unidad_alta(len(altas)))
+            except ValueError as exc:
+                st.error(str(exc), icon=":material/rule:")
+            else:
+                altas.append({
+                    "matricula": limpia,
+                    "unidad": unidad_p,
+                    "ciclo": ciclo_p,
+                    "unit_id": A.unidad_alta(len(altas)),
+                })
+                st.session_state[ALTA_KEY] = altas
+                st.session_state["_alta_pendiente"] = int(A.unidad_alta(len(altas) - 1))
+                st.session_state["twin_flash"] = (
+                    f"Aeronave `{limpia}` incorporada (U{unidad_p} hasta el ciclo {ciclo_p}). Ve a la pestaña Hangar virtual y busca la matrícula en Cola y Cronología.")
+                st.rerun()
+    with st.expander("Quitar aeronaves de alta", icon=":material/remove_circle:"):
+        altas = _altas()
+        if not altas:
+            st.caption("Ninguna aeronave de alta en esta sesión.")
+        else:
+            a_quitar = st.selectbox(
+                "Aeronave", [a["matricula"] for a in altas], key="alta_quitar")
+            if st.button("Quitar", icon=":material/delete:", key="alta_quitar_btn"):
+                st.session_state[ALTA_KEY] = [
+                    a for a in altas if a["matricula"] != a_quitar]
+                st.rerun()
     st.subheader("Umbrales de derivación", icon=":material/tune:")
     _PRESETS = {
         "Normal": (0.0, 0.0),
@@ -340,19 +424,25 @@ with st.sidebar:
 # muestra la lectura cruda de la caché, que es la que reproduce el contrato
 # congelado en models/ds02_manifest.json.
 umbrales = {"apto": float(threshold_apto), "hangar": float(threshold_aog)}
-frame = UR.corregir_ventanas(windows) if aplicar_reglas else windows
+# `frame_cache` es solo la caché: de aquí salen las métricas y la telemetría.
+# `frame` incluye las aeronaves de alta: de aquí sale la flota y las órdenes.
+frame_cache = UR.corregir_ventanas(windows) if aplicar_reglas else windows
 # Pasada A del motor `mia/`: R1/R9/R8/R7 deciden el estado sobre el limite inferior.
-frame = UR.decidir_ventanas(frame, umbrales)
+frame_cache = UR.decidir_ventanas(frame_cache, umbrales)
+frame = A.frame_con_altas(frame_cache, windows, _altas(), aplicar_reglas, umbrales)
 # Las tarjetas de flota se calculan sobre la lectura en uso: con la corrección
 # activa no pueden mostrar el macro-RMSE crudo al lado de un RMSE corregido.
-global_metrics = L.global_metrics(frame)
-curves = {u: L.unit_curve(frame, u) for u in units}
-alarms = {u: L.first_alarm_cycle(curves[u], threshold_aog) for u in units}
-correccion = UR.resumen_correccion(windows, frame) if aplicar_reglas else None
+global_metrics = L.global_metrics(frame_cache)
+unidades_vistas = sorted(int(u) for u in frame["unit"].unique())
+curves = {u: L.unit_curve(frame, u) for u in unidades_vistas}
+alarms = {u: L.first_alarm_cycle(curves[u], threshold_aog) for u in unidades_vistas}
+correccion = UR.resumen_correccion(windows, frame_cache) if aplicar_reglas else None
 snapshot = L.fleet_snapshot(frame, cycle, threshold_apto, threshold_aog)
 curve = curves[int(unit)]
-per_unit = L.per_unit_metrics(frame)
-unit_metrics = per_unit[per_unit["unit"] == unit].iloc[0]
+per_unit = L.per_unit_metrics(frame_cache)
+unit_metrics = (per_unit[per_unit["unit"] == unit].iloc[0]
+                if (per_unit["unit"] == unit).any()
+                else None)
 alarm_cycle, truth_cycle = alarms[int(unit)]
 current = int(min(cycle, int(curve["cycle"].max())))
 # Cobertura por ventana (la misma base que decide: cada ventana cuenta una vez).
@@ -361,7 +451,7 @@ current = int(min(cycle, int(curve["cycle"].max())))
 _wu = frame[frame["unit"] == int(unit)]
 coverage = float(np.mean((_wu["y_true"] >= _wu["lower"]) &
                          (_wu["y_true"] <= _wu["upper"]))) if len(_wu) else float("nan")
-critical_mae = L.critical_zone_mae(frame, threshold_aog)
+critical_mae = L.critical_zone_mae(frame_cache, threshold_aog)
 grounded = int((snapshot["state"] == L.AOG).sum())
 critical_start = truth_cycle
 
@@ -387,6 +477,24 @@ with head_right:
             f"Banda {provenance['artifact']['conformal_target_coverage']:.0%}",
             icon=":material/verified:", color="green",
         )
+
+with st.container(border=True):
+    st.subheader("Primera lectura", icon=":material/visibility:")
+    with st.container(horizontal=True):
+        st.metric("Unidades monitorizadas", f"{global_metrics['units']}",
+                  f"{global_metrics['windows']:,} ventanas evaluadas",
+                  border=True, icon=":material/groups:", delta_color="off")
+        st.metric("MAE en zona crítica", f"{critical_mae:.2f} ciclos",
+                  f"RUL real < {threshold_aog:.0f}", border=True,
+                  icon=":material/target:", delta_color="off")
+        st.metric("Unidades en hangar", f"{grounded} / {len(snapshot)}",
+                  f"en el ciclo {cycle}", border=True,
+                  icon=":material/local_shipping:", delta_color="off")
+    st.caption(
+        "La decisión de inmovilizar no la toma la predicción del modelo: la toma "
+        "el peor caso de su banda. Por eso un motor puede quedar en hangar con "
+        "vida útil estimada por encima del umbral."
+    )
 
 tab_fleet, tab_rul, tab_sensors, tab_audit, tab_live = st.tabs(
     [
@@ -448,13 +556,13 @@ with tab_fleet:
         )
         ribbon_rows = []
         por_ciclo = UR.estado_por_ciclo(frame)
-        for u in units:
+        for u in unidades_vistas:
             curva = curves[u]
             sub = por_ciclo[por_ciclo["unit"] == u].sort_values("cycle")
             ribbon_rows.append(
                 pd.DataFrame(
                     {
-                        "unidad": f"U{u}",
+                        "unidad": _etiqueta_unidad(float(u)),
                         "ciclo": curva["cycle"],
                         "estado": sub["decision"].to_numpy(),
                         "L_inf": curva["lower"],
@@ -490,7 +598,7 @@ with tab_fleet:
                            hovermode="closest"),
             xaxis_title="Ciclo de vuelo",
             yaxis=dict(
-                categoryorder="array", categoryarray=[f"U{u}" for u in reversed(units)],
+                categoryorder="array", categoryarray=[_etiqueta_unidad(float(u)) for u in reversed(unidades_vistas)],
             ),
         )
         style_axes(fig_fleet)
@@ -504,7 +612,7 @@ with tab_fleet:
         st.caption("Decisión por límite inferior conformal, no por la predicción puntual.")
         display = pd.DataFrame(
             {
-                "Motor": [f"U{int(u)}" for u in snapshot["unit"]],
+                "Motor": [_etiqueta_unidad(float(u)) for u in snapshot["unit"]],
                 "Ciclo": snapshot["cycle"],
                 "RUL real": snapshot["y_true"],
                 "RUL predicha": snapshot["pred"],
@@ -980,6 +1088,15 @@ with st.container(border=True):
             _guardar_registros()
             st.session_state["twin_flash"] = "Flota registrada borrada."
             st.rerun()
+    st.subheader("Demo en vivo", icon=":material/movie:")
+    st.caption(
+        "Deja la app en el estado desde el que se cuenta la historia: umbrales "
+        "30/25, ciclo 29 y la unidad 14, que es la que entra en hangar."
+    )
+    if st.button("Cargar escenario de demo", icon=":material/play_circle:",
+                 key="demo_cargar", type="primary"):
+        st.session_state["_demo_pendiente"] = True
+        st.rerun()
 
 
 # ------------------------------------------------------------------- tab 2
@@ -1046,16 +1163,20 @@ with tab_rul:
         )
 
     with st.container(horizontal=True):
-        st.metric("RMSE", f"{unit_metrics['rmse']:.2f}", f"U{int(unit)}", border=True,
-                  icon=":material/analytics:", delta_color="off")
-        st.metric("MAE", f"{unit_metrics['mae']:.2f}", f"U{int(unit)}", border=True,
-                  icon=":material/straighten:", delta_color="off")
-        st.metric("Sesgo (pred − real)", f"{unit_metrics['bias']:+.2f}", "ciclos", border=True,
-                  icon=":material/swap_vert:", delta_color="off")
+        if unit_metrics is not None:
+            st.metric("RMSE", f"{unit_metrics['rmse']:.2f}", f"U{int(unit)}", border=True,
+                      icon=":material/analytics:", delta_color="off")
+            st.metric("MAE", f"{unit_metrics['mae']:.2f}", f"U{int(unit)}", border=True,
+                      icon=":material/straighten:", delta_color="off")
+            st.metric("Sesgo (pred − real)", f"{unit_metrics['bias']:+.2f}", "ciclos", border=True,
+                      icon=":material/swap_vert:", delta_color="off")
+        else:
+            st.caption(f"Aeronave de alta {_etiqueta_unidad(float(unit))}: sin verdad en caché para RMSE/MAE/sesgo.")
         st.metric("Cobertura de banda", f"{coverage * 100:.0f} %", "objetivo 90 %", border=True,
                   icon=":material/verified:", delta_color="off")
-        st.metric("Vida registrada", f"{int(unit_metrics['life'])}", "ciclos", border=True,
-                  icon=":material/schedule:", delta_color="off")
+        if unit_metrics is not None:
+            st.metric("Vida registrada", f"{int(unit_metrics['life'])}", "ciclos", border=True,
+                      icon=":material/schedule:", delta_color="off")
         st.caption(
             f"Métricas sobre la lectura "
             f"{'corregida (R2b + R6)' if aplicar_reglas else 'cruda de la caché'}: "
@@ -1124,80 +1245,91 @@ with tab_sensors:
         .groupby("cycle", as_index=False)[needed]
         .mean(numeric_only=True)
     )
-    last_cycle = int(per_cycle["cycle"].max())
+    if per_cycle.empty:
+        # Una unidad de alta no tiene filas propias en `telemetry`: su serie es la
+        # de la unidad de caché de la que se recortó. Se dice en vez de romper.
+        st.info(
+            f"**{_etiqueta_unidad(float(unit))}** es una unidad de alta: su serie "
+            "viene de la caché y no hay telemetría fila a fila que radiografiar "
+            "aquí. Su estado y su curva RUL sí están en las pestañas 1 y 2.",
+            icon=":material/info:",
+        )
+    else:
+        last_cycle = int(per_cycle["cycle"].max())
 
-    left, right = st.columns(2)
-    with left:
-        with st.container(border=True, height="stretch"):
-            st.subheader("Condiciones operativas", icon=":material/air:")
-            ops = [c for c in ("alt", "Mach", "TRA", "T2") if c in per_cycle.columns]
-            fig_a = make_subplots(
-                rows=len(ops), cols=1, shared_xaxes=True, vertical_spacing=0.07
-            )
-            for i, ch in enumerate(ops, start=1):
-                fig_a.add_trace(
-                    go.Scatter(
-                        x=per_cycle["cycle"], y=per_cycle[ch], mode="lines",
-                        name=L.CHANNEL_LABELS.get(ch, ch), line=dict(width=1.8, color=SKY),
-                    ),
-                    row=i, col=1,
+        left, right = st.columns(2)
+        with left:
+            with st.container(border=True, height="stretch"):
+                st.subheader("Condiciones operativas", icon=":material/air:")
+                ops = [c for c in ("alt", "Mach", "TRA", "T2") if c in per_cycle.columns]
+                fig_a = make_subplots(
+                    rows=len(ops), cols=1, shared_xaxes=True, vertical_spacing=0.07
                 )
-                fig_a.update_yaxes(title_text=ch, row=i, col=1)
-            fig_a.update_layout(**chart_layout(height=360, showlegend=False,
-                                               hovermode="x unified"))
-            style_axes(fig_a, x_title="Ciclo de vuelo")
-            st.plotly_chart(
-                fig_a, theme=None,
-                alt="Altitud, Mach, acelerador y T2 a lo largo de los ciclos del motor seleccionado.",
-            )
-            st.caption(
-                "El régimen de vuelo es lo que el residualizador descarta antes de que el "
-                "modelo lea los sensores."
-            )
-
-    with right:
-        with st.container(border=True, height="stretch"):
-            st.subheader("Deriva física respecto al motor sano", icon=":material/monitor_heart:")
-            if not channels:
-                st.caption(
-                    ":material/touch_app: Selecciona al menos un canal para dibujar la deriva."
-                )
-            else:
-                baseline_cycles = 5
-                baseline = per_cycle.head(baseline_cycles)[channels].mean()
-                drift = (per_cycle[channels] / baseline - 1.0) * 100.0
-                fig_b = go.Figure()
-                for ch in channels:
-                    fig_b.add_trace(
+                for i, ch in enumerate(ops, start=1):
+                    fig_a.add_trace(
                         go.Scatter(
-                            x=per_cycle["cycle"], y=drift[ch], mode="lines",
-                            name=L.CHANNEL_LABELS.get(ch, ch), line=dict(width=2),
-                        )
+                            x=per_cycle["cycle"], y=per_cycle[ch], mode="lines",
+                            name=L.CHANNEL_LABELS.get(ch, ch), line=dict(width=1.8, color=SKY),
+                        ),
+                        row=i, col=1,
                     )
-                fig_b.add_hline(y=0, line_color=MUTED, line_width=1)
-                if critical_start is not None:
-                    fig_b.add_vrect(
-                        x0=critical_start, x1=last_cycle, fillcolor=ROSE, opacity=0.12,
-                        line_width=0,
-                        annotation_text=f"RUL real < {threshold_aog:.0f}",
-                        annotation_position="top right", annotation_font_size=11,
-                        annotation_font_color="#fca5a5",
-                    )
-                fig_b.update_layout(**chart_layout(height=360, hovermode="x unified"))
-                style_axes(
-                    fig_b,
-                    x_title="Ciclo de vuelo",
-                    y_title="variación % vs. media de los 5 primeros ciclos",
-                )
+                    fig_a.update_yaxes(title_text=ch, row=i, col=1)
+                fig_a.update_layout(**chart_layout(height=360, showlegend=False,
+                                                   hovermode="x unified"))
+                style_axes(fig_a, x_title="Ciclo de vuelo")
                 st.plotly_chart(
-                    fig_b, theme=None,
-                    alt="Deriva porcentual de los sensores seleccionados frente a la línea base sana del propio motor.",
+                    fig_a, theme=None,
+                    alt="Altitud, Mach, acelerador y T2 a lo largo de los ciclos del motor seleccionado.",
                 )
                 st.caption(
-                    f"Media por ciclo frente a la línea base sana del propio motor (U{unit}, "
-                    f"primeros {baseline_cycles} ciclos). No es la residualización del modelo: "
-                    "es la señal física bruta, para poder discutirla."
+                    "El régimen de vuelo es lo que el residualizador descarta antes de que el "
+                    "modelo lea los sensores."
                 )
+
+        with right:
+            with st.container(border=True, height="stretch"):
+                st.subheader("Deriva física respecto al motor sano", icon=":material/monitor_heart:")
+                if not channels:
+                    st.caption(
+                        ":material/touch_app: Selecciona al menos un canal para dibujar la deriva."
+                    )
+                else:
+                    baseline_cycles = 5
+                    baseline = per_cycle.head(baseline_cycles)[channels].mean()
+                    drift = (per_cycle[channels] / baseline - 1.0) * 100.0
+                    fig_b = go.Figure()
+                    for ch in channels:
+                        fig_b.add_trace(
+                            go.Scatter(
+                                x=per_cycle["cycle"], y=drift[ch], mode="lines",
+                                name=L.CHANNEL_LABELS.get(ch, ch), line=dict(width=2),
+                            )
+                        )
+                    fig_b.add_hline(y=0, line_color=MUTED, line_width=1)
+                    if critical_start is not None:
+                        fig_b.add_vrect(
+                            x0=critical_start, x1=last_cycle, fillcolor=ROSE, opacity=0.12,
+                            line_width=0,
+                            annotation_text=f"RUL real < {threshold_aog:.0f}",
+                            annotation_position="top right", annotation_font_size=11,
+                            annotation_font_color="#fca5a5",
+                        )
+                    fig_b.update_layout(**chart_layout(height=360, hovermode="x unified"))
+                    style_axes(
+                        fig_b,
+                        x_title="Ciclo de vuelo",
+                        y_title="variación % vs. media de los 5 primeros ciclos",
+                    )
+                    st.plotly_chart(
+                        fig_b, theme=None,
+                        alt="Deriva porcentual de los sensores seleccionados frente a la línea base sana del propio motor.",
+                    )
+                    st.caption(
+                        f"Media por ciclo frente a la línea base sana del propio motor "
+                        f"({_etiqueta_unidad(float(unit))}, primeros {baseline_cycles} "
+                        "ciclos). No es la residualización del modelo: es la señal "
+                        "física bruta, para poder discutirla."
+                    )
 
     st.caption(
         "Nomenclatura tomada del propio HDF5 (`X_s_var`, `W_var`): "
@@ -1421,6 +1553,41 @@ with tab_audit:
 
 # ------------------------------------------------------------------- tab 5
 with tab_live:
+    _flash_live = st.session_state.pop("live_flash", None)
+    if _flash_live:
+        st.success(_flash_live, icon=":material/check_circle:")
+    _flash_twin_live = st.session_state.get("twin_flash")
+    if _flash_twin_live:
+        st.success(_flash_twin_live, icon=":material/check_circle:")
+    with st.container(border=True):
+        st.subheader("¿Primera vez aquí? Empieza en 1 clic", icon=":material/rocket_launch:")
+        st.caption("Paso 1 elige · Paso 2 revisa · Paso 3 evalúa. Si solo quieres probar, no pegues nada ni subas CSV.")
+        c1, c2, c3 = st.columns(3)
+        _presets = {
+            "Sano U15 inicio": (15, 0.05, "ESN-SANO-01"),
+            "Medio U11 desgaste": (11, 0.36, "ESN-MEDIO-01"),
+            "Crítico U14 hangar": (14, 0.40, "ESN-CRIT-01"),
+        }
+        for _col, _nombre in zip((c1, c2, c3), _presets):
+            with _col:
+                if st.button(_nombre, key=f"live_demo_{_nombre}", type="primary" if "Crítico" in _nombre else "secondary", icon=":material/play_arrow:"):
+                    _u, _p, _did = _presets[_nombre]
+                    try:
+                        _tab, _meta = INF.example_window(_u, _p)
+                        _pf = INF.preflight(_tab)
+                        if not _pf["ok"]:
+                            raise ValueError(_pf["error"])
+                        st.session_state["live_engine_id"] = _did
+                        st.session_state["live_editor"] = _tab
+                        st.session_state["live_result"] = INF.score_table(_tab, engine_id=_did)
+                        st.session_state["live_meta"] = _meta
+                        st.session_state["live_warnings"] = _pf["avisos"]
+                        st.session_state["live_error"] = None
+                        st.session_state["live_flash"] = f"{_nombre} puntuado abajo (ciclos {_meta['start_cycle']}→{_meta['end_cycle']}). Puedes cambiar a Editar tabla para modificar valores y reevaluar, o pulsar Registrar gemelo."
+                    except ValueError as exc:
+                        st.session_state["live_result"] = None
+                        st.session_state["live_error"] = str(exc)
+                    st.rerun()
     st.subheader("Puntúa un motor con datos que aportes tú", icon=":material/science:")
     st.caption(
         "Las tres rutas desembocan en el mismo validador y en la misma llamada al "
@@ -1456,7 +1623,26 @@ with tab_live:
         "los pasos 1 y 2 están en verde."
     )
 
+    DEMO_PRESETS = {
+        "Sano U15 inicio (APTO)": (15, 0.05, "ESN-SANO-01"),
+        "Medio U11 desgaste (INSPECCIÓN)": (11, 0.36, "ESN-MEDIO-01"),
+        "Crítico U14 hangar (HANGAR)": (14, 0.40, "ESN-CRIT-01"),
+        "Clásico U14 40→43": (14, 0.55, "ESN-DEMO-01"),
+    }
+    def _on_preset_change():
+        _nuevo = st.session_state.get("live_demo_preset")
+        if _nuevo in DEMO_PRESETS:
+            st.session_state["live_engine_id"] = DEMO_PRESETS[_nuevo][2]
+    if mode == "Ejemplo del test set":
+        demo_nombre = st.selectbox(
+            "Dataset demo", list(DEMO_PRESETS), key="live_demo_preset",
+            on_change=_on_preset_change,
+            help="Tramos reales de caché con ciclos dispares. Al cambiar se proponen sus 50 filas y su matrícula.",
+        )
     example_table, example_meta = INF.example_window(14, 0.55)
+    if mode == "Ejemplo del test set" and "demo_nombre" in locals():
+        _du2, _dp2, _ = DEMO_PRESETS[demo_nombre]
+        example_table, example_meta = INF.example_window(_du2, _dp2)
     submitted = False
     table_to_score = None
     data_meta = example_meta
@@ -1516,16 +1702,22 @@ with tab_live:
                 f"Ventana real de U{example_meta['unit']} · ciclos "
                 f"{example_meta['start_cycle']}→{example_meta['end_cycle']} · filas "
                 f"{example_meta['row_slice'][0]}–{example_meta['row_slice'][1]} de "
-                f"`{example_meta['source']}`."
+                f"`{example_meta['source']}`. Desmarca filas para excluirlas (mínimo 50 para puntuar)."
             )
-            st.dataframe(
-                example_table,
-                hide_index=True,
-                height=260,
-                column_config=number_columns,
-                alt="Ventana de ejemplo: 50 filas de telemetría remuestreada listas para puntuar.",
+            _edit = example_table.copy()
+            _edit.insert(0, "usar", True)
+            _cols_cfg = dict(number_columns)
+            _cols_cfg["usar"] = st.column_config.CheckboxColumn("usar", help="Desmarca para no predecir esa fila.")
+            _edited = st.data_editor(
+                _edit, hide_index=True, height=260, key="live_demo_grid",
+                column_config=_cols_cfg,
+                alt="Ventana demo seleccionable: marca qué filas se puntúan.",
             )
-        preflight_ejemplo = INF.preflight(example_table)
+            _sel = pd.DataFrame(_edited)
+            _usar = _sel["usar"].fillna(False).to_numpy(dtype=bool) if "usar" in _sel.columns else [True] * len(_sel)
+            _filtrada = _sel.loc[_usar].drop(columns=[c for c in ["usar"] if c in _sel.columns], errors="ignore")
+            st.caption(f"{int(_usar.sum())} de {len(_sel)} filas seleccionadas → {max(0, int(_usar.sum()) - INF.window_size() + 1)} ventana(s).")
+        preflight_ejemplo = INF.preflight(_filtrada)
         _preflight_panel(preflight_ejemplo)
         with st.form("live_eval_example"):
             submitted = st.form_submit_button(
@@ -1533,7 +1725,8 @@ with tab_live:
                 disabled=not id_ok,
             )
         if submitted:
-            table_to_score = example_table
+            table_to_score = _filtrada
+            data_meta = example_meta
     elif mode == "Editar tabla (pegar)":
         edited = st.data_editor(
             example_table,
@@ -1544,6 +1737,8 @@ with tab_live:
             column_config=number_columns,
         )
         draft = pd.DataFrame(edited) if edited is not None else example_table
+        if "usar" in draft.columns:
+            draft = draft[draft["usar"].fillna(False).astype(bool)].drop(columns=["usar"])
         state_rows = len(draft)
         state_windows = max(0, state_rows - INF.window_size() + 1)
         if state_rows > INF.UMBRAL_RECORTE_EDITOR:
