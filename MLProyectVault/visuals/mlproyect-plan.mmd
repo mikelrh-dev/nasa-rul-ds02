@@ -1,0 +1,20 @@
+flowchart TD
+    RUL[TODO RUL se predice por ventanas de 50 lecturas]
+    HONESTO[Protocolo honesto: motor nunca en ajuste y test a la vez]
+    BASE[Baseline media train: todo modelo debe ganarle]
+    RUL --> HONESTO --> BASE
+    HONESTO --> PREPRO[Prepro ajustada SOLO en fit-motores]
+    PREPRO --> FEATS[Ventanas + cyc_norm]
+    FEATS --> LGBM[LightGBM cuantil tabular]
+    FEATS --> BILSTM[BiLSTM triple pooling]
+    BILSTM --> EMA[EMA causal por motor]
+    LGBM --> ABL[Ablación cyc_norm]
+    BILSTM --> ABL
+    ABL --> OOF[OOF agrupado]
+    OOF --> BETA[Beta mediana fuera de fold]
+    BETA --> ENS[Ensamble híbrido + EMA5]
+    ENS --> CONF[Banda conformal 90%]
+    ENS --> MULTI[Multisemilla media ± std]
+    MULTI --> TIE[Regla del empate]
+    TIE --> DX[Diagnóstico]
+    DX --> SAVE[Persistencia + reload]

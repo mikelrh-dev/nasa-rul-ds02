@@ -446,7 +446,8 @@ with st.sidebar:
             "HANGAR/AOG (`L_inf < hangar`: la unidad no vuela y se emite orden).\n"
             "- **Ciclo de vuelo**: un despegue–aterrizaje. El reloj del taller "
             "simula el paso del tiempo sobre el conjunto de test congelado.\n"
-            "- **Ventana**: las 50 filas remuestreadas que el modelo consume de una vez. "
+            "- **Ventana**: las 50 muestras remuestreadas (~0,4 ciclos de vuelo) que "
+            "el modelo consume de una vez. "
             "Se puntúa una ventana cada 2 filas, así que un ciclo acumula varias "
             "predicciones.\n"
             "- **Orden de trabajo**: documento JSON/CSV con las unidades bloqueadas, su "
@@ -573,6 +574,186 @@ with st.container(border=True):
         "el peor caso de su banda. Por eso un motor puede quedar en hangar con "
         "vida útil estimada por encima del umbral."
     )
+
+@st.fragment
+def _sandbox_estres() -> None:
+    """Sandbox de estrés: perturbar la caché y ver el pipeline reaccionar en vivo.
+
+    El tribunal mueve el deslizador y la app re-puntúa el tramo con el artefacto
+    congelado (`ui_inference.score_table`) y re-decide con el motor oficial
+    (`mia/reglas.py` vía `ui_rules.decidir_ventanas`). No se reentrena nada y no
+    se escribe en `models/` ni en `src/`.
+
+    La perturbación es sintética y se declara: el split-conformal se calibró sobre
+    datos reales, así que romper la intercambiabilidad quita la garantía del 90 %.
+    La banda se sigue dibujando — el límite inferior sigue gobernando la decisión
+    (ADR-008) — pero con la leyenda degradada y el aviso visible.
+
+    Con la deriva a 0 % el tramo se dibuja desde la caché y el modelo no se carga:
+    la app está documentada y testeada para arrancar sin el artefacto de 2,3 GB.
+    Solo una deriva distinta de cero paga la carga (una sola vez, `@st.cache_resource`).
+
+    Los umbrales se leen de `session_state` y no del global del módulo: el fragment
+    se re-ejecuta solo, y un valor congelado en la pasada anterior quedaría obsoleto
+    si el tribunal cambiara la política en la pestaña del taller.
+    """
+    _preset_sbx = str(st.session_state.get("preset", "Normal"))
+    _umb_sbx = {
+        "apto": float(st.session_state.get(f"th_apto_{_preset_sbx}", 30.0)),
+        "hangar": float(st.session_state.get(f"th_aog_{_preset_sbx}", 25.0)),
+    }
+    _u_sbx = st.segmented_control(
+        "Unidad del tramo", units, default=14, key="sbx_unit",
+        help="Motores del conjunto de test DS02 (partición fija [11, 14, 15]).",
+    )
+    _deriva_pct = st.slider(
+        "Deriva térmica acumulada en T48", min_value=0, max_value=30, value=0,
+        step=1, format="%d%%", key="sbx_deriva",
+        help="Porcentaje que T48 (temperatura de salida del compresor de alta) gana "
+             "al final del tramo respecto a su valor en caché. Con 0 % el tramo es "
+             "la caché tal cual; cualquier otro valor es una intervención sintética.",
+    )
+    _deriva = _deriva_pct / 100.0
+    _perturbado = _deriva > 0.0
+
+    # El tramo va del primer ciclo puntuado al primero en que la caché ya manda al
+    # hangar: es el mismo recorrido que cuenta el modo historia. Sale de la caché,
+    # no de una constante.
+    _cur_sbx = L.unit_curve(windows, int(_u_sbx))
+    _c_inicio = int(_cur_sbx["cycle"].min())
+    _bajo_hangar = _cur_sbx[_cur_sbx["lower_min"] < _umb_sbx["hangar"]]
+    _c_fin = (int(_bajo_hangar["cycle"].min()) if not _bajo_hangar.empty
+              else int(_cur_sbx["cycle"].max()))
+    if _c_fin <= _c_inicio:
+        st.caption(
+            "Este motor no cruza el umbral de hangar en la caché: no hay transición "
+            "que enseñar en el tramo."
+        )
+        return
+    _tramo = telemetry[(telemetry["unit"] == int(_u_sbx))
+                       & (telemetry["cycle"] >= _c_inicio)
+                       & (telemetry["cycle"] <= _c_fin)].reset_index(drop=True)
+    _muestras = len(_tramo)
+
+    if not _perturbado:
+        # Con 0 % el tramo es la caché tal cual y se dibuja sin cargar el modelo: la
+        # app está documentada y testeada para arrancar sin el artefacto (2,3 GB).
+        # El estado se clasifica con el mismo `L.classify` que usa el cargador.
+        _cur = (_cur_sbx[["cycle", "pred", "lower", "upper", "lower_min"]]
+                .sort_values("cycle").reset_index(drop=True))
+        # `unit_curve` devuelve toda la vida del motor; el sandbox enseña el tramo.
+        _cur = _cur[_cur["cycle"] <= _c_fin].reset_index(drop=True)
+        _cruce = _cur[_cur["lower_min"] < _umb_sbx["hangar"]]
+        _cruce_ciclo = int(_cruce["cycle"].min()) if not _cruce.empty else None
+        _ultima = _cur.iloc[-1]
+        _estado = L.classify(float(_ultima["lower"]), _umb_sbx["apto"], _umb_sbx["hangar"])
+        _ventanas = int(((windows["unit"] == int(_u_sbx))
+                         & (windows["cycle"] >= _c_inicio)
+                         & (windows["cycle"] <= _c_fin)).sum())
+    else:
+        _tab = _tramo[["cycle"] + INF.channel_order()].copy()
+        _tab["T48"] = _tab["T48"].astype(float) * (
+            1.0 + _deriva * np.linspace(0.0, 1.0, len(_tab)))
+        _pf = INF.preflight(_tab)
+        if not _pf["ok"]:
+            st.error(_pf["error"], icon=":material/rule:")
+            return
+        try:
+            _win = INF.score_table(_tab, engine_id=f"ESN-SBX-{int(_u_sbx)}")["windows"]
+        except ValueError as exc:
+            st.error(str(exc), icon=":material/rule:")
+            return
+        _dec = UR.decidir_ventanas(_win, _umb_sbx)
+        _cur = (_dec.groupby("cycle", as_index=False)
+                .agg(pred=("pred", "mean"), lower=("lower", "mean"),
+                     upper=("upper", "mean"), lower_min=("lower", "min"))
+                .sort_values("cycle").reset_index(drop=True))
+        _cruce = _cur[_cur["lower_min"] < _umb_sbx["hangar"]]
+        _cruce_ciclo = int(_cruce["cycle"].min()) if not _cruce.empty else None
+        _fin_dec = _dec[_dec["cycle"] == _c_fin]
+        _ultima = (_fin_dec.loc[_fin_dec["lower"].idxmin()] if not _fin_dec.empty
+                   else _dec.iloc[-1])
+        _estado = str(_ultima["decision"])
+        _ventanas = len(_win)
+
+    _band_name = ("Banda proyectada (fuera de garantía conformal 90 %)"
+                  if _perturbado else "Banda conformal (90 %)")
+    _dash = "dot" if _perturbado else "solid"
+    _band_color = ROSE if _perturbado else SKY
+    _fill = "rgba(248,113,113,0.10)" if _perturbado else "rgba(56,189,248,0.10)"
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=_cur["cycle"], y=_cur["upper"], mode="lines", name=_band_name,
+        line=dict(width=1, color=_band_color, dash=_dash),
+        hovertemplate="ciclo %{x}<br>superior %{y:.1f}<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=_cur["cycle"], y=_cur["lower"], mode="lines", name=" ",
+        line=dict(width=1, color=_band_color, dash=_dash),
+        fill="tonexty", fillcolor=_fill,
+        hovertemplate="ciclo %{x}<br>inferior %{y:.1f}<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=_cur["cycle"], y=_cur["pred"], mode="lines", name="RUL predicha",
+        line=dict(width=2, color=SKY),
+        hovertemplate="ciclo %{x}<br>RUL %{y:.1f}<extra></extra>",
+    ))
+    fig.add_hline(y=_umb_sbx["apto"], line_color=GREEN, line_width=1, line_dash="dash",
+                  annotation_text=f"apto ≥ {_umb_sbx['apto']:.0f}",
+                  annotation_font_color=GREEN, annotation_font_size=11)
+    fig.add_hline(y=_umb_sbx["hangar"], line_color=ROSE, line_width=1, line_dash="dash",
+                  annotation_text=f"hangar < {_umb_sbx['hangar']:.0f}",
+                  annotation_font_color=ROSE, annotation_font_size=11)
+    if _cruce_ciclo is not None:
+        fig.add_vline(x=_cruce_ciclo, line_color=AMBER, line_width=1, line_dash="dot",
+                      annotation_text=f"hangar en {_cruce_ciclo}",
+                      annotation_font_color=AMBER, annotation_font_size=11)
+    fig.update_layout(**chart_layout(height=360))
+    style_axes(fig, x_title="Ciclo de vuelo", y_title="ciclos de RUL")
+    _alt = (f"Curva de RUL de la unidad {int(_u_sbx)} entre los ciclos {_c_inicio} y "
+            f"{_c_fin}, con una deriva sintética del {_deriva_pct:.0f} % en T48: el "
+            f"límite inferior cruza el umbral de hangar en el ciclo {_cruce_ciclo} y el "
+            f"estado al final del tramo es {L.STATE_LABELS.get(_estado, _estado)}."
+            if _cruce_ciclo is not None and _perturbado else
+            f"Curva de RUL de la unidad {int(_u_sbx)} entre los ciclos {_c_inicio} y "
+            f"{_c_fin} sin cruce al umbral de hangar; el estado al final del tramo es "
+            f"{L.STATE_LABELS.get(_estado, _estado)}."
+            if _cruce_ciclo is None else
+            f"Curva de RUL de la unidad {int(_u_sbx)} entre los ciclos {_c_inicio} y "
+            f"{_c_fin} leída de la caché: el límite inferior cruza el umbral de hangar "
+            f"en el ciclo {_cruce_ciclo} y el estado al final del tramo es "
+            f"{L.STATE_LABELS.get(_estado, _estado)}.")
+    st.plotly_chart(fig, use_container_width=True, alt=_alt)
+
+    _m1, _m2 = st.columns(2)
+    _m1.metric("RUL predicha al final del tramo", f"{_ultima['pred']:.1f} ciclos",
+               border=True, icon=":material/schedule:")
+    _m2.metric("Cruce a hangar",
+               f"ciclo {_cruce_ciclo}" if _cruce_ciclo else "no cruza en el tramo",
+               border=True, icon=":material/warning:")
+    st_badge_estado(_estado)
+    st.caption(
+        f"Tramo de caché ciclos {_c_inicio}→{_c_fin}: {_muestras} muestras "
+        f"remuestreadas, {_ventanas} ventanas. "
+        + ("Leído de la caché, sin cargar el modelo: al mover el deslizador el "
+           "pipeline corre en vivo y la banda pierde la garantía conformal."
+           if not _perturbado else
+           "Puntuado en vivo con el artefacto congelado; la banda se degrada a "
+           "proyectada porque el split-conformal perdió la intercambiabilidad.")
+    )
+    if _perturbado:
+        for _aviso in _pf["avisos"]:
+            st.warning(_aviso, icon=":material/find_in_page:")
+        st.warning(
+            f"Deriva sintética del {_deriva_pct:.0f} % sobre T48: la banda pierde la "
+            "garantía conformal del 90 % — el split-conformal se calibró sobre datos "
+            "reales y una intervención sintética rompe la intercambiabilidad. El "
+            "límite inferior sigue gobernando la decisión (ADR-008), pero su cobertura "
+            "ya no está garantizada.",
+            icon=":material/warning:",
+        )
+
 
 tab_fleet, tab_rul, tab_sensors, tab_audit, tab_live = st.tabs(
     [
@@ -2146,6 +2327,21 @@ with tab_live:
                     )
                     st.rerun()
 
+    # El caso crítico apunta al mismo ciclo que el paso 3 del modo historia: ambos
+    # salen de la caché (`estado_historia` elige el primer ciclo en HANGAR del motor
+    # de mayor RMSE), así que si la caché cambia, los dos cambian con ella. Ningún
+    # ciclo ni ningún límite está esparcido aquí.
+    _paso_hangar = A.estado_historia(windows, umbrales)[2]
+    _u_hangar = int(_paso_hangar["unidad"])
+    _c_hangar = int(_paso_hangar["ciclo"])
+    DEMO_PRESETS = {
+        "Sano U15 inicio (APTO)": (15, 0.05, "ESN-SANO-01", None),
+        "Medio U11 desgaste (INSPECCIÓN)": (11, 0.36, "ESN-MEDIO-01", None),
+        f"Crítico U{_u_hangar} · ciclo {_c_hangar} (HANGAR)": (
+            _u_hangar, None, "ESN-CRIT-01", _c_hangar),
+        "Clásico U14 40→43": (14, 0.55, "ESN-DEMO-01", None),
+    }
+
     with st.container(border=True):
         st.subheader("Puntúa un ejemplo en 1 clic", icon=":material/rocket_launch:")
         st.caption(
@@ -2154,17 +2350,15 @@ with tab_live:
             "sube CSV."
         )
         c1, c2, c3 = st.columns(3)
-        _presets = {
-            "Sano U15 inicio": (15, 0.05, "ESN-SANO-01"),
-            "Medio U11 desgaste": (11, 0.36, "ESN-MEDIO-01"),
-            "Crítico U14 hangar": (14, 0.40, "ESN-CRIT-01"),
-        }
-        for _col, _nombre in zip((c1, c2, c3), _presets):
+        for _col, _nombre in zip((c1, c2, c3), list(DEMO_PRESETS)[:3]):
             with _col:
                 if st.button(_nombre, key=f"live_demo_{_nombre}", type="primary" if "Crítico" in _nombre else "secondary", icon=":material/play_arrow:"):
-                    _u, _p, _did = _presets[_nombre]
+                    _u, _p, _did, _ciclo = DEMO_PRESETS[_nombre]
                     try:
-                        _tab, _meta = INF.example_window(_u, _p)
+                        if _ciclo is None:
+                            _tab, _meta = INF.example_window(_u, _p)
+                        else:
+                            _tab, _meta = INF.window_ending_at(_u, _ciclo)
                         _pf = INF.preflight(_tab)
                         if not _pf["ok"]:
                             raise ValueError(_pf["error"])
@@ -2179,11 +2373,40 @@ with tab_live:
                         st.session_state["live_result"] = None
                         st.session_state["live_error"] = str(exc)
                     st.rerun()
+        # Nota de honestidad: el límite inferior no es monótono y el tribunal lo va a
+        # ver. Los tres números salen de la caché, no están escritos a mano.
+        _fila_hangar = windows[(windows["unit"] == _u_hangar) & (windows["cycle"] == _c_hangar)]
+        _lo_min = float(_fila_hangar["lower"].min())
+        _lo_max = float(_fila_hangar["lower"].max())
+        _y_real = float(_fila_hangar["y_true"].mean())
+        _curva_h = L.unit_curve(windows, _u_hangar).sort_values("cycle")
+        _caida = _curva_h[_curva_h["lower_min"] < umbrales["apto"]]
+        _ciclo_caida = int(_caida["cycle"].min()) if not _caida.empty else None
+        _repunte = (
+            _curva_h[(_curva_h["cycle"] > _ciclo_caida)
+                     & (_curva_h["lower_min"] >= umbrales["apto"])]
+            if _ciclo_caida is not None else _curva_h.iloc[0:0]
+        )
+        _ciclo_repunte = int(_repunte["cycle"].min()) if not _repunte.empty else None
+        _nota_mono = (
+            f" La trayectoria no es monótona — cae a inspección en el ciclo "
+            f"{_ciclo_caida} y vuelve a apto en el {_ciclo_repunte} — porque el EMA "
+            "causal (ADR-006) reduce pero no elimina los saltos de un predictor por "
+            "ventanas. Se muestra tal cual."
+            if _ciclo_caida is not None and _ciclo_repunte is not None else ""
+        )
+        st.caption(
+            f"El caso crítico termina en el ciclo {_c_hangar}, donde el límite inferior "
+            f"cruza el umbral de hangar ({umbrales['hangar']:.0f}) con {_y_real:.0f} ciclos "
+            f"reales restantes: dentro del propio ciclo baja de {_lo_max:.1f} a {_lo_min:.1f}."
+            + _nota_mono
+        )
     st.subheader("Puntúa un motor con datos que aportes tú", icon=":material/science:")
     st.caption(
         "Las tres rutas desembocan en el mismo validador y en la misma llamada al "
-        "artefacto congelado. Una ventana son **50 filas remuestreadas** (1 de cada 100 "
-        "registros), no 50 lecturas seguidas ni 50 ciclos. Teclear 900 celdas no es "
+        "artefacto congelado. Una ventana son **50 muestras remuestreadas** (1 de cada "
+        "100 registros), lo que son **~0,4 ciclos de vuelo**, no 50 lecturas seguidas "
+        "ni 50 ciclos. Teclear 900 celdas no es "
         "viable: usa el ejemplo, pega un bloque desde Excel o sube el CSV."
     )
 
@@ -2214,12 +2437,6 @@ with tab_live:
         "los pasos 1 y 2 están en verde."
     )
 
-    DEMO_PRESETS = {
-        "Sano U15 inicio (APTO)": (15, 0.05, "ESN-SANO-01"),
-        "Medio U11 desgaste (INSPECCIÓN)": (11, 0.36, "ESN-MEDIO-01"),
-        "Crítico U14 hangar (HANGAR)": (14, 0.40, "ESN-CRIT-01"),
-        "Clásico U14 40→43": (14, 0.55, "ESN-DEMO-01"),
-    }
     def _on_preset_change():
         _nuevo = st.session_state.get("live_demo_preset")
         if _nuevo in DEMO_PRESETS:
@@ -2228,12 +2445,15 @@ with tab_live:
         demo_nombre = st.selectbox(
             "Dataset demo", list(DEMO_PRESETS), key="live_demo_preset",
             on_change=_on_preset_change,
-            help="Tramos reales de caché con ciclos dispares. Al cambiar se proponen sus 50 filas y su matrícula.",
+            help="Tramos reales de caché con ciclos dispares. Al cambiar se proponen sus 50 muestras remuestreadas y su matrícula.",
         )
     example_table, example_meta = INF.example_window(14, 0.55)
     if mode == "Ejemplo del test set" and "demo_nombre" in locals():
-        _du2, _dp2, _ = DEMO_PRESETS[demo_nombre]
-        example_table, example_meta = INF.example_window(_du2, _dp2)
+        _du2, _dp2, _, _ciclo2 = DEMO_PRESETS[demo_nombre]
+        if _ciclo2 is None:
+            example_table, example_meta = INF.example_window(_du2, _dp2)
+        else:
+            example_table, example_meta = INF.window_ending_at(_du2, _ciclo2)
     submitted = False
     table_to_score = None
     data_meta = example_meta
@@ -2276,11 +2496,11 @@ with tab_live:
         )
         st.caption(
             "**`cycle`** es el ciclo de vuelo del registro y **no** se repite por "
-            "accidente: la ventana toma 1 de cada 100 registros, así que varias filas "
-            "comparten ciclo y 50 filas cubren pocos vuelos."
+            "accidente: la ventana toma 1 de cada 100 registros, así que varias "
+            "muestras comparten ciclo y 50 muestras cubren ~0,4 vuelos."
         )
         st.download_button(
-            "Descargar plantilla CSV (50 filas vacías)",
+            "Descargar plantilla CSV (50 muestras remuestreadas vacías)",
             data=INF.template_csv(),
             file_name="plantilla_unidad_ds02.csv",
             mime="text/csv",
@@ -2307,7 +2527,7 @@ with tab_live:
             _sel = pd.DataFrame(_edited)
             _usar = _sel["usar"].fillna(False).to_numpy(dtype=bool) if "usar" in _sel.columns else [True] * len(_sel)
             _filtrada = _sel.loc[_usar].drop(columns=[c for c in ["usar"] if c in _sel.columns], errors="ignore")
-            st.caption(f"{int(_usar.sum())} de {len(_sel)} filas seleccionadas → {max(0, int(_usar.sum()) - INF.window_size() + 1)} ventana(s).")
+            st.caption(f"{int(_usar.sum())} de {len(_sel)} muestras seleccionadas → {max(0, int(_usar.sum()) - INF.window_size() + 1)} ventana(s).")
         preflight_ejemplo = INF.preflight(_filtrada)
         _preflight_panel(preflight_ejemplo)
         with st.form("live_eval_example"):
@@ -2348,9 +2568,9 @@ with tab_live:
                 st.session_state.pop("live_edit_fixed", None)
                 st.rerun()
         st.caption(
-            f"**{state_rows} filas** → {state_windows} ventana(s). Pega el bloque "
+            f"**{state_rows} muestras** → {state_windows} ventana(s). Pega el bloque "
             "desde Excel/Sheets sobre la primera celda: la rejilla acepta una "
-            "matriz de 50×19, y con más filas puntúa todas las ventanas "
+            "matriz de 50×19, y con más muestras puntúa todas las ventanas "
             "deslizantes. No cambies los encabezados."
         )
         _fija = st.session_state.get("live_edit_fixed")
@@ -2529,8 +2749,9 @@ with tab_live:
                 "**canales** `" + ", ".join(contract["canales"]) + "`"
             )
             st.caption(
-                "Las 50 filas son la rejilla remuestreada (1 de cada 100 registros del "
-                "dataset), no 50 lecturas de 1 Hz. Con otro muestreo la predicción queda "
+                "Las 50 muestras son la rejilla remuestreada (1 de cada 100 registros del "
+                "dataset), lo que son ~0,4 ciclos de vuelo, no 50 lecturas de 1 Hz. Con otro "
+                "muestreo la predicción queda "
                 "fuera de contrato aunque los números sean válidos."
             )
 
@@ -2610,3 +2831,14 @@ with tab_live:
                 icon=":material/download:",
                 type="primary",
             )
+
+    # -------------------- sala 5: sandbox de estrés en vivo
+    with st.container(border=True):
+        st.subheader("Sandbox de estrés · perturba el motor y mira el pipeline reaccionar",
+                     icon=":material/tune:")
+        st.caption(
+            "El tribunal mueve el deslizador y la app re-puntúa el tramo con el "
+            "artefacto congelado y re-decide con el motor oficial. No se reentrena "
+            "nada: lo que cambia es la entrada."
+        )
+        _sandbox_estres()

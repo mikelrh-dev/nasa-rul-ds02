@@ -109,6 +109,39 @@ def example_window(unit: int = 14, position: float = 0.55) -> tuple[pd.DataFrame
     return table, meta
 
 
+def window_ending_at(unit: int, cycle: int) -> tuple[pd.DataFrame, dict]:
+    """The window that ends on the last cached row of `cycle`.
+
+    `example_window` picks a window by row fraction; this one picks it by the
+    flight cycle it ends on, which is the unit of reasoning the story mode and
+    the fleet panel use. Same shape either way: `window_size()` downsampled
+    samples in the dataset's channel order.
+    """
+    rows = L.get_rows()
+    frame = rows[rows["unit"] == int(unit)].reset_index(drop=True)
+    span = window_size()
+    mask = (frame["cycle"] == int(cycle)).to_numpy()
+    if not mask.any():
+        disponibles = sorted(int(c) for c in frame["cycle"].unique())
+        raise ValueError(
+            f"la unidad {unit} no tiene filas en el ciclo {cycle}; "
+            f"los suyos van de {disponibles[0]} a {disponibles[-1]}"
+        )
+    end = int(np.flatnonzero(mask)[-1]) + 1
+    end = max(span, end)
+    start = end - span
+    chunk = frame.iloc[start:end].copy()
+    table = chunk[["cycle"] + channel_order()].reset_index(drop=True)
+    meta = {
+        "source": "app/cache/ds02_rows.parquet",
+        "unit": int(unit),
+        "row_slice": [int(start), int(end)],
+        "start_cycle": int(chunk["cycle"].iloc[0]),
+        "end_cycle": int(chunk["cycle"].iloc[-1]),
+    }
+    return table, meta
+
+
 def channel_labels() -> dict[str, str]:
     """What each column physically is, in the dataset's own vocabulary.
 
@@ -239,8 +272,8 @@ def validate_table(table: pd.DataFrame) -> pd.DataFrame:
     span = window_size()
     if len(frame) < span:
         raise ValueError(
-            f"Se necesitan al menos {span} filas para formar una ventana y llegaron "
-            f"{len(frame)}."
+            f"Se necesitan al menos {span} muestras remuestreadas (~0,4 ciclos de vuelo) "
+            f"para formar una ventana y llegaron {len(frame)}."
         )
 
     for column in required:
@@ -326,7 +359,7 @@ def preflight(table: pd.DataFrame) -> dict:
     return {
         "ok": ventanas > 0,
         "error": None if ventanas > 0 else (
-            f"La tabla tiene {len(frame)} filas y hacen falta {span} para una ventana."),
+            f"La tabla tiene {len(frame)} muestras y hacen falta {span} para una ventana."),
         "filas": int(len(frame)),
         "ventanas": ventanas,
         "avisos": plausibility_warnings(table),

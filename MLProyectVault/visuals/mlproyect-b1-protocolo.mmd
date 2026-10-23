@@ -1,0 +1,7 @@
+flowchart LR
+    H5[HDF5 DS02] --> UNITS[MOT 2 5 10 18 20 / 16 / 11 14 15]
+    UNITS --> FIT[Fit: ajusta todo]
+    UNITS --> HOLD[Holdout 16: valida]
+    UNITS --> TEST[Test 11 14 15: una sola vez]
+    FIT --> BASE[Baseline 38.08]
+    BASE --> COMP[Todo modelo debe ganarle]
