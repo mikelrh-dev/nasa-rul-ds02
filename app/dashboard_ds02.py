@@ -300,6 +300,42 @@ if st.session_state.get("_escenario_pendiente"):
     st.session_state["unit"] = int(_u)
     st.session_state["cycle"] = int(_c)
 
+# ------------------------------------------------------------- política en uso
+# Los controles de política viven en la sala «El taller» (pestaña 1), pero el
+# resto de la app los necesita ya calculados. Se leen de `session_state`, donde
+# el widget los dejó en la pasada anterior: al cambiarlos, Streamlit escribe el
+# valor nuevo antes de re-eecutar el script. No hay una segunda fuente de
+# verdad: el widget escribe, este bloque lee.
+_PRESETS = {
+    "Normal": (0.0, 0.0),
+    "Prudente (+5)": (5.0, 5.0),
+    "Permisivo (−5)": (-5.0, -5.0),
+}
+preset = str(st.session_state.get("preset", "Normal"))
+_base_apto = float(provenance["defaults"]["threshold_airworthy"])
+_base_aog = float(provenance["defaults"]["threshold_aog"])
+_d_apto, _d_aog = _PRESETS.get(preset, _PRESETS["Normal"])
+_preset_vals = (max(1.0, _base_apto + _d_apto), max(0.0, _base_aog + _d_aog))
+threshold_apto = float(st.session_state.get(f"th_apto_{preset}", _preset_vals[0]))
+threshold_aog = float(st.session_state.get(f"th_aog_{preset}", _preset_vals[1]))
+if not threshold_aog < threshold_apto:
+    st.error(
+        "El umbral de hangar debe ser estrictamente menor que el de apto.",
+        icon=":material/rule:",
+    )
+    st.stop()
+aplicar_reglas = bool(st.session_state.get("aplicar_reglas", False))
+cycle = int(st.session_state.get("cycle", 1))
+banda_en_uso = (
+    "R6 recalibrada (mia/calibracion_banda.json, 14 915 filas OOF puras)"
+    if aplicar_reglas else
+    "artefacto (models/ds02_manifest.json, conformal del bundle)"
+)
+correccion_en_uso = (
+    "R2b isotonico causal + R6 banda recalibrada" if aplicar_reglas
+    else "ninguna (lectura cruda de la cache)"
+)
+
 # ------------------------------------------------------------------- sidebar
 with st.sidebar:
     st.header("Guardia operativa", icon=":material/radar:")
@@ -315,19 +351,6 @@ with st.sidebar:
         help="Motores del conjunto de test DS02 (partición fija [11, 14, 15]).",
     )
     st.caption(_etiqueta_unidad(float(unit)))
-
-    cycle = st.slider(
-        "Ciclo de vuelo simulado",
-        min_value=1,
-        max_value=max_life,
-        value=1,
-        step=1,
-        key="cycle",
-        help=(
-            "Reloj de flota: se aplica a las tres unidades. Las que terminaron su vida "
-            f"registrada se muestran en su último ciclo evaluado (vida máxima: {max_life})."
-        ),
-    )
 
     st.subheader("Probar con un caso típico (sin datos)", icon=":material/library_add:")
     st.caption(
@@ -376,67 +399,12 @@ with st.sidebar:
                 st.session_state[ALTA_KEY] = [
                     a for a in altas if a["matricula"] != a_quitar]
                 st.rerun()
-    st.subheader("Umbrales de derivación", icon=":material/tune:")
-    _PRESETS = {
-        "Normal": (0.0, 0.0),
-        "Prudente (+5)": (5.0, 5.0),
-        "Permisivo (−5)": (-5.0, -5.0),
-    }
-    preset = st.selectbox(
-        "Preset",
-        list(_PRESETS),
-        key="preset",
-        help="Rellena los dos umbrales de abajo. Después puedes ajustarlos a mano.",
+    st.subheader("El taller está en la primera pestaña",
+                 icon=":material/tune:")
+    st.caption(
+        "Umbrales, motor de reglas y reloj de flota viven en la sala «El taller», "
+        "junto al muro en el que se ve su efecto."
     )
-    _base_apto = float(provenance["defaults"]["threshold_airworthy"])
-    _base_aog = float(provenance["defaults"]["threshold_aog"])
-    _d_apto, _d_aog = _PRESETS[preset]
-    _preset_vals = (max(1.0, _base_apto + _d_apto), max(0.0, _base_aog + _d_aog))
-    threshold_apto = st.number_input(
-        "Apto si L_inf ≥ (ciclos)", min_value=1.0, max_value=100.0,
-        value=_preset_vals[0], step=1.0, key=f"th_apto_{preset}",
-        help="Estado verde gobernado por el límite inferior conformal, no por la predicción puntual.",
-    )
-    threshold_aog = st.number_input(
-        "Hangar si L_inf < (ciclos)", min_value=0.0, max_value=99.0,
-        value=_preset_vals[1], step=1.0, key=f"th_aog_{preset}",
-        help="Por debajo de este límite inferior la unidad se inmoviliza y se emite orden de trabajo.",
-    )
-    if threshold_aog >= threshold_apto:
-        st.error(
-            "El umbral de hangar debe ser estrictamente menor que el de apto.",
-            icon=":material/rule:",
-        )
-        st.stop()
-
-    aplicar_reglas = st.toggle(
-        "Aplicar corrección de reglas",
-        value=False,
-        key="aplicar_reglas",
-        help=(
-            "Pasada B del motor de reglas (paquete mia/): R2b ajuste isotonico "
-            "causal y R6 banda conformal recalibrada sobre el punto corregido. "
-            "Apagado, la UI muestra la lectura cruda de la caché, que es la que "
-            "reproduce el contrato congelado del artefacto."
-        ),
-    )
-    banda_en_uso = (
-        "R6 recalibrada (mia/calibracion_banda.json, 14 915 filas OOF puras)"
-        if aplicar_reglas else
-        "artefacto (models/ds02_manifest.json, conformal del bundle)"
-    )
-    correccion_en_uso = (
-        "R2b isotonico causal + R6 banda recalibrada" if aplicar_reglas
-        else "ninguna (lectura cruda de la cache)"
-    )
-    st.caption(f"Banda en uso: {banda_en_uso}.")
-    if aplicar_reglas:
-        st.caption(
-            "Corrección activa: el punto pasa por el ajuste isotonico causal y la "
-            "banda se recalibra. La lectura cruda sigue en la caché y en la pestaña "
-            "de auditoría."
-        )
-
     st.caption(
         f"Caché con {provenance['counts']['windows']:,} ventanas y "
         f"{provenance['counts']['rows']:,} filas de telemetría · "
@@ -454,7 +422,7 @@ with st.sidebar:
             "motor se comporta como ellos, su vida real cae dentro 9 de cada 10 veces.\n"
             "- **Estados**: APTO (`L_inf ≥ apto`) · INSPECCIÓN (entre umbrales) · "
             "HANGAR/AOG (`L_inf < hangar`: la unidad no vuela y se emite orden).\n"
-            "- **Ciclo de vuelo**: un despegue–aterrizaje. El reloj de la barra lateral "
+            "- **Ciclo de vuelo**: un despegue–aterrizaje. El reloj del taller "
             "simula el paso del tiempo sobre el conjunto de test congelado.\n"
             "- **Ventana**: las 50 filas remuestreadas que el modelo consume de una vez. "
             "Se puntúa una ventana cada 2 filas, así que un ciclo acumula varias "
@@ -706,6 +674,66 @@ with tab_fleet:
                             st.rerun()
 
         _muro_del_hangar()
+
+    # -------------------- sala 3: el taller (¿qué pasa si cambio la política?)
+    with st.container(border=True):
+        st.subheader("El taller · qué pasa si cambio la política",
+                     icon=":material/tune:")
+        st.caption(
+            "Los tres controles que gobiernan el triaje, con lo que hacen y lo que no "
+            "hacen. Su efecto se ve abajo: en el muro y en la cola de mantenimiento."
+        )
+        _taller_a, _taller_b = st.columns([2, 1])
+        with _taller_a:
+            st.selectbox(
+                "Preset de umbrales",
+                list(_PRESETS),
+                key="preset",
+                help="Rellena los dos umbrales de abajo. Después puedes ajustarlos a mano.",
+            )
+            with st.container(horizontal=True):
+                st.number_input(
+                    "Apto si L_inf ≥ (ciclos)", min_value=1.0, max_value=100.0,
+                    value=_preset_vals[0], step=1.0, key=f"th_apto_{preset}",
+                    help="Estado verde gobernado por el límite inferior conformal, no "
+                         "por la predicción puntual.",
+                )
+                st.number_input(
+                    "Hangar si L_inf < (ciclos)", min_value=0.0, max_value=99.0,
+                    value=_preset_vals[1], step=1.0, key=f"th_aog_{preset}",
+                    help="Por debajo de este límite inferior la unidad se inmoviliza y "
+                         "se emite orden de trabajo.",
+                )
+            st.caption(f"Banda en uso: {banda_en_uso}. Corrección: {correccion_en_uso}.")
+        with _taller_b:
+            st.toggle(
+                "Aplicar corrección de reglas",
+                value=False,
+                key="aplicar_reglas",
+                help=(
+                    "Pasada B del motor de reglas (paquete mia/): R2b ajuste isotonico "
+                    "causal y R6 banda conformal recalibrada sobre el punto corregido. "
+                    "Apagado, la UI muestra la lectura cruda de la caché, que es la que "
+                    "reproduce el contrato congelado del artefacto."
+                ),
+            )
+            st.slider(
+                "Ciclo de vuelo simulado",
+                min_value=1,
+                max_value=max_life,
+                value=1,
+                step=1,
+                key="cycle",
+                help=(
+                    "Reloj de flota: se aplica a todas las unidades. Las que terminaron "
+                    "su vida registrada se muestran en su último ciclo evaluado (vida "
+                    f"máxima: {max_life})."
+                ),
+            )
+        st.caption(
+            "La decisión sigue siendo por límite inferior: mover estos controles no "
+            "cambia esa agregación, solo los números que la disparan."
+        )
 
     with st.container(horizontal=True):
         st.metric(
