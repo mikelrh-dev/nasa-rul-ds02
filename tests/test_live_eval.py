@@ -327,7 +327,13 @@ def test_the_paste_grid_carries_the_glossary_and_a_row_counter():
 
     app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=180)
     app.run()
-    app.segmented_control[0].set_value("Editar tabla (pegar)").run()
+    # Se elige por etiqueta, no por índice: la sala de incorporación añadió un
+    # `segmented_control` delante y el índice dejó de ser estable.
+    entrada = next(
+        c for c in app.segmented_control
+        if (c.proto.label or "").startswith("Entrada de datos")
+    )
+    entrada.set_value("Editar tabla (pegar)").run()
     assert not app.exception, app.exception
 
     grid = next(el for el in app.dataframe if len(json.loads(el.proto.columns or "{}")) == 20)
