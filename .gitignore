@@ -70,3 +70,7 @@ cell_counts.txt
 
 # fleet records persisted by the Streamlit UI (per-machine state)
 app/registros_flota.json
+
+# class material (notebooks/ds02_ensemble/RequisitosClase/Ejemplos) — not part of
+# the deliverable: regenerable exercise folders and their data
+notebooks/ds02_ensemble/RequisitosClase/Ejemplos/
