@@ -89,3 +89,58 @@ def test_cargar_escenario_demo_no_rompe_la_app():
 
     assert _selector_unidad(app).value == 14, _selector_unidad(app).value
     assert app.slider[0].value == 29, app.slider[0].value
+
+
+# ------------------------------------------------------------------ fase 1
+def _tarjetas_del_muro(app) -> list:
+    return [b for b in app.button if (b.proto.label or "").strip() == "Ver gemelo"]
+
+
+@needs_cache
+def test_el_muro_tiene_una_tarjeta_por_motor():
+    """El muro es una tarjeta por unidad, y cada una se puede pulsar."""
+    app = _app()
+    app.run()
+    assert not app.exception, app.exception
+
+    tarjetas = _tarjetas_del_muro(app)
+    unidades = sorted(int(u) for u in L.get_windows()["unit"].unique())
+    assert len(tarjetas) == len(unidades), [b.key for b in tarjetas]
+    assert {b.key for b in tarjetas} == {f"muro_gemelo_{u}" for u in unidades}
+
+
+@needs_cache
+def test_pulsar_una_tarjeta_cambia_la_unidad_seleccionada():
+    """El botón de la tarjeta selecciona el motor en la barra lateral."""
+    app = _app()
+    app.run()
+    assert _selector_unidad(app).value == 11
+
+    for boton in _tarjetas_del_muro(app):
+        if boton.key == "muro_gemelo_14":
+            boton.click().run()
+            break
+    else:
+        pytest.fail("no está la tarjeta del motor 14")
+
+    assert not app.exception, app.exception
+    assert _selector_unidad(app).value == 14
+
+
+@needs_cache
+def test_el_onboarding_carga_el_archetype_critico():
+    """El onboarding es el estado inicial del tablero: 1 clic y el escenario está cargado."""
+    app = _app()
+    app.run()
+    assert not app.exception, app.exception
+
+    for boton in app.button:
+        if boton.key == "arquetipo_Fin de vida / crítico":
+            boton.click().run()
+            break
+    else:
+        pytest.fail("no está el archetype crítico del onboarding")
+
+    assert not app.exception, app.exception
+    assert _selector_unidad(app).value == 14
+    assert app.slider[0].value == 29

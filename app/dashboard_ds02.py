@@ -87,6 +87,17 @@ def _etiqueta_unidad(unit: float) -> str:
     return L.UNIT_LABELS.get(int(unit), f"Unidad {int(unit)}")
 
 
+def _mostrar_toast_pendiente() -> None:
+    """Toast diferido: un handler lo pide y se pinta en la siguiente pasada.
+
+    `st.toast` no empuja el contenido hacia abajo como un `st.success` en bloque,
+    y se puede pedir desde cualquier handler sin reordenar la página.
+    """
+    mensaje = st.session_state.pop("_toast_pendiente", None)
+    if mensaje:
+        st.toast(mensaje, icon=":material/info:")
+
+
 def _preflight_panel(pf: dict) -> None:
     """Resumen del pre-vuelo: lo que se sabe sin cargar el modelo.
 
@@ -139,6 +150,31 @@ STATE_WORD = {
     L.NO_DATA: "sin datos",
     L.SIN_DECISION: "sin decisión",
 }
+# Qué tarjeta manda en el muro: una en hangar se atiende antes que una en
+# inspección. Es el orden por defecto del muro y el de las órdenes.
+RANGO_ESTADO = {
+    L.AOG: 0,
+    L.PREVENTIVE: 1,
+    L.AIRWORTHY: 2,
+    L.NO_DATA: 3,
+    L.SIN_DECISION: 4,
+}
+BADGE_COLOR = {
+    L.AIRWORTHY: "green",
+    L.PREVENTIVE: "orange",
+    L.AOG: "red",
+    L.NO_DATA: "gray",
+    L.SIN_DECISION: "gray",
+}
+BADGE_ICON = {
+    L.AIRWORTHY: ":material/check_circle:",
+    L.PREVENTIVE: ":material/schedule:",
+    L.AOG: ":material/warning:",
+    L.NO_DATA: ":material/hourglass_empty:",
+    L.SIN_DECISION: ":material/block:",
+}
+# El estado de cada unidad en el ciclo del reloj: lo usan el muro y las órdenes.
+ESTADO_POR_UNIDAD = {}
 
 
 def chart_layout(**overrides) -> dict:
@@ -213,6 +249,10 @@ if st.session_state.get("_demo_pendiente"):
     st.session_state.pop("_demo_pendiente", None)
 if st.session_state.get("_alta_pendiente") is not None:
     st.session_state["unit"] = st.session_state.pop("_alta_pendiente")
+if st.session_state.get("_escenario_pendiente"):
+    _u, _c = st.session_state.pop("_escenario_pendiente")
+    st.session_state["unit"] = int(_u)
+    st.session_state["cycle"] = int(_c)
 
 # ------------------------------------------------------------------- sidebar
 with st.sidebar:
@@ -438,6 +478,7 @@ curves = {u: L.unit_curve(frame, u) for u in unidades_vistas}
 alarms = {u: L.first_alarm_cycle(curves[u], threshold_aog) for u in unidades_vistas}
 correccion = UR.resumen_correccion(windows, frame_cache) if aplicar_reglas else None
 snapshot = L.fleet_snapshot(frame, cycle, threshold_apto, threshold_aog)
+ESTADO_POR_UNIDAD = dict(zip(snapshot["unit"].tolist(), snapshot["state"].tolist()))
 curve = curves[int(unit)]
 per_unit = L.per_unit_metrics(frame_cache)
 unit_metrics = (per_unit[per_unit["unit"] == unit].iloc[0]
@@ -456,6 +497,7 @@ grounded = int((snapshot["state"] == L.AOG).sum())
 critical_start = truth_cycle
 
 # ---------------------------------------------------------------------- header
+_mostrar_toast_pendiente()
 head_left, head_right = st.columns([3, 2], vertical_alignment="center")
 with head_left:
     st.title("DS02 · Centro de control de mantenimiento", icon=":material/flight:")
@@ -509,6 +551,116 @@ tab_fleet, tab_rul, tab_sensors, tab_audit, tab_live = st.tabs(
 
 # ------------------------------------------------------------------- tab 1
 with tab_fleet:
+    # El onboarding es el estado inicial: lo primero que ve quien entra, no la
+    # quinta pestaña (donde vivió y nadie lo encontraba).
+    with st.container(border=True):
+        st.subheader("¿Primera vez aquí? Empieza en 1 clic", icon=":material/rocket_launch:")
+        st.caption(
+            "Cada unidad es un **motor turbofán** del dataset N-CMAPSS DS02: la matrícula "
+            "es una etiqueta de visualización y los datos son los de la caché congelada. "
+            "Lo que decide el estado es el **límite inferior** de la banda, no la "
+            "predicción puntual. Elige un archetype y mira el muro."
+        )
+        _arquetipos = [
+            ("Recién salido de revisión", "Toda la flota en verde."),
+            ("Desgaste operativo medio", "Primera inspección programada."),
+            ("Fin de vida / crítico", "Entra en hangar con vida útil estimada alta."),
+        ]
+        _col_arquetipos = st.columns(3)
+        for _col, (_perfil, _que_cuenta) in zip(_col_arquetipos, _arquetipos):
+            with _col:
+                if st.button(
+                    _perfil, key=f"arquetipo_{_perfil}", icon=":material/play_arrow:",
+                    type="primary" if "crítico" in _perfil else "secondary",
+                ):
+                    _u, _c = A.PERFILES[_perfil]
+                    st.session_state["_escenario_pendiente"] = (int(_u), int(_c))
+                    st.session_state["_toast_pendiente"] = (
+                        f"Escenario «{_perfil}» cargado (U{_u}, ciclo {_c}). "
+                        "Pulsa una tarjeta para abrir su gemelo."
+                    )
+                    st.rerun()
+                st.caption(_que_cuenta)
+
+    # El muro: una tarjeta por motor. Es lo que un operador de taller reconoce.
+    with st.container(border=True):
+        st.subheader("Muro del hangar", icon=":material/grid_view:")
+        st.caption(
+            "Una tarjeta por motor, con la sparkline de su límite inferior. El color y el "
+            "estado los dicta `L_inf`; pulsa «Ver gemelo» para abrir su ficha completa."
+        )
+
+        @st.fragment
+        def _muro_del_hangar() -> None:
+            orden = st.pills(
+                "Orden del muro",
+                ["Por urgencia", "Por unidad"],
+                default="Por urgencia",
+                key="muro_orden",
+                help="Por urgencia adelanta las unidades en hangar; por unidad respeta "
+                     "el orden de la caché.",
+            )
+            if orden == "Por unidad":
+                vistas = unidades_vistas
+            else:
+                vistas = sorted(
+                    unidades_vistas,
+                    key=lambda u: (RANGO_ESTADO.get(ESTADO_POR_UNIDAD.get(u, L.NO_DATA), 9), u),
+                )
+            columnas = st.columns(3)
+            for i, u in enumerate(vistas):
+                fila = snapshot[snapshot["unit"] == u].iloc[0]
+                etiqueta = _etiqueta_unidad(float(u))
+                estado = fila["state"]
+                curva = curves[u]
+                _pred = "—" if pd.isna(fila["pred"]) else f"{fila['pred']:.1f}"
+                _lo = "—" if pd.isna(fila["lower"]) else f"{fila['lower']:.1f}"
+                with columnas[i % 3]:
+                    with st.container(border=True):
+                        st.markdown(f"**{etiqueta}**")
+                        st.badge(
+                            L.STATE_LABELS.get(estado, str(estado)),
+                            icon=BADGE_ICON.get(estado, ":material/circle:"),
+                            color=BADGE_COLOR.get(estado, "gray"),
+                        )
+                        st.metric("RUL predicha", _pred, "ciclos",
+                                  border=True, delta_color="off", icon=":material/speed:")
+                        st.metric("L_inf (decide)", _lo, "ciclos",
+                                  border=True, delta_color="off",
+                                  icon=":material/trending_down:")
+                        fig = go.Figure(
+                            go.Scatter(
+                                x=curva["cycle"], y=curva["lower"], mode="lines",
+                                line=dict(color=SKY, width=2), name="L_inf",
+                                hovertemplate="ciclo %{x}<br>L_inf %{y:.1f}<extra></extra>",
+                            )
+                        )
+                        fig.update_layout(**chart_layout(
+                            height=110, showlegend=False, hovermode="closest",
+                            margin=dict(l=8, r=8, t=6, b=6),
+                        ))
+                        style_axes(fig)
+                        st.plotly_chart(
+                            fig, theme=None,
+                            alt=f"Sparkline del límite inferior de {etiqueta} "
+                                "a lo largo de los ciclos.",
+                        )
+                        _scored = fila["scored_cycle"]
+                        _ciclo_tarjeta = int(_scored) if pd.notna(_scored) else int(cycle)
+                        if st.button(
+                            "Ver gemelo", key=f"muro_gemelo_{int(u)}",
+                            icon=":material/visibility:", type="secondary",
+                        ):
+                            st.session_state["_escenario_pendiente"] = (
+                                int(u), _ciclo_tarjeta)
+                            st.session_state["_toast_pendiente"] = (
+                                f"{etiqueta} seleccionada. Abre su ficha en la "
+                                "pestaña «Telemetría RUL y bandas conformales»."
+                            )
+                            st.rerun()
+
+        _muro_del_hangar()
+
     with st.container(horizontal=True):
         st.metric(
             "Flota monitorizada",
@@ -849,7 +1001,7 @@ with st.container(border=True):
     aviso_gemelo = st.session_state.get("twin_flash")
     if aviso_gemelo:
         del st.session_state["twin_flash"]
-        st.success(aviso_gemelo, icon=":material/check_circle:")
+        st.toast(aviso_gemelo, icon=":material/check_circle:")
     if not gemelos:
         st.caption(
             "Ningún motor externo registrado todavía. Puntúa uno en «Evaluar unidad "
@@ -1555,13 +1707,17 @@ with tab_audit:
 with tab_live:
     _flash_live = st.session_state.pop("live_flash", None)
     if _flash_live:
-        st.success(_flash_live, icon=":material/check_circle:")
+        st.toast(_flash_live, icon=":material/check_circle:")
     _flash_twin_live = st.session_state.get("twin_flash")
     if _flash_twin_live:
-        st.success(_flash_twin_live, icon=":material/check_circle:")
+        st.toast(_flash_twin_live, icon=":material/check_circle:")
     with st.container(border=True):
-        st.subheader("¿Primera vez aquí? Empieza en 1 clic", icon=":material/rocket_launch:")
-        st.caption("Paso 1 elige · Paso 2 revisa · Paso 3 evalúa. Si solo quieres probar, no pegues nada ni subas CSV.")
+        st.subheader("Puntúa un ejemplo en 1 clic", icon=":material/rocket_launch:")
+        st.caption(
+            "El onboarding del tablero está en la primera pestaña. Esto puntúa un tramo "
+            "real de la caché y deja el resultado listo para registrar: no pega nada ni "
+            "sube CSV."
+        )
         c1, c2, c3 = st.columns(3)
         _presets = {
             "Sano U15 inicio": (15, 0.05, "ESN-SANO-01"),
