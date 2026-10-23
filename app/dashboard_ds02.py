@@ -210,6 +210,51 @@ def style_axes(fig, x_title: str | None = None, y_title: str | None = None):
     return fig
 
 
+def fig_deriva(per_cycle: pd.DataFrame, channels: list[str], last_cycle: int,
+               critical_start: int | None, threshold_aog: float,
+               height: int = 360) -> go.Figure:
+    """Deriva porcentual de los sensores frente a la línea base sana del motor.
+
+    Extraída de la pestaña de sensores para que el gemelo la muestre sin duplicar
+    el cálculo: la misma señal, el mismo baseline y la misma anotación.
+    """
+    baseline_cycles = 5
+    baseline = per_cycle.head(baseline_cycles)[channels].mean()
+    drift = (per_cycle[channels] / baseline - 1.0) * 100.0
+    fig = go.Figure()
+    for ch in channels:
+        fig.add_trace(
+            go.Scatter(
+                x=per_cycle["cycle"], y=drift[ch], mode="lines",
+                name=L.CHANNEL_LABELS.get(ch, ch), line=dict(width=2),
+            )
+        )
+    fig.add_hline(y=0, line_color=MUTED, line_width=1)
+    if critical_start is not None:
+        fig.add_vrect(
+            x0=critical_start, x1=last_cycle, fillcolor=ROSE, opacity=0.12,
+            line_width=0,
+            annotation_text=f"RUL real < {threshold_aog:.0f}",
+            annotation_position="top right", annotation_font_size=11,
+            annotation_font_color="#fca5a5",
+        )
+    fig.update_layout(**chart_layout(height=height, hovermode="x unified"))
+    style_axes(
+        fig, x_title="Ciclo de vuelo",
+        y_title="variación % vs. media de los 5 primeros ciclos",
+    )
+    return fig
+
+
+def st_badge_estado(estado: str) -> None:
+    """Insignia de estado con color e icono: el color nunca viaja solo."""
+    st.badge(
+        L.STATE_LABELS.get(estado, str(estado)),
+        icon=BADGE_ICON.get(estado, ":material/circle:"),
+        color=BADGE_COLOR.get(estado, "gray"),
+    )
+
+
 st.set_page_config(
     page_title="DS02 · Soporte a la decisión",
     page_icon=":material/flight:",
@@ -1254,6 +1299,113 @@ with st.container(border=True):
 
 # ------------------------------------------------------------------- tab 2
 with tab_rul:
+    # ------------------------------------------------------------- el gemelo
+    # Una sala, una respuesta: ¿por qué está así este motor? Su verdad estaba
+    # repartida en cuatro pestañas; aquí está junta.
+    _fila_g = snapshot[snapshot["unit"] == unit].iloc[0]
+    _etiqueta_g = _etiqueta_unidad(float(unit))
+    _pred_g = float(_fila_g["pred"]) if pd.notna(_fila_g["pred"]) else 0.0
+    _lo_g = float(_fila_g["lower"]) if pd.notna(_fila_g["lower"]) else float("nan")
+
+    with st.container(border=True):
+        st.subheader(f"El gemelo · {_etiqueta_g}",
+                     icon=":material/precision_manufacturing:")
+        st.caption(
+            "Un motor, toda su verdad, sin cambiar de pestaña. Lo que decide el estado "
+            "es el límite inferior de la banda, no la predicción puntual."
+        )
+        _gauge_col, _decision_col = st.columns([1, 2])
+        with _gauge_col:
+            _gauge = go.Figure(
+                go.Indicator(
+                    mode="gauge+number",
+                    value=round(_pred_g, 1),
+                    number={"suffix": " ciclos", "font": {"color": INK, "size": 26}},
+                    title={"text": "RUL restante", "font": {"color": MUTED, "size": 13}},
+                    gauge={
+                        "axis": {"range": [0, max_life], "tickfont": {"color": MUTED}},
+                        "bar": {"color": SKY, "thickness": 0.4},
+                        "bgcolor": SURFACE,
+                        "bordercolor": GRID,
+                        "steps": [
+                            {"range": [0, threshold_aog],
+                             "color": "rgba(248,113,113,0.28)"},
+                            {"range": [threshold_aog, threshold_apto],
+                             "color": "rgba(245,158,11,0.22)"},
+                            {"range": [threshold_apto, max_life],
+                             "color": "rgba(52,211,153,0.22)"},
+                        ],
+                        "threshold": {"line": {"color": ROSE, "width": 3},
+                                      "thickness": 0.7, "value": threshold_aog},
+                    },
+                )
+            )
+            _gauge.update_layout(**chart_layout(height=240, showlegend=False,
+                                                margin=dict(l=18, r=18, t=46, b=8)))
+            st.plotly_chart(
+                _gauge, theme=None,
+                alt=f"Gauge de RUL restante de {_etiqueta_g}: {_pred_g:.1f} ciclos, con "
+                    f"la zona de hangar por debajo de {threshold_aog:.0f} sombreada.",
+            )
+        with _decision_col:
+            st_badge_estado(_fila_g["state"])
+            with st.container(horizontal=True):
+                st.metric("RUL predicha",
+                          f"{_pred_g:.1f}" if pd.notna(_fila_g["pred"]) else "—",
+                          "ciclos", border=True, delta_color="off",
+                          icon=":material/speed:")
+                st.metric("L_inf (decide)",
+                          f"{_lo_g:.1f}" if pd.notna(_fila_g["lower"]) else "—",
+                          "ciclos", border=True, delta_color="off",
+                          icon=":material/trending_down:")
+                st.metric("Regla que decide", str(_fila_g["rule"] or "(ninguna)"),
+                          "pasada A · mia.motor", border=True, delta_color="off",
+                          icon=":material/rule:")
+            if pd.notna(_lo_g):
+                for linea in UR.traza_decision(_lo_g, umbrales)["porque"]:
+                    st.caption(linea)
+            _registro_g = registros.get(_etiqueta_g) or registros.get(f"U{int(unit)}")
+            if _registro_g:
+                st.markdown(
+                    f"**Ciclo de vida del hangar**: "
+                    f"{HGR.ETIQUETAS.get(_registro_g['estado'], _registro_g['estado'])}"
+                    f" · abierto en el ciclo {_registro_g['entrada']['ciclo']} con "
+                    f"`L_inf = {_registro_g['entrada']['lower']:.1f}`."
+                )
+            else:
+                st.markdown("**Ciclo de vida del hangar**: sin registro abierto.")
+            _bloqueada = next(
+                (u for u in order["unidades"] if int(u["unidad"]) == int(unit)), None)
+            if _bloqueada:
+                st.markdown(
+                    f"**Orden de trabajo**: derivación a hangar · "
+                    f"`L_inf {_bloqueada['limite_inferior']:.1f}` < {threshold_aog:.0f} · "
+                    f"{_bloqueada['accion']}"
+                )
+            else:
+                st.markdown(
+                    "**Orden de trabajo**: ninguna para este motor en el ciclo del reloj.")
+        # Radiografía de sensores: la misma señal que en su pestaña, sin salir de aquí.
+        _presiones = L.CHANNEL_GROUPS["Presiones"]
+        _per_cycle_g = (
+            telemetry[telemetry["unit"] == unit]
+            .groupby("cycle", as_index=False)[_presiones]
+            .mean(numeric_only=True)
+        )
+        if not _per_cycle_g.empty:
+            st.plotly_chart(
+                fig_deriva(_per_cycle_g, _presiones,
+                           int(_per_cycle_g["cycle"].max()),
+                           critical_start, threshold_aog, height=220),
+                theme=None,
+                alt=f"Radiografía de sensores de {_etiqueta_g}: deriva porcentual de las "
+                    "presiones frente a su línea base sana.",
+            )
+            st.caption(
+                "Radiografía de sensores (presiones) respecto a la línea base sana del "
+                "propio motor. La pestaña 3 la muestra por grupo de canales."
+            )
+
     with st.container(border=True):
         st.subheader("Trayectoria de RUL y banda conformal", icon=":material/ssid_chart:")
         st.caption(
@@ -1447,41 +1599,17 @@ with tab_sensors:
                         ":material/touch_app: Selecciona al menos un canal para dibujar la deriva."
                     )
                 else:
-                    baseline_cycles = 5
-                    baseline = per_cycle.head(baseline_cycles)[channels].mean()
-                    drift = (per_cycle[channels] / baseline - 1.0) * 100.0
-                    fig_b = go.Figure()
-                    for ch in channels:
-                        fig_b.add_trace(
-                            go.Scatter(
-                                x=per_cycle["cycle"], y=drift[ch], mode="lines",
-                                name=L.CHANNEL_LABELS.get(ch, ch), line=dict(width=2),
-                            )
-                        )
-                    fig_b.add_hline(y=0, line_color=MUTED, line_width=1)
-                    if critical_start is not None:
-                        fig_b.add_vrect(
-                            x0=critical_start, x1=last_cycle, fillcolor=ROSE, opacity=0.12,
-                            line_width=0,
-                            annotation_text=f"RUL real < {threshold_aog:.0f}",
-                            annotation_position="top right", annotation_font_size=11,
-                            annotation_font_color="#fca5a5",
-                        )
-                    fig_b.update_layout(**chart_layout(height=360, hovermode="x unified"))
-                    style_axes(
-                        fig_b,
-                        x_title="Ciclo de vuelo",
-                        y_title="variación % vs. media de los 5 primeros ciclos",
-                    )
+                    fig_b = fig_deriva(per_cycle, channels, last_cycle,
+                                       critical_start, threshold_aog)
                     st.plotly_chart(
                         fig_b, theme=None,
                         alt="Deriva porcentual de los sensores seleccionados frente a la línea base sana del propio motor.",
                     )
                     st.caption(
                         f"Media por ciclo frente a la línea base sana del propio motor "
-                        f"({_etiqueta_unidad(float(unit))}, primeros {baseline_cycles} "
-                        "ciclos). No es la residualización del modelo: es la señal "
-                        "física bruta, para poder discutirla."
+                        f"({_etiqueta_unidad(float(unit))}, primeros 5 ciclos). No es la "
+                        "residualización del modelo: es la señal física bruta, para "
+                        "poder discutirla."
                     )
 
     st.caption(

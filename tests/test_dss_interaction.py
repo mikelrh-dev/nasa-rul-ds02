@@ -144,3 +144,47 @@ def test_el_onboarding_carga_el_archetype_critico():
     assert not app.exception, app.exception
     assert _selector_unidad(app).value == 14
     assert app.slider[0].value == 29
+
+
+# ------------------------------------------------------------------ fase 3
+def _texto(app) -> str:
+    partes = [m.value for m in app.markdown]
+    partes += [c.value for c in app.caption]
+    partes += [s.value for s in app.subheader]
+    partes += [f"{m.label} {m.value}" for m in app.metric]
+    return "\n".join(partes)
+
+
+@needs_cache
+def test_el_gemelo_consolida_la_decision_y_su_regla():
+    """El gemelo responde «¿por qué está así?» sin cambiar de pestaña."""
+    app = _app()
+    app.run()
+    assert not app.exception, app.exception
+
+    texto = _texto(app)
+    assert "El gemelo" in texto
+    assert "Regla que decide" in texto
+    # La traza de la pasada A debe aparecer con sus reglas, no solo el estado.
+    assert "mia.motor" in texto
+
+
+@needs_cache
+def test_el_gauge_del_gemelo_tiene_nombre_accesible():
+    app = _app()
+    app.run()
+    assert not app.exception, app.exception
+
+    alts = [c.proto.alt or "" for c in app.get("plotly_chart")]
+    assert any("Gauge de RUL" in a for a in alts), alts
+
+
+@needs_cache
+def test_el_gemelo_incluye_ciclo_de_vida_y_orden_de_trabajo():
+    app = _app()
+    app.run()
+    assert not app.exception, app.exception
+
+    texto = _texto(app)
+    assert "Ciclo de vida del hangar" in texto
+    assert "Radiografía de sensores" in texto
