@@ -188,3 +188,57 @@ def test_el_gemelo_incluye_ciclo_de_vida_y_orden_de_trabajo():
     texto = _texto(app)
     assert "Ciclo de vida del hangar" in texto
     assert "Radiografía de sensores" in texto
+
+
+# ------------------------------------------------------------------ fase 4
+def _cuenta_hangar(app) -> int:
+    kpi = next(m for m in app.metric if "hangar" in m.label.lower())
+    return int(kpi.value.split("/")[0].strip())
+
+
+def _number_input(app, fragmento: str):
+    return next(n for n in app.number_input if fragmento in (n.proto.label or ""))
+
+
+@needs_cache
+def test_el_taller_es_una_sala_con_explicacion():
+    """Sala 3: los controles de política viven aquí, con lo que hacen y lo que no."""
+    app = _app()
+    app.run()
+    assert not app.exception, app.exception
+
+    texto = _texto(app)
+    assert "El taller" in texto
+    assert "qué pasa si cambio la política" in texto.lower()
+
+
+@needs_cache
+def test_mover_un_umbral_cambia_la_cola():
+    """El efecto del taller es visible: aflojar el umbral de hangar deriva menos."""
+    app = _app()
+    app.run()
+    app.slider[0].set_value(29).run()
+    assert not app.exception, app.exception
+    antes = _cuenta_hangar(app)
+    assert antes > 0
+
+    _number_input(app, "Hangar si L_inf").set_value(5.0).run()
+    assert not app.exception, app.exception
+    assert _cuenta_hangar(app) < antes
+
+
+@needs_cache
+def test_la_decision_no_cambia_de_agregacion():
+    """Mover los umbrales no cambia la agregación: la decisión sigue usando L_inf."""
+    app = _app()
+    app.run()
+    app.slider[0].set_value(29).run()
+    assert not app.exception, app.exception
+
+    snap = L.fleet_snapshot(L.get_windows(), 29, 30.0, 25.0)
+    fila = snap[snap["unit"] == 14].iloc[0]
+    assert fila["state"] == L.AOG
+    assert float(fila["pred"]) >= 25.0, (
+        "la predicción puntual está por encima del umbral y aun así se deriva")
+
+    assert "límite inferior" in _texto(app).lower()
