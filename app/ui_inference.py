@@ -336,7 +336,7 @@ def preflight(table: pd.DataFrame) -> dict:
 
 
 def score_table(table: pd.DataFrame, unit_id: float = LIVE_UNIT,
-                engine_id: str | None = None) -> dict:
+                engine_id: str | None = None, ensemble=None) -> dict:
     """Score every complete window in the table with the frozen bundle.
 
     Returns the per-window frame plus the contract actually used. The band comes
@@ -344,6 +344,9 @@ def score_table(table: pd.DataFrame, unit_id: float = LIVE_UNIT,
     `-1` so the causal EMA never mixes user data with a cached engine. When an
     engine id is given it travels in the contract, so the work order and the twin
     can name the engine instead of saying "externa".
+
+    `ensemble` lets a caller that already holds the artifact (the batch route)
+    reuse it instead of going through `get_ensemble()` again.
     """
     frame = validate_table(table)
     if len(frame) > MAX_FILAS:
@@ -362,7 +365,8 @@ def score_table(table: pd.DataFrame, unit_id: float = LIVE_UNIT,
     X, cyc_end, uni, meta = raw_windows(
         W, Xs, units, cycles, window=window_size(), step=1
     )
-    ensemble = get_ensemble()
+    if ensemble is None:
+        ensemble = get_ensemble()
     point, lower, upper = ensemble.predict_interval(X, cyc_end, uni)
 
     result = pd.DataFrame(

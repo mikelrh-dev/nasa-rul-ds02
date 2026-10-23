@@ -35,6 +35,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import hangar as HGR  # noqa: E402
 import twin as T  # noqa: E402
 import ui_alta as A  # noqa: E402
+import ui_batch as B  # noqa: E402
 import ui_data_loader as L  # noqa: E402
 import ui_inference as INF  # noqa: E402
 import ui_rules as UR  # noqa: E402
@@ -1711,6 +1712,156 @@ with tab_live:
     _flash_twin_live = st.session_state.get("twin_flash")
     if _flash_twin_live:
         st.toast(_flash_twin_live, icon=":material/check_circle:")
+
+    # -------------------- sala 4: incorporar (individual en el sidebar, lote aquí)
+    with st.container(border=True):
+        st.subheader("Incorporar en lote · trae uno o doce", icon=":material/library_add:")
+        st.caption(
+            "Puntúa N motores de una vez y devuelve una fila por motor: predicción, "
+            "banda y estado. No reentrena, no toca la caché y no inventa ground truth: "
+            "los datos los aportas tú, así que no hay RMSE ni MAE que reportar."
+        )
+        _lote_mode = st.segmented_control(
+            "Fuente del lote",
+            ["Subir CSV (uno por motor)", "Pegar CSV por bloques"],
+            default="Subir CSV (uno por motor)",
+            key="lote_mode",
+            help="Cada CSV es un motor. En la segunda opción, una columna `unit_id` "
+                 "separa los motores dentro del mismo CSV.",
+        )
+        _bloques: list[dict] = []
+        if _lote_mode == "Subir CSV (uno por motor)":
+            _archivos = st.file_uploader(
+                f"CSV de motores (máximo {B.MAX_MOTORES_LOTE})",
+                type=["csv"], accept_multiple_files=True, key="lote_archivos",
+            )
+            if _archivos:
+                try:
+                    _bloques = B.bloques_de_archivos(_archivos)
+                except Exception as exc:  # noqa: BLE001 - el mensaje se muestra
+                    st.error(f"No se pudieron leer los CSV: {exc}",
+                             icon=":material/error:")
+        else:
+            _texto_lote = st.text_area(
+                "CSV con columna `unit_id`", height=160, key="lote_texto",
+                placeholder="unit_id,cycle,alt,Mach,TRA,T2,T24,…",
+                help="Una columna `unit_id` por motor y los 18 canales del dataset.",
+            )
+            if _texto_lote.strip():
+                try:
+                    _bloques = B.bloques_de_csv(_texto_lote)
+                except Exception as exc:  # noqa: BLE001
+                    st.error(f"No se pudo leer el CSV por bloques: {exc}",
+                             icon=":material/error:")
+
+        if B.excede_limite(len(_bloques)):
+            st.error(
+                f"Traes {len(_bloques)} motores y el tope es {B.MAX_MOTORES_LOTE}. "
+                "Quita algunos: por encima del tope el lote deja de ser interactivo "
+                "en un portátil.",
+                icon=":material/rule:",
+            )
+            _bloques = []
+        elif _bloques:
+            _aviso_lote = B.validar_lote(_bloques)
+            if not _aviso_lote["ok"]:
+                for _mat, _error in _aviso_lote["errores"].items():
+                    st.error(f"`{_mat}`: {_error}", icon=":material/rule:")
+            else:
+                with st.form("lote_evaluar"):
+                    _enviar_lote = st.form_submit_button(
+                        f"Puntuar {_aviso_lote['bloques']} motor(es)",
+                        type="primary", icon=":material/play_arrow:",
+                    )
+                if _enviar_lote:
+                    _barra = st.progress(0.0, text="Puntuando 0 de …")
+
+                    def _progreso(i, n, mat):
+                        _barra.progress(i / n, text=f"Puntuando {i} de {n} · {mat}")
+
+                    try:
+                        _resultado_lote = B.puntuar_lote(
+                            _bloques, umbrales, INF.get_ensemble(), _progreso)
+                    except ValueError as exc:
+                        st.session_state["lote_resultado"] = None
+                        st.error(str(exc), title="No se pudo puntuar el lote",
+                                 icon=":material/rule:")
+                    else:
+                        st.session_state["lote_resultado"] = _resultado_lote
+                        st.session_state["lote_bloques"] = _bloques
+                        st.rerun()
+
+    _lote = st.session_state.get("lote_resultado")
+    if _lote is not None:
+        _resumen = B.resumen_lote(_lote)
+        with st.container(horizontal=True):
+            st.metric("Motores puntuados", f"{_resumen['total']}", border=True,
+                      delta_color="off", icon=":material/groups:")
+            st.metric("En hangar", f"{_resumen['por_estado'][L.AOG]}", border=True,
+                      delta_color="off", icon=":material/local_shipping:")
+            st.metric("En inspección", f"{_resumen['por_estado'][L.PREVENTIVE]}",
+                      border=True, delta_color="off", icon=":material/schedule:")
+            st.metric("Aptos", f"{_resumen['por_estado'][L.AIRWORTHY]}", border=True,
+                      delta_color="off", icon=":material/check_circle:")
+        _ver = _lote.rename(columns={
+            "matricula": "Matrícula", "ciclo": "Ciclo", "pred": "RUL predicha",
+            "lower": "L_inf (decide)", "upper": "L_sup", "estado": "Estado",
+            "regla": "Regla",
+        })
+        st.dataframe(
+            _ver, hide_index=True,
+            column_config={
+                "Ciclo": st.column_config.NumberColumn("Ciclo", format="%d"),
+                "RUL predicha": st.column_config.NumberColumn(
+                    "RUL predicha", format="%.1f"),
+                "L_inf (decide)": st.column_config.NumberColumn(
+                    "L_inf (decide)", format="%.1f",
+                    help="Límite inferior de la banda: es lo que decide el estado."),
+                "L_sup": st.column_config.NumberColumn("L_sup", format="%.1f"),
+            },
+            alt="Triage del lote: una fila por motor con su predicción, su banda y "
+                "su estado.",
+        )
+        st.caption(
+            "Predicción del artefacto congelado (`models/ds02_manifest.json`) sobre los "
+            "datos aportados. **Sin ground truth**: no hay error que reportar."
+        )
+        with st.container(horizontal=True):
+            st.download_button(
+                "Descargar triage (CSV)",
+                data=_ver.to_csv(index=False),
+                file_name="triage_lote_ds02.csv",
+                mime="text/csv",
+                icon=":material/download:",
+            )
+            if st.button(
+                "Registrar gemelos", icon=":material/library_add:",
+                key="lote_registrar",
+                help="Guarda los motores del lote en la flota registrada.",
+            ):
+                _barra_g = st.progress(0.0, text="Registrando 0 de …")
+
+                def _progreso_g(i, n, mat):
+                    _barra_g.progress(i / n, text=f"Registrando {i} de {n} · {mat}")
+
+                try:
+                    _gemelos_nuevos = B.registrar_gemelos(
+                        st.session_state.get("lote_bloques") or [],
+                        INF.get_ensemble(), umbrales,
+                        st.session_state.get("twins", {}), _progreso_g)
+                except ValueError as exc:
+                    st.error(str(exc), title="No se pudieron registrar",
+                             icon=":material/rule:")
+                else:
+                    st.session_state["twins"] = _gemelos_nuevos
+                    _guardar_registros()
+                    st.session_state["lote_resultado"] = None
+                    st.session_state["twin_flash"] = (
+                        f"{len(_gemelos_nuevos)} gemelo(s) en la flota registrada. "
+                        "Míralos en la primera pestaña, en «Gemelos registrados»."
+                    )
+                    st.rerun()
+
     with st.container(border=True):
         st.subheader("Puntúa un ejemplo en 1 clic", icon=":material/rocket_launch:")
         st.caption(
