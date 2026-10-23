@@ -22,8 +22,9 @@ import ui_inference as INF
 import ui_rules as UR
 import twin as T
 
-# Tope duro por memoria del portátil: cada motor son ~50 filas y una llamada al
-# modelo. 25 es interactivo; 250 no lo es. Se aplica con un aviso visible.
+# Tope duro por memoria del portátil: cada motor son ~50 muestras remuestreadas
+# (~0,4 ciclos de vuelo) y una llamada al modelo. 25 es interactivo; 250 no lo es.
+# Se aplica con un aviso visible.
 MAX_MOTORES_LOTE = 25
 
 # Las columnas del triaje. Son lo que se muestra y lo que se exporta: ni una

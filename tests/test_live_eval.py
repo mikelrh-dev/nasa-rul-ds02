@@ -60,7 +60,7 @@ def test_example_window_is_contract_valid():
 @needs_cache
 def test_short_table_is_rejected_with_counts():
     table, _ = INF.example_window()
-    with pytest.raises(ValueError, match=r"al menos 50 filas.*llegaron 20"):
+    with pytest.raises(ValueError, match=r"al menos 50 muestras remuestreadas.*llegaron 20"):
         INF.validate_table(table.head(20))
 
 
@@ -348,7 +348,7 @@ def test_the_paste_grid_carries_the_glossary_and_a_row_counter():
     assert "Ciclo de vuelo" in config["cycle"]["help"]
 
     captions = [c.value for c in app.caption]
-    assert any("50 filas" in text and "ventana(s)" in text for text in captions), captions[-4:]
+    assert any("50 muestras" in text and "ventana(s)" in text for text in captions), captions[-4:]
 
 
 @needs_cache
@@ -363,3 +363,107 @@ def test_the_sidebar_explains_the_vocabulary_of_the_screen():
     text = "\n".join(m.value for m in app.markdown) + "\n".join(c.value for c in app.caption)
     for term in ("RUL", "L_inf", "Banda 90 %", "HANGAR/AOG", "Ciclo de vuelo", "Ventana"):
         assert term in text, term
+
+
+# ------------------------------------------------------------------ sandbox
+def _sandbox_app():
+    """Renders the live tab once and returns the handle to the sandbox widgets."""
+    from streamlit.testing.v1 import AppTest
+
+    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=300)
+    app.run()
+    assert not app.exception, app.exception
+    return app
+
+
+def _slider_sandbox(app, key: str = "sbx_deriva"):
+    return next(s for s in app.slider if s.key == key)
+
+
+def _cruce_hangar(app) -> str:
+    return next(m for m in app.metric if m.label == "Cruce a hangar").value
+
+
+@needs_cache
+def test_el_sandbox_reproduce_la_caché_con_deriva_cero():
+    """A 0 % el cruce a hangar es el primer ciclo HANGAR de la caché, no una constante."""
+    app = _sandbox_app()
+    _slider_sandbox(app).set_value(0).run()
+    assert not app.exception, app.exception
+
+    curva = L.unit_curve(L.get_windows(), 14)
+    bajo = curva[curva["lower_min"] < 25.0]
+    esperado = int(bajo["cycle"].min())
+    assert _cruce_hangar(app) == f"ciclo {esperado}", _cruce_hangar(app)
+
+
+@needs_cache
+def test_el_sandbox_degrada_la_banda_cuando_la_entrada_es_sintetica():
+    """Con deriva != 0 la leyenda deja de llamarse conformal y el aviso lo explica."""
+    app = _sandbox_app()
+    _slider_sandbox(app).set_value(10).run()
+    assert not app.exception, app.exception
+
+    graficos = [c for c in app.get("plotly_chart") if "unidad 14" in (c.proto.alt or "")]
+    assert graficos, "el sandbox no dibuja su curva"
+    assert graficos[0].proto.alt.strip(), "G3: el gráfico del sandbox no tiene alt"
+    spec = json.loads(graficos[0].proto.spec)
+    leyenda = [t.get("name") for t in (spec.get("figure") or spec)["data"]]
+    assert "Banda proyectada (fuera de garantía conformal 90 %)" in leyenda, leyenda
+    assert any("Deriva sintética" in (w.value or "") for w in app.warning)
+
+
+@needs_cache
+def test_la_deriva_sintetica_adelanta_la_decision():
+    """La intervención mueve la decisión: el cruce se adelanta o se queda, nunca se retrasa."""
+    app = _sandbox_app()
+    slider = _slider_sandbox(app)
+
+    def cruce_con(valor: int) -> int:
+        slider.set_value(valor).run()
+        assert not app.exception, app.exception
+        valor_visto = _cruce_hangar(app)
+        assert valor_visto.startswith("ciclo "), valor_visto
+        return int(valor_visto.split()[1])
+
+    sin = cruce_con(0)
+    con = cruce_con(10)
+    assert con <= sin, (sin, con)
+
+
+@needs_cache
+def test_el_sandbox_decide_con_el_motor_oficial():
+    """El estado mostrado es una etiqueta del motor `mia/reglas.py`, no un texto inventado."""
+    app = _sandbox_app()
+    _slider_sandbox(app).set_value(0).run()
+    assert not app.exception, app.exception
+    textos = " ".join(m.value for m in app.markdown)
+    assert any(etiqueta in textos for etiqueta in L.STATE_LABELS.values()), textos[:200]
+
+
+@needs_cache
+def test_el_sandbox_muestra_el_tramo_y_no_toda_la_vida_del_motor():
+    """A 0 % la métrica y el conteo de ventanas son del tramo, no de la unidad entera.
+
+    Sin el filtro por `_c_fin`, `unit_curve` devuelve los 76 ciclos de U14 y la
+    métrica enseñaba el RUL del último ciclo (0,9) en vez del del tramo (38,3).
+    """
+    app = _sandbox_app()
+    _slider_sandbox(app).set_value(0).run()
+    assert not app.exception, app.exception
+
+    windows = L.get_windows()
+    curva = L.unit_curve(windows, 14)
+    bajo = curva[curva["lower_min"] < 25.0]
+    c_fin = int(bajo["cycle"].min())
+    esperado = float(curva[curva["cycle"] == c_fin]["pred"].iloc[0])
+
+    metrica = next(m for m in app.metric if m.label == "RUL predicha al final del tramo")
+    assert metrica.value == f"{esperado:.1f} ciclos", (metrica.value, esperado)
+
+    ventanas_tramo = int(((windows["unit"] == 14)
+                          & (windows["cycle"] >= 3)
+                          & (windows["cycle"] <= c_fin)).sum())
+    texto = " ".join(c.value for c in app.caption)
+    assert f"{ventanas_tramo} ventanas" in texto, texto[:200]
+    assert f"{int(curva['windows'].sum())} ventanas" not in texto or ventanas_tramo == int(curva['windows'].sum())

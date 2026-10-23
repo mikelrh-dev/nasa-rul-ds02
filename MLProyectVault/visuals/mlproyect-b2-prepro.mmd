@@ -1,0 +1,8 @@
+flowchart LR
+    W[W régimen 4] --> SCW[Scaler W]
+    SCW --> POLY[Poly grado 2]
+    POLY --> RIDGE[14 Ridges]
+    XS[Xs 14 sensores] --> RES[Resta régimen]
+    RIDGE --> RES
+    RES --> RESC[Res scaler]
+    RESC --> WIN[Ventanas 50 + X_tab 93]

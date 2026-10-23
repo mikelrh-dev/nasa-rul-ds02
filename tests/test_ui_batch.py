@@ -90,7 +90,7 @@ def test_un_bloque_corto_se_rechaza_antes_del_modelo():
     aviso = B.validar_bloque({"tabla": tabla.head(20), "matricula": "CORTO",
                               "fuente": "test"})
     assert aviso["ok"] is False
-    assert "al menos 50 filas" in aviso["error"]
+    assert "al menos 50 muestras remuestreadas" in aviso["error"]
     assert aviso["ventanas"] == 0
 
 
