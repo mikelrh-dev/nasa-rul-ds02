@@ -242,3 +242,65 @@ def test_la_decision_no_cambia_de_agregacion():
         "la predicción puntual está por encima del umbral y aun así se deriva")
 
     assert "límite inferior" in _texto(app).lower()
+
+
+# ------------------------------------------------------------------ fase 5
+@needs_cache
+def test_el_modo_historia_carga_el_paso_3_en_la_app():
+    """Pulsar el paso 3 deja la app donde el paso declara."""
+    app = _app()
+    app.run()
+    for boton in app.button:
+        if boton.key == "historia_3":
+            boton.click().run()
+            break
+    else:
+        pytest.fail("no está el paso 3 del modo historia")
+
+    assert not app.exception, app.exception
+    assert _selector_unidad(app).value == 14
+    assert app.slider[0].value == 29
+
+
+@needs_cache
+def test_el_paso_4_afloja_los_umbrales():
+    """El paso 4 cambia la política: el umbral de hangar baja a 20."""
+    app = _app()
+    app.run()
+    for boton in app.button:
+        if boton.key == "historia_4":
+            boton.click().run()
+            break
+    else:
+        pytest.fail("no está el paso 4 del modo historia")
+
+    assert not app.exception, app.exception
+    assert _number_input(app, "Hangar si L_inf").value == 20.0
+    assert _number_input(app, "Apto si L_inf").value == 35.0
+
+
+@needs_cache
+def test_el_comparador_superpone_trayectorias():
+    app = _app()
+    app.run()
+    assert not app.exception, app.exception
+    alts = [c.proto.alt or "" for c in app.get("plotly_chart")]
+    assert any("Comparador de trayectorias" in a for a in alts), alts
+
+
+@needs_cache
+def test_el_registro_de_sesion_es_visible_y_exportable():
+    app = _app()
+    app.run()
+    assert not app.exception, app.exception
+    assert "Registro de sesión" in _texto(app)
+
+    # Una acción discreta llena el registro; sin ella no hay nada que exportar.
+    for boton in app.button:
+        if boton.key == "arquetipo_Fin de vida / crítico":
+            boton.click().run()
+            break
+    assert not app.exception, app.exception
+
+    descargas = [b.proto.label or "" for b in app.download_button]
+    assert any("registro" in d.lower() for d in descargas), descargas

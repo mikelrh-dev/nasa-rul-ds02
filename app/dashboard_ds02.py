@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
@@ -97,6 +98,20 @@ def _mostrar_toast_pendiente() -> None:
     mensaje = st.session_state.pop("_toast_pendiente", None)
     if mensaje:
         st.toast(mensaje, icon=":material/info:")
+
+
+def _log(mensaje: str) -> None:
+    """Registro de sesión: qué ha hecho el usuario, con cuándo.
+
+    Se alimenta en cada acción discreta (alta, escenario, paso de historia, lote,
+    gemelos). No registra cada rerender: solo lo que el usuario hizo.
+    """
+    log = list(st.session_state.get("_sesion_log") or [])
+    log.append({
+        "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "que": str(mensaje),
+    })
+    st.session_state["_sesion_log"] = log
 
 
 def _preflight_panel(pf: dict) -> None:
@@ -316,6 +331,12 @@ _base_apto = float(provenance["defaults"]["threshold_airworthy"])
 _base_aog = float(provenance["defaults"]["threshold_aog"])
 _d_apto, _d_aog = _PRESETS.get(preset, _PRESETS["Normal"])
 _preset_vals = (max(1.0, _base_apto + _d_apto), max(0.0, _base_aog + _d_aog))
+# El modo historia puede pedir otros umbrales: se dejan en `session_state` antes
+# de que el widget exista, igual que las demás escrituras diferidas.
+if st.session_state.get("_umbrales_pendientes"):
+    _u_p, _h_p = st.session_state.pop("_umbrales_pendientes")
+    st.session_state[f"th_apto_{preset}"] = float(_u_p)
+    st.session_state[f"th_aog_{preset}"] = float(_h_p)
 threshold_apto = float(st.session_state.get(f"th_apto_{preset}", _preset_vals[0]))
 threshold_aog = float(st.session_state.get(f"th_aog_{preset}", _preset_vals[1]))
 if not threshold_aog < threshold_apto:
@@ -387,6 +408,7 @@ with st.sidebar:
                 st.session_state["_alta_pendiente"] = int(A.unidad_alta(len(altas) - 1))
                 st.session_state["twin_flash"] = (
                     f"Aeronave `{limpia}` incorporada (U{unidad_p} hasta el ciclo {ciclo_p}). Ve a la pestaña Hangar virtual y busca la matrícula en Cola y Cronología.")
+                _log(f"Alta de la unidad {limpia} (U{unidad_p} hasta el ciclo {ciclo_p}).")
                 st.rerun()
     with st.expander("Quitar aeronaves de alta", icon=":material/remove_circle:"):
         altas = _altas()
@@ -589,6 +611,7 @@ with tab_fleet:
                 ):
                     _u, _c = A.PERFILES[_perfil]
                     st.session_state["_escenario_pendiente"] = (int(_u), int(_c))
+                    _log(f"Archetype «{_perfil}» cargado (U{_u}, ciclo {_c}).")
                     st.session_state["_toast_pendiente"] = (
                         f"Escenario «{_perfil}» cargado (U{_u}, ciclo {_c}). "
                         "Pulsa una tarjeta para abrir su gemelo."
@@ -734,6 +757,65 @@ with tab_fleet:
             "La decisión sigue siendo por límite inferior: mover estos controles no "
             "cambia esa agregación, solo los números que la disparan."
         )
+
+    # -------------------- modo historia: la narrativa en cuatro pasos
+    with st.container(border=True):
+        st.subheader("Modo historia · la narrativa en cuatro pasos",
+                     icon=":material/auto_stories:")
+        st.caption(
+            "Cuatro estados que cuentan la historia, derivados de la caché. Cada paso "
+            "deja la app donde dice; el cuarto cambia la política para ver el efecto."
+        )
+        _pasos_historia = A.estado_historia(windows, umbrales)
+        _cols_h = st.columns(len(_pasos_historia))
+        for _col, _paso in zip(_cols_h, _pasos_historia):
+            with _col:
+                if st.button(
+                    f"{_paso['paso']}. {_paso['titulo']}",
+                    key=f"historia_{_paso['paso']}", icon=":material/play_circle:",
+                ):
+                    st.session_state["_escenario_pendiente"] = (
+                        int(_paso["unidad"]), int(_paso["ciclo"]))
+                    st.session_state["_umbrales_pendientes"] = (
+                        _paso["umbrales"]["apto"], _paso["umbrales"]["hangar"])
+                    _log(f"Modo historia, paso {_paso['paso']}: {_paso['titulo']}.")
+                    st.session_state["_toast_pendiente"] = (
+                        f"Paso {_paso['paso']}: {_paso['titulo']}. {_paso['cuenta']}"
+                    )
+                    st.rerun()
+                st.caption(_paso["cuenta"])
+
+    # -------------------- registro de sesión
+    with st.container(border=True):
+        st.subheader("Registro de sesión", icon=":material/receipt_long:")
+        _log_sesion = st.session_state.get("_sesion_log") or []
+        if not _log_sesion:
+            st.caption(
+                "Todavía no has hecho nada en esta sesión. El registro se llena con "
+                "cada acción discreta: altas, escenarios, lotes y gemelos."
+            )
+        else:
+            st.dataframe(
+                pd.DataFrame(_log_sesion),
+                hide_index=True,
+                column_config={
+                    "at": st.column_config.TextColumn("Cuándo"),
+                    "que": st.column_config.TextColumn("Qué"),
+                },
+                alt="Registro de sesión: las acciones hechas, con su fecha.",
+            )
+            with st.container(horizontal=True):
+                st.download_button(
+                    "Descargar registro (CSV)",
+                    data=pd.DataFrame(_log_sesion).to_csv(index=False),
+                    file_name="registro_sesion_ds02.csv",
+                    mime="text/csv",
+                    icon=":material/download:",
+                )
+                if st.button("Vaciar registro", icon=":material/delete:",
+                             key="sesion_vaciar"):
+                    st.session_state["_sesion_log"] = []
+                    st.rerun()
 
     with st.container(horizontal=True):
         st.metric(
@@ -1322,6 +1404,7 @@ with st.container(border=True):
     if st.button("Cargar escenario de demo", icon=":material/play_circle:",
                  key="demo_cargar", type="primary"):
         st.session_state["_demo_pendiente"] = True
+        _log("Escenario de demo cargado (umbrales 30/25, ciclo 29, U14).")
         st.rerun()
 
 
@@ -1432,6 +1515,49 @@ with tab_rul:
             st.caption(
                 "Radiografía de sensores (presiones) respecto a la línea base sana del "
                 "propio motor. La pestaña 3 la muestra por grupo de canales."
+            )
+
+    # -------------------- comparador: 2-3 motores superpuestos
+    with st.container(border=True):
+        st.subheader("Comparador · superpone trayectorias",
+                     icon=":material/compare_arrows:")
+        st.caption(
+            "Elige 2–3 motores y superpone su límite inferior — lo que decide — y su "
+            "predicción puntual, solo para comparar. La línea roja es el umbral de hangar."
+        )
+        _comparar = st.multiselect(
+            "Motores a comparar",
+            unidades_vistas,
+            default=unidades_vistas[:2],
+            format_func=lambda u: _etiqueta_unidad(float(u)),
+            key="comparador_unidades",
+            help="El límite inferior es lo que decide el estado; la predicción puntual "
+                 "se dibuja solo para comparar.",
+        )
+        if _comparar:
+            _fig_c = go.Figure()
+            for u in _comparar:
+                _curva_c = curves[u]
+                _et_c = _etiqueta_unidad(float(u))
+                _fig_c.add_trace(go.Scatter(
+                    x=_curva_c["cycle"], y=_curva_c["lower"], mode="lines",
+                    name=f"L_inf · {_et_c}", line=dict(width=2),
+                ))
+                _fig_c.add_trace(go.Scatter(
+                    x=_curva_c["cycle"], y=_curva_c["pred"], mode="lines",
+                    name=f"RUL predicha · {_et_c}", line=dict(width=1.2, dash="dot"),
+                ))
+            _fig_c.add_hline(
+                y=threshold_aog, line_color=ROSE, line_dash="dash", line_width=1.5,
+                annotation_text=f"hangar ({threshold_aog:.0f})",
+                annotation_position="top right", annotation_font=dict(color=ROSE, size=11),
+            )
+            _fig_c.update_layout(**chart_layout(height=380))
+            style_axes(_fig_c, x_title="Ciclo de vuelo", y_title="RUL (ciclos)")
+            st.plotly_chart(
+                _fig_c, theme=None,
+                alt="Comparador de trayectorias: límite inferior y RUL predicha de los "
+                    "motores seleccionados.",
             )
 
     with st.container(border=True):
@@ -1945,6 +2071,7 @@ with tab_live:
                     else:
                         st.session_state["lote_resultado"] = _resultado_lote
                         st.session_state["lote_bloques"] = _bloques
+                        _log(f"Lote puntuado: {len(_bloques)} motor(es).")
                         st.rerun()
 
     _lote = st.session_state.get("lote_resultado")
@@ -2012,6 +2139,7 @@ with tab_live:
                     st.session_state["twins"] = _gemelos_nuevos
                     _guardar_registros()
                     st.session_state["lote_resultado"] = None
+                    _log(f"{len(_gemelos_nuevos)} gemelo(s) registrados desde el lote.")
                     st.session_state["twin_flash"] = (
                         f"{len(_gemelos_nuevos)} gemelo(s) en la flota registrada. "
                         "Míralos en la primera pestaña, en «Gemelos registrados»."
@@ -2459,6 +2587,7 @@ with tab_live:
                         st.session_state.get("twins", {}), gemelo,
                         reemplazar=reemplazar)
                     _guardar_registros()
+                    _log(f"Gemelo {gemelo['id']} registrado.")
                 except ValueError as exc:
                     st.error(str(exc), title="No se pudo registrar", icon=":material/rule:")
                 else:
