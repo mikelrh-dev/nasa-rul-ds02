@@ -149,6 +149,29 @@ def traza_decision(limite_inferior: float, umbrales: dict,
     )
 
 
+def decision_en_vivo(result: dict, umbrales: dict) -> dict:
+    """Pasada A sobre la última ventana de una evaluación en vivo.
+
+    Es el único sitio que decide sobre una unidad aportada por el usuario, y
+    decide con la **invalidez real de la banda** (`alertas_de_ventana`), igual que
+    `decidir_ventanas` en la caché, el sandbox, el gemelo y el alta.
+
+    Las cautelas de plausibilidad (`ui_inference.plausibility_warnings`) son
+    avisos para el operador, no datos imposibles: su propio texto dice «se puede
+    puntuar, pero…». Meterlas en `alertas_datos` activa `R1_SEGURIDAD` y devuelve
+    `SIN_DECISION`, que es lo contrario de lo que el aviso afirma. Se pintan como
+    advertencia arriba, pero no entran aquí.
+    """
+    windows = result["windows"]
+    ultima = windows.iloc[-1]
+    alertas = alertas_de_ventana(windows)[-1]
+    return {
+        "ventana": ultima,
+        "alertas": alertas,
+        "traza": traza_decision(float(ultima["lower"]), umbrales, alertas),
+    }
+
+
 def resumen_correccion(windows: pd.DataFrame, corregido: pd.DataFrame) -> dict:
     """Cifras que permiten ver que la correccion movio algo y cuanto."""
     cambiadas = int((corregido["pred"] != corregido["pred_enviada"]).sum())

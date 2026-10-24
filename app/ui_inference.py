@@ -81,17 +81,24 @@ def required_columns() -> list[str]:
     return ["cycle"] + channel_order()
 
 
-def example_window(unit: int = 14, position: float = 0.55) -> tuple[pd.DataFrame, dict]:
+def example_window(unit: int = 14, position: float = 0.55,
+                   rows: int | None = None) -> tuple[pd.DataFrame, dict]:
     """A real cached window, lifted from `app/cache/ds02_rows.parquet`.
 
     The cache already stores the downsampled grid (`[::100]`), so these 50 rows
     are exactly the representation the model consumes. `position` picks where in
     the engine's life the window ends: 0.55 lands mid-life, which demonstrates a
     non-trivial state rather than the trivial end.
+
+    `rows` widens the slice backwards while keeping the same end, so the caller
+    gets a trajectory instead of a single window: the causal EMA has history to
+    smooth and the chart has a curve. It never goes below `window_size()` — the
+    model consumes a fixed-length window and a shorter slice is not one. The end
+    of the slice does not move, so widening it does not move the decision.
     """
-    rows = L.get_rows()
-    frame = rows[rows["unit"] == int(unit)].reset_index(drop=True)
-    span = window_size()
+    rows_frame = L.get_rows()
+    frame = rows_frame[rows_frame["unit"] == int(unit)].reset_index(drop=True)
+    span = window_size() if rows is None else max(window_size(), int(rows))
     if len(frame) < span:
         raise ValueError(f"unit {unit} has {len(frame)} cached rows, needs {span}")
     end = int(round(len(frame) * float(np.clip(position, 0.0, 1.0))))
@@ -109,17 +116,22 @@ def example_window(unit: int = 14, position: float = 0.55) -> tuple[pd.DataFrame
     return table, meta
 
 
-def window_ending_at(unit: int, cycle: int) -> tuple[pd.DataFrame, dict]:
+def window_ending_at(unit: int, cycle: int,
+                     rows: int | None = None) -> tuple[pd.DataFrame, dict]:
     """The window that ends on the last cached row of `cycle`.
 
     `example_window` picks a window by row fraction; this one picks it by the
     flight cycle it ends on, which is the unit of reasoning the story mode and
     the fleet panel use. Same shape either way: `window_size()` downsampled
     samples in the dataset's channel order.
+
+    `rows` widens the slice backwards while keeping the same end, like
+    `example_window`. The end cycle does not move, so the decision does not
+    either; only the trajectory in front of it grows.
     """
-    rows = L.get_rows()
-    frame = rows[rows["unit"] == int(unit)].reset_index(drop=True)
-    span = window_size()
+    rows_frame = L.get_rows()
+    frame = rows_frame[rows_frame["unit"] == int(unit)].reset_index(drop=True)
+    span = window_size() if rows is None else max(window_size(), int(rows))
     mask = (frame["cycle"] == int(cycle)).to_numpy()
     if not mask.any():
         disponibles = sorted(int(c) for c in frame["cycle"].unique())
@@ -140,6 +152,33 @@ def window_ending_at(unit: int, cycle: int) -> tuple[pd.DataFrame, dict]:
         "end_cycle": int(chunk["cycle"].iloc[-1]),
     }
     return table, meta
+
+
+# Cuantas muestras abarca un tramo de demo. Con una sola ventana (50) el EMA
+# arranca en frio y la grafica tiene un punto; con 300 hay curva y el EMA ya
+#olvido. El estado no cambia: el tramo termina donde terminaba la ventana.
+DEMO_ROWS = 300
+
+
+def demo_presets(u_hangar: int, c_hangar: int,
+                 rows: int = DEMO_ROWS) -> dict[str, tuple]:
+    """Tramos de demo: nombre -> (unidad, posicion, ciclo_final, matricula).
+
+    `posicion` es None cuando el tramo se elige por ciclo final. Cada nombre
+    lleva el estado que debe demostrar y `tests/test_live_eval.py` lo fija: si
+    alargar un tramo le cambia el estado, el test lo dice en vez de dejar que el
+    boton prometa un estado que no da.
+
+    `rows` va como parametro para que ese test pueda comprobar el nombre a
+    cualquier largo, no solo al que hay hoy.
+    """
+    return {
+        "Sano U15 inicio (APTO)": (15, 0.05, None, "ESN-SANO-01"),
+        "Medio U11 desgaste (INSPECCIÓN)": (11, 0.36, None, "ESN-MEDIO-01"),
+        f"Crítico U{u_hangar} · ciclo {c_hangar} (HANGAR)": (
+            u_hangar, None, c_hangar, "ESN-CRIT-01"),
+        "Clásico U14 (HANGAR)": (14, 0.55, None, "ESN-DEMO-01"),
+    }
 
 
 def channel_labels() -> dict[str, str]:
