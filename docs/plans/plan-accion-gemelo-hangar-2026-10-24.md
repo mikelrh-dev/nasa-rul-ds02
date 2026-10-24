@@ -182,20 +182,92 @@ Sin esto, nada de lo demás se entiende: el usuario registra un gemelo y no lo v
 
 ---
 
-## FASE 3 · Mejora honesta (el único "wow" que no es teatro)
+## FASE 3 · Mejora honesta: los residuos Ridge (gate superado, aplazada)
 
 ### 3.1 · Enseñar los residuos Ridge reales
 
+**Estado: verificada y aplazada hasta después de la defensa.** El gate del plan
+(«los residuos tienen que acompañar la caída del RUL; si no acompañan, la fase se
+cancela») está superado: acompañan. Se aplaza por timing, no por peligro.
+
+#### Gate superado: los residuos acompañan la caída del RUL
+
+Calculado sobre la caché (12 538 filas × 14 sensores), **leyendo** los parámetros
+del residualizer de `models/ensemble.joblib` sin modificar nada.
+
+Trayectoria de U14: el residuo de T48 frente a la RUL real.
+
+```
+ciclo 11 · res_T48 = −0,61 σ · RUL 65
+ciclo 41 · res_T48 = −0,37 σ · RUL 35
+ciclo 61 · res_T48 = +0,53 σ · RUL 15
+ciclo 76 · res_T48 = +3,19 σ · RUL  0
+```
+
+Correlación del residuo con la RUL real (U11 / U14 / U15):
+
+```
+T48   −0,88 / −0,82 / −0,87
+T30   +0,86 / +0,78 / +0,81
+T50   −0,87 / −0,83 / −0,87
+Wf    −0,86 / −0,84 / −0,86
+P2    +0,21 / −0,04 / −0,19   ← no correlaciona
+```
+
+Física de libro: al degradarse el motor, la temperatura de salida de la turbina
+de alta (T48) sube por encima de lo que el régimen de vuelo explica.
+
+**P2 es el mejor regalo.** La presión del fan no se mueve con la degradación. Un
+panel que mostrara solo P2 estaría contando una historia falsa; con los residuos
+reales se ve qué sensor manda y cuál no.
+
+#### Cómo se calcula (ya probado)
+
+```
+W     = [alt, Mach, TRA, T2]      # 4 condiciones de vuelo
+Xs    = los otros 14 canales
+W_sc  = ensemble.scaler_w.transform(W)
+res   = ensemble.residualizer.transform(W_sc, Xs)
+```
+
+La `scaler_w.mean_` es `[21930, 0,62, 68,6, 475,0]`: altitud, Mach, TRA y T2. Es
+decir, `n_op = 4` y los 14 residuos son los 14 canales restantes, como dice el
+propio docstring del residualizer («one per sensor (14)»).
+
+#### Coste medido
+
+- **Caché:** de 1,9 MB a 3,6 MB (×1,88). 12 538 filas × 14 columnas nuevas.
+- **Trabajo:** unas 20 líneas en `scripts/build_ui_cache.py` (junto a
+  `channels.to_parquet`, línea 209), un panel en `app/dashboard_ds02.py`
+  reutilizando `fig_deriva`, y un test. Medio día.
+
+#### Riesgos y mitigación
+
+| Riesgo | Mitigación |
+| :--- | :--- |
+| Cargar el residualizer arrastra TensorFlow (`src/ds02_rul/__init__.py` → `ensemble.py` → Keras). | Se precomputa en la caché: la app no carga el modelo. |
+| El eje está en **σ**, no en grados ni bares. | El eje se llama «residuo (σ)». Llamarlo «deriva %» sería mentir. |
+| El builder de la caché necesita el modelo (`scripts/build_ui_cache.py:89` carga el ensemble, `:104` puntúa). | Es coste de compilación, no de runtime. La app sigue arrancando sin TensorFlow. |
+| La radiografía actual (deriva contra los 5 primeros ciclos) y los residuos son dos señales distintas. | Se nombran distinto y se explica la diferencia. |
+
+#### Verificación final pendiente
+
+Un test que fije la etiqueta en σ y que compruebe que el residuo se mueve con el
+RUL en las tres unidades.
+
+#### Por qué se aplaza
+
+No por peligro: por timing. Añade una señal nueva que explicar en directo, y
+ahora mismo hay un panel nuevo (el del gemelo) que ensayar. Se retoma después de
+la defensa, con el gate ya superado y el coste medido.
+
 | | |
 | :--- | :--- |
-| Qué | El modelo consume `SensorResidualizer` (`src/ds02_rul/residualizer.py`): una regresión Ridge por sensor sobre las condiciones de vuelo (`alt`, `Mach`, `TRA`, `T2`). La app no lo usa: su "Radiografía de sensores" (`app/dashboard_ds02.py:265`) calcula un porcentaje contra los 5 primeros ciclos. |
-| Por qué | Cierra la pregunta "¿y si el modelo mira al piloto?". Es la explicación física real, no una deriva de referencia. |
-| Dónde | Precomputar los residuos en `scripts/build_ui_cache.py:209`, que ya escribe `ds02_rows.parquet`. La app lee, no calcula. |
-| Ojo con el modelo | **Lee** los parámetros del residualizer; no modifica nada. `models/ensemble.joblib` pesa 468 KB, pero cargarlo arrastra TensorFlow (entra `src/ds02_rul/__init__.py` → `ensemble.py` → Keras). Por eso se precomputa: la app no paga ese coste. |
-| Ojo con la unidad | Los residuos están **estandarizados** (`res_scaler.transform`). Están en σ, no en grados. El eje se llama "residuo (σ)". |
-| Verificación previa obligatoria | Los residuos tienen que acompañar la caída del RUL. Si no acompañan, la fase se cancela y se anota el motivo. |
-| Verificación final | Test que compare el residuo con la caída del RUL en las tres unidades. |
-| Esfuerzo | Medio. Riesgo 5. |
+| Qué | El modelo consume `SensorResidualizer` (`src/ds02_rul/residualizer.py`, aplicado en `src/ds02_rul/ensemble.py:202`). La app no lo usa: su «Radiografía de sensores» (`app/dashboard_ds02.py:265`) calcula un porcentaje contra los 5 primeros ciclos. |
+| Por qué | Cierra la pregunta «¿y si el modelo mira al piloto?». Es la explicación física real, no una deriva de referencia. |
+| Dónde | Precomputar en `scripts/build_ui_cache.py:209`, que ya escribe `ds02_rows.parquet`. La app lee, no calcula. |
+| Esfuerzo | Medio día. Riesgo: bajo-moderado (el modelo no se toca). |
+
 
 ---
 
@@ -214,14 +286,19 @@ Sin esto, nada de lo demás se entiende: el usuario registra un gemelo y no lo v
 
 ## ORDEN Y CRITERIO
 
-1. **Fase 0** (esta semana): el defecto central. Sin esto, el gemelo sigue sin verse.
-2. **Fase 2** (esta tarde, en paralelo): todo documento. Cero riesgo.
-3. **Fase 1** (después de la 0): el gemelo deja de ser de solo lectura.
-4. **Fase 3** (si sobra tiempo): la mejora honesta.
+1. **Fase 0** (hecha): el defecto central. El gemelo ya se puede abrir.
+2. **Fase 2** (hecha): todo documento. Cero riesgo.
+3. **Fase 1** (pendiente): el gemelo deja de ser de solo lectura. Prerrequisito
+   para que el sandbox lo acepte.
+4. **Fase 3** (verificada, aplazada hasta después de la defensa): la mejora
+   honesta. El gate está superado y el coste medido.
 5. **Fuera de este plan**: nunca antes de la defensa.
 
 Criterio de decisión para cada ítem: ¿arregla algo que el usuario ve o que el
 tribunal puede comprobar? Si sí, entra. Si solo suena bien, no.
+
+Criterio de aplazamiento: ¿añade una cosa nueva que explicar en directo? Si sí
+y hay un tribunal encima, se aplaza aunque sea buena.
 
 ---
 
@@ -256,7 +333,14 @@ tribunal puede comprobar? Si sí, entra. Si solo suena bien, no.
 
 | Ítem | Estado | Commit | Prueba ejecutada |
 | :--- | :--- | :--- | :--- |
-| 3.1 residuos Ridge | PENDIENTE | — | — |
+| 3.1 residuos Ridge · gate | HECHO | — (sin escribir) | Correlación −0,88/−0,82/−0,87 en T48 sobre la caché |
+| 3.1 residuos Ridge · implementación | APLAZADA | — | Pendiente de la defensa |
+
+La fase está **verificada y aplazada**: el gate (que los residuos acompañen la
+caída del RUL) está superado y el coste medido. No se escribe hasta después de la
+defensa, para no añadir una señal nueva que explicar en directo con un panel
+nuevo todavía sin ensayar.
+
 
 ### Línea base (ya hecho)
 
