@@ -39,7 +39,7 @@ salida de terminal que lo pruebe.** "Lo he leído y parece bien" no es evidencia
 
 | # | Propuesta | Impacto | Riesgo | Fase |
 | :--- | :--- | :--- | :--- | :--- |
-| A1 | Residuos Ridge reales (`SensorResidualizer`) | 9 | 5 | Fase 2 |
+| A1 | Residuos Ridge reales (`SensorResidualizer`) | 9 | 4 | Aplazada |
 | A2 | Documentar los 13/23/18 de anticipación | 8 | 2 | Fase 1 |
 | A3 | Calculadora de despacho de misión | 7 | 8 | Fase 4 |
 | A4 | Jittering OOD (±0,5 % de ruido) | 7 | 7 | Fase 4 |
@@ -49,6 +49,19 @@ salida de terminal que lo pruebe.** "Lo he leído y parece bien" no es evidencia
 **A1 · Residuos Ridge reales.** Enseña la razón física por la que el modelo baja
 el RUL. Responde al ataque "¿y si está mirando al piloto?". Es el único "wow"
 honesto de la lista: no es teatro, es la explicación física real.
+
+**Verificado el 24 de octubre de 2026.** Calculado sobre la caché (12 538 filas ×
+14 sensores) y **acompaña la caída del RUL**: el residuo de T48 correlaciona
+−0,88 / −0,82 / −0,87 con la RUL real en U11 / U14 / U15, y va de −0,61 σ
+(ciclo 11, RUL 65) a +3,19 σ (ciclo 76, RUL 0) en U14. La presión del fan (P2)
+no correlaciona (−0,04 en U14), lo que es la prueba de que el panel no miente:
+se ve qué sensor manda y cuál no.
+
+Coste medido: caché de 1,9 a 3,6 MB (×1,88); medio día de trabajo. Riesgo 4: el
+modelo no se toca, pero el eje va en σ y el builder de la caché necesita el
+artefacto. **Aplazada hasta después de la defensa** por timing, no por peligro:
+añade una señal nueva que explicar en directo. Detalle completo en
+`plan-accion-gemelo-hangar-2026-10-24.md`, Fase 3.
 
 Hallazgo que lo sostiene: el modelo consume `SensorResidualizer`
 (`src/ds02_rul/residualizer.py`, usado en `src/ds02_rul/ensemble.py:202`), que
