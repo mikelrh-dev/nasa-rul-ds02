@@ -32,7 +32,7 @@ needs_cache = pytest.mark.skipif(
 UMBRALES = {"apto": 30.0, "hangar": 25.0}
 
 
-def _gemelo() -> dict:
+def _gemelo(motor: str = "ESN-TEST") -> dict:
     resultado = {
         "windows": pd.DataFrame({
             "window": [0, 1],
@@ -43,9 +43,9 @@ def _gemelo() -> dict:
             "upper": [22.0, 20.0],
         }),
         "contract": {"window": 50, "step": 1, "canales": ["alt"],
-                     "artefacto_sha256": "b" * 64, "motor": "ESN-TEST"},
+                     "artefacto_sha256": "b" * 64, "motor": motor},
     }
-    return T.make_twin("ESN-TEST", resultado, source="test", banda="artefacto",
+    return T.make_twin(motor, resultado, source="test", banda="artefacto",
                        correccion="ninguna", umbrales=UMBRALES,
                        fingerprint_value="f" * 64)
 
@@ -115,6 +115,36 @@ def test_el_gemelo_entra_en_la_flota_y_recorre_el_hangar():
     cola = [t for t in tablas if "L_inf de entrada" in t.columns]
     assert cola, [list(t.columns)[:4] for t in tablas]
     assert cola[0].iloc[0]["Estado"] == HGR.ETIQUETAS[HGR.TALLER]
+
+
+@needs_cache
+def test_el_muro_muestra_el_motor_registrado():
+    """Registrar un motor lo pone en el muro: antes el muro solo leía la caché.
+
+    El gemelo vive en `twins` y su serie dentro del gemelo, así que no está en
+    `frame` y `fleet_snapshot` no lo veía. Este test ejercita el cableado
+    (muro -> tarjeta -> sección de gemelos), no el módulo.
+    """
+    from streamlit.testing.v1 import AppTest
+
+    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=240)
+    app.session_state["twins"] = {"ESN-MURO": _gemelo("ESN-MURO")}
+    app.run()
+    assert not app.exception, app.exception
+
+    tarjetas = [b for b in app.button if (b.proto.label or "").strip() == "Ver gemelo"]
+    cache = sorted(int(u) for u in L.get_windows()["unit"].unique())
+    assert len(tarjetas) == len(cache) + 1, [b.key for b in tarjetas]
+    assert any("ESN-MURO" in (b.key or "") for b in tarjetas), [b.key for b in tarjetas]
+    assert any("**ESN-MURO**" in (m.value or "") for m in app.markdown)
+    # El badge de la tarjeta dice lo que el gemelo deriva con los umbrales en vigor.
+    assert any("DERIVACIÓN A HANGAR" in (m.value or "") for m in app.markdown)
+
+    # Pulsar la tarjeta lleva a la sección de gemelos, que es donde está su ficha.
+    next(b for b in tarjetas if "ESN-MURO" in (b.key or "")).click().run()
+    assert not app.exception, app.exception
+    assert any("ESN-MURO" in (c.value or "") and "L_inf" in (c.value or "")
+               for c in app.caption), [c.value for c in app.caption]
 
 
 @needs_cache
