@@ -375,14 +375,26 @@ with st.sidebar:
 
     st.subheader("Probar con un caso típico (sin datos)", icon=":material/library_add:")
     st.caption(
-        "Sin CSV ni pegado: elige matrícula + perfil y aparece en flota. Para telemetría real usa la pestaña Evaluar unidad nueva."
+        "Sin CSV ni pegado: elige matrícula + unidad + ciclo y aparece en flota. Cada ciclo es un estado de degradación distinto. Para telemetría real usa la pestaña Evaluar unidad nueva."
     )
     with st.form("alta_avion"):
         matricula = st.text_input(
             "Matrícula", key="alta_matricula", value="",
             help="Etiqueta de visualización. Mínimo 3 caracteres.",
         )
-        perfil = st.selectbox("Perfil de desgaste", list(A.PERFILES), key="alta_perfil")
+        unidad_libre = st.selectbox(
+            "Unidad base (caché)", sorted(int(u) for u in units), key="alta_unidad",
+            format_func=lambda u: L.UNIT_LABELS.get(int(u), f"Unidad {int(u)}"),
+            help="Motor del test del que se toma la historia ya puntuada.",
+        )
+        ciclo_libre = st.number_input(
+            "Ciclo hasta el que tomar historia",
+            min_value=int(windows["cycle"].min()),
+            max_value=int(windows["cycle"].max()),
+            value=int(min(max(int(windows["cycle"].min()), 20), int(windows["cycle"].max()))),
+            step=1, key="alta_ciclo",
+            help="El mismo motor en otro ciclo es otro caso de prueba: cambia su estado de triaje.",
+        )
         enviar = st.form_submit_button("Incorporar unidad",
                                        icon=":material/add_circle:", type="primary")
     if enviar:
@@ -391,7 +403,7 @@ with st.sidebar:
         except ValueError as exc:
             st.error(str(exc), icon=":material/rule:")
         else:
-            unidad_p, ciclo_p = A.PERFILES[perfil]
+            unidad_p, ciclo_p = int(unidad_libre), int(ciclo_libre)
             altas = _altas()
             try:
                 nuevo = A.ventanas_de_alta(windows, unidad_p, ciclo_p, A.unidad_alta(len(altas)))
@@ -2435,6 +2447,15 @@ with tab_live:
         "Paso 1 · trae los datos · Paso 2 · revisa el pre-vuelo de abajo · "
         "Paso 3 · evalúa y registra el gemelo. El botón solo se activa cuando "
         "los pasos 1 y 2 están en verde."
+    )
+    st.download_button(
+        "Descargar plantilla CSV (19 columnas)",
+        data=",".join(INF.required_columns()) + "\n",
+        file_name="plantilla_motor_ds02.csv",
+        mime="text/csv",
+        icon=":material/download:",
+        help="Cabecera exacta que acepta la app: cycle + 4 condiciones + 14 sensores, sin columna de unidad.",
+        key="live_plantilla",
     )
 
     def _on_preset_change():
