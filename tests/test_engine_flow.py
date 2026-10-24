@@ -148,6 +148,41 @@ def test_el_muro_muestra_el_motor_registrado():
 
 
 @needs_cache
+def test_el_gemelo_registrado_tiene_detalle_abierto():
+    """El gemelo registrado se puede abrir: antes no había panel para él.
+
+    La serie del gemelo ya estaba guardada; lo que faltaba era un sitio donde
+    verla. Este test fija el panel: curva, banda y las dos preguntas que un
+    gemelo digital tiene que responder.
+    """
+    from streamlit.testing.v1 import AppTest
+
+    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=240)
+    app.session_state["twins"] = {"ESN-DETA": _gemelo("ESN-DETA")}
+    app.run()
+    assert not app.exception, app.exception
+
+    texto = _texto(app)
+    assert "Gemelo digital · detalle" in texto, texto
+    assert "Ciclos hasta el umbral" in texto
+    assert "La ventana que decide" in texto
+    # La banda se dibuja entera: el panel cita los dos extremos, no solo lower.
+    alts = [c.proto.alt or "" for c in app.get("plotly_chart")]
+    assert any("banda conformal al 90" in a for a in alts), alts
+    # El gemelo de prueba cruza el umbral en el ciclo 40 y su último ciclo es 41:
+    # el panel tiene que decir que ya está por debajo, no inventar un número.
+    assert "ya está por debajo del umbral" in texto, texto
+
+
+def _texto(app) -> str:
+    partes = [m.value for m in app.markdown]
+    partes += [c.value for c in app.caption]
+    partes += [s.value for s in app.subheader]
+    partes += [f"{m.label} {m.value}" for m in app.metric]
+    return "\n".join(p for p in partes if p)
+
+
+@needs_cache
 def test_la_orden_de_un_gemelo_sale_de_la_serie_guardada():
     """El papel de un gemelo se emite sin re-puntuar y sin inventar verdad."""
     gemelo = _gemelo()
