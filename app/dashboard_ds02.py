@@ -322,14 +322,15 @@ manifest = L.get_manifest()
 units = sorted(int(u) for u in windows["unit"].unique())
 max_life = int(windows["cycle"].max())
 
-# La app abre con un motor ya cargado: nadie llega a una pantalla vacia.
-# Semilla de sesion, nunca de disco — `tests/conftest.py` sigue aislando.
-# Coincide con el default del selector (`_vistas[0]`), asi que no mueve ningun
-# conteo de widgets: es una declaracion de intencion, no un cambio de estado.
+# La app abre con un motor ya cargado: nadie llega a una pantalla vacía.
+# Semilla de sesión, nunca de disco — `tests/conftest.py` sigue aislando.
+#
+# No escribe `unit`: ese widget ya posee la clave y tiene su propio default
+# (`_vistas[0]`). Escribirla desde aquí provoca el aviso de Streamlit sobre un
+# widget con default y valor por Session State API. La marca dice que la app ya
+# se sembró; el selector ya carga un motor.
 if not st.session_state.get("_semilla_demo"):
     st.session_state["_semilla_demo"] = True
-    if not (st.session_state.get(F.ALTAS_KEY) or {}):
-        st.session_state.setdefault("unit", units[0] if units else 11)
 
 # ------------------------------------------------------- escrituras diferidas
 # Un handler no puede escribir en la clave de un widget que ya se instanció:
