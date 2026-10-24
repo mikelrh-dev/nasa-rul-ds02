@@ -25,6 +25,7 @@ sys.path.insert(0, APP)
 
 import ui_data_loader as L  # noqa: E402
 import ui_inference as INF  # noqa: E402
+import ui_rules as UR  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),
@@ -491,3 +492,172 @@ def test_el_sandbox_muestra_el_tramo_y_no_toda_la_vida_del_motor():
     texto = " ".join(c.value for c in app.caption)
     assert f"{ventanas_tramo} ventanas" in texto, texto[:200]
     assert f"{int(curva['windows'].sum())} ventanas" not in texto or ventanas_tramo == int(curva['windows'].sum())
+
+
+@needs_cache
+def test_una_cautela_de_plausibilidad_no_bloquea_la_decision():
+    """Una cautela no es un dato imposible: R1 solo debe saltar con invalidez real.
+
+    El preset «Medio U11 desgaste» cae entero dentro de un ciclo de vuelo y el
+    aviso lo dice («la tendencia es casi plana»). Ese aviso es una cautela: la
+    UI afirma «se puede puntuar, pero...». Pasarlo como alerta de decision mete
+    la cautela en `alertas_datos`, activa R1_SEGURIDAD y devuelve SIN_DECISION,
+    que es lo contrario de lo que el propio aviso dice.
+
+    La decision se toma de la invalidez real de la banda (`alertas_de_ventana`),
+    no de las cautelas de plausibilidad.
+    """
+    tab, _meta = INF.example_window(11, 0.36)
+    pf = INF.preflight(tab)
+    assert any("mismo ciclo" in aviso for aviso in pf["avisos"]), pf["avisos"]
+
+    resultado = INF.score_table(tab)
+    last = resultado["windows"].iloc[-1]
+    umbrales = {"apto": 30.0, "hangar": 25.0}
+
+    # Con las cautelas metidas como alertas: R1 dispara y no se decide nada.
+    traza_con_cautelas = UR.traza_decision(float(last["lower"]), umbrales, pf["avisos"])
+    assert traza_con_cautelas["decision"] == "SIN_DECISION", traza_con_cautelas
+
+    # Con la invalidez real de la banda (que aqui es ninguna): se decide.
+    alertas_reales = UR.alertas_de_ventana(resultado["windows"])[-1]
+    traza_real = UR.traza_decision(float(last["lower"]), umbrales, alertas_reales)
+    assert traza_real["decision"] != "SIN_DECISION", traza_real
+    assert traza_real["usadas"] == ["R8_INSPECCION"], traza_real
+
+
+@needs_cache
+def test_la_ruta_viva_decide_con_la_banda_y_no_con_las_cautelas():
+    """Regresión: el cableado de la ruta viva, no solo el motor.
+
+    `dashboard_ds02.py` metía `preflight()["avisos"]` en `alertas_datos`, así que
+    el preset «Medio U11 desgaste» —una ventana entera dentro de un ciclo de
+    vuelo— activaba R1_SEGURIDAD y la pantalla pintaba SIN_DECISION en vez del
+    INSPECCION que promete su propio nombre.
+
+    Aquí se comprueba `decision_en_vivo`, que es donde ahora vive esa elección:
+    el test anterior probaría el motor y seguiría en verde aunque el cableado
+    volviera a cruzarse.
+    """
+    tab, _meta = INF.example_window(11, 0.36)
+    pf = INF.preflight(tab)
+    assert pf["ok"], pf["error"]
+    assert pf["avisos"], "el preset trae la cautela de ciclo único"
+    assert any("mismo ciclo" in aviso for aviso in pf["avisos"]), pf["avisos"]
+
+    resultado = INF.score_table(tab, engine_id="ESN-MEDIO-01")
+    umbrales = {"apto": 30.0, "hangar": 25.0}
+
+    decision = UR.decision_en_vivo(resultado, umbrales)
+    assert decision["alertas"] == [], decision["alertas"]
+    assert decision["traza"]["decision"] == L.PREVENTIVE, decision["traza"]
+    assert decision["traza"]["usadas"] == ["R8_INSPECCION"], decision["traza"]
+
+    # El contraste que explica por qué no hay que hacer lo otro: la misma ventana
+    # con las cautelas metidas a mano pierde el estado.
+    traza_cruzada = UR.traza_decision(
+        float(decision["ventana"]["lower"]), umbrales, pf["avisos"]
+    )
+    assert traza_cruzada["decision"] == L.SIN_DECISION, traza_cruzada
+    assert traza_cruzada["usadas"] == ["R1_SEGURIDAD"], traza_cruzada
+
+
+@needs_cache
+def test_el_preset_demo_pinta_el_estado_que_promete():
+    """Regresión de cableado: el preset pinta su estado, no SIN_DECISION.
+
+    El preset «Medio U11 desgaste» cae entera dentro de un ciclo de vuelo, así que
+    trae la cautela de plausibilidad. Antes esa cautela viajaba en `alertas_datos`,
+    R1_SEGURIDAD disparaba y la pantalla decía «SIN DECISIÓN» cuando el nombre del
+    propio botón promete «INSPECCIÓN».
+
+    Los dos tests anteriores ejercitan `decision_en_vivo` y el motor: seguirían en
+    verde aunque el cableado de `dashboard_ds02.py` volviera a cruzarse. Este
+    renderiza el tablero, pulsa el preset y lee el badge que ve el usuario.
+
+    Tambien fija el largo del tramo: con `DEMO_ROWS` el preset abarca varios
+    ciclos, asi que la cautela de ciclo unico no sale y la grafica tiene curva.
+    Si volviera a salir, el tramo se habria quedado corto.
+    """
+    from streamlit.testing.v1 import AppTest
+
+    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"),
+                            default_timeout=300)
+    app.run()
+    assert not app.exception, app.exception
+
+    boton = next(b for b in app.button if b.key and "Medio U11" in b.key)
+    boton.click()
+    app.run()
+    assert not app.exception, app.exception
+
+    badges = [(m.value or "") for m in app.markdown]
+    decision = next((b for b in badges if "umbrales en vigor" in b), "")
+    assert "INSPECCIÓN" in decision, decision
+    assert "R8_INSPECCION" in decision, decision
+    assert "SIN DECISIÓN" not in decision, decision
+
+    # El tramo largo se nota en que la cautela de ciclo unico ya no sale.
+    avisos = [(w.value or "") for w in app.warning]
+    assert not any("mismo ciclo" in aviso for aviso in avisos), avisos
+
+
+@needs_cache
+def test_alargar_un_tramo_no_mueve_su_final():
+    """`rows` ensancha hacia atras; el final (y la decision) no se mueven.
+
+    Es la invariante que hace seguro alargar los presets: el tramo largo y el
+    corto acaban en las mismas 50 muestras, asi que la pasada A decide igual y
+    solo cambia la trayectoria de delante.
+    """
+    largo, meta_largo = INF.example_window(11, 0.36, rows=INF.DEMO_ROWS)
+    corto, meta_corto = INF.example_window(11, 0.36)
+    assert len(largo) == INF.DEMO_ROWS
+    assert len(corto) == INF.window_size()
+    assert largo.iloc[-INF.window_size():].reset_index(drop=True).equals(corto)
+    assert meta_largo["end_cycle"] == meta_corto["end_cycle"]
+    assert meta_largo["start_cycle"] < meta_corto["start_cycle"]
+
+    # Lo mismo por ciclo final, que es como elige el preset critico.
+    largo_c, meta_lc = INF.window_ending_at(14, 29, rows=INF.DEMO_ROWS)
+    corto_c, meta_cc = INF.window_ending_at(14, 29)
+    assert largo_c.iloc[-INF.window_size():].reset_index(drop=True).equals(corto_c)
+    assert meta_lc["end_cycle"] == meta_cc["end_cycle"] == 29
+
+
+@needs_cache
+def test_cada_preset_cae_en_el_estado_que_dice_su_nombre():
+    """Los nombres de los presets prometen un estado; el tramo tiene que darlo.
+
+    Los tramos son datos (`ui_inference.demo_presets`) y sus nombres enseñan un
+    estado de mantenimiento. Alargarlos es lo que da la curva y le quita el
+    arranque en frio al EMA, pero no puede mover el estado: el tramo termina
+    donde terminaba la ventana. Si un tramo deja de dar su estado, el boton
+    prometeria algo que no muestra.
+    """
+    import unicodedata
+
+    import ui_alta as A
+
+    def sin_acentos(texto: str) -> str:
+        """El estado vive en ASCII (`INSPECCION`) y el nombre no (`INSPECCIÓN`)."""
+        return "".join(c for c in unicodedata.normalize("NFD", texto)
+                       if unicodedata.category(c) != "Mn")
+
+    umbrales = {"apto": 30.0, "hangar": 25.0}
+    paso = A.estado_historia(L.get_windows(), umbrales)[2]
+    presets = INF.demo_presets(int(paso["unidad"]), int(paso["ciclo"]))
+    assert len(presets) >= 3, presets
+
+    for largo in (INF.window_size(), INF.DEMO_ROWS):
+        for nombre, (u, p, ciclo, _did) in presets.items():
+            if ciclo is None:
+                tab, _meta = INF.example_window(u, p, rows=largo)
+            else:
+                tab, _meta = INF.window_ending_at(u, ciclo, rows=largo)
+            esperado = sin_acentos(nombre.rsplit("(", 1)[-1].rstrip(")"))
+            traza = UR.decision_en_vivo(
+                INF.score_table(tab, engine_id="ESN-TEST"), umbrales)["traza"]
+            assert traza["decision"] == esperado, (
+                f"{nombre} con {largo} filas dio {traza['decision']}, "
+                f"no {esperado}")
