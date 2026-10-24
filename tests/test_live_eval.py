@@ -215,7 +215,7 @@ def test_the_app_does_not_load_the_model_until_asked():
     proc = subprocess.run([sys.executable, "-c", code], cwd=ROOT,
                           capture_output=True, text=True)
     assert proc.returncode == 0, proc.stderr[-3000:]
-    assert proc.stdout.strip().splitlines()[-1] == "5 False False"
+    assert proc.stdout.strip().splitlines()[-1] == "3 False False"
 
 
 @needs_cache

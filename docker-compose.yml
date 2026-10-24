@@ -29,7 +29,7 @@ services:
     environment:
       DS02_ARTIFACT: /app/models/ensemble.joblib
     command: >
-      streamlit run app/dashboard.py
+      streamlit run app/dashboard_ds02.py
       --server.address 0.0.0.0 --server.port 8501 --server.headless true
     depends_on:
       api:
