@@ -231,9 +231,9 @@ tribunal puede comprobar? Si sí, entra. Si solo suena bien, no.
 
 | Ítem | Estado | Commit | Prueba ejecutada |
 | :--- | :--- | :--- | :--- |
-| 0.1 renombrar la sección | PENDIENTE | — | — |
-| 0.2 panel de detalle del gemelo | PENDIENTE | — | — |
-| 0.3 ciclos hasta el fallo + ventana | PENDIENTE | — | — |
+| 0.1 renombrar la sección | HECHO | `bf7ddcc` | AppTest + navegador: «Vista consolidada · Unidad 11» |
+| 0.2 panel de detalle del gemelo | HECHO | `bf7ddcc` | `test_el_gemelo_registrado_tiene_detalle_abierto` |
+| 0.3 ciclos hasta el fallo + ventana | HECHO | `bf7ddcc` | El panel cita la ventana 250 del ciclo 29 y dice «ya está por debajo del umbral» |
 
 ### Fase 1
 
@@ -247,10 +247,10 @@ tribunal puede comprobar? Si sí, entra. Si solo suena bien, no.
 
 | Ítem | Estado | Commit | Prueba ejecutada |
 | :--- | :--- | :--- | :--- |
-| 2.1 corregir el 31,8 | PENDIENTE | — | — |
-| 2.2 documentar 13/23/18 | PENDIENTE | — | — |
-| 2.3 alinear vocabulario | PENDIENTE | — | — |
-| 2.4 reescribir el guion | PENDIENTE | — | — |
+| 2.1 corregir el 31,8 | HECHO | `5cabede` | `L.unit_curve(U15, ciclo 2)` → 35,76 |
+| 2.2 documentar 13/23/18 | HECHO | `5cabede` | `L.first_alarm_cycle` reproducido y escrito |
+| 2.3 alinear vocabulario | HECHO | `5cabede` | Estados y pestañas reales en el informe |
+| 2.4 reescribir el guion | HECHO | `5cabede` | Seis promesas falsas retiradas del guion |
 
 ### Fase 3
 
