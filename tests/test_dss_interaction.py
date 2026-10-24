@@ -233,7 +233,7 @@ def test_el_gemelo_consolida_la_decision_y_su_regla():
     assert not app.exception, app.exception
 
     texto = _texto(app)
-    assert "El gemelo" in texto
+    assert "Vista consolidada" in texto, texto
     assert "Regla que decide" in texto
     # La traza de la pasada A debe aparecer con sus reglas, no solo el estado.
     assert "mia.motor" in texto

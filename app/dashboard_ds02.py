@@ -1674,6 +1674,126 @@ with st.container(border=True):
                 st.session_state["twin_flash"] = f"Gemelo `{borrar}` eliminado."
                 st.rerun()
 
+
+def _panel_gemelo() -> None:
+    """Detalle del gemelo registrado: su curva, su banda y su ventana.
+
+    Antes no existía. La serie del gemelo (cycle, pred, lower, upper, start_row)
+    ya estaba guardada en `twins`; el muro la dibujaba y nada más. Aquí se ve
+    completa, con la banda y con las dos preguntas que un gemelo digital tiene
+    que responder: cuánto le queda y en qué ventana se basó la decisión.
+
+    Se alimenta de `st.session_state`, nunca de un global de módulo: es un
+    contenedor de primer nivel y se re-ejecuta completo en cada pasada.
+    """
+    with st.container(border=True):
+        st.subheader("Gemelo digital · detalle",
+                     icon=":material/precision_manufacturing:")
+        st.caption(
+            "El gemelo es lo que el modelo dijo, guardado una vez. Su estado se "
+            "recalcula con los umbrales en vigor sin volver a llamar al modelo: "
+            "la serie no cambia, la lectura sí."
+        )
+        _gemelos = st.session_state.get("twins") or {}
+        if not _gemelos:
+            st.caption(
+                "Ningún gemelo registrado todavía. Puntúa un motor en «Evaluar "
+                "unidad nueva» y aparece aquí con su curva completa."
+            )
+            return
+        _elegido = st.selectbox(
+            "Gemelo", list(_gemelos), key="gemelo_detalle_sel",
+            help="Motores registrados en esta sesión, con su serie guardada.",
+        )
+        _gemelo = _gemelos[_elegido]
+        _curva = T.ciclo_a_ciclo(_gemelo, umbrales)
+        if _curva.empty:
+            st.caption(f"`{_elegido}` no tiene serie que dibujar.")
+            return
+
+        _ultima = _curva.iloc[-1]
+        _decision = str(_ultima["decision"])
+        _pred = float(_ultima["pred"])
+        _lo = float(_ultima["lower_min"])
+        _ciclo_ult = int(_ultima["cycle"])
+
+        # Ciclos hasta el umbral: la misma pregunta que la flota le hace a la
+        # caché, hecha aquí sobre la serie guardada.
+        _cruce = _curva[_curva["lower_min"] < umbrales["hangar"]]
+        _falta = (None if _cruce.empty
+                  else int(_cruce["cycle"].min()) - _ciclo_ult)
+        _falta_txt = ("no cruza el umbral en la vida registrada" if _falta is None
+                      else ("ya está por debajo del umbral" if _falta <= 0
+                            else f"{_falta} ciclos"))
+
+        st.metric("RUL p35 (conservadora)", f"{_pred:.1f}", "cuantil 0.35",
+                  border=True, delta_color="off", icon=":material/speed:",
+                  help="Cuantil 0.35 de la RUL (ADR-003). El estado no lo decide "
+                       "este número: lo decide L_inf.")
+        st.metric("L_inf (decide)", f"{_lo:.1f}", "ciclos",
+                  border=True, delta_color="off", icon=":material/trending_down:",
+                  help="Límite inferior de la banda al 90 %. Es el número que gobierna "
+                       "la decisión de hangar (ADR-008).")
+        st.metric("Estado", L.STATE_LABELS.get(_decision, _decision),
+                  str(_ultima["regla"] or "(sin regla)"),
+                  border=True, delta_color="off", icon=":material/rule:")
+        st.metric("Ciclos hasta el umbral", _falta_txt, f"ciclo {_ciclo_ult}",
+                  border=True, delta_color="off", icon=":material/hourglass_bottom:",
+                  help="Primer ciclo de la serie guardada en que L_inf cae por debajo "
+                       "del umbral de hangar, menos el último ciclo registrado.")
+
+        # La ventana que decidió: `vista_resultado` ya la elige; aquí se cita.
+        _vista = T.vista_resultado(_gemelo)
+        _vent = _vista["windows"].iloc[0]
+        st.caption(
+            f"La ventana que decide es la **{int(_vent['window'])}** del ciclo "
+            f"**{int(_vent['cycle'])}**, que empieza en la fila "
+            f"**{int(_vent['start_row'])}** de la tabla puntuada: la más pesimista "
+            "de ese ciclo. Es el dato que sostiene el estado."
+        )
+
+        _fig = go.Figure()
+        _fig.add_trace(go.Scatter(
+            x=_curva["cycle"], y=_curva["upper"], mode="lines",
+            line=dict(width=0), showlegend=False, hoverinfo="skip",
+        ))
+        _fig.add_trace(go.Scatter(
+            x=_curva["cycle"], y=_curva["lower_media"], mode="lines",
+            line=dict(width=0), name="Banda 90 %", fill="tonexty",
+            fillcolor="rgba(56,189,248,0.18)", hoverinfo="skip",
+        ))
+        _fig.add_trace(go.Scatter(
+            x=_curva["cycle"], y=_curva["pred"], mode="lines", name="RUL p35",
+            line=dict(width=2, color=SKY),
+            hovertemplate="ciclo %{x}<br>RUL %{y:.1f}<extra></extra>",
+        ))
+        _fig.add_trace(go.Scatter(
+            x=_curva["cycle"], y=_curva["lower_min"], mode="lines",
+            name="L_inf (decide)", line=dict(width=2, color=ROSE),
+            hovertemplate="ciclo %{x}<br>L_inf %{y:.1f}<extra></extra>",
+        ))
+        _fig.add_hline(
+            y=umbrales["hangar"], line_color=ROSE, line_dash="dash", line_width=1.5,
+            annotation_text=f"hangar ({umbrales['hangar']:.0f})",
+            annotation_position="top right",
+            annotation_font=dict(color=ROSE, size=11),
+        )
+        _fig.update_layout(**chart_layout(height=340, hovermode="closest"))
+        style_axes(_fig, x_title="Ciclo de vuelo", y_title="RUL (ciclos)")
+        st.plotly_chart(
+            _fig, theme=None,
+            alt=f"Curva de RUL del gemelo {_elegido} con su banda conformal al 90 %, "
+                "el límite inferior que decide y el umbral de hangar.",
+        )
+        st.caption(
+            "La banda es la de la serie guardada: no se recalibra al mover los "
+            "umbrales, porque la calibración es parte del artefacto. Mover el "
+            "umbral cambia la lectura, no la banda."
+        )
+
+
+_panel_gemelo()
+
 with st.container(border=True):
     st.subheader("Hangar · ciclo de vida", icon=":material/warehouse:")
     resumen_h = HGR.resumen(registros)
@@ -1816,11 +1936,12 @@ with tab_motor:
     _lo_g = float(_fila_g["lower"]) if pd.notna(_fila_g["lower"]) else float("nan")
 
     with st.container(border=True):
-        st.subheader(f"El gemelo · {_etiqueta_g}",
+        st.subheader(f"Vista consolidada · {_etiqueta_g}",
                      icon=":material/precision_manufacturing:")
         st.caption(
-            "Un motor, toda su verdad, sin cambiar de pestaña. Lo que decide el estado "
-            "es el límite inferior de la banda, no la predicción puntual."
+            "Lo que dice la caché sobre este motor, junto: la métrica que decide, "
+            "la traza de la regla y el ciclo de vida del hangar. El gemelo "
+            "registrado tiene su propio panel, arriba."
         )
         _gauge_col, _decision_col = st.columns([1, 2])
         with _gauge_col:
