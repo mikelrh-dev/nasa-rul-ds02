@@ -40,6 +40,7 @@ import ui_batch as B  # noqa: E402
 import ui_data_loader as L  # noqa: E402
 import ui_inference as INF  # noqa: E402
 import ui_rules as UR  # noqa: E402
+import flota as F  # noqa: E402
 
 # Estado de sesión en un solo sitio: gemelos y registros de hangar.
 # Se cargan de disco una sola vez: recargar la página ya no borra la flota.
@@ -58,6 +59,10 @@ def _cargar_registros() -> None:
             disco = {}
         st.session_state.setdefault("twins", dict(disco.get("twins", {})))
         st.session_state.setdefault("hangar", dict(disco.get("hangar", {})))
+        # El alta viaja en el mismo JSON. Antes vivia solo en `session_state`
+        # y desaparecia al recargar: el motor se perdia y el usuario creia
+        # haber hecho algo mal.
+        st.session_state.setdefault(F.ALTAS_KEY, dict(disco.get(F.ALTAS_KEY, {})))
         st.session_state["_registros_cargados"] = True
 
 
@@ -65,7 +70,8 @@ def _guardar_registros() -> None:
     try:
         with open(_REGISTROS_PATH, "w", encoding="utf-8") as _fh:
             json.dump({"twins": st.session_state.get("twins", {}),
-                       "hangar": st.session_state.get("hangar", {})},
+                       "hangar": st.session_state.get("hangar", {}),
+                       F.ALTAS_KEY: st.session_state.get(F.ALTAS_KEY, {})},
                       _fh, ensure_ascii=False, indent=1)
     except OSError:
         pass
@@ -73,20 +79,42 @@ def _guardar_registros() -> None:
 
 _cargar_registros()
 
-ALTA_KEY = "flota_alta"
-
 
 def _altas() -> list[dict]:
-    """Aeronaves de alta de esta sesión. Clave de `session_state`, sin disco."""
-    return list(st.session_state.get(ALTA_KEY) or [])
+    """Aeronaves de alta del registro persistido, en la forma que consume la app.
+
+    El registro guarda el motor de origen como `unidad_cache` (la palabra
+    `unidad` sola se presta a confundirla con el unit_id). `frame_con_altas`
+    espera `unidad`, asi que el nombre se traduce aqui, en la frontera, y no en
+    cada llamador.
+    """
+    altas = st.session_state.get(F.ALTAS_KEY) or {}
+    return [
+        {"matricula": clave,
+         "unidad": alta.get("unidad_cache", 0),
+         "ciclo": alta.get("ciclo", 0),
+         "unit_id": alta.get("unit_id", 0.0),
+         "indice": alta.get("indice", 0)}
+        for clave, alta in altas.items()
+    ]
+
+
+def _registro() -> dict:
+    """Registro completo de la sesion: gemelos, hangar y altas.
+
+    Se pasa entero a las funciones puras de `flota` para que resuelvan la clave
+    de un motor sin que el llamador monte el diccionario a mano en cada sitio.
+    """
+    return {
+        "twins": st.session_state.get("twins", {}),
+        "hangar": st.session_state.get("hangar", {}),
+        F.ALTAS_KEY: st.session_state.get(F.ALTAS_KEY) or {},
+    }
 
 
 def _etiqueta_unidad(unit: float) -> str:
-    """Matrícula de una aeronave de alta, o la etiqueta de la caché."""
-    for alta in _altas():
-        if float(alta["unit_id"]) == float(unit):
-            return str(alta["matricula"])
-    return L.UNIT_LABELS.get(int(unit), f"Unidad {int(unit)}")
+    """Etiqueta de un motor, desde el registro unico."""
+    return F.etiqueta(F.clave_de(float(unit), _registro()))
 
 
 def _mostrar_toast_pendiente() -> None:
@@ -404,22 +432,48 @@ with st.sidebar:
             st.error(str(exc), icon=":material/rule:")
         else:
             unidad_p, ciclo_p = int(unidad_libre), int(ciclo_libre)
-            altas = _altas()
+            registro = {F.ALTAS_KEY: st.session_state.get(F.ALTAS_KEY) or {}}
             try:
-                nuevo = A.ventanas_de_alta(windows, unidad_p, ciclo_p, A.unidad_alta(len(altas)))
+                registro = F.registrar_alta(registro, limpia, unidad_p, ciclo_p)
             except ValueError as exc:
                 st.error(str(exc), icon=":material/rule:")
             else:
-                altas.append({
-                    "matricula": limpia,
-                    "unidad": unidad_p,
-                    "ciclo": ciclo_p,
-                    "unit_id": A.unidad_alta(len(altas)),
-                })
-                st.session_state[ALTA_KEY] = altas
-                st.session_state["_alta_pendiente"] = int(A.unidad_alta(len(altas) - 1))
+                st.session_state[F.ALTAS_KEY] = registro[F.ALTAS_KEY]
+                _guardar_registros()
+                _uid = registro[F.ALTAS_KEY][limpia]["unit_id"]
+                st.session_state["_alta_pendiente"] = int(_uid)
+                # El alta crea su gemelo: el motor aparece en "Gemelos
+                # registrados" con su serie guardada. No llama al modelo, toma
+                # las ventanas ya puntuadas de la caché.
+                _umb = {"apto": float(st.session_state.get("th_apto_Normal", 30.0)),
+                        "hangar": float(st.session_state.get("th_aog_Normal", 25.0))}
+                _ventanas_alta = A.ventanas_de_alta(windows, unidad_p, ciclo_p, _uid)
+                _gemelo = T.make_twin(
+                    limpia,
+                    {"windows": _ventanas_alta,
+                     "contract": {"unidad_simulada": _uid,
+                                  "motor": limpia,
+                                  "canales": INF.channel_order(),
+                                  "window": INF.window_size(),
+                                  "step": 2,
+                                  "artefacto_sha256": L.get_provenance()["artifact"]["ensemble_sha256"],
+                                  "filas": int(len(_ventanas_alta)),
+                                  "ventanas": int(len(_ventanas_alta))}},
+                    source="alta del sidebar",
+                    banda=L.UNIT_LABELS.get(unidad_p, f"U{unidad_p} (caché)"),
+                    correccion="ninguna (ventanas ya puntuadas de la caché)",
+                    umbrales=_umb,
+                )
+                st.session_state["twins"] = T.registrar(
+                    st.session_state.get("twins", {}), _gemelo)
+                _guardar_registros()
+                # El aviso dice donde va a aparecer el motor: la matricula, que
+                # es la clave del hangar. Antes prometia la matricula y el
+                # hangar la claveaba como U-1000.
                 st.session_state["twin_flash"] = (
-                    f"Aeronave `{limpia}` incorporada (U{unidad_p} hasta el ciclo {ciclo_p}). Ve a la pestaña Hangar virtual y busca la matrícula en Cola y Cronología.")
+                    f"Aeronave `{limpia}` incorporada (U{unidad_p} hasta el ciclo {ciclo_p}). "
+                    f"Ve a la pestaña Hangar virtual: aparece con la matrícula `{limpia}` "
+                    f"en la cola y en la cronología.")
                 _log(f"Alta de la unidad {limpia} (U{unidad_p} hasta el ciclo {ciclo_p}).")
                 st.rerun()
     with st.expander("Quitar aeronaves de alta", icon=":material/remove_circle:"):
@@ -430,8 +484,10 @@ with st.sidebar:
             a_quitar = st.selectbox(
                 "Aeronave", [a["matricula"] for a in altas], key="alta_quitar")
             if st.button("Quitar", icon=":material/delete:", key="alta_quitar_btn"):
-                st.session_state[ALTA_KEY] = [
-                    a for a in altas if a["matricula"] != a_quitar]
+                registro = {F.ALTAS_KEY: st.session_state.get(F.ALTAS_KEY) or {}}
+                registro = F.quitar_alta(registro, a_quitar)
+                st.session_state[F.ALTAS_KEY] = registro[F.ALTAS_KEY]
+                _guardar_registros()
                 st.rerun()
     st.subheader("El taller está en la primera pestaña",
                  icon=":material/tune:")
@@ -1518,7 +1574,10 @@ with st.container(border=True):
 
     candidatos = {}
     for _, fila in snapshot[snapshot["state"] == L.AOG].iterrows():
-        candidatos[f"U{int(fila['unit'])}"] = {
+        # La clave sale del registro: una alta responde a su matricula, un motor
+        # de caché a U<int>. Antes se montaba a mano con f"U{int(unit)}" y las
+        # altas entraban al hangar como U-1000.
+        candidatos[F.clave_de(float(fila["unit"]), _registro())] = {
             "ciclo": int(fila["cycle"]),
             "lower": float(fila["lower"]),
             "regla": str(fila["rule"]),
@@ -1668,7 +1727,7 @@ with tab_rul:
             if pd.notna(_lo_g):
                 for linea in UR.traza_decision(_lo_g, umbrales)["porque"]:
                     st.caption(linea)
-            _registro_g = registros.get(_etiqueta_g) or registros.get(f"U{int(unit)}")
+            _registro_g = registros.get(F.clave_de(float(unit), _registro()))
             if _registro_g:
                 st.markdown(
                     f"**Ciclo de vida del hangar**: "
@@ -2448,15 +2507,10 @@ with tab_live:
         "Paso 3 · evalúa y registra el gemelo. El botón solo se activa cuando "
         "los pasos 1 y 2 están en verde."
     )
-    st.download_button(
-        "Descargar plantilla CSV (19 columnas)",
-        data=",".join(INF.required_columns()) + "\n",
-        file_name="plantilla_motor_ds02.csv",
-        mime="text/csv",
-        icon=":material/download:",
-        help="Cabecera exacta que acepta la app: cycle + 4 condiciones + 14 sensores, sin columna de unidad.",
-        key="live_plantilla",
-    )
+    # La plantilla se descarga desde el expander «Qué es cada columna», que ya
+    # reutiliza `INF.template_csv()` (cabecera + 50 filas vacías) y ya esta
+    # probado. Un segundo boton con la cabecera escrita a mano era un segundo
+    # sitio donde arreglar el mismo contrato.
 
     def _on_preset_change():
         _nuevo = st.session_state.get("live_demo_preset")
