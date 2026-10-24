@@ -118,6 +118,16 @@ def _etiqueta_unidad(unit: float) -> str:
     return F.etiqueta(F.clave_de(float(unit), _registro()))
 
 
+def _slug_motor(nombre) -> str:
+    """Clave de widget segura a partir del nombre de un motor.
+
+    El id lo escribe el usuario: un espacio o una barra en el nombre romperia la
+    clave de un boton o el nombre de un fichero. Conserva las mayusculas (la
+    matricula es lo que el operador reconoce) y solo sustituye lo que no vale.
+    """
+    return "".join(c if c.isalnum() or c in "-_" else "_" for c in str(nombre))
+
+
 def _mostrar_toast_pendiente() -> None:
     """Toast diferido: un handler lo pide y se pinta en la siguiente pasada.
 
@@ -218,8 +228,6 @@ BADGE_ICON = {
     L.NO_DATA: ":material/hourglass_empty:",
     L.SIN_DECISION: ":material/block:",
 }
-# El estado de cada unidad en el ciclo del reloj: lo usan el muro y las órdenes.
-ESTADO_POR_UNIDAD = {}
 
 
 def chart_layout(**overrides) -> dict:
@@ -483,8 +491,9 @@ with st.sidebar:
                 # hangar la claveaba como U-1000.
                 st.session_state["twin_flash"] = (
                     f"Aeronave `{limpia}` incorporada (U{unidad_p} hasta el ciclo {ciclo_p}). "
-                    f"Ve a la pestaña Hangar virtual: aparece con la matrícula `{limpia}` "
-                    f"en la cola y en la cronología.")
+                    f"Aparece en el muro y en «Gemelos registrados» con la matrícula "
+                    f"`{limpia}`. Para derivarla, ábrela en «Hangar · ciclo de vida»."
+                )
                 _log(f"Alta de la unidad {limpia} (U{unidad_p} hasta el ciclo {ciclo_p}).")
                 st.rerun()
     with st.expander("Quitar aeronaves de alta", icon=":material/remove_circle:"):
@@ -594,7 +603,80 @@ curves = {u: L.unit_curve(frame, u) for u in unidades_vistas}
 alarms = {u: L.first_alarm_cycle(curves[u], threshold_aog) for u in unidades_vistas}
 correccion = UR.resumen_correccion(windows, frame_cache) if aplicar_reglas else None
 snapshot = L.fleet_snapshot(frame, cycle, threshold_apto, threshold_aog)
-ESTADO_POR_UNIDAD = dict(zip(snapshot["unit"].tolist(), snapshot["state"].tolist()))
+# Gemelos y registros de hangar: se leen aqui, antes de las pestanas, porque el
+# muro los dibuja. Antes vivian despues del muro y el muro no podia verlos.
+gemelos = st.session_state.get("twins", {})
+registros = st.session_state.get("hangar", {})
+
+
+def _tarjetas_gemelos() -> list[dict]:
+    """Una tarjeta por gemelo registrado, con el estado recalculado hoy.
+
+    El gemelo es flota registrada, pero su clave es el `engine_id` y su serie
+    vive en el gemelo, no en la caché: por eso `snapshot` (que sale de `frame`)
+    no lo veia. Sin esta lista, registrar un motor y volver al muro no mostraba
+    nada nuevo.
+
+    El estado no se guarda: se deriva de la serie guardada con los umbrales en
+    vigor (`twin.ciclo_a_ciclo`), igual que la tabla de gemelos.
+    """
+    tarjetas = []
+    usadas = {f"muro_gemelo_{int(u)}" for u in unidades_vistas}
+    for gemelo_id, gemelo in gemelos.items():
+        curva = T.ciclo_a_ciclo(gemelo, umbrales)
+        if curva.empty:
+            continue
+        # La sparkline del muro dibuja `lower`; la curva del gemelo la llama
+        # `lower_media`. Se homogenea aqui para que el muro no pregunte de donde
+        # salio la tarjeta.
+        curva["lower"] = curva["lower_media"]
+        ultima = curva.iloc[-1]
+        clave = f"muro_gemelo_{_slug_motor(gemelo_id)}"
+        # Dos ids que slugen igual ("A B" y "A_B") no pueden compartir boton:
+        # Streamlit rechaza la clave duplicada y cae la pagina entera.
+        while clave in usadas:
+            clave += "_"
+        usadas.add(clave)
+        tarjetas.append({
+            "orden_unidad": (1, str(gemelo_id)),
+            "etiqueta": str(gemelo_id),
+            "estado": str(ultima["decision"]),
+            "pred": float(ultima["pred"]),
+            "lower": float(ultima["lower_min"]),
+            "curva": curva,
+            "ciclo_tarjeta": int(ultima["cycle"]),
+            "clave_boton": clave,
+            "gemelo": str(gemelo_id),
+        })
+    return tarjetas
+
+
+tarjetas_gemelos = _tarjetas_gemelos()
+derivados_gemelos = sum(1 for t in tarjetas_gemelos if t["estado"] == L.AOG)
+
+
+def _tarjetas_cache() -> list[dict]:
+    """Una tarjeta por unidad de la flota visible: caché y altas."""
+    tarjetas = []
+    for u in unidades_vistas:
+        fila = snapshot[snapshot["unit"] == u].iloc[0]
+        _scored = fila["scored_cycle"]
+        tarjetas.append({
+            "orden_unidad": (0, int(u)),
+            "etiqueta": _etiqueta_unidad(float(u)),
+            "estado": str(fila["state"]),
+            "pred": fila["pred"],
+            "lower": fila["lower"],
+            "curva": curves[u],
+            "ciclo_tarjeta": int(_scored) if pd.notna(_scored) else int(cycle),
+            "clave_boton": f"muro_gemelo_{int(u)}",
+            "gemelo": None,
+            "unidad": int(u),
+        })
+    return tarjetas
+
+
+tarjetas_cache = _tarjetas_cache()
 curve = curves[int(unit)]
 per_unit = L.per_unit_metrics(frame_cache)
 unit_metrics = (per_unit[per_unit["unit"] == unit].iloc[0]
@@ -653,6 +735,15 @@ with st.container(border=True):
         "el peor caso de su banda. Por eso un motor puede quedar en hangar con "
         "vida útil estimada por encima del umbral."
     )
+    if derivados_gemelos:
+        # La métrica de arriba cuenta la flota visible en `frame` (caché + altas).
+        # Los motores registrados en esta sesión no están en ese recuento, y
+        # decirlo es lo único que evita que el número mienta.
+        st.caption(
+            f"Además, **{derivados_gemelos}** motor(es) de los registrados en esta "
+            "sesión están derivados a hangar con los umbrales en vigor: los verás en "
+            "el muro y en «Gemelos registrados»."
+        )
 
 @st.fragment
 def _sandbox_estres() -> None:
@@ -881,7 +972,8 @@ with tab_flota:
         st.subheader("Muro del hangar", icon=":material/grid_view:")
         st.caption(
             "Una tarjeta por motor, con la sparkline de su límite inferior. El color y el "
-            "estado los dicta `L_inf`; pulsa «Ver gemelo» para abrir su ficha completa."
+            "estado los dicta `L_inf`; pulsa «Ver gemelo» para abrir su ficha completa. "
+            "La flota de la caché y los motores registrados en esta sesión comparten muro."
         )
 
         @st.fragment
@@ -892,23 +984,23 @@ with tab_flota:
                 default="Por urgencia",
                 key="muro_orden",
                 help="Por urgencia adelanta las unidades en hangar; por unidad respeta "
-                     "el orden de la caché.",
+                     "el orden de la caché y deja los motores registrados al final.",
             )
+            tarjetas = tarjetas_cache + tarjetas_gemelos
             if orden == "Por unidad":
-                vistas = unidades_vistas
+                tarjetas = sorted(tarjetas, key=lambda t: t["orden_unidad"])
             else:
-                vistas = sorted(
-                    unidades_vistas,
-                    key=lambda u: (RANGO_ESTADO.get(ESTADO_POR_UNIDAD.get(u, L.NO_DATA), 9), u),
+                tarjetas = sorted(
+                    tarjetas,
+                    key=lambda t: (RANGO_ESTADO.get(t["estado"], 9), t["orden_unidad"]),
                 )
             columnas = st.columns(3)
-            for i, u in enumerate(vistas):
-                fila = snapshot[snapshot["unit"] == u].iloc[0]
-                etiqueta = _etiqueta_unidad(float(u))
-                estado = fila["state"]
-                curva = curves[u]
-                _pred = "—" if pd.isna(fila["pred"]) else f"{fila['pred']:.1f}"
-                _lo = "—" if pd.isna(fila["lower"]) else f"{fila['lower']:.1f}"
+            for i, tarjeta in enumerate(tarjetas):
+                etiqueta = tarjeta["etiqueta"]
+                estado = tarjeta["estado"]
+                curva = tarjeta["curva"]
+                _pred = "—" if pd.isna(tarjeta["pred"]) else f"{tarjeta['pred']:.1f}"
+                _lo = "—" if pd.isna(tarjeta["lower"]) else f"{tarjeta['lower']:.1f}"
                 with columnas[i % 3]:
                     with st.container(border=True):
                         st.markdown(f"**{etiqueta}**")
@@ -942,18 +1034,26 @@ with tab_flota:
                             alt=f"Sparkline del límite inferior de {etiqueta} "
                                 "a lo largo de los ciclos.",
                         )
-                        _scored = fila["scored_cycle"]
-                        _ciclo_tarjeta = int(_scored) if pd.notna(_scored) else int(cycle)
                         if st.button(
-                            "Ver gemelo", key=f"muro_gemelo_{int(u)}",
+                            "Ver gemelo", key=tarjeta["clave_boton"],
                             icon=":material/visibility:", type="secondary",
                         ):
-                            st.session_state["_escenario_pendiente"] = (
-                                int(u), _ciclo_tarjeta)
-                            st.session_state["_toast_pendiente"] = (
-                                f"{etiqueta} seleccionada. Abre su ficha en la "
-                                "pestaña «Telemetría RUL y bandas conformales»."
-                            )
+                            if tarjeta["gemelo"]:
+                                # Un gemelo no tiene ficha en la pestaña del motor: su
+                                # registro es la tabla de debajo. Decirlo es mejor que
+                                # prometer una ficha que no existe.
+                                st.session_state["_gemelo_pendiente"] = tarjeta["gemelo"]
+                                st.session_state["_toast_pendiente"] = (
+                                    f"{etiqueta}: su estado se recalcula con los umbrales "
+                                    "en vigor en «Gemelos registrados», bajo el muro."
+                                )
+                            else:
+                                st.session_state["_escenario_pendiente"] = (
+                                    tarjeta["unidad"], tarjeta["ciclo_tarjeta"])
+                                st.session_state["_toast_pendiente"] = (
+                                    f"{etiqueta} seleccionada. Abre su ficha en la "
+                                    "pestaña «Motor · qué le pasa a este»."
+                                )
                             st.rerun()
 
         _muro_del_hangar()
@@ -1431,15 +1531,26 @@ with tab_flota:
 
 
 # ------------------------------------------------------ gemelos y hangar
-gemelos = st.session_state.get("twins", {})
-registros = st.session_state.get("hangar", {})
-
 with st.container(border=True):
     st.subheader("Gemelos registrados", icon=":material/precision_manufacturing:")
     aviso_gemelo = st.session_state.get("twin_flash")
     if aviso_gemelo:
         del st.session_state["twin_flash"]
         st.toast(aviso_gemelo, icon=":material/check_circle:")
+    # El muro manda: una tarjeta de gemelo apunta aqui. Se consume en cuanto se
+    # lee, para que no vuelva a salir en el siguiente render.
+    gemelo_pendiente = st.session_state.pop("_gemelo_pendiente", None)
+    if gemelo_pendiente:
+        if gemelo_pendiente in gemelos:
+            _estado_pendiente = T.estado_actual(gemelos[gemelo_pendiente], umbrales)
+            st.caption(
+                f"**{gemelo_pendiente}**: "
+                f"{L.STATE_LABELS.get(_estado_pendiente['decision'],
+                                      str(_estado_pendiente['decision']))} con los "
+                f"umbrales en vigor, L_inf {_estado_pendiente['lower_min']:.1f} ciclos."
+            )
+        else:
+            st.caption(f"El motor `{gemelo_pendiente}` ya no está registrado.")
     if not gemelos:
         st.caption(
             "Ningún motor externo registrado todavía. Puntúa uno en «Evaluar unidad "
@@ -1523,8 +1634,7 @@ with st.container(border=True):
             orden_gemelo["modo"] = "gemelo registrado (serie guardada, sin repuntuar)"
             ciclo_doc = estado_doc["cycle"]
             # El id lo escribe el usuario: un `/` en el nombre del fichero rompe la descarga.
-            slug_doc = "".join(c if c.isalnum() or c in "-_" else "_"
-                               for c in motor_doc.lower())
+            slug_doc = _slug_motor(motor_doc.lower())
             etiqueta_doc = L.STATE_LABELS.get(estado_doc["decision"],
                                              str(estado_doc["decision"]))
             st.caption(
@@ -2444,13 +2554,11 @@ with tab_evidencia:
     _paso_hangar = A.estado_historia(windows, umbrales)[2]
     _u_hangar = int(_paso_hangar["unidad"])
     _c_hangar = int(_paso_hangar["ciclo"])
-    DEMO_PRESETS = {
-        "Sano U15 inicio (APTO)": (15, 0.05, "ESN-SANO-01", None),
-        "Medio U11 desgaste (INSPECCIÓN)": (11, 0.36, "ESN-MEDIO-01", None),
-        f"Crítico U{_u_hangar} · ciclo {_c_hangar} (HANGAR)": (
-            _u_hangar, None, "ESN-CRIT-01", _c_hangar),
-        "Clásico U14 40→43": (14, 0.55, "ESN-DEMO-01", None),
-    }
+    # Los tramos viven en `ui_inference.demo_presets`: son datos y hay un test que
+    # los fija. Cada nombre promete un estado y el tramo tiene que darlo a
+    # cualquier largo (`DEMO_ROWS`). Antes eran 50 filas (una ventana): el EMA
+    # arrancaba en frio y la grafica tenia un punto.
+    DEMO_PRESETS = INF.demo_presets(_u_hangar, _c_hangar)
 
     with st.container(border=True):
         st.subheader("Puntúa un ejemplo en 1 clic", icon=":material/rocket_launch:")
@@ -2463,12 +2571,14 @@ with tab_evidencia:
         for _col, _nombre in zip((c1, c2, c3), list(DEMO_PRESETS)[:3]):
             with _col:
                 if st.button(_nombre, key=f"live_demo_{_nombre}", type="primary" if "Crítico" in _nombre else "secondary", icon=":material/play_arrow:"):
-                    _u, _p, _did, _ciclo = DEMO_PRESETS[_nombre]
+                    _u, _p, _ciclo, _did = DEMO_PRESETS[_nombre]
                     try:
                         if _ciclo is None:
-                            _tab, _meta = INF.example_window(_u, _p)
+                            _tab, _meta = INF.example_window(
+                                _u, _p, rows=INF.DEMO_ROWS)
                         else:
-                            _tab, _meta = INF.window_ending_at(_u, _ciclo)
+                            _tab, _meta = INF.window_ending_at(
+                                _u, _ciclo, rows=INF.DEMO_ROWS)
                         _pf = INF.preflight(_tab)
                         if not _pf["ok"]:
                             raise ValueError(_pf["error"])
@@ -2554,20 +2664,22 @@ with tab_evidencia:
     def _on_preset_change():
         _nuevo = st.session_state.get("live_demo_preset")
         if _nuevo in DEMO_PRESETS:
-            st.session_state["live_engine_id"] = DEMO_PRESETS[_nuevo][2]
+            st.session_state["live_engine_id"] = DEMO_PRESETS[_nuevo][3]
     if mode == "Ejemplo del test set":
         demo_nombre = st.selectbox(
             "Dataset demo", list(DEMO_PRESETS), key="live_demo_preset",
             on_change=_on_preset_change,
-            help="Tramos reales de caché con ciclos dispares. Al cambiar se proponen sus 50 muestras remuestreadas y su matrícula.",
+            help=f"Tramos reales de caché con ciclos dispares. Al cambiar se proponen sus {INF.DEMO_ROWS} muestras remuestreadas y su matrícula.",
         )
     example_table, example_meta = INF.example_window(14, 0.55)
     if mode == "Ejemplo del test set" and "demo_nombre" in locals():
-        _du2, _dp2, _, _ciclo2 = DEMO_PRESETS[demo_nombre]
+        _du2, _dp2, _ciclo2, _ = DEMO_PRESETS[demo_nombre]
         if _ciclo2 is None:
-            example_table, example_meta = INF.example_window(_du2, _dp2)
+            example_table, example_meta = INF.example_window(
+                _du2, _dp2, rows=INF.DEMO_ROWS)
         else:
-            example_table, example_meta = INF.window_ending_at(_du2, _ciclo2)
+            example_table, example_meta = INF.window_ending_at(
+                _du2, _ciclo2, rows=INF.DEMO_ROWS)
     submitted = False
     table_to_score = None
     data_meta = example_meta
@@ -2785,10 +2897,12 @@ with tab_evidencia:
     live = st.session_state.get("live_result")
     if live:
         last = live["windows"].iloc[-1]
-        # La pasada A también decide aquí: un aviso de plausibilidad activa R1 y
-        # el motor devuelve SIN_DECISION en vez de un estado de mantenimiento.
-        alertas_live = list(st.session_state.get("live_warnings") or [])
-        traza_live = UR.traza_decision(float(last["lower"]), umbrales, alertas_live)
+        # La pasada A se toma de `decision_en_vivo`, que decide con la invalidez
+        # real de la banda y no con las cautelas de plausibilidad: esas se pintan
+        # arriba como aviso al operador (2782), pero no son un dato imposible.
+        _decision = UR.decision_en_vivo(live, umbrales)
+        alertas_live = _decision["alertas"]
+        traza_live = _decision["traza"]
         live_state = (traza_live["decision"] if traza_live["decision"] in L.STATE_LABELS
                       else L.NO_DATA)
         tone = {
