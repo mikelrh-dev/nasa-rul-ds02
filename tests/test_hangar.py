@@ -96,3 +96,29 @@ def test_resumen_cuenta_abiertos_y_estados():
 def test_estado_desconocido_es_un_error():
     with pytest.raises(ValueError):
         H.abrir("ESN-01", 1, 24.0, UMBRALES, "R9_HANGAR", estado="VOLANDO")
+
+
+# ---------------------------------------------------------- reinicio (replay)
+
+def test_reiniciar_devuelve_el_registro_a_servicio_y_lo_deja_dicho():
+    """El reinicio es un replay de la vida grabada, no una reparacion.
+
+    La cache no tiene datos de un motor reparado: lo que vuelve a volar es la
+    vida registrada desde el principio. El evento lo dice en sus palabras.
+    """
+    abierto = H.abrir("EC-REPLAY", ciclo=20, lower=12.0,
+                      umbrales={"apto": 30.0, "hangar": 25.0},
+                      regla="R9_HANGAR", estado=H.AOG, ahora="2026-10-24T10:00:00+00:00")
+    en_taller = H.avanzar(abierto, H.TALLER, ciclo=22, ahora="2026-10-24T11:00:00+00:00")
+
+    reiniciado = H.reiniciar(en_taller, ciclo=29, ahora="2026-10-24T12:00:00+00:00")
+
+    assert reiniciado["estado"] == H.EN_SERVICIO
+    assert reiniciado["replay_desde"] == 29
+    assert len(reiniciado["eventos"]) == 3
+    ultimo = reiniciado["eventos"][-1]
+    assert ultimo["estado"] == H.EN_SERVICIO
+    assert ultimo["ciclo"] == 29
+    # El marco es honesto: dice replay y dice por que no puede ser reparacion.
+    assert "replay" in ultimo["nota"].lower()
+    assert "no tiene datos de un motor reparado" in ultimo["nota"].lower()

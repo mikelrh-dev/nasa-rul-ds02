@@ -130,6 +130,26 @@ def revision(registro: dict, umbrales: dict, decision_hoy: str) -> dict:
     }
 
 
+def reiniciar(registro: dict, ciclo: int, nota: str = "",
+              ahora: str | None = None) -> dict:
+    """Devuelve el registro a servicio tras un replay de la vida registrada.
+
+    No pasa por `avanzar` porque no es una transicion legal del ciclo: es la
+    salida del taller, y la cache no tiene datos de un motor reparado. Lo que
+    vuelve a volar es la vida grabada desde el principio, y el evento lo dice
+    en sus propias palabras para que el documento no claima una reparacion.
+    """
+    eventos = list(registro["eventos"]) + [{
+        "estado": EN_SERVICIO,
+        "ciclo": int(ciclo),
+        "at": ahora or _ahora(),
+        "nota": nota or ("replay de la vida registrada: la cache no tiene "
+                         "datos de un motor reparado"),
+    }]
+    return {**registro, "estado": EN_SERVICIO, "eventos": eventos,
+            "replay_desde": int(ciclo)}
+
+
 def resumen(registros: dict) -> dict:
     """Cuántas unidades hay en cada estado y cuántas siguen abiertas."""
     por_estado = {estado: 0 for estado in ESTADOS}
