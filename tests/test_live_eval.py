@@ -318,6 +318,30 @@ def test_the_tab_explains_the_columns_and_offers_a_template():
     assert any("Qué es cada columna" in label for label in labels), labels
     downloads = [button.label for button in app.download_button]
     assert any("plantilla CSV" in label for label in downloads), downloads
+    # Una sola plantilla: un segundo boton con la cabecera escrita a mano era un
+    # segundo sitio donde arreglar el mismo contrato.
+    assert len([d for d in downloads if "plantilla CSV" in d]) == 1, downloads
+
+
+@needs_cache
+def test_la_plantilla_rellenada_pasa_el_validador_y_no_trae_columna_de_unidad():
+    """La plantilla que se descarga es la que el validador acepta.
+
+    Antes el alta con unidad y ciclo libres y la plantilla no tenian ningun
+    test: la suite estaba verde sin exercise el codigo nuevo.
+    """
+    template = INF.template_csv()
+    frame = pd.read_csv(io.StringIO(template))
+    # Sin columna de unidad: el contrato la rechaza, no la adivina.
+    assert "unit" not in frame.columns
+    # Rellenada con valores validos, pasa el validador entero.
+    rellena = frame.copy()
+    for columna in rellena.columns:
+        rellena[columna] = 1.0
+    rellena["cycle"] = range(1, len(rellena) + 1)
+    validada = INF.validate_table(rellena)
+    assert len(validada) == INF.window_size()
+    assert list(validada.columns) == INF.required_columns()
 
 
 @needs_cache

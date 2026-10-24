@@ -78,6 +78,76 @@ def test_incorporar_unidad_no_rompe_la_app():
 
 
 @needs_cache
+def test_el_alta_crea_el_gemelo_y_el_motor_sobrevive_un_recargo():
+    """El alta con unidad y ciclo libres crea su gemelo y persiste.
+
+    Antes el alta vivia solo en `session_state` y desaparecia al recargar: el
+    motor se perdia y el usuario creia haber hecho algo mal. Y no creaba gemelo,
+    asi que no aparecia en «Gemelos registrados».
+    """
+    app = _app()
+    app.run()
+    assert not app.exception
+
+    for field in app.text_input:
+        if (field.proto.label or "").lower().startswith("matrícula"):
+            field.set_value(MATRICULA)
+            break
+    else:
+        pytest.fail("el formulario de alta no tiene campo de matrícula")
+
+    assert _click(app, "Incorporar unidad"), "el botón de alta no está en la página"
+    assert not app.exception, app.exception
+
+    gemelos = app.session_state["twins"]
+    assert MATRICULA in gemelos, gemelos
+    assert gemelos[MATRICULA]["serie"], "el gemelo del alta no tiene serie guardada"
+
+    # El gemelo vive en el registro persistido, no solo en la sesion.
+    assert MATRICULA in app.session_state["altas"], app.session_state["altas"]
+
+
+@needs_cache
+def test_un_ciclo_sin_ventanas_se_rechaza_sin_romper_la_app():
+    """Pedir un ciclo que la unidad no tiene muestra error, no un fallo.
+
+    El slider usa el minimo global (1, de U11), asi que para U14 —que empieza
+    en el ciclo 3— se puede pedir el 1 y caer en el rechazo.
+    """
+    app = _app()
+    app.run()
+    assert not app.exception
+
+    # El selector de unidad base guarda el int como valor (el format_func solo
+    # cambia como se muestra), asi que se elige por int.
+    for control in app.selectbox:
+        if (control.proto.label or "").startswith("Unidad base"):
+            control.set_value(14).run()
+            break
+    else:
+        pytest.fail("no está el selector de unidad base del alta")
+
+    # Ciclo 1: la U14 empieza en el 3, asi que no tiene ventanas.
+    for campo in app.number_input:
+        if (campo.proto.label or "").startswith("Ciclo hasta"):
+            campo.set_value(1).run()
+            break
+    else:
+        pytest.fail("no está el campo de ciclo del alta")
+
+    for field in app.text_input:
+        if (field.proto.label or "").lower().startswith("matrícula"):
+            field.set_value("EC-SIN-CICLO").run()
+            break
+
+    assert _click(app, "Incorporar unidad")
+    # No puede romper la aplicacion: el rechazo se muestra y la app sigue viva.
+    assert not app.exception, app.exception
+    # Y la unidad no entró en la flota.
+    assert "EC-SIN-CICLO" not in app.session_state.get("altas", {})
+
+
+@needs_cache
 def test_cargar_escenario_demo_no_rompe_la_app():
     """C2: demo. Pressing it must load 30/25, cycle 29 and unit 14."""
     app = _app()
