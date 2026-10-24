@@ -41,6 +41,7 @@ import ui_data_loader as L  # noqa: E402
 import ui_inference as INF  # noqa: E402
 import ui_rules as UR  # noqa: E402
 import flota as F  # noqa: E402
+import simulacion as S  # noqa: E402
 
 # Estado de sesión en un solo sitio: gemelos y registros de hangar.
 # Se cargan de disco una sola vez: recargar la página ya no borra la flota.
@@ -320,6 +321,15 @@ manifest = L.get_manifest()
 
 units = sorted(int(u) for u in windows["unit"].unique())
 max_life = int(windows["cycle"].max())
+
+# La app abre con un motor ya cargado: nadie llega a una pantalla vacia.
+# Semilla de sesion, nunca de disco — `tests/conftest.py` sigue aislando.
+# Coincide con el default del selector (`_vistas[0]`), asi que no mueve ningun
+# conteo de widgets: es una declaracion de intencion, no un cambio de estado.
+if not st.session_state.get("_semilla_demo"):
+    st.session_state["_semilla_demo"] = True
+    if not (st.session_state.get(F.ALTAS_KEY) or {}):
+        st.session_state.setdefault("unit", units[0] if units else 11)
 
 # ------------------------------------------------------- escrituras diferidas
 # Un handler no puede escribir en la clave de un widget que ya se instanció:
@@ -823,19 +833,16 @@ def _sandbox_estres() -> None:
         )
 
 
-tab_fleet, tab_rul, tab_sensors, tab_audit, tab_live = st.tabs(
+tab_flota, tab_motor, tab_evidencia = st.tabs(
     [
-        ":material/factory: Hangar virtual y estado de flota",
-        ":material/monitoring: Telemetría RUL y bandas conformales",
-        ":material/thermostat: Radiografía física de sensores",
-        ":material/warning: Auditoría: el caso Motor 14",
-        ":material/rocket_launch: Evaluar unidad nueva",
+        ":material/factory: Flota · qué pasa hoy",
+        ":material/precision_manufacturing: Motor · qué le pasa a este",
+        ":material/science: Evidencia · cómo se calculó",
     ]
 )
 
 
-# ------------------------------------------------------------------- tab 1
-with tab_fleet:
+with tab_flota:
     # El onboarding es el estado inicial: lo primero que ve quien entra, no la
     # quinta pestaña (donde vivió y nadie lo encontraba).
     with st.container(border=True):
@@ -1006,6 +1013,39 @@ with tab_fleet:
             "La decisión sigue siendo por límite inferior: mover estos controles no "
             "cambia esa agregación, solo los números que la disparan."
         )
+
+    # -------------------- avance de flota: el reloj se mueve, los retenidos no
+    with st.container(border=True):
+        st.subheader("Avanzar la flota", icon=":material/fast_forward:")
+        st.caption(
+            "Mueve el reloj compartido. El motor que ya cruzó el umbral deja de "
+            "volar: se queda donde está en vez de extrapolarle. Los números salen "
+            "de la caché ya puntuada; no se recalcula nada."
+        )
+        _decidido = UR.decidir_ventanas(windows, umbrales)
+        _retenidos = S.retenidos(_decidido, cycle, umbrales)
+        _faltan = S.ciclos_hasta_fallo(_decidido, cycle, umbrales)
+        _fila_av = st.columns([1, 2])
+        with _fila_av[0]:
+            if st.button("Avanzar 10 ciclos de flota",
+                         icon=":material/fast_forward:", key="avanzar_flota",
+                         type="primary"):
+                st.session_state["cycle"] = int(min(
+                    cycle + 10, int(windows["cycle"].max())))
+                st.rerun()
+        with _fila_av[1]:
+            if _retenidos:
+                st.caption(
+                    "No vuelan: " + ", ".join(
+                        F.etiqueta(F.clave_de(float(u), _registro()))
+                        for u in sorted(_retenidos)))
+            else:
+                st.caption("Toda la flota puede volar en este ciclo.")
+        _faltan_txt = " · ".join(
+            f"{F.etiqueta(F.clave_de(float(u), _registro()))}: "
+            + ("nunca en la vida registrada" if v is None else f"{v} ciclos")
+            for u, v in sorted(_faltan.items()))
+        st.caption(f"Ciclos hasta el umbral de hangar · {_faltan_txt}")
 
     # -------------------- modo historia: la narrativa en cuatro pasos
     with st.container(border=True):
@@ -1661,7 +1701,9 @@ with st.container(border=True):
 
 
 # ------------------------------------------------------------------- tab 2
-with tab_rul:
+
+
+with tab_motor:
     # ------------------------------------------------------------- el gemelo
     # Una sala, una respuesta: ¿por qué está así este motor? Su verdad estaba
     # repartida en cuatro pestañas; aquí está junta.
@@ -1939,7 +1981,9 @@ with tab_rul:
 
 
 # ------------------------------------------------------------------- tab 3
-with tab_sensors:
+
+
+with tab_evidencia:
     group = st.selectbox("Grupo de canales", list(L.CHANNEL_GROUPS), index=0)
     channels = st.multiselect(
         "Canales a dibujar",
@@ -2034,7 +2078,7 @@ with tab_sensors:
 
 
 # ------------------------------------------------------------------- tab 4
-with tab_audit:
+
     st.subheader(
         "El motor 14 concentra el error y también la evidencia",
         icon=":material/insights:",
@@ -2239,7 +2283,7 @@ with tab_audit:
 
 
 # ------------------------------------------------------------------- tab 5
-with tab_live:
+
     _flash_live = st.session_state.pop("live_flash", None)
     if _flash_live:
         st.toast(_flash_live, icon=":material/check_circle:")

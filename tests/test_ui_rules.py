@@ -106,7 +106,8 @@ def test_el_tablero_rendea_con_la_correccion_activada():
     assert app.toggle, "el interruptor de corrección tiene que existir"
     app.toggle[0].set_value(True).run()
     assert not app.exception, app.exception
-    assert len(app.tabs) == 5
+    # Tres pestanas de tarea (Flota, Motor, Evidencia).
+    assert len(app.tabs) == 3
 
 
 # ------------------------------------------- garantías de superficie (3.1)
@@ -194,7 +195,8 @@ def test_el_interruptor_arranca_apagado():
     assert not app.exception, app.exception
     assert app.toggle, "el interruptor de corrección tiene que existir"
     assert app.toggle[0].value is False
-    assert len(app.tabs) == 5
+    # Tres pestanas de tarea (Flota, Motor, Evidencia).
+    assert len(app.tabs) == 3
 
 
 # ------------------------------------------------- pasada A en la interfaz
