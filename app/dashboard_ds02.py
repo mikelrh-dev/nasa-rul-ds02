@@ -805,7 +805,7 @@ def _sandbox_estres() -> None:
     st.plotly_chart(fig, use_container_width=True, alt=_alt)
 
     _m1, _m2 = st.columns(2)
-    _m1.metric("RUL predicha al final del tramo", f"{_ultima['pred']:.1f} ciclos",
+    _m1.metric("RUL p35 al final del tramo", f"{_ultima['pred']:.1f} ciclos",
                border=True, icon=":material/schedule:")
     _m2.metric("Cruce a hangar",
                f"ciclo {_cruce_ciclo}" if _cruce_ciclo else "no cruza en el tramo",
@@ -916,8 +916,11 @@ with tab_flota:
                             icon=BADGE_ICON.get(estado, ":material/circle:"),
                             color=BADGE_COLOR.get(estado, "gray"),
                         )
-                        st.metric("RUL predicha", _pred, "ciclos",
-                                  border=True, delta_color="off", icon=":material/speed:")
+                        st.metric("RUL p35 (conservadora)", _pred, "cuantil 0.35",
+                                  border=True, delta_color="off", icon=":material/speed:",
+                                  help="Cuantil 0.35 de la RUL (ADR-003): una estimacion "
+                                       "conservadora, no la vida esperada. Lo que decide el "
+                                       "estado es el limite inferior de su banda, L_inf.")
                         st.metric("L_inf (decide)", _lo, "ciclos",
                                   border=True, delta_color="off",
                                   icon=":material/trending_down:")
@@ -1113,21 +1116,9 @@ with tab_flota:
             f"{global_metrics['windows']:,} ventanas evaluadas",
             border=True, icon=":material/groups:", delta_color="off",
         )
-        st.metric(
-            "MAE en zona crítica",
-            f"{critical_mae:.2f} ciclos",
-            f"RUL real < {threshold_aog:.0f} · lectura "
-            f"{'corregida' if aplicar_reglas else 'cruda'}",
-            border=True, icon=":material/target:", delta_color="off",
-            help="Error absoluto medio donde de verdad se decide el mantenimiento.",
-        )
-        st.metric(
-            "Macro-RMSE",
-            f"{global_metrics['macro_rmse']:.2f} ciclos",
-            f"ponderado {global_metrics['rmse']:.2f}",
-            border=True, icon=":material/balance:", delta_color="off",
-            help="El macro-RMSE da el mismo peso a cada motor; el ponderado lo da a cada ventana.",
-        )
+        # En la pantalla de decision solo hay una KPI por concepto. Las metricas
+        # de calidad del modelo (MAE, Macro-RMSE, sesgo, cobertura) viven en
+        # Evidencia: son para el tribunal, no para el operador de taller.
         st.metric(
             "Unidades en hangar",
             f"{grounded} / {len(snapshot)}",
@@ -1212,7 +1203,7 @@ with tab_flota:
                 "Motor": [_etiqueta_unidad(float(u)) for u in snapshot["unit"]],
                 "Ciclo": snapshot["cycle"],
                 "RUL real": snapshot["y_true"],
-                "RUL predicha": snapshot["pred"],
+                "RUL p35": snapshot["pred"],
                 "L_inf (riesgo)": snapshot["lower"],
                 "L_sup": snapshot["upper"],
                 "Estado": snapshot["state_label"],
@@ -1245,7 +1236,8 @@ with tab_flota:
             column_config={
                 "Ciclo": st.column_config.NumberColumn("Ciclo", format="%d"),
                 "RUL real": st.column_config.NumberColumn("RUL real", format="%.1f"),
-                "RUL predicha": st.column_config.NumberColumn("RUL predicha", format="%.1f"),
+                "RUL p35": st.column_config.NumberColumn("RUL p35", format="%.1f",
+                                                help="Cuantil 0.35 de la RUL (ADR-003)."),
                 "L_inf (riesgo)": st.column_config.NumberColumn(
                     "L_inf (riesgo)", format="%.1f",
                     help="Límite inferior de la banda conformal: es lo que decide el estado.",
@@ -1755,10 +1747,12 @@ with tab_motor:
         with _decision_col:
             st_badge_estado(_fila_g["state"])
             with st.container(horizontal=True):
-                st.metric("RUL predicha",
+                st.metric("RUL p35 (conservadora)",
                           f"{_pred_g:.1f}" if pd.notna(_fila_g["pred"]) else "—",
-                          "ciclos", border=True, delta_color="off",
-                          icon=":material/speed:")
+                          "cuantil 0.35", border=True, delta_color="off",
+                          icon=":material/speed:",
+                          help="Cuantil 0.35 de la RUL (ADR-003): conservador. "
+                               "El estado lo decide L_inf, el limite inferior de la banda.")
                 st.metric("L_inf (decide)",
                           f"{_lo_g:.1f}" if pd.notna(_fila_g["lower"]) else "—",
                           "ciclos", border=True, delta_color="off",
@@ -2383,7 +2377,7 @@ with tab_evidencia:
             st.metric("Aptos", f"{_resumen['por_estado'][L.AIRWORTHY]}", border=True,
                       delta_color="off", icon=":material/check_circle:")
         _ver = _lote.rename(columns={
-            "matricula": "Matrícula", "ciclo": "Ciclo", "pred": "RUL predicha",
+            "matricula": "Matrícula", "ciclo": "Ciclo", "pred": "RUL p35",
             "lower": "L_inf (decide)", "upper": "L_sup", "estado": "Estado",
             "regla": "Regla",
         })
@@ -2391,8 +2385,8 @@ with tab_evidencia:
             _ver, hide_index=True,
             column_config={
                 "Ciclo": st.column_config.NumberColumn("Ciclo", format="%d"),
-                "RUL predicha": st.column_config.NumberColumn(
-                    "RUL predicha", format="%.1f"),
+                "RUL p35": st.column_config.NumberColumn(
+                    "RUL p35", format="%.1f"),
                 "L_inf (decide)": st.column_config.NumberColumn(
                     "L_inf (decide)", format="%.1f",
                     help="Límite inferior de la banda: es lo que decide el estado."),
@@ -2803,7 +2797,7 @@ with tab_evidencia:
             L.SIN_DECISION: "gray",
         }.get(live_state, "gray")
         with st.container(horizontal=True):
-            st.metric("RUL estimada", f"{last['pred']:.1f}", "ciclos", border=True,
+            st.metric("RUL p35 (conservadora)", f"{last['pred']:.1f}", "cuantil 0.35", border=True,
                       icon=":material/speed:", delta_color="off")
             st.metric("Límite inferior", f"{last['lower']:.1f}", "decide el estado",
                       border=True, icon=":material/trending_down:", delta_color="off")
@@ -2961,3 +2955,81 @@ with tab_evidencia:
             "nada: lo que cambia es la entrada."
         )
         _sandbox_estres()
+
+    # -------------------- perfil de vuelo: alt vs Mach (canales reales)
+    with st.container(border=True):
+        st.subheader("Perfil de vuelo · altitud y régimen de vuelo",
+                     icon=":material/flight:")
+        st.caption(
+            "Los dos son canales reales del dataset. No hay mapa: el dataset "
+            "N-CMAPSS no trae coordenadas GPS (no hay latitud, longitud ni "
+            "posición entre sus 18 canales), así que dibujar rutas exigiría "
+            "inventarlas."
+        )
+        _perfil = telemetry[telemetry["unit"] == int(unit)].copy()
+        if not _perfil.empty:
+            _fig_vuelo = go.Figure(
+                go.Scatter(
+                    x=_perfil["Mach"], y=_perfil["alt"], mode="lines",
+                    line=dict(color=SKY, width=2), name="Perfil de vuelo",
+                    hovertemplate="Mach %{x:.3f}<br>altitud %{y:.0f} ft<extra></extra>",
+                )
+            )
+            _fig_vuelo.update_layout(**chart_layout(
+                height=260, showlegend=False, hovermode="closest",
+                xaxis_title="Mach", yaxis_title="altitud (ft)",
+            ))
+            style_axes(_fig_vuelo)
+            st.plotly_chart(
+                _fig_vuelo, theme=None,
+                alt=f"Perfil de vuelo de {_etiqueta_unidad(float(unit))}: altitud "
+                    f"frente a número de Mach, los dos canales reales del dataset.",
+            )
+
+    # -------------------- calidad del modelo: era de la pantalla de decision
+    with st.container(border=True):
+        st.subheader("Calidad del modelo", icon=":material/insights:")
+        st.caption(
+            "Métricas de calidad, no de decisión: cuánto se equivoca el modelo, no "
+            "lo que decide. Viven aquí porque son para el tribunal, no para el "
+            "operador de taller."
+        )
+        with st.container(horizontal=True):
+            st.metric(
+                "Macro-RMSE", f"{global_metrics['macro_rmse']:.2f} ciclos",
+                f"ponderado {global_metrics['rmse']:.2f}", border=True,
+                delta_color="off", icon=":material/balance:",
+                help="El macro-RMSE da el mismo peso a cada motor; el ponderado lo da a cada ventana.")
+            st.metric(
+                "MAE en zona crítica", f"{critical_mae:.2f} ciclos",
+                f"RUL real < {threshold_aog:.0f}", border=True,
+                delta_color="off", icon=":material/target:",
+                help="Error absoluto medio donde de verdad se decide el mantenimiento.")
+
+    # -------------------- procedencia y contrato (los dos SHA, plegados)
+    with st.container(border=True):
+        st.subheader("Procedencia y contrato", icon=":material/lock:")
+        st.caption(
+            "Los dos SHA son datos de procedencia, no el nombre del motor. El "
+            "primero identifica el artefacto congelado con el que se calculó; el "
+            "segundo, la ventana exacta que se puntuó. El mismo motor en dos "
+            "ventanas da dos huellas, y dos motores con los mismos datos dan la "
+            "misma: por eso no pueden nombrar un motor."
+        )
+        with st.container(horizontal=True):
+            st.metric(
+                "SHA-256 del artefacto",
+                provenance["artifact"]["ensemble_sha256"][:12],
+                "models/ds02_manifest.json", border=True, delta_color="off",
+                icon=":material/deployed_code:")
+            st.metric(
+                "Ventanas en caché",
+                f"{provenance['counts']['windows']:,}",
+                f"generada {provenance['generated_at'][:10]}",
+                border=True, delta_color="off", icon=":material/dataset:")
+        st.caption(
+            f"Contrato: ventana de {provenance['source']['window']} muestras, "
+            f"step={provenance['source']['step']}. La caché va a step=2 y la vía "
+            f"en vivo a step=1, así que no coinciden bit a bit, y el punto está "
+            f"suavizado con un EMA causal por motor. Documentado, no reconciliado."
+        )

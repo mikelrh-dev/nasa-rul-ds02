@@ -228,8 +228,8 @@ def test_pressing_evaluate_renders_a_live_result():
     button.click().run()
     assert not app.exception, app.exception
     labels = [m.label for m in app.metric]
-    assert "RUL estimada" in labels
-    live_metric = next(m for m in app.metric if m.label == "RUL estimada")
+    assert any("RUL p35" in l for l in labels), labels
+    live_metric = next(m for m in app.metric if m.label == "RUL p35 (conservadora)")
     assert float(live_metric.value) >= 0.0
 
 
@@ -482,7 +482,7 @@ def test_el_sandbox_muestra_el_tramo_y_no_toda_la_vida_del_motor():
     c_fin = int(bajo["cycle"].min())
     esperado = float(curva[curva["cycle"] == c_fin]["pred"].iloc[0])
 
-    metrica = next(m for m in app.metric if m.label == "RUL predicha al final del tramo")
+    metrica = next(m for m in app.metric if m.label == "RUL p35 al final del tramo")
     assert metrica.value == f"{esperado:.1f} ciclos", (metrica.value, esperado)
 
     ventanas_tramo = int(((windows["unit"] == 14)
