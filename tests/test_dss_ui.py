@@ -249,12 +249,13 @@ def test_app_renders_headless_without_exception():
     app.run()
     assert not app.exception, app.exception
     assert "DS02" in app.title[0].value
-    # Tres pestanas de tarea, no cinco de capas del modelo.
-    assert len(app.tabs) == 3
+    # Cuatro pestanas de tarea, no cinco de capas del modelo.
+    assert len(app.tabs) == 4
     labels = [tab.label for tab in app.tabs]
     assert any("Flota" in label for label in labels)
     assert any("Motor" in label for label in labels)
-    assert any("Evidencia" in label for label in labels)
+    assert any("Casos nuevos" in label for label in labels)
+    assert any("Auditoría" in label for label in labels)
 
 
 @needs_cache

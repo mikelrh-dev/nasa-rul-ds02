@@ -54,7 +54,7 @@ STATE_LABELS = {
     AIRWORTHY: "🟢 APTO PARA VUELO",
     PREVENTIVE: "🟡 INSPECCIÓN PROGRAMADA",
     AOG: "🔴 DERIVACIÓN A HANGAR (AOG)",
-    NO_DATA: "⚪ SIN DATOS (aún sin vuelo)",
+    NO_DATA: "⏳ EN ESPERA DE CICLO (aún sin vuelo)",
     SIN_DECISION: "⛔ SIN DECISIÓN (dato imposible)",
 }
 
