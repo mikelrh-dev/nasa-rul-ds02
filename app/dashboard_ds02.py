@@ -361,6 +361,8 @@ if st.session_state.get("_escenario_pendiente"):
     _u, _c = st.session_state.pop("_escenario_pendiente")
     st.session_state["unit"] = int(_u)
     st.session_state["cycle"] = int(_c)
+if st.session_state.get("_avance_flota") is not None:
+    st.session_state["cycle"] = int(st.session_state.pop("_avance_flota"))
 
 # ------------------------------------------------------------- política en uso
 # Los controles de política viven en la sala «El taller» (pestaña 1), pero el
@@ -1134,7 +1136,12 @@ with tab_flota:
             if st.button("Avanzar 10 ciclos de flota",
                          icon=":material/fast_forward:", key="avanzar_flota",
                          type="primary"):
-                st.session_state["cycle"] = int(min(
+                # No se escribe `cycle` aqui: el widget ya se instancio en esta
+                # pasada y Streamlit lo prohibe
+                # (`StreamlitWidgetAlreadyInstantiatedError`): la pagina revienta.
+                # Se deja la bandera y el bloque de escrituras diferidas la aplica
+                # antes de que el widget nazca.
+                st.session_state["_avance_flota"] = int(min(
                     cycle + 10, int(windows["cycle"].max())))
                 st.rerun()
         with _fila_av[1]:
@@ -2704,7 +2711,7 @@ with tab_evidencia:
                         if not _pf["ok"]:
                             raise ValueError(_pf["error"])
                         st.session_state["live_engine_id"] = _did
-                        st.session_state["live_editor"] = _tab
+                        st.session_state["_editor_value"] = _tab
                         st.session_state["live_result"] = INF.score_table(_tab, engine_id=_did)
                         st.session_state["live_meta"] = _meta
                         st.session_state["live_warnings"] = _pf["avisos"]
@@ -2886,8 +2893,15 @@ with tab_evidencia:
             table_to_score = _filtrada
             data_meta = example_meta
     elif mode == "Editar tabla (pegar)":
+        # `live_editor` es un `st.data_editor`: Streamlit declara su clave de
+        # solo lectura y no se puede escribir desde un handler. La tabla se
+        # guarda en `_editor_value` y se pasa como `data`; se mantiene entre
+        # pasadas para que la rejilla no revierta al tocar una celda.
+        _tabla_editor = st.session_state.get("_editor_value")
+        if _tabla_editor is None:
+            _tabla_editor = example_table
         edited = st.data_editor(
-            example_table,
+            _tabla_editor,
             num_rows="dynamic",
             hide_index=True,
             height=420,
@@ -2911,7 +2925,10 @@ with tab_evidencia:
                 icon=":material/content_cut:", key="recortar_editor",
             ):
                 cortada, _ = INF.limitar_filas(draft)
-                st.session_state["live_editor"] = cortada
+                # Igual que arriba: la clave del `data_editor` es de solo lectura.
+                # Se guarda la tabla recortada y la rejilla la dibuja en la
+                # siguiente pasada.
+                st.session_state["_editor_value"] = cortada
                 st.session_state.pop("live_edit_fixed", None)
                 st.rerun()
         st.caption(

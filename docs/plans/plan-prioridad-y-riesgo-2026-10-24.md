@@ -221,3 +221,60 @@ La frontera está en A1, A2, B1, B2, B3, C1: alto impacto, riesgo bajo.
 - La app no se contradice a sí misma: no hay cifras escritas a mano en los textos
   de la UI que puedan desmentir lo dibujado.
 - El residualizer aparece en `src/ds02_rul/*` y en ningún archivo de `app/`.
+
+---
+
+## 2026-10-24 (noche) · Tres botones arreglados y dos incidentes de registro
+
+### Los tres botones
+
+Continuación de la auditoría de las escrituras `st.session_state[...] = ...` que
+caen sobre claves de widget. Verificado ejecutando y arreglado:
+
+| Botón | Dónde | Qué pasaba | Arreglo |
+| :--- | :--- | :--- | :--- |
+| Avanzar 10 ciclos de flota | `app/dashboard_ds02.py:1144` | Escribía `cycle` desde su propio handler: `StreamlitWidgetAlreadyInstantiatedError` | Bandera `_avance_flota`, aplicada en el bloque diferido (`:364`) |
+| Recortar a 1.500 primeras filas | `app/dashboard_ds02.py:2925` | Escribía en la clave de un `st.data_editor`, que Streamlit declara de solo lectura | La tabla se guarda en `_editor_value` (`:2931`) |
+| Presets de demo («Puntúa un ejemplo en 1 clic») | `app/dashboard_ds02.py:2714` | Igual: solo reventaba al pulsar con el modo «Editar tabla (pegar)» | Igual (`:2900` es donde se dibuja) |
+
+Los tres tests de regresión (`test_avanzar_la_flota_mueve_el_reloj_sin_romper_la_app`,
+`test_recortar_la_rejilla_no_rompe_la_app` y
+`test_el_preset_demo_funciona_tambien_en_modo_editar`) **fallan sin el arreglo y
+pasan con él**: se comprobó restaurando el código sin arreglar. Ninguno de los
+tres botones estaba cubierto, así que los 206 tests en verde no los cazaban. Ahora
+son 209.
+
+El `data_editor` no admite el patrón diferido que arregla los otros dos: su clave
+es de solo lectura y da igual que la escritura sea antes o después de instanciar
+el widget. Ahí la tabla tiene que vivir en otra clave y pasarse como `data`.
+
+**Dos falsos positivos** que la auditoría marcó y no lo eran:
+
+- `app/dashboard_ds02.py:2795` escribe en `live_engine_id`. Es un `on_change`, que
+  corre antes de instanciar el widget: es legal y es la forma correcta.
+- Las escrituras de las líneas 352-365 y 387-388 son el propio mecanismo diferido
+  de la app, aplicado antes de que los widgets nazcan.
+
+### Incidente 1 · el registro de flota quedó vacío
+
+`app/registros_flota.json` amaneció en `{"twins": {}, "hangar": {}, "altas": {}}`.
+La sonda del agente anterior pulsó `reset_demo` (`app/dashboard_ds02.py:1915`),
+que sí borra gemelos y hangar y los guarda en disco. Corría como script suelto, no
+bajo pytest, así que el fixture de `tests/conftest.py` no actuó.
+
+No hay copia en disco ni en git (el archivo está en `.gitignore`). La única vía de
+recuperación es una sesión de navegador que siga viva con los gemelos en
+`session_state`.
+
+### Incidente 2 · las sondas fuera de pytest ensucian el registro
+
+El mismo fixture que no protegió el incidente 1 no protege ninguna sonda ad-hoc:
+al arrancar el tablero con `AppTest` desde un script, `_guardar_registros()`
+escribe en el archivo de producción. Durante esta sesión tres sondas dejaron en el
+archivo dos altas (`ESN-AUDITORIA`, `ESN-AVISO`) y dos registros de hangar. Se
+restauró a mano a `{"twins": {}, "hangar": {}, "altas": {}}`.
+
+**Conclusión para el futuro:** cualquier sonda que arranque el tablero tiene que
+correr bajo pytest (donde el fixture aparta y restaura el archivo) o restaurar
+`app/registros_flota.json` al terminar. Ojo: `sesion_vaciar`
+(`app/dashboard_ds02.py:1216`) **no** borra la flota; solo vacía el log de sesión.
