@@ -1159,6 +1159,69 @@ with tab_flota:
 
         _muro_del_hangar()
 
+    with st.container(border=True):
+        st.subheader("Cronología de estado de flota", icon=":material/timeline:")
+        st.caption(
+            "Cada punto es un ciclo evaluado y su color es el estado que dicta el límite "
+            "inferior. La línea vertical es el reloj de la simulación."
+        )
+        st.caption(
+            "**Leyenda:** ● verde → Apto · ■ naranja → Inspección · ✕ rojo → Hangar. "
+            "Solo `L_inf` (límite inferior de la banda) decide el color."
+        )
+        ribbon_rows = []
+        por_ciclo = UR.estado_por_ciclo(frame)
+        for u in unidades_vistas:
+            curva = curves[u]
+            sub = por_ciclo[por_ciclo["unit"] == u].sort_values("cycle")
+            ribbon_rows.append(
+                pd.DataFrame(
+                    {
+                        "unidad": _etiqueta_unidad(float(u)),
+                        "ciclo": curva["cycle"],
+                        "estado": sub["decision"].to_numpy(),
+                        "L_inf": curva["lower"],
+                    }
+                )
+            )
+        ribbon = pd.concat(ribbon_rows, ignore_index=True)
+        ribbon["color"] = ribbon["estado"].map(STATE_COLORS)
+        ribbon["etiqueta"] = ribbon["estado"].map(STATE_WORD)
+        ribbon["simbolo"] = ribbon["estado"].map(L.STATE_SYMBOLS).fillna("circle")
+
+        fig_fleet = go.Figure(
+            go.Scatter(
+                x=ribbon["ciclo"],
+                y=ribbon["unidad"],
+                mode="markers",                            marker=dict(color=ribbon["color"], size=11, symbol=ribbon["simbolo"],
+                                        line=dict(width=0)),
+                customdata=np.column_stack([ribbon["etiqueta"], ribbon["L_inf"]]),
+                hovertemplate=(
+                    "U%{y} · ciclo %{x}<br>estado: %{customdata[0]}"
+                    "<br>L_inf: %{customdata[1]:.1f} ciclos<extra></extra>"
+                ),
+                name="Estado por ciclo",
+            )
+        )
+        fig_fleet.add_vline(
+            x=cycle, line_color=INK, line_width=1.5, line_dash="dot",
+            annotation_text=f"ciclo {cycle}", annotation_position="top",
+            annotation_font=dict(color=INK, size=11),
+        )
+        fig_fleet.update_layout(
+            **chart_layout(height=240, showlegend=False,
+                           hovermode="closest"),
+            xaxis_title="Ciclo de vuelo",
+            yaxis=dict(
+                categoryorder="array", categoryarray=[_etiqueta_unidad(float(u)) for u in reversed(unidades_vistas)],
+            ),
+        )
+        style_axes(fig_fleet)
+        st.plotly_chart(
+            fig_fleet, theme=None,
+            alt="Cronología de estado por unidad: verde apto, ámbar inspección y rojo hangar a lo largo de los ciclos.",
+        )
+
     # -------------------- sala 3: el taller (¿qué pasa si cambio la política?)
     with st.container(border=True):
         st.subheader("El taller · qué pasa si cambio la política",
@@ -1334,68 +1397,6 @@ with tab_flota:
             "La lectura cruda de la caché sigue disponible en la pestaña de auditoría."
         )
 
-    with st.container(border=True):
-        st.subheader("Cronología de estado de flota", icon=":material/timeline:")
-        st.caption(
-            "Cada punto es un ciclo evaluado y su color es el estado que dicta el límite "
-            "inferior. La línea vertical es el reloj de la simulación."
-        )
-        st.caption(
-            "**Leyenda:** ● verde → Apto · ■ naranja → Inspección · ✕ rojo → Hangar. "
-            "Solo `L_inf` (límite inferior de la banda) decide el color."
-        )
-        ribbon_rows = []
-        por_ciclo = UR.estado_por_ciclo(frame)
-        for u in unidades_vistas:
-            curva = curves[u]
-            sub = por_ciclo[por_ciclo["unit"] == u].sort_values("cycle")
-            ribbon_rows.append(
-                pd.DataFrame(
-                    {
-                        "unidad": _etiqueta_unidad(float(u)),
-                        "ciclo": curva["cycle"],
-                        "estado": sub["decision"].to_numpy(),
-                        "L_inf": curva["lower"],
-                    }
-                )
-            )
-        ribbon = pd.concat(ribbon_rows, ignore_index=True)
-        ribbon["color"] = ribbon["estado"].map(STATE_COLORS)
-        ribbon["etiqueta"] = ribbon["estado"].map(STATE_WORD)
-        ribbon["simbolo"] = ribbon["estado"].map(L.STATE_SYMBOLS).fillna("circle")
-
-        fig_fleet = go.Figure(
-            go.Scatter(
-                x=ribbon["ciclo"],
-                y=ribbon["unidad"],
-                mode="markers",                            marker=dict(color=ribbon["color"], size=11, symbol=ribbon["simbolo"],
-                                        line=dict(width=0)),
-                customdata=np.column_stack([ribbon["etiqueta"], ribbon["L_inf"]]),
-                hovertemplate=(
-                    "U%{y} · ciclo %{x}<br>estado: %{customdata[0]}"
-                    "<br>L_inf: %{customdata[1]:.1f} ciclos<extra></extra>"
-                ),
-                name="Estado por ciclo",
-            )
-        )
-        fig_fleet.add_vline(
-            x=cycle, line_color=INK, line_width=1.5, line_dash="dot",
-            annotation_text=f"ciclo {cycle}", annotation_position="top",
-            annotation_font=dict(color=INK, size=11),
-        )
-        fig_fleet.update_layout(
-            **chart_layout(height=240, showlegend=False,
-                           hovermode="closest"),
-            xaxis_title="Ciclo de vuelo",
-            yaxis=dict(
-                categoryorder="array", categoryarray=[_etiqueta_unidad(float(u)) for u in reversed(unidades_vistas)],
-            ),
-        )
-        style_axes(fig_fleet)
-        st.plotly_chart(
-            fig_fleet, theme=None,
-            alt="Cronología de estado por unidad: verde apto, ámbar inspección y rojo hangar a lo largo de los ciclos.",
-        )
 
     # Plegada la tabla; la tarjeta «Regla de negocio» se queda fuera, a la vista.
     with st.expander("Cola de mantenimiento · tabla por unidad",
