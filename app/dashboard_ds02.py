@@ -2875,10 +2875,23 @@ with tab_casos:
             "no al registrar.",
             icon=":material/rule:",
         )
+    # ¿Está ya en la flota? Se responde aquí, antes de evaluar, para que la duda
+    # «¿esto se ha añadido?» no obligue a bajar hasta la tarjeta de registro.
+    try:
+        _id_norm = T.normalizar_id(identidad) if id_ok else ""
+    except ValueError:
+        _id_norm = ""
+    _en_flota = bool(_id_norm) and _id_norm in (st.session_state.get("twins") or {})
+    if _id_norm:
+        st.badge(
+            "EN LA FLOTA" if _en_flota else "SIN REGISTRAR",
+            icon=":material/check_circle:" if _en_flota else ":material/add_circle:",
+            color="green" if _en_flota else "gray",
+        )
     st.caption(
         "Paso 1 · trae los datos · Paso 2 · revisa el pre-vuelo de abajo · "
-        "Paso 3 · evalúa y registra el gemelo. El botón solo se activa cuando "
-        "los pasos 1 y 2 están en verde."
+        "Paso 3 · evalúa · Paso 4 · regístralo en la tarjeta que sale bajo el "
+        "resultado. El botón de evaluar solo se activa con los pasos 1 y 2 en verde."
     )
     # La plantilla se descarga desde el expander «Qué es cada columna», que ya
     # reutiliza `INF.template_csv()` (cabecera + 50 filas vacías) y ya esta
@@ -3163,6 +3176,72 @@ with tab_casos:
         )
         if traza_live["porque"]:
             st.caption(" · ".join(traza_live["porque"]))
+        # El registro va pegado al resultado: es el paso que se busca justo después
+        # de evaluar. Antes vivía en un expander plegado al final de la sección.
+        gemelos_previos = st.session_state.get("twins", {})
+        motor_live = str(live["contract"].get("motor") or "").strip().upper()
+        ya_existe = motor_live in gemelos_previos
+        reemplazar = False
+        with st.container(border=True):
+            if ya_existe:
+                previo = gemelos_previos[motor_live]
+                verdad_previa = T.metricas_verdad(previo)
+                st.markdown(
+                    f":green-badge[:material/check_circle: EN LA FLOTA] "
+                    f"`{motor_live}` · {len(previo['serie'])} ventana(s) guardada(s)"
+                    + (f" · RUL real {verdad_previa['rul_real']:.0f} ciclos"
+                       if verdad_previa else "")
+                )
+                st.caption(
+                    "Puntuar otra ventana del mismo motor no lo sobrescribe solo: "
+                    "marca la casilla para sustituir la serie."
+                )
+                reemplazar = st.checkbox(
+                    "Reemplazar la serie guardada (la RUL real se conserva)",
+                    key="twin_replace",
+                    help="Se sustituyen la serie, la huella y el contrato. La RUL real "
+                         "es un hecho del motor, no de la ventana: no se borra.",
+                )
+            else:
+                st.markdown(
+                    f":gray-badge[:material/add_circle: SIN REGISTRAR] "
+                    f"`{motor_live}` no está en la flota."
+                )
+                st.caption(
+                    "Regístralo para que aparezca en el muro y en «Gemelos "
+                    "registrados». Su estado se recalcula con los umbrales en vigor; "
+                    "la serie no se vuelve a puntuar."
+                )
+            if st.button(
+                f"Reemplazar gemelo `{motor_live}`" if ya_existe else "Registrar en la flota",
+                icon=":material/sync:" if ya_existe else ":material/add_circle:",
+                key="twin_add", type="primary",
+            ):
+                try:
+                    gemelo = T.make_twin(
+                        live["contract"].get("motor") or "",
+                        live,
+                        source=str((st.session_state.get("live_meta") or {}).get(
+                            "source", "entrada manual")),
+                        banda=INF.BANDA_ARTEFACTO,
+                        correccion=INF.CORRECCION_NINGUNA,
+                        umbrales=umbrales,
+                        fingerprint_value=live["contract"].get("fingerprint", ""),
+                    )
+                    st.session_state["twins"] = T.registrar(
+                        st.session_state.get("twins", {}), gemelo,
+                        reemplazar=reemplazar)
+                    _guardar_registros()
+                    _log(f"Gemelo {gemelo['id']} registrado.")
+                except ValueError as exc:
+                    st.error(str(exc), title="No se pudo registrar", icon=":material/rule:")
+                else:
+                    st.session_state["twin_flash"] = (
+                        f"Gemelo `{gemelo['id']}` actualizado en la flota."
+                        if reemplazar else
+                        f"Gemelo `{gemelo['id']}` registrado en la flota.")
+                    st.rerun()
+
 
         if len(live["windows"]) > 1:
             w = live["windows"]
@@ -3222,63 +3301,6 @@ with tab_casos:
             "RMSE ni MAE. La banda es una cota conservadora calibrada sobre los motores "
             "de desarrollo; el sesgo de vida alta (`RUL ≈ 63 − ciclo`) también aplica aquí."
         )
-
-        with st.expander("Añadir este motor a la flota", icon=":material/library_add:"):
-            st.caption(
-                "Guarda la serie puntuada como gemelo. Su estado se recalcula con los "
-                "umbrales en vigor; la serie no se vuelve a puntuar."
-            )
-            gemelos_previos = st.session_state.get("twins", {})
-            motor_live = str(live["contract"].get("motor") or "").strip().upper()
-            ya_existe = motor_live in gemelos_previos
-            reemplazar = False
-            if ya_existe:
-                previo = gemelos_previos[motor_live]
-                verdad_previa = T.metricas_verdad(previo)
-                st.info(
-                    f"Ya hay un gemelo `{motor_live}` con {len(previo['serie'])} "
-                    "ventana(s) guardada(s)"
-                    + (f" y RUL real reportada ({verdad_previa['rul_real']:.0f} ciclos)"
-                       if verdad_previa else "")
-                    + ". Puntuar otra ventana del mismo motor no lo sobrescribe solo: "
-                    "marca la casilla para sustituir la serie.",
-                    icon=":material/info:",
-                )
-                reemplazar = st.checkbox(
-                    "Reemplazar la serie guardada (la RUL real se conserva)",
-                    key="twin_replace",
-                    help="Se sustituyen la serie, la huella y el contrato. La RUL real "
-                         "es un hecho del motor, no de la ventana: no se borra.",
-                )
-            if st.button(
-                f"Reemplazar gemelo `{motor_live}`" if ya_existe else "Registrar gemelo",
-                icon=":material/sync:" if ya_existe else ":material/add_circle:",
-                key="twin_add",
-            ):
-                try:
-                    gemelo = T.make_twin(
-                        live["contract"].get("motor") or "",
-                        live,
-                        source=str((st.session_state.get("live_meta") or {}).get(
-                            "source", "entrada manual")),
-                        banda=INF.BANDA_ARTEFACTO,
-                        correccion=INF.CORRECCION_NINGUNA,
-                        umbrales=umbrales,
-                        fingerprint_value=live["contract"].get("fingerprint", ""),
-                    )
-                    st.session_state["twins"] = T.registrar(
-                        st.session_state.get("twins", {}), gemelo,
-                        reemplazar=reemplazar)
-                    _guardar_registros()
-                    _log(f"Gemelo {gemelo['id']} registrado.")
-                except ValueError as exc:
-                    st.error(str(exc), title="No se pudo registrar", icon=":material/rule:")
-                else:
-                    st.session_state["twin_flash"] = (
-                        f"Gemelo `{gemelo['id']}` actualizado en la flota."
-                        if reemplazar else
-                        f"Gemelo `{gemelo['id']}` registrado en la flota.")
-                    st.rerun()
 
         if live_state == L.AOG:
             order_live = INF.live_work_order(
