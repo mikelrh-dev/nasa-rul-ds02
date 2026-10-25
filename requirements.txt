@@ -23,6 +23,7 @@ uvicorn==0.54.0
 streamlit==1.66.0
 plotly==7.1.0
 pydantic>=2
+fpdf2==2.7.7
 
 # tests
 pytest==9.1.1

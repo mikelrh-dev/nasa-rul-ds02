@@ -27,7 +27,6 @@ needs_cache = pytest.mark.skipif(
 )
 
 DASHBOARD = os.path.join(APP, "dashboard_ds02.py")
-MATRICULA = "EC-PROBE-1"
 
 
 def _app():
@@ -48,6 +47,18 @@ def _opciones_selector(app) -> list[str]:
     return [opcion.content for opcion in _selector_unidad(app).proto.options]
 
 
+def _matricula_auto(app) -> str:
+    """La matrícula es una etiqueta auto-generada (MTTT<unidad>), no un input libre.
+
+    El campo sigue en el formulario para que el operador vea con qué nombre va a
+    aparecer el motor, pero es de solo lectura: se deriva de la unidad elegida.
+    """
+    for field in app.text_input:
+        if (field.proto.label or "").lower().startswith("matrícula"):
+            return field.value
+    pytest.fail("el formulario de alta no tiene campo de matrícula")
+
+
 def _selector_unidad(app):
     """The sidebar's unit picker (the first `segmented_control` is the data mode)."""
     for control in app.segmented_control:
@@ -63,18 +74,13 @@ def test_incorporar_unidad_no_rompe_la_app():
     app.run()
     assert not app.exception
 
-    for field in app.text_input:
-        if (field.proto.label or "").lower().startswith("matrícula"):
-            field.set_value(MATRICULA)
-            break
-    else:
-        pytest.fail("el formulario de alta no tiene campo de matrícula")
+    matricula = _matricula_auto(app)
 
     assert _click(app, "Incorporar unidad"), "el botón de alta no está en la página"
     assert not app.exception, app.exception
 
     opciones = _opciones_selector(app)
-    assert any(MATRICULA in opcion for opcion in opciones), opciones
+    assert any(matricula in opcion for opcion in opciones), opciones
 
 
 @needs_cache
@@ -89,22 +95,17 @@ def test_el_alta_crea_el_gemelo_y_el_motor_sobrevive_un_recargo():
     app.run()
     assert not app.exception
 
-    for field in app.text_input:
-        if (field.proto.label or "").lower().startswith("matrícula"):
-            field.set_value(MATRICULA)
-            break
-    else:
-        pytest.fail("el formulario de alta no tiene campo de matrícula")
+    matricula = _matricula_auto(app)
 
     assert _click(app, "Incorporar unidad"), "el botón de alta no está en la página"
     assert not app.exception, app.exception
 
     gemelos = app.session_state["twins"]
-    assert MATRICULA in gemelos, gemelos
-    assert gemelos[MATRICULA]["serie"], "el gemelo del alta no tiene serie guardada"
+    assert matricula in gemelos, gemelos
+    assert gemelos[matricula]["serie"], "el gemelo del alta no tiene serie guardada"
 
     # El gemelo vive en el registro persistido, no solo en la sesion.
-    assert MATRICULA in app.session_state["altas"], app.session_state["altas"]
+    assert matricula in app.session_state["altas"], app.session_state["altas"]
 
 
 @needs_cache
@@ -135,16 +136,15 @@ def test_un_ciclo_sin_ventanas_se_rechaza_sin_romper_la_app():
     else:
         pytest.fail("no está el campo de ciclo del alta")
 
-    for field in app.text_input:
-        if (field.proto.label or "").lower().startswith("matrícula"):
-            field.set_value("EC-SIN-CICLO").run()
-            break
+    # La matrícula se deriva de la unidad elegida: con U14 es MTTT14.
+    matricula = _matricula_auto(app)
+    assert matricula == "MTTT14", matricula
 
     assert _click(app, "Incorporar unidad")
     # No puede romper la aplicacion: el rechazo se muestra y la app sigue viva.
     assert not app.exception, app.exception
     # Y la unidad no entró en la flota.
-    assert "EC-SIN-CICLO" not in app.session_state.get("altas", {})
+    assert matricula not in app.session_state.get("altas", {})
 
 
 @needs_cache
@@ -198,22 +198,20 @@ def test_pulsar_una_tarjeta_cambia_la_unidad_seleccionada():
 
 
 @needs_cache
-def test_el_onboarding_carga_el_archetype_critico():
-    """El onboarding es el estado inicial del tablero: 1 clic y el escenario está cargado."""
+def test_el_onboarding_es_uno_solo():
+    """El onboarding ya no está duplicado: queda el modo historia, no los archetypes.
+
+    Antes convivían los tres archetypes de «¿Primera vez aquí?» y los cuatro
+    pasos del modo historia: dos formas de hacer lo mismo. Se quedó el modo
+    historia, que es más narrativo.
+    """
     app = _app()
     app.run()
     assert not app.exception, app.exception
 
-    for boton in app.button:
-        if boton.key == "arquetipo_Fin de vida / crítico":
-            boton.click().run()
-            break
-    else:
-        pytest.fail("no está el archetype crítico del onboarding")
-
-    assert not app.exception, app.exception
-    assert _selector_unidad(app).value == 14
-    assert app.slider[0].value == 29
+    claves = [b.key or "" for b in app.button]
+    assert not any(k.startswith("arquetipo_") for k in claves), claves
+    assert any(k.startswith("historia_") for k in claves), claves
 
 
 # ------------------------------------------------------------------ fase 3
@@ -363,11 +361,14 @@ def test_el_registro_de_sesion_es_visible_y_exportable():
     app = _app()
     app.run()
     assert not app.exception, app.exception
-    assert "Registro de sesión" in _texto(app)
+    # El registro vive plegado en un expander (es un log, no algo de demo):
+    # lo que el test fija es que se pueda encontrar y exportar.
+    etiquetas = [e.label or "" for e in app.expander]
+    assert any("Registro de sesión" in e for e in etiquetas), etiquetas
 
     # Una acción discreta llena el registro; sin ella no hay nada que exportar.
     for boton in app.button:
-        if boton.key == "arquetipo_Fin de vida / crítico":
+        if boton.key == "historia_3":
             boton.click().run()
             break
     assert not app.exception, app.exception
@@ -402,3 +403,42 @@ def test_avanzar_la_flota_mueve_el_reloj_sin_romper_la_app():
     assert app.session_state["cycle"] == ciclo_antes + 10, (
         f"{ciclo_antes} -> {app.session_state['cycle']}"
     )
+
+
+# ------------------------------------------------------------------ auditoría
+@needs_cache
+def test_el_informe_de_auditoria_es_un_pdf_descargable():
+    """El informe de auditoría existe como descarga y es un PDF de verdad.
+
+    Congela las dos tablas de auditoría (precisión por tramo y alarma vs.
+    verdad) con la huella del artefacto. El test valida el binario, no solo el
+    botón: un PDF truncado sería una promesa incumplida ante el tribunal.
+    """
+    import ast
+
+    app = _app()
+    app.run()
+    assert not app.exception, app.exception
+
+    etiquetas = [b.proto.label or "" for b in app.download_button]
+    assert any("auditor" in e.lower() and "pdf" in e.lower() for e in etiquetas), etiquetas
+
+    # Se extrae la función real del dashboard y se valida su salida.
+    src = open(DASHBOARD, encoding="utf-8").read()
+    fn = next(
+        n for n in ast.parse(src).body
+        if isinstance(n, ast.FunctionDef) and n.name == "_informe_auditoria_pdf"
+    )
+    import pandas as pd
+
+    ns: dict = {"pd": pd, "L": L}
+    exec(compile(ast.Module(body=[fn], type_ignores=[]), "<fn>", "exec"), ns)
+
+    windows = L.get_windows()
+    curves = {int(u): L.unit_curve(windows, int(u)) for u in windows["unit"].unique()}
+    data = ns["_informe_auditoria_pdf"](
+        windows, curves, sorted(curves), 30.0, 25.0,
+        L.get_provenance(), L.critical_zone_mae(windows, 25.0),
+    )
+    assert data[:5] == b"%PDF-", data[:20]
+    assert data.rstrip().endswith(b"%%EOF"), "PDF sin marca de fin"
