@@ -374,3 +374,31 @@ def test_el_registro_de_sesion_es_visible_y_exportable():
 
     descargas = [b.proto.label or "" for b in app.download_button]
     assert any("registro" in d.lower() for d in descargas), descargas
+
+
+@needs_cache
+def test_avanzar_la_flota_mueve_el_reloj_sin_romper_la_app():
+    """El botón mueve el reloj y la página sobrevive.
+
+    Escribía `st.session_state["cycle"]` desde su propio handler, y el widget ya
+    se había instanciado en esa pasada: Streamlit levantaba
+    `StreamlitWidgetAlreadyInstantiatedError` y la página se caía. El handler era
+    correcto; lo que faltaba era dejar la escritura para antes de que el widget
+    nazca.
+    """
+    app = _app()
+    app.run()
+    assert not app.exception, app.exception
+    ciclo_antes = app.session_state["cycle"]
+
+    for boton in app.button:
+        if boton.key == "avanzar_flota":
+            boton.click().run()
+            break
+    else:
+        pytest.fail("no está el botón de avanzar la flota")
+
+    assert not app.exception, app.exception
+    assert app.session_state["cycle"] == ciclo_antes + 10, (
+        f"{ciclo_antes} -> {app.session_state['cycle']}"
+    )

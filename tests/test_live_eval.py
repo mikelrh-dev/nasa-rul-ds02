@@ -661,3 +661,70 @@ def test_cada_preset_cae_en_el_estado_que_dice_su_nombre():
             assert traza["decision"] == esperado, (
                 f"{nombre} con {largo} filas dio {traza['decision']}, "
                 f"no {esperado}")
+
+
+# ------------------------------------------------------- la rejilla editable
+@needs_cache
+def test_recortar_la_rejilla_no_rompe_la_app():
+    """El botón de recortar reduce la tabla y la página sobrevive.
+
+    Escribía en la clave de un `st.data_editor`. Streamlit declara esa clave de
+    solo lectura (`StreamlitValueAssignmentNotAllowedError`), así que no se puede
+    escribir desde un handler ni con el patrón diferido: la tabla se guarda en
+    `_editor_value` y es la que la rejilla dibuja.
+    """
+    from streamlit.testing.v1 import AppTest
+
+    base, _meta = INF.example_window(14, 0.55)
+    grande = base.copy()
+    while len(grande) <= INF.UMBRAL_RECORTE_EDITOR:
+        grande = pd.concat([grande, base], ignore_index=True)
+
+    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"),
+                            default_timeout=300)
+    app.session_state["_editor_value"] = grande
+    app.run()
+    assert not app.exception, app.exception
+
+    modo = next(s for s in app.segmented_control if s.key == "live_mode")
+    modo.set_value("Editar tabla (pegar)").run()
+    assert not app.exception, app.exception
+
+    boton = next((b for b in app.button if b.key == "recortar_editor"), None)
+    assert boton is not None, "el botón de recortar no aparece con una tabla grande"
+    boton.click().run()
+    assert not app.exception, app.exception
+
+    assert len(app.session_state["_editor_value"]) == INF.UMBRAL_RECORTE_EDITOR, (
+        f"quedaron {len(app.session_state['_editor_value'])} filas"
+    )
+
+
+@needs_cache
+def test_el_preset_demo_funciona_tambien_en_modo_editar():
+    """Los presets de demo sirven en «Editar tabla», no solo en el ejemplo.
+
+    Escribían en la clave del `data_editor`. En el modo por defecto la página no
+    se caía porque la rejilla no se llega a instanciar; en cuanto el usuario
+    cambiaba a «Editar tabla (pegar)» y pulsaba un preset, la clave ya existía y
+    la página se rompía.
+    """
+    from streamlit.testing.v1 import AppTest
+
+    base, _meta = INF.example_window(14, 0.55)
+    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"),
+                            default_timeout=300)
+    app.session_state["_editor_value"] = pd.concat([base] * 3, ignore_index=True)
+    app.run()
+    assert not app.exception, app.exception
+
+    modo = next(s for s in app.segmented_control if s.key == "live_mode")
+    modo.set_value("Editar tabla (pegar)").run()
+    assert not app.exception, app.exception
+
+    boton = next(b for b in app.button if b.key == "live_demo_Sano U15 inicio (APTO)")
+    boton.click().run()
+    assert not app.exception, app.exception
+
+    assert len(app.session_state["_editor_value"]) == INF.DEMO_ROWS
+    assert app.session_state["live_engine_id"] == "ESN-SANO-01"
