@@ -409,6 +409,15 @@ correccion_en_uso = (
 # ------------------------------------------------------------------- sidebar
 with st.sidebar:
     st.header("Guardia operativa", icon=":material/radar:")
+    # Qué ve cada audiencia: el tribunal necesita todo; el operario, solo su turno.
+    st.segmented_control(
+        "Vista",
+        ["Tribunal", "Turno"],
+        default="Tribunal",
+        key="vista_modo",
+        help="Tribunal muestra todo (evidencia, demo, sandbox). Turno deja solo lo "
+             "que un operario usa en su guardia.",
+    )
     _vistas = sorted(set(int(u) for u in units) | {int(a["unit_id"]) for a in _altas()})
     _default = _vistas[0] if int(st.session_state.get("unit", _vistas[0])) not in _vistas else int(st.session_state.get("unit", _vistas[0]))
     unit = st.segmented_control(
@@ -1034,6 +1043,10 @@ def _informe_auditoria_pdf(
     return bytes(pdf.output())
 
 
+# La vista la escribe el widget de la barra lateral; aquí solo se lee. Turno
+# esconde en Flota el material de demo y de auditoría.
+_vista_tribunal = str(st.session_state.get("vista_modo", "Tribunal")) == "Tribunal"
+
 tab_flota, tab_motor, tab_casos, tab_auditoria = st.tabs(
     [
         ":material/factory: Flota · qué pasa hoy",
@@ -1233,64 +1246,66 @@ with tab_flota:
         st.caption(f"Ciclos hasta el umbral de hangar · {_faltan_txt}")
 
     # -------------------- modo historia: la narrativa en cuatro pasos
-    with st.container(border=True):
-        st.subheader("Modo historia · la narrativa en cuatro pasos",
-                     icon=":material/auto_stories:")
-        st.caption(
-            "Cuatro estados que cuentan la historia, derivados de la caché. Cada paso "
-            "deja la app donde dice; el cuarto cambia la política para ver el efecto."
-        )
-        _pasos_historia = A.estado_historia(windows, umbrales)
-        _cols_h = st.columns(len(_pasos_historia))
-        for _col, _paso in zip(_cols_h, _pasos_historia):
-            with _col:
-                if st.button(
-                    f"{_paso['paso']}. {_paso['titulo']}",
-                    key=f"historia_{_paso['paso']}", icon=":material/play_circle:",
-                ):
-                    st.session_state["_escenario_pendiente"] = (
-                        int(_paso["unidad"]), int(_paso["ciclo"]))
-                    st.session_state["_umbrales_pendientes"] = (
-                        _paso["umbrales"]["apto"], _paso["umbrales"]["hangar"])
-                    _log(f"Modo historia, paso {_paso['paso']}: {_paso['titulo']}.")
-                    st.session_state["_toast_pendiente"] = (
-                        f"Paso {_paso['paso']}: {_paso['titulo']}. {_paso['cuenta']}"
-                    )
-                    st.rerun()
-                st.caption(_paso["cuenta"])
+    if _vista_tribunal:
+        with st.container(border=True):
+            st.subheader("Modo historia · la narrativa en cuatro pasos",
+                         icon=":material/auto_stories:")
+            st.caption(
+                "Cuatro estados que cuentan la historia, derivados de la caché. Cada paso "
+                "deja la app donde dice; el cuarto cambia la política para ver el efecto."
+            )
+            _pasos_historia = A.estado_historia(windows, umbrales)
+            _cols_h = st.columns(len(_pasos_historia))
+            for _col, _paso in zip(_cols_h, _pasos_historia):
+                with _col:
+                    if st.button(
+                        f"{_paso['paso']}. {_paso['titulo']}",
+                        key=f"historia_{_paso['paso']}", icon=":material/play_circle:",
+                    ):
+                        st.session_state["_escenario_pendiente"] = (
+                            int(_paso["unidad"]), int(_paso["ciclo"]))
+                        st.session_state["_umbrales_pendientes"] = (
+                            _paso["umbrales"]["apto"], _paso["umbrales"]["hangar"])
+                        _log(f"Modo historia, paso {_paso['paso']}: {_paso['titulo']}.")
+                        st.session_state["_toast_pendiente"] = (
+                            f"Paso {_paso['paso']}: {_paso['titulo']}. {_paso['cuenta']}"
+                        )
+                        st.rerun()
+                    st.caption(_paso["cuenta"])
 
     # -------------------- registro de sesión
     # Plegado: es un log de auditoría de la sesión, no algo que se mire en directo.
-    with st.expander("Registro de sesión · qué se ha hecho en esta sesión",
-                     icon=":material/receipt_long:"):
-        _log_sesion = st.session_state.get("_sesion_log") or []
-        if not _log_sesion:
-            st.caption(
-                "Todavía no has hecho nada en esta sesión. El registro se llena con "
-                "cada acción discreta: altas, escenarios, lotes y gemelos."
-            )
-        else:
-            st.dataframe(
-                pd.DataFrame(_log_sesion),
-                hide_index=True,
-                column_config={
-                    "at": st.column_config.TextColumn("Cuándo"),
-                    "que": st.column_config.TextColumn("Qué"),
-                },
-                alt="Registro de sesión: las acciones hechas, con su fecha.",
-            )
-            with st.container(horizontal=True):
-                st.download_button(
-                    "Descargar registro (CSV)",
-                    data=pd.DataFrame(_log_sesion).to_csv(index=False),
-                    file_name="registro_sesion_ds02.csv",
-                    mime="text/csv",
-                    icon=":material/download:",
+    if _vista_tribunal:
+        with st.expander("Registro de sesión · qué se ha hecho en esta sesión",
+                         icon=":material/receipt_long:"):
+            _log_sesion = st.session_state.get("_sesion_log") or []
+            if not _log_sesion:
+                st.caption(
+                    "Todavía no has hecho nada en esta sesión. El registro se llena con "
+                    "cada acción discreta: altas, escenarios, lotes y gemelos."
                 )
-                if st.button("Vaciar registro", icon=":material/delete:",
-                             key="sesion_vaciar"):
-                    st.session_state["_sesion_log"] = []
-                    st.rerun()
+            else:
+                st.dataframe(
+                    pd.DataFrame(_log_sesion),
+                    hide_index=True,
+                    column_config={
+                        "at": st.column_config.TextColumn("Cuándo"),
+                        "que": st.column_config.TextColumn("Qué"),
+                    },
+                    alt="Registro de sesión: las acciones hechas, con su fecha.",
+                )
+                with st.container(horizontal=True):
+                    st.download_button(
+                        "Descargar registro (CSV)",
+                        data=pd.DataFrame(_log_sesion).to_csv(index=False),
+                        file_name="registro_sesion_ds02.csv",
+                        mime="text/csv",
+                        icon=":material/download:",
+                    )
+                    if st.button("Vaciar registro", icon=":material/delete:",
+                                 key="sesion_vaciar"):
+                        st.session_state["_sesion_log"] = []
+                        st.rerun()
 
     with st.container(horizontal=True):
         st.metric(
@@ -1531,39 +1546,40 @@ with tab_flota:
             st.dataframe(pd.DataFrame(rachas), hide_index=True,
                          alt="Rachas de estado de la unidad seleccionada a lo largo de los ciclos.")
 
-    with st.container(border=True):
-        st.subheader("Motor de reglas · traza del caso", icon=":material/rule:")
-        fila = snapshot[snapshot["unit"] == unit].iloc[0]
-        st.caption(
-            "Pasada A de `mia.motor` sobre la unidad seleccionada: la misma función del "
-            "cuaderno de práctica, no una reclasificación paralela. Gana la regla de "
-            "mayor prioridad que se cumpla."
-        )
-        if bool(fila["reached"]):
-            traza = UR.traza_decision(float(fila["lower"]), umbrales)
-            st.markdown(
-                f"**U{int(unit)} · ciclo {cycle}** · `L_inf = {fila['lower']:.1f}` → "
-                f"**{traza['decision'] or 'sin decisión'}** · reglas: "
-                + (" → ".join(traza["usadas"]) or "(ninguna)")
-            )
-            for linea in traza["porque"]:
-                st.caption(linea)
-        else:
+    if _vista_tribunal:
+        with st.container(border=True):
+            st.subheader("Motor de reglas · traza del caso", icon=":material/rule:")
+            fila = snapshot[snapshot["unit"] == unit].iloc[0]
             st.caption(
-                "La unidad todavía no tiene ventanas evaluadas en este ciclo: el motor no "
-                "emite una decisión que no pueda sostener."
+                "Pasada A de `mia.motor` sobre la unidad seleccionada: la misma función del "
+                "cuaderno de práctica, no una reclasificación paralela. Gana la regla de "
+                "mayor prioridad que se cumpla."
             )
-        catalogo = pd.DataFrame(UR.catalogo_decision()).rename(
-            columns={"regla": "Regla", "prioridad": "Prioridad", "porque": "Porqué"}
-        )
-        st.dataframe(
-            catalogo,
-            hide_index=True,
-            column_config={
-                "Prioridad": st.column_config.NumberColumn("Prioridad", format="%d"),
-            },
-            alt="Reglas de la pasada A, con su prioridad y su justificación.",
-        )
+            if bool(fila["reached"]):
+                traza = UR.traza_decision(float(fila["lower"]), umbrales)
+                st.markdown(
+                    f"**U{int(unit)} · ciclo {cycle}** · `L_inf = {fila['lower']:.1f}` → "
+                    f"**{traza['decision'] or 'sin decisión'}** · reglas: "
+                    + (" → ".join(traza["usadas"]) or "(ninguna)")
+                )
+                for linea in traza["porque"]:
+                    st.caption(linea)
+            else:
+                st.caption(
+                    "La unidad todavía no tiene ventanas evaluadas en este ciclo: el motor no "
+                    "emite una decisión que no pueda sostener."
+                )
+            catalogo = pd.DataFrame(UR.catalogo_decision()).rename(
+                columns={"regla": "Regla", "prioridad": "Prioridad", "porque": "Porqué"}
+            )
+            st.dataframe(
+                catalogo,
+                hide_index=True,
+                column_config={
+                    "Prioridad": st.column_config.NumberColumn("Prioridad", format="%d"),
+                },
+                alt="Reglas de la pasada A, con su prioridad y su justificación.",
+            )
 
     order = L.work_order(snapshot, provenance, threshold_apto, threshold_aog,
                          banda=banda_en_uso, correccion=correccion_en_uso)
