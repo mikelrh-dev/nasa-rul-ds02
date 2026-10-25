@@ -1162,12 +1162,9 @@ with tab_flota:
     with st.container(border=True):
         st.subheader("Cronología de estado de flota", icon=":material/timeline:")
         st.caption(
-            "Cada punto es un ciclo evaluado y su color es el estado que dicta el límite "
-            "inferior. La línea vertical es el reloj de la simulación."
-        )
-        st.caption(
             "**Leyenda:** ● verde → Apto · ■ naranja → Inspección · ✕ rojo → Hangar. "
-            "Solo `L_inf` (límite inferior de la banda) decide el color."
+            "Solo `L_inf` (límite inferior de la banda) decide el color; la línea "
+            "vertical punteada es el reloj de flota."
         )
         ribbon_rows = []
         por_ciclo = UR.estado_por_ciclo(frame)
@@ -1226,10 +1223,6 @@ with tab_flota:
     with st.container(border=True):
         st.subheader("El taller · qué pasa si cambio la política",
                      icon=":material/tune:")
-        st.caption(
-            "Los tres controles que gobiernan el triaje, con lo que hacen y lo que no "
-            "hacen. Su efecto se ve abajo: en el muro y en la cola de mantenimiento."
-        )
         _taller_a, _taller_b = st.columns([2, 1])
         with _taller_a:
             st.selectbox(
@@ -1401,7 +1394,6 @@ with tab_flota:
     # Plegada la tabla; la tarjeta «Regla de negocio» se queda fuera, a la vista.
     with st.expander("Cola de mantenimiento · tabla por unidad",
                      icon=":material/assignment:"):
-        st.caption("Decisión por límite inferior conformal, no por la predicción puntual.")
         display = pd.DataFrame(
             {
                 "Motor": [_etiqueta_unidad(float(u)) for u in snapshot["unit"]],
@@ -2115,7 +2107,7 @@ with tab_motor:
             )
             st.caption(
                 "Radiografía de sensores (presiones) respecto a la línea base sana del "
-                "propio motor. La pestaña 3 la muestra por grupo de canales."
+                "propio motor: la señal física bruta, antes de que el modelo la lea."
             )
 
     # -------------------- comparador: 2-3 motores superpuestos
