@@ -451,3 +451,41 @@ def test_el_informe_de_auditoria_es_un_pdf_descargable():
     )
     assert data[:5] == b"%PDF-", data[:20]
     assert data.rstrip().endswith(b"%%EOF"), "PDF sin marca de fin"
+
+
+# ------------------------------------------------------------------ vista
+@needs_cache
+def test_la_vista_turno_oculta_el_material_de_tribunal():
+    """La vista de turno deja solo lo que un operario usa en su guardia.
+
+    Esconde el modo historia (demo), el registro de sesión (log) y la traza de
+    reglas (auditoría). Lo operativo —muro, reloj, orden de trabajo, hangar—
+    sigue en su sitio.
+    """
+    app = _app()
+    app.run()
+    assert not app.exception, app.exception
+
+    vista = next(c for c in app.segmented_control if c.label == "Vista")
+    assert vista.value == "Tribunal", vista.value
+
+    def _secciones(a):
+        return [s.value for s in a.tabs[0].subheader]
+
+    tribunal = _secciones(app)
+    assert "Modo historia · la narrativa en cuatro pasos" in tribunal
+    assert "Motor de reglas · traza del caso" in tribunal
+    assert any("Registro de sesión" in (e.label or "") for e in app.tabs[0].expander)
+
+    vista.set_value("Turno").run()
+    assert not app.exception, app.exception
+
+    turno = _secciones(app)
+    assert "Modo historia · la narrativa en cuatro pasos" not in turno, turno
+    assert "Motor de reglas · traza del caso" not in turno, turno
+    assert not any("Registro de sesión" in (e.label or "")
+                   for e in app.tabs[0].expander)
+
+    for seccion in ("Muro del hangar", "Avanzar la flota", "Orden de trabajo",
+                    "Hangar · ciclo de vida"):
+        assert seccion in turno, (seccion, turno)
