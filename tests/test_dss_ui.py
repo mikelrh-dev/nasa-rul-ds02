@@ -304,7 +304,10 @@ def test_the_cycle_slider_drives_the_grounded_kpi():
 
     app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=120)
     app.run()
-    app.slider[0].set_value(40).run()
+    # Por etiqueta, no por índice: el reloj se movió a la barra lateral y el
+    # índice 0 pasó a ser el slider del sandbox.
+    _ciclo = next(s for s in app.slider if (s.label or "").startswith("Ciclo de vuelo"))
+    _ciclo.set_value(40).run()
     assert not app.exception, app.exception
 
     expected = int((L.fleet_snapshot(L.get_windows(), 40)["state"] == L.AOG).sum())
