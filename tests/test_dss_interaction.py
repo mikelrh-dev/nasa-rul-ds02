@@ -59,6 +59,15 @@ def _matricula_auto(app) -> str:
     pytest.fail("el formulario de alta no tiene campo de matrícula")
 
 
+def _slider_ciclo(app):
+    """El reloj de flota, por su etiqueta.
+
+    No por índice: el reloj vive ahora en la barra lateral y el índice 0 pasó a
+    ser el slider del sandbox, que se renderiza antes en el árbol de AppTest.
+    """
+    return next(s for s in app.slider if (s.label or "").startswith("Ciclo de vuelo"))
+
+
 def _selector_unidad(app):
     """The sidebar's unit picker (the first `segmented_control` is the data mode)."""
     for control in app.segmented_control:
@@ -158,7 +167,7 @@ def test_cargar_escenario_demo_no_rompe_la_app():
     assert not app.exception, app.exception
 
     assert _selector_unidad(app).value == 14, _selector_unidad(app).value
-    assert app.slider[0].value == 29, app.slider[0].value
+    assert _slider_ciclo(app).value == 29, _slider_ciclo(app).value
 
 
 # ------------------------------------------------------------------ fase 1
@@ -285,7 +294,7 @@ def test_mover_un_umbral_cambia_la_cola():
     """El efecto del taller es visible: aflojar el umbral de hangar deriva menos."""
     app = _app()
     app.run()
-    app.slider[0].set_value(29).run()
+    _slider_ciclo(app).set_value(29).run()
     assert not app.exception, app.exception
     antes = _cuenta_hangar(app)
     assert antes > 0
@@ -300,7 +309,7 @@ def test_la_decision_no_cambia_de_agregacion():
     """Mover los umbrales no cambia la agregación: la decisión sigue usando L_inf."""
     app = _app()
     app.run()
-    app.slider[0].set_value(29).run()
+    _slider_ciclo(app).set_value(29).run()
     assert not app.exception, app.exception
 
     snap = L.fleet_snapshot(L.get_windows(), 29, 30.0, 25.0)
@@ -327,7 +336,7 @@ def test_el_modo_historia_carga_el_paso_3_en_la_app():
 
     assert not app.exception, app.exception
     assert _selector_unidad(app).value == 14
-    assert app.slider[0].value == 29
+    assert _slider_ciclo(app).value == 29
 
 
 @needs_cache

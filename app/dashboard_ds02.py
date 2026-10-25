@@ -422,6 +422,23 @@ with st.sidebar:
     )
     st.caption(_etiqueta_unidad(float(unit)))
 
+    # El reloj de flota va aquí, junto a la unidad: son los dos controles que se
+    # usan juntos. El «ciclo del alta» de más abajo es otro concepto.
+    st.slider(
+        "Ciclo de vuelo simulado",
+        min_value=1,
+        max_value=max_life,
+        value=1,
+        step=1,
+        key="cycle",
+        help=(
+            "Reloj de flota: se aplica a todas las unidades. Las que terminaron "
+            "su vida registrada se muestran en su último ciclo evaluado (vida "
+            f"máxima: {max_life})."
+        ),
+    )
+    st.divider()
+
     with st.expander("¿Cómo probar con un caso típico?", icon=":material/help:"):
         st.caption("Sin CSV ni pegado: elige unidad + ciclo y aparece en flota. "
                    "Cada ciclo es un estado de degradación distinto.")
@@ -1171,22 +1188,10 @@ with tab_flota:
                     "reproduce el contrato congelado del artefacto."
                 ),
             )
-            st.slider(
-                "Ciclo de vuelo simulado",
-                min_value=1,
-                max_value=max_life,
-                value=1,
-                step=1,
-                key="cycle",
-                help=(
-                    "Reloj de flota: se aplica a todas las unidades. Las que terminaron "
-                    "su vida registrada se muestran en su último ciclo evaluado (vida "
-                    f"máxima: {max_life})."
-                ),
-            )
         st.caption(
             "La decisión sigue siendo por límite inferior: mover estos controles no "
-            "cambia esa agregación, solo los números que la disparan."
+            "cambia esa agregación, solo los números que la disparan. El reloj de "
+            "flota vive en la barra lateral, junto a la unidad."
         )
 
     # -------------------- avance de flota: el reloj se mueve, los retenidos no
