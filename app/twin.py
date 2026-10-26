@@ -125,6 +125,12 @@ def vista_resultado(twin: dict) -> dict:
     Devuelve una sola fila: la **peor ventana del último ciclo**, que es la que
     decide. Con la última fila de la serie, la orden y la tabla podrían discrepar
     cuando el último ciclo tiene varias ventanas.
+
+    El `window` devuelto es la **posición de esa ventana dentro de la serie
+    guardada** (`peor.name`), no un índice de ventana del dataset: la serie del
+    gemelo es la lista de ventanas que se puntuaron y el índice solo la ordena.
+    Es el mismo valor para un alta de la caché, una evaluación en vivo y un
+    gemelo registrado, porque `twin["serie"]` es siempre una lista plana.
     """
     frame = pd.DataFrame(twin["serie"])
     if frame.empty:
@@ -134,7 +140,7 @@ def vista_resultado(twin: dict) -> dict:
     peor = del_ciclo.iloc[0]
     return {
         "windows": pd.DataFrame([{
-            "window": int(len(frame) - 1),
+            "window": int(peor.name),
             "cycle": float(peor["cycle"]),
             "start_row": int(peor.get("start_row", -1)),
             "pred": float(peor["pred"]),

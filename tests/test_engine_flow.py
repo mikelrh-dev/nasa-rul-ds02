@@ -21,6 +21,7 @@ sys.path.insert(0, APP)
 
 import hangar as HGR  # noqa: E402
 import twin as T  # noqa: E402
+import ui_alta as AL  # noqa: E402
 import ui_data_loader as L  # noqa: E402
 import ui_inference as INF  # noqa: E402
 
@@ -166,6 +167,9 @@ def test_el_gemelo_registrado_tiene_detalle_abierto():
     assert "Gemelo digital · detalle" in texto, texto
     assert "Ciclos hasta el umbral" in texto
     assert "La ventana que decide" in texto
+    # La posición que cita el panel es dentro de la serie guardada, no un índice
+    # de ventana del dataset: el número solo es honesto si la frase lo dice.
+    assert "posición **1** de la serie guardada" in texto, texto
     # La banda se dibuja entera: el panel cita los dos extremos, no solo lower.
     alts = [c.proto.alt or "" for c in app.get("plotly_chart")]
     assert any("banda conformal al 90" in a for a in alts), alts
@@ -183,8 +187,52 @@ def _texto(app) -> str:
 
 
 @needs_cache
+def test_la_ventana_que_decide_es_la_de_menor_limite_inferior():
+    """La ventana que decide se reporta, no la última fila de la serie.
+
+    `vista_resultado` elige la ventana con el menor `lower` del último ciclo
+    puntuado y luego escribe `len(frame) - 1`, que es la posición de la última
+    fila guardada. Con un alta de la caché (`step=2`) el último ciclo tiene 44
+    ventanas, así que los dos números discrepan: la U11 hasta el ciclo 22 guarda
+    1219 filas y la ventana que decide está en la posición 1177, no en la 1218.
+    El panel cita ese número como «la ventana que decide».
+    """
+    crudo = L.get_windows()
+    recorte = AL.ventanas_de_alta(
+        crudo.rename(columns={"start_index": "start_row"}), 11, 22, -11.0,
+    )
+    gemelo = T.make_twin(
+        "U11-ALTA", {"windows": recorte.reset_index(drop=True),
+                     "contract": {"window": 50, "step": 2, "canales": ["alt"],
+                                  "motor": "U11-ALTA"}},
+        source="cache", banda="artefacto", correccion="ninguna",
+        umbrales=UMBRALES, fingerprint_value="f" * 64,
+    )
+    serie = pd.DataFrame(gemelo["serie"])
+    ultimo = float(serie["cycle"].max())
+    decidida = serie[serie["cycle"] == ultimo].sort_values("lower", kind="stable").iloc[0]
+
+    # El alta reproduce el caso medido: el último ciclo no es una sola ventana.
+    assert len(serie) == 1219
+    assert int(ultimo) == 22
+    assert int((serie["cycle"] == ultimo).sum()) == 44
+    # `start_row // step` es la posición dentro de la serie guardada.
+    assert int(decidida["start_row"]) // 2 == 1177
+
+    reportada = int(T.vista_resultado(gemelo)["windows"].iloc[0]["window"])
+    assert reportada == decidida.name == 1177
+    assert reportada != len(serie) - 1, "la última fila no es la que decide"
+
+
+@needs_cache
 def test_la_orden_de_un_gemelo_sale_de_la_serie_guardada():
-    """El papel de un gemelo se emite sin re-puntuar y sin inventar verdad."""
+    """El papel de un gemelo se emite sin re-puntuar y sin inventar verdad.
+
+    El gemelo de prueba tiene una ventana por ciclo (ciclos 40 y 41), así que la
+    ventana que decide es la última fila: la posición 1 dentro de la serie
+    guardada. Un alta de la caché, en cambio, solapa ventanas y la posición que
+    reporta `vista_resultado` ya no es la de la última fila.
+    """
     gemelo = _gemelo()
     orden = INF.live_work_order(
         T.vista_resultado(gemelo), {"source": gemelo["source"]},
@@ -192,6 +240,9 @@ def test_la_orden_de_un_gemelo_sale_de_la_serie_guardada():
     )
     entrada = orden["unidades"][0]
     assert entrada["unidad"] == "ESN-TEST"
+    # La orden cita la posición dentro de la serie guardada, no un índice de
+    # dataset: con una ventana por ciclo es la última fila, la 1 de 2.
+    assert entrada["ventana_evaluada"]["indice"] == 1
     assert entrada["ventana_evaluada"]["ciclo"] == 41.0
     assert entrada["limite_inferior"] == 8.0
     assert entrada["estado"] == L.AOG

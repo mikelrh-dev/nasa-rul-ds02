@@ -70,6 +70,11 @@ U14 ciclo 29 · 286 rows · 10 windows in the last cycle
 confirms the position within the saved series is the value that identifies the
 window.
 
+The measurement is reproducible from the cache with `AL.ventanas_de_alta(windows, 11, 22,
+-11.0)`: it yields 1219 rows whose last cycle holds 44 windows, and the deciding row
+carries `start_row` 2354 (`2354 // 2 = 1177`). The same recipe on `unit=14, cycle=29`
+yields 286 rows whose deciding row is the last one, so both expressions agree there.
+
 ### 1.3 An infinite value is a valid input
 
 `validate_table` (`app/ui_inference.py:318-340`) coerces every required column to
