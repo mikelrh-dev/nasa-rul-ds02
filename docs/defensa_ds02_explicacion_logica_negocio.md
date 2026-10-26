@@ -17,7 +17,7 @@
 ## 1. Flujo completo del sistema
 
 ```
-Ventana (50 filas, 18 canales, remuestreada cada 2 filas)
+Ventana (50 filas, 18 canales, muestreadas cada 100 filas: ~0,44 ciclos de vuelo)
    ↓
 Ensamble hibrido BiLSTM + LightGBM cuantílico (con 50% objetivo asimétrico)
    ↓
@@ -104,7 +104,7 @@ U15: 25 → 43. → 18 ciclos.
 
 ### 5.3 La diferencia técnica
 
-El `L_inf` no es un número fijo por ciclo: cada ciclo acumula varias **ventanas** (50 filas, remuestreadas cada 2 filas). El ADR-008 cota el cruce con la **media de los límites inferiores** del ciclo (`lower`), que es el valor que usa la regla R9 en `fleet_snapshot`. El informe de 24 de octubre usa el **peor** límite inferior de la ventana (`lower_min`), que avisa más temprano. Las dos cifras son correctas; mide magnitudes distintas, y la diferencia es mayor en la unidad 11 (9 vs 13) que en la 14 (23 = igual en ambas, porque su `lower` y `lower_min` bajan de golpe).
+El `L_inf` no es un número fijo por ciclo: cada ciclo acumula varias **ventanas** (50 filas, muestreadas cada 100 filas: ~0,44 ciclos de vuelo). El ADR-008 cota el cruce con la **media de los límites inferiores** del ciclo (`lower`), que es el valor que usa la regla R9 en `fleet_snapshot`. El informe de 24 de octubre usa el **peor** límite inferior de la ventana (`lower_min`), que avisa más temprano. Las dos cifras son correctas; mide magnitudes distintas, y la diferencia es mayor en la unidad 11 (9 vs 13) que en la 14 (23 = igual en ambas, porque su `lower` y `lower_min` bajan de golpe).
 
 > Regla de oro para la defensa: si te preguntan "cuánto avisa", contesta **13/23/18 ciclos** (medida conservadora, ventana peor), y, si te piden la cifra del diseño, **9/23/17** (lead time al corte neto de la regla). No mezcles las dos sin explicar la diferencia.
 
@@ -121,7 +121,7 @@ En un proyecto real esto debería ir acompañado de un **modelo de costes** (cos
 
 | Afirmación | Verificación |
 |---|---|
-| 41 tests del paquete `mia/` + `hangar()`/`flota()` + reglas pasan | Ejecutados 2026-10-25: `41 passed in 25.60s` |
+| 211 tests del paquete `mia/` + `hangar()`/`flota()` + reglas pasan | Ejecutados 2026-10-25: `211 passed in 196.76s` |
 | Primera operación de `first_alarm_cycle(c, 25.0)` | Reproducida: `U11: 22/35/13`, `U14: 29/52/23`, `U15: 25/43/18` |
 | Saturación de la predicción puntual en ~60.6 y bin `[50,75)` −24.47 | Cites del ADR-008 y del `README.md`; consistente con la curva de U11 |
 | `L_inf(max) ≈ 36` y todos los motores empiezan en verde | Alta estimación teórica ~36.13; observada 35.7 / 33.0 / 35.8 |
