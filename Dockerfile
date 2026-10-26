@@ -20,6 +20,9 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY src/ ./src/
 COPY app/ ./app/
 COPY scripts/ ./scripts/
+# mia/ is imported at module load by app/ui_rules.py, so the dashboard
+# entrypoint cannot start without it even though the build itself succeeds.
+COPY mia/ ./mia/
 RUN pip install -e .
 
 # Only the artifacts, not the 2.3 GB dataset.
