@@ -26,7 +26,7 @@ One commit per phase, one phase at a time.
 
 ## Phase 1 — Deployment
 
-### 1. Ship the rules layer in the image
+### [x] 1. Ship the rules layer in the image
 
 **Modifies** `Dockerfile`: add `COPY mia/ ./mia/` beside the existing `COPY`
 lines.
@@ -34,7 +34,7 @@ lines.
 Acceptance: `grep -n "^COPY" Dockerfile` lists `mia/`, and the Dockerfile parses
 (`docker compose config` still succeeds).
 
-### 1.1 Prove the fix in the tree the Dockerfile produces
+### [x] 1.1 Prove the fix in the tree the Dockerfile produces
 
 **Creates** a scratch copy of the tree the Dockerfile copies — `src/`, `app/`,
 `scripts/`, the four files under `models/` listed in the Dockerfile, plus
@@ -49,7 +49,7 @@ the repository.
 
 ## Phase 2 — Documentary coherence
 
-### 2. State the stride in the defense document
+### [x] 2. State the stride in the defense document
 
 **Modifies** `docs/defensa_ds02_explicacion_logica_negocio.md`: line 20 and the
 phrase at line 107. The window is 50 rows sampled every **100** rows
@@ -60,7 +60,7 @@ windows overlap, not the sampling distance.
 Acceptance: `grep -rn "cada 2 filas" docs/` returns nothing, and the document
 states 100 and 0,44.
 
-### 3. Stop pointing at the broken legacy board
+### [x] 3. Stop pointing at the broken legacy board
 
 **Modifies** `README.md`: the interfaces block offers `streamlit run
 app/dashboard.py`, which fails to render today
@@ -72,7 +72,7 @@ surface has four (Flota, Motor, Casos nuevos, Auditoría).
 Acceptance: `grep -n "dashboard.py" README.md` returns only
 `app/dashboard_ds02.py`, and `grep -n "fifth tab" README.md` returns nothing.
 
-### 4. Stop tracking a stale copy of the dashboard
+### [x] 4. Stop tracking a stale copy of the dashboard
 
 **Modifies** the repository: `git rm --cached app/dashboard_ds02.py.bak_pestanas`.
 The file is a 147 KB copy of `app/dashboard_ds02.py` from the previous day,
@@ -85,7 +85,7 @@ Acceptance: `git ls-files | grep bak_pestanas` returns nothing, and
 
 ## Phase 3 — The window that decided
 
-### 5. `vista_resultado` reports the deciding window
+### [x] 5. `vista_resultado` reports the deciding window
 
 **Creates** a RED test first, in `tests/test_engine_flow.py`: build a twin from
 cached windows at `step=2` whose last cycle holds more than one window, and
@@ -100,7 +100,7 @@ in the same commit.
 Acceptance: `python -m pytest tests/test_engine_flow.py -q` passes, and the
 reported value for the U11/ciclo 22 alta is 1177, not 1218.
 
-### 5.1 The point of use says what the number is
+### [x] 5.1 The point of use says what the number is
 
 **Modifies** `app/dashboard_ds02.py` around line 1841: the caption cites the
 window as a position in the saved series, so a reader cannot mistake it for a
@@ -113,7 +113,7 @@ and `AppTest` renders without an exception.
 
 ## Phase 4 — Data robustness and provenance
 
-### 6. Reject non-finite values
+### [x] 6. Reject non-finite values
 
 **Creates** a RED test first, in `tests/test_live_eval.py`: a window whose `T48`
 holds `inf` and another whose `Ps30` holds `-inf` are both rejected with the
@@ -126,7 +126,7 @@ same message format at `app/ui_inference.py:336-339`.
 Acceptance: `python -m pytest tests/test_live_eval.py -q` passes, and the
 rejection message names the column and the row.
 
-### 7. Verify the cache hash against the artifact
+### [x] 7. Verify the cache hash against the artifact
 
 **Creates** `artifact_hash_check(provenance)` in `app/ui_data_loader.py`: a pure
 function, no Streamlit, that compares
@@ -143,7 +143,7 @@ hashes match, they differ, and the artifact is missing.
 Acceptance: `python -m pytest tests/test_dss_ui.py -q` passes, and a grep of the
 dashboard shows the warning is inside the `if not ok` branch.
 
-### 7.1 The green path moves nothing
+### [x] 7.1 The green path moves nothing
 
 **Modifies** nothing; this task exists to prove the previous one did not move a
 widget count. Run the whole suite and record the count before and after.
@@ -155,7 +155,7 @@ unchanged from the baseline recorded in the verify report.
 
 ## Phase 5 — Verification
 
-### 8. Full gate and evidence gate
+### [x] 8. Full gate and evidence gate
 
 **Runs** `python scripts/verify_gate.py` (the full suite, ~3,5 min) and
 `python scripts/freeze_rules_evidence.py`.
@@ -163,17 +163,17 @@ unchanged from the baseline recorded in the verify report.
 Acceptance: both exit 0; the suite count is recorded in the verify report; the
 evidence gate reports coverage 0.9012 and no drift.
 
-### 8.1 Headless render
+### [x] 8.1 Headless render
 
 Acceptance: `AppTest.from_file('app/dashboard_ds02.py').run()` raises no
 exception, reports no error, and shows four tabs.
 
-### 8.2 Frozen artifacts untouched
+### [x] 8.2 Frozen artifacts untouched
 
 Acceptance: `git status --porcelain models/ src/ mia/ app/cache/
 02_DS02_ensemble_RUL.ipynb` returns nothing after the whole change.
 
-### 8.3 Repository byte-identical outside the change
+### [x] 8.3 Repository byte-identical outside the change
 
 Acceptance: `git status --porcelain` lists only the files this change owns plus
 the `openspec/changes/2026-10-26-ds02-pre-defense-hardening/` directory.
