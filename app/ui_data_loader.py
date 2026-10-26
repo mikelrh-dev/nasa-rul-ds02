@@ -15,6 +15,7 @@ Two rules this module exists to enforce:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 
@@ -29,6 +30,11 @@ WINDOWS_PATH = os.path.join(CACHE_DIR, "ds02_windows.parquet")
 ROWS_PATH = os.path.join(CACHE_DIR, "ds02_rows.parquet")
 PROVENANCE_PATH = os.path.join(CACHE_DIR, "cache_manifest.json")
 MANIFEST_PATH = os.path.join(ROOT, "models", "ds02_manifest.json")
+ARTIFACT_PATH = os.path.join(ROOT, "models", "ensemble.joblib")
+
+# El sello se compara en bloques: el artefacto pesa decenas de MB y leerlo entero
+# para hashearlo duplicaria la memoria del proceso.
+HASH_CHUNK = 1 << 20  # 1 MiB
 
 AIRWORTHY = "APTO"
 PREVENTIVE = "INSPECCION"
@@ -139,6 +145,45 @@ def get_manifest() -> dict:
 
 def cache_available() -> bool:
     return all(os.path.exists(p) for p in (WINDOWS_PATH, ROWS_PATH, PROVENANCE_PATH))
+
+
+# ------------------------------------------------------- cache / artifact seal
+def artifact_hash_check(provenance: dict) -> dict:
+    """Compare the recorded ensemble hash with models/ensemble.joblib on disk.
+
+    Returns {"checked": bool, "ok": bool, "esperado": str|None, "leido": str|None}
+    with the full hex digests. Any unreadable input (missing artifact, truncated
+    manifest, unreadable file) returns checked=False instead of raising, because
+    a stale cache must warn the operator, never crash the render.
+
+    Why this exists: `app/cache/cache_manifest.json` records
+    `artifact.ensemble_sha256` and the surface displays it, but nothing compared
+    it with the bundle actually on disk. Retrain and replace
+    `models/ensemble.joblib` without rebuilding the cache and the screen keeps
+    showing predictions of the new bundle under the seal of the old one.
+    """
+    try:
+        artifact = (provenance or {}).get("artifact") or {}
+        esperado = artifact.get("ensemble_sha256") or ""
+    except AttributeError:
+        # Un `provenance` que no es un dict (None incluido) no es un sello roto,
+        # es una procedencia que no se puede leer: avisa, no tira la pagina.
+        return {"checked": False, "ok": False, "esperado": None, "leido": None}
+    esperado = str(esperado).strip()
+    if not esperado:
+        return {"checked": False, "ok": False, "esperado": None, "leido": None}
+
+    try:
+        digest = hashlib.sha256()
+        with open(ARTIFACT_PATH, "rb") as fh:
+            for chunk in iter(lambda: fh.read(HASH_CHUNK), b""):
+                digest.update(chunk)
+    except OSError:
+        return {"checked": False, "ok": False, "esperado": esperado, "leido": None}
+
+    leido = digest.hexdigest()
+    return {"checked": True, "ok": leido == esperado,
+            "esperado": esperado, "leido": leido}
 
 
 # ---------------------------------------------------------------------- policy

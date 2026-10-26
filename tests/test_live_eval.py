@@ -117,6 +117,40 @@ def test_non_numeric_cell_is_rejected_with_position():
 
 
 @needs_cache
+def test_non_finite_values_are_rejected_with_column_and_row():
+    """`inf` is not a number the bundle can score, even though `isna()` says it is.
+
+    `to_numeric(errors="coerce")` turns "n/a" into NaN and rejects it, but `inf`
+    survives as a perfectly valid float. From there it reaches the scaler, the
+    residualizer and the network, and the causal EMA is a recurrence over the
+    unit's windows: one `inf` contaminates every window after it, while the UI
+    paints it as an ordinary finite number.
+    """
+    positiva, _ = INF.example_window()
+    con_inf = positiva.copy()
+    con_inf.loc[3, "T48"] = np.inf
+    with pytest.raises(ValueError, match=r"`T48`, fila 4") as exc:
+        INF.validate_table(con_inf)
+    # El mismo formato de mensaje que un NaN, con la pista que lo distingue.
+    assert "infinito" in str(exc.value), str(exc.value)
+
+    negativa, _ = INF.example_window()
+    con_menos_inf = negativa.copy()
+    con_menos_inf.loc[7, "Ps30"] = -np.inf
+    with pytest.raises(ValueError, match=r"`Ps30`, fila 8") as exc:
+        INF.validate_table(con_menos_inf)
+    assert "infinito" in str(exc.value), str(exc.value)
+
+    # El contraste que hace al test util: NaN ya se rechazaba y no trae la pista
+    # de infinito, porque el operador no tiene que corregir la misma celda dos veces.
+    con_nan, _ = INF.example_window()
+    con_nan.loc[0, "T24"] = np.nan
+    with pytest.raises(ValueError, match=r"`T24`, fila 1") as exc:
+        INF.validate_table(con_nan)
+    assert "infinito" not in str(exc.value), str(exc.value)
+
+
+@needs_cache
 def test_decreasing_cycles_are_rejected():
     table, _ = INF.example_window()
     broken = table.copy()
