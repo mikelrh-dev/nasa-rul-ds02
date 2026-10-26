@@ -240,6 +240,81 @@ def test_reading_the_ui_leaves_the_frozen_artifacts_untouched():
     assert os.path.exists(L.MANIFEST_PATH) and L.MANIFEST_PATH.endswith("ds02_manifest.json")
 
 
+# ------------------------------------------------- cache / artifact seal
+def _sha256(path) -> str:
+    import hashlib
+
+    digest = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+@needs_cache
+def test_artifact_hash_check_is_quiet_when_the_seal_matches(monkeypatch):
+    """La caché registrada contra el artefacto que hay en disco: coinciden."""
+    monkeypatch.setattr(L, "ARTIFACT_PATH", os.path.join(ROOT, "models", "ensemble.joblib"))
+    registrado = L.get_provenance()["artifact"]["ensemble_sha256"]
+    assert _sha256(L.ARTIFACT_PATH) == registrado, (
+        "la caché registrada no corresponde al artefacto de este repo"
+    )
+
+    informe = L.artifact_hash_check(L.get_provenance())
+    assert informe["checked"] is True, informe
+    assert informe["ok"] is True, informe
+    assert informe["esperado"] == registrado, informe
+    assert informe["leido"] == registrado, informe
+    assert len(informe["leido"]) == 64, informe
+
+
+def test_artifact_hash_check_names_the_mismatch(monkeypatch, tmp_path):
+    """Un artefacto reentrenado sin reconstruir la caché se detecta y se nombra."""
+    sello = tmp_path / "ensemble.joblib"
+    sello.write_bytes(b"pesos reentrenados, no los de la cach\xe9")
+    monkeypatch.setattr(L, "ARTIFACT_PATH", str(sello))
+
+    registrado = L.get_provenance()["artifact"]["ensemble_sha256"]
+    informe = L.artifact_hash_check(L.get_provenance())
+    assert informe["checked"] is True, informe
+    assert informe["ok"] is False, informe
+    assert informe["esperado"] == registrado, informe
+    assert informe["leido"] == _sha256(str(sello)), informe
+    assert informe["leido"] != informe["esperado"], informe
+
+
+def test_artifact_hash_check_degrades_to_not_checked(monkeypatch, tmp_path):
+    """Sin artefacto no se comprueba nada: avisa, no tira el render."""
+    ausente = tmp_path / "no_existe.joblib"
+    monkeypatch.setattr(L, "ARTIFACT_PATH", str(ausente))
+
+    informe = L.artifact_hash_check(L.get_provenance())
+    assert informe["checked"] is False, informe
+    assert informe["ok"] is False, informe
+    assert informe["esperado"] == L.get_provenance()["artifact"]["ensemble_sha256"], informe
+    assert informe["leido"] is None, informe
+
+    # Manifest truncado (sin la clave) y procedencia inexistente: tampoco crashea.
+    for roto in ({"source": {}}, {}, None):
+        informe = L.artifact_hash_check(roto)
+        assert informe["checked"] is False, (roto, informe)
+        assert informe["ok"] is False, (roto, informe)
+
+
+def test_artifact_hash_check_no_importa_tensorflow():
+    """El sello se compara en el módulo ligero: importar Keras aqui seria un error."""
+    import subprocess
+
+    code = (
+        "import sys; sys.path.insert(0, 'app'); import ui_data_loader; "
+        "print('tensorflow' in sys.modules, 'keras' in sys.modules)"
+    )
+    proc = subprocess.run([sys.executable, "-c", code], cwd=ROOT,
+                          capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    assert proc.stdout.strip() == "False False"
+
+
 # ------------------------------------------------------------------- render
 @needs_cache
 def test_app_renders_headless_without_exception():

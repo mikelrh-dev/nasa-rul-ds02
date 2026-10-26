@@ -316,11 +316,19 @@ def validate_table(table: pd.DataFrame) -> pd.DataFrame:
         )
 
     for column in required:
-        coerced = pd.to_numeric(frame[column], errors="coerce")
-        bad = coerced.isna()
-        if bad.any():
-            first = int(np.flatnonzero(bad.to_numpy())[0])
-            bruto = frame[column].iloc[first]
+        crudo = frame[column]
+        coerced = pd.to_numeric(crudo, errors="coerce")
+        # `inf` es un float perfectamente valido y `isna()` lo da por bueno: pasaba
+        # al scaler, al residualizador y a la red, y el EMA causal es una
+        # recurrencia sobre las ventanas de la unidad, asi que un solo `inf`
+        # contaminaba todas las siguientes mientras la UI lo pintaba como un
+        # numero finito. Se rechaza en el mismo bucle y con el mismo formato de
+        # mensaje que un NaN: el operador necesita la columna y la fila, y un
+        # segundo formato de error para el mismo tipo de celda rota solo confundiria.
+        malo = coerced.isna() | coerced.map(lambda v: bool(np.isinf(v))).fillna(False)
+        if bool(malo.to_numpy(dtype=bool).any()):
+            first = int(np.flatnonzero(malo.to_numpy())[0])
+            bruto = crudo.iloc[first]
             pista = ""
             texto = str(bruto).strip()
             if "," in texto:
@@ -333,6 +341,10 @@ def validate_table(table: pd.DataFrame) -> pd.DataFrame:
                 else:
                     pista = (" Si son decimales con coma europea, pásalos a punto decimal "
                              "(`3.2` en vez de `3,2`).")
+            elif np.isinf(float(coerced.iloc[first])):
+                pista = (" Un infinito no es un valor que el paquete congelado pueda "
+                         "puntuar: llega al EMA causal y corrompe todas las ventanas "
+                         "posteriores; corrige la celda.")
             raise ValueError(
                 f"Valor no numérico en la columna `{column}`, fila {first + 1} "
                 f"({bruto!r}).{pista}"

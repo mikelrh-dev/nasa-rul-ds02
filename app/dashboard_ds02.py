@@ -598,6 +598,25 @@ with st.sidebar:
             "64 caracteres hexadecimales. Es la huella del artefacto congelado, no la de "
             "la caché."
         )
+        # El sello estaba en pantalla y nadie lo comprobaba: si el bundle se
+        # reentrena y se sustituye sin reconstruir `app/cache/`, la superficie
+        # sigue pintando predicciones bajo el sello viejo. Se mira en cada
+        # render y **solo** se avisa cuando discrepan: con el sello en regla no
+        # aparece nada, de modo que el camino verde no mueve ni un widget.
+        _sello = L.artifact_hash_check(provenance)
+        if _sello["checked"] and not _sello["ok"]:
+            st.warning(
+                f"La caché no corresponde al artefacto que hay en disco: el sello "
+                f"registrado es `{_sello['esperado'][:12]}` y el leído es "
+                f"`{_sello['leido'][:12]}`. Las cifras salen de `app/cache/`; "
+                f"reconstrúyela con `python scripts/build_ui_cache.py`.",
+                icon=":material/warning:",
+            )
+        elif not _sello["checked"]:
+            st.caption(
+                "No se pudo comprobar el sello del artefacto contra "
+                "`models/ensemble.joblib`."
+            )
         recorded = manifest.get("macro_rmse", {}).get("per_unit_rmse", {})
         if recorded:
             st.markdown(
@@ -1842,8 +1861,8 @@ with tab_flota:
             _vista = T.vista_resultado(_gemelo)
             _vent = _vista["windows"].iloc[0]
             st.caption(
-                f"La ventana que decide es la **{int(_vent['window'])}** del ciclo "
-                f"**{int(_vent['cycle'])}**, que empieza en la fila "
+                f"La ventana que decide es la posición **{int(_vent['window'])}** de la "
+                f"serie guardada, del ciclo **{int(_vent['cycle'])}**, que empieza en la fila "
                 f"**{int(_vent['start_row'])}** de la tabla puntuada: la más pesimista "
                 "de ese ciclo. Es el dato que sostiene el estado."
             )
