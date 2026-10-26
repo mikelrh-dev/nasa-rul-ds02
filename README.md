@@ -192,7 +192,6 @@ ValueError: bad marshal data (unknown type code)     # even with the shim
 python scripts/predict_ds02.py --unit 11 --window 0        # RUL 60.27 ciclos
 python scripts/predict_ds02.py --unit 11 --all --json      # full trajectory
 uvicorn app.api:app --port 8000                            # POST /predict, GET /health
-streamlit run app/dashboard.py                             # curve per engine
 python scripts/build_ui_cache.py                           # once: app/cache for the DSS
 streamlit run app/dashboard_ds02.py                        # fleet hangar + conformal band
 ```
@@ -200,7 +199,9 @@ streamlit run app/dashboard_ds02.py                        # fleet hangar + conf
 The DSS reads `app/cache/` only — no HDF5, no TensorFlow at render time — and
 triages maintenance on the conformal lower bound (`docs/decisions/ADR-008-…`).
 
-Its fifth tab, *Evaluar unidad nueva*, scores a unit you bring: an example window,
+Its four tabs are *Flota · qué pasa hoy*, *Motor · qué le pasa a este*,
+*Casos nuevos · trae un motor* and *Auditoría · cómo se calculó*. The third one,
+*Casos nuevos*, scores a unit you bring: an example window,
 a grid you can paste into, or a CSV with `cycle` plus the 18 channels in dataset
 order (`alt, Mach, TRA, T2, T24 … Wf`). A window is **50 downsampled rows**
 (`STRIDE = 100`), not 50 consecutive records. The bundle loads on the first
