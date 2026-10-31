@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "generated_at": "2026-10-21T17:02:52+00:00",
+  "generated_at": "2026-10-26T21:17:27+00:00",
   "dataset": "DS02",
   "source": {
     "h5": "archive/CCMaps/N-CMAPSS_DS02-006.h5",
@@ -32,9 +32,9 @@
   },
   "artifact": {
     "ensemble": "models\\ensemble.joblib",
-    "ensemble_sha256": "0acd795b0906389d46b7dc433249438e15b3ee899b1a5bc2cbd8624a6fe6d502",
+    "ensemble_sha256": "7acba3352a2c9aac46b1e95ee4045082a812cd9f947bf791fca4659412d64b1b",
     "manifest": "models\\ds02_manifest.json",
-    "manifest_sha256": "051e0af40613e09ff87aeccb1209e8b1fe10b99800c73277b0c79dc301a65332",
+    "manifest_sha256": "71607f0b543be1f0ecc268ad5cf43c2520e1d967be368dd22fdab9dc883c7a18",
     "paradigm": "Hybrid Stacking (BiLSTM triple-pooling + LGBM residualizado + RidgeCV/LGBM meta + EMA5)",
     "beta": 1.0,
     "ema_span": 5,
@@ -72,32 +72,32 @@
     "fit_engine_rows_per_cycle": 118.23
   },
   "metrics": {
-    "rmse": 4.2892,
-    "mae": 3.1792,
-    "macro_rmse": 4.9026,
+    "rmse": 4.2515,
+    "mae": 3.1826,
+    "macro_rmse": 4.8433,
     "per_unit_rmse": {
-      "11.0": 3.7728,
-      "14.0": 8.175,
-      "15.0": 2.76
+      "11.0": 3.7874,
+      "14.0": 7.9974,
+      "15.0": 2.7451
     },
     "per_unit": {
       "11": {
         "windows": 3293,
-        "rmse": 3.773,
-        "mae": 3.096,
-        "bias": 3.0637,
+        "rmse": 3.787,
+        "mae": 3.134,
+        "bias": 3.0982,
         "mae_by_band": {
           "[0, 25)": {
             "windows": 1429,
-            "mae": 1.2615
+            "mae": 1.3322
           },
           "[25, 50)": {
             "windows": 1359,
-            "mae": 4.9293
+            "mae": 4.9286
           },
           "[50, 75)": {
             "windows": 505,
-            "mae": 3.3551
+            "mae": 3.4012
           },
           "[75, inf)": {
             "windows": 0,
@@ -107,21 +107,21 @@
       },
       "14": {
         "windows": 760,
-        "rmse": 8.175,
-        "mae": 6.134,
-        "bias": -5.144,
+        "rmse": 7.997,
+        "mae": 6.084,
+        "bias": -5.0962,
         "mae_by_band": {
           "[0, 25)": {
             "windows": 273,
-            "mae": 1.2919
+            "mae": 1.3618
           },
           "[25, 50)": {
             "windows": 233,
-            "mae": 4.3708
+            "mae": 4.631
           },
           "[50, 75)": {
             "windows": 254,
-            "mae": 12.9563
+            "mae": 12.4924
           },
           "[75, inf)": {
             "windows": 0,
@@ -131,21 +131,21 @@
       },
       "15": {
         "windows": 2143,
-        "rmse": 2.76,
-        "mae": 2.259,
-        "bias": -2.201,
+        "rmse": 2.745,
+        "mae": 2.229,
+        "bias": -2.1372,
         "mae_by_band": {
           "[0, 25)": {
             "windows": 819,
-            "mae": 0.8504
+            "mae": 0.7992
           },
           "[25, 50)": {
             "windows": 810,
-            "mae": 2.8009
+            "mae": 2.7628
           },
           "[50, 75)": {
             "windows": 514,
-            "mae": 3.6488
+            "mae": 3.6651
           },
           "[75, inf)": {
             "windows": 0,
@@ -157,15 +157,15 @@
     "mae_by_band": {
       "[0, 25)": {
         "windows": 2521,
-        "mae": 1.1312
+        "mae": 1.1623
       },
       "[25, 50)": {
         "windows": 2402,
-        "mae": 4.1574
+        "mae": 4.1694
       },
       "[50, 75)": {
         "windows": 1273,
-        "mae": 5.3894
+        "mae": 5.3217
       },
       "[75, inf)": {
         "windows": 0,

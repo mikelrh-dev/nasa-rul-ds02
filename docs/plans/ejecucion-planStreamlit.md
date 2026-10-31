@@ -1,6 +1,6 @@
 # Descomposición ejecutable: pulido de la demo DS02
 
-> **Para quien ejecute este documento.** Lee antes `planStreamlit.md` (raíz): este
+> **Para quien ejecute este documento.** Lee antes `planStreamlit.md` (misma carpeta `docs/plans/`): este
 > fichero lo descompone en tareas con diseño cerrado. Ejecuta las tareas en el
 > orden de la sección 2 y no te saltes los gates de la sección 8.
 >

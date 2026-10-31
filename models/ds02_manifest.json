@@ -8,6 +8,10 @@
   "keras": "3.15.1",
   "sklearn": "1.9.1",
   "lightgbm": "4.7.0",
+  "lgb_objective": {
+    "objective": "quantile",
+    "alpha": 0.35
+  },
   "unit_partition": {
     "fit": [
       2,
@@ -56,9 +60,9 @@
           0.0,
           25.0
         ],
-        "n": 5829,
-        "q_low": -5.6452,
-        "q_high": 7.2864,
+        "n": 5772,
+        "q_low": -5.2697,
+        "q_high": 5.7392,
         "source": "bin"
       },
       {
@@ -67,9 +71,9 @@
           25.0,
           50.0
         ],
-        "n": 6152,
-        "q_low": -13.5002,
-        "q_high": 17.0066,
+        "n": 5851,
+        "q_low": -14.0076,
+        "q_high": 16.7315,
         "source": "bin"
       },
       {
@@ -78,9 +82,9 @@
           50.0,
           75.0
         ],
-        "n": 4467,
-        "q_low": -24.4723,
-        "q_high": 21.8171,
+        "n": 4862,
+        "q_low": -23.8524,
+        "q_high": 20.3956,
         "source": "bin"
       },
       {
@@ -89,15 +93,15 @@
           75.0,
           null
         ],
-        "n": 1002,
-        "q_low": -25.7569,
-        "q_high": -17.4921,
+        "n": 965,
+        "q_low": -24.901,
+        "q_high": -17.232,
         "source": "bin"
       }
     ],
     "global_quantiles": [
-      -22.4834,
-      17.9404
+      -21.9794,
+      17.19
     ],
     "n_calibration": 17450
   },
@@ -117,10 +121,10 @@
   "metrics": {
     "reference_row": {
       "Modelo": "H\u00edbrido stacking (beta=1.00) + EMA5",
-      "RMSE": 4.289,
-      "MAE": 3.179,
-      "R2": 0.9473,
-      "NASA_Score": 2310.6
+      "RMSE": 4.251,
+      "MAE": 3.183,
+      "R2": 0.9482,
+      "NASA_Score": 2305.1
     },
     "beta": 1.0,
     "mean_std": [
@@ -133,27 +137,27 @@
       },
       {
         "Modelo": "BiLSTM solo",
-        "RMSE": "6.233 \u00b1 0.485",
-        "MAE": "4.777 \u00b1 0.485",
-        "R2": "0.8882 \u00b1 0.0174",
-        "NASA_Score": "4307.0 \u00b1 604.9"
+        "RMSE": "6.218 \u00b1 0.541",
+        "MAE": "4.820 \u00b1 0.477",
+        "R2": "0.8887 \u00b1 0.0191",
+        "NASA_Score": "4397.8 \u00b1 550.9"
       },
       {
         "Modelo": "H\u00edbrido + EMA5",
-        "RMSE": "4.352 \u00b1 0.055",
-        "MAE": "3.221 \u00b1 0.036",
-        "R2": "0.9458 \u00b1 0.0013",
-        "NASA_Score": "2342.3 \u00b1 28.0"
+        "RMSE": "4.340 \u00b1 0.101",
+        "MAE": "3.235 \u00b1 0.054",
+        "R2": "0.9460 \u00b1 0.0025",
+        "NASA_Score": "2347.7 \u00b1 49.4"
       }
     ]
   },
   "macro_rmse": {
     "per_unit_rmse": {
-      "11.0": 3.7728,
-      "14.0": 8.175,
-      "15.0": 2.76
+      "11.0": 3.7874,
+      "14.0": 7.9974,
+      "15.0": 2.7451
     },
-    "macro_rmse": 4.9026,
+    "macro_rmse": 4.8433,
     "n_units": 3
   },
   "meta_protocol": {
@@ -182,13 +186,9 @@
     "step_test": 2
   },
   "artifacts": {
-    "ensemble_sha256": "0acd795b0906389d46b7dc433249438e15b3ee899b1a5bc2cbd8624a6fe6d502",
-    "bilstm_sha256": "5923d2a1548837929620a7fbb2bbc8284bc29cfe4f18ec94ef5417d291c9e9de",
-    "bilstm_bytes": 1935767,
-    "ensemble_bytes": 468862
-  },
-  "lgb_objective": {
-    "objective": "quantile",
-    "alpha": 0.35
+    "ensemble_sha256": "7acba3352a2c9aac46b1e95ee4045082a812cd9f947bf791fca4659412d64b1b",
+    "bilstm_sha256": "d0c5ed7ffc90c8c93d5d626b68454ca86114a17d00e3cb6f89f6d4f5cd94dc79",
+    "bilstm_bytes": 1935382,
+    "ensemble_bytes": 470446
   }
 }

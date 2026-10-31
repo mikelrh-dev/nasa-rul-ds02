@@ -20,12 +20,14 @@ Mapas, teorías y esquemas en español. El quiz interactivo queda pendiente (vau
 - B4: [[10-ablacion-cyc-norm]] · [[11-oof-agrupado]] · [[12-beta-mediana-y-diagnostico]]
 - B5: [[13-stacking-hibrido]] · [[14-bandas-conformal]] · [[15-macro-rmse]]
 - B6: [[16-multisemilla]] · [[17-regla-del-empate]] · [[18-diagnostico]] · [[19-persistencia-reload]]
+- B0: [[00-guion-30-segundos]] · [[00-datos-prepro-ventanas]] · [[00-bases-lgbm-bilstm]] · [[00-oof-beta-stacking]] · [[00-ema-conformal-metricas]] · [[00-persistencia-notebooks]] · [[00-cifras-autoritativas]] · [[01-anexo-nb01-celdas]] · [[02-anexo-nb02-celdas]] · [[03-anexo-nb03-celdas]]
+- [[#B0 Guion defensa — bloque núcleo (2026-10-26)]]
 
 ## Estado actual
 
 - **Modo:** repo · **Tema activo:** proyecto DS02 completo · **Objetivo:** entender conceptos, código y desarrollo de los 3 notebooks para defender el proyecto.
 - **Nodos firmes:** ninguno verificado con quiz todavía (pendiente).
-- **Siguiente bloque:** B1 — Protocolo honesto.
+- **Siguiente bloque:** B0 — Guion defensa (quiz pendiente, luego B1).
 
 ### Perfil del estudiante
 
@@ -68,3 +70,25 @@ Fuente: [[visuals/mlproyect-plan.mmd]]
 > Plan con bloques y nombres de .md aprobado; crear el vault.
 
 6 bloques, 19 nodos, formato triple (teoría + esquema + quiz pendiente): B1 Protocolo honesto · B2 Prepro y features · B3 Modelos base · B4 Ablación, OOF y beta · B5 Ensamble y conformal · B6 Evidencia y diagnóstico. Visuals: mapa del plan + uno por bloque.
+
+## B0 Guion defensa — bloque núcleo (2026-10-26)
+
+> [!quote] Estudiante
+> Necesito entender los .py + los 3 notebooks completos, denso pero sencillo. Amplía el vault.
+
+Carpeta `00-Guion-Defensa/`: 7 núcleo (guion, datos, bases, oof, ema, persistencia, cifras) + 3 anexos celda a celda (NB01 12, NB02 18, NB03 25 códigos) con snippets literales `archivo:línea`, entra/sale/por-qué y frase para contar. Visuals: `guion-defensa-plan.mmd`, `mapa-puente.mmd`, `anexos-celdas.mmd`.
+
+```mermaid
+flowchart LR
+    GUION[guion 30s] --> DATOS[datos prepro ventanas]
+    DATOS --> BASES[bases LGBM BiLSTM]
+    BASES --> OOF[OOF beta stacking]
+    OOF --> DEC[EMA conformal metricas]
+    DEC --> PERS[persistencia notebooks]
+    PERS --> CIFRAS[cifras manifiesto]
+```
+Fuente: [[visuals/guion-defensa-plan.mmd]]
+
+**Fuentes:** `src/ds02_rul/{data:49, features:25/79, model:19, pipeline:46/88/157, stacking:161/184/234, smoothing:14, conformal:28/90, persistence:108/189, metrics:21/45}.py` + NB01/02/03 + `models/ds02_manifest.json` + `EVALUACION_EJECUCION.md`.
+
+**Estado tras el bloque:** B0 creado (10 teorías + 9 esquemas + 3 visuals). Pendiente quiz y `00-Definiciones-del-Autor/` si el estudiante fija frases. Cifras autoritativas: manifiesto 2026-10-26 manda.
