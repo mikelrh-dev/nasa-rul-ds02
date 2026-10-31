@@ -394,6 +394,6 @@ def test_the_cycle_slider_drives_the_grounded_kpi():
         widget for widget in app.get("download_button")
         if "orden" in widget.proto.label.lower()
     ]
-    assert len(downloads) == 2, "a grounded fleet must offer the work order (JSON + CSV)"
+    assert len(downloads) == 3, "a grounded fleet must offer the work order (JSON + CSV + PDF)"
     for widget in downloads:
         assert widget.proto.disabled is False
