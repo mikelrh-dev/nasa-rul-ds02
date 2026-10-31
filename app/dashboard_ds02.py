@@ -2930,6 +2930,12 @@ with tab_casos:
             )
             for _av in st.session_state.get("explorar_avisos", []) or []:
                 st.warning(_av, icon=":material/warning:")
+            with st.expander("Ver tramo generado", expanded=False):
+                st.dataframe(
+                    _exp_tab,
+                    hide_index=True,
+                    alt="Tramo generado para explorar por ciclo: ciclos y sensores.",
+                )
         if st.button(
             "Evaluar este tramo",
             key="explorar_evaluar",
