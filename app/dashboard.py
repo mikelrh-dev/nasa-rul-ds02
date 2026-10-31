@@ -1,4 +1,7 @@
-"""Streamlit dashboard for the DS02 artifact.
+"""LEGACY dashboard for the DS02 artifact (superseded by app/dashboard_ds02.py).
+
+Do not run as the challenge: it loads the 2.3 GB HDF5 and Keras at render.
+Kept for reference only.
 
     streamlit run app/dashboard.py
 

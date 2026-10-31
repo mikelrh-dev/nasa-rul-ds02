@@ -76,7 +76,7 @@ def test_ciclos_hasta_fallo_coincide_con_la_cache():
     # U14 entra en hangar en el ciclo 29 segun la cache.
     assert faltan[14] == 28, faltan[14]
     # U11 entra en hangar en el ciclo 22.
-    assert faltan[11] == 21, faltan[11]
+    assert faltan[11] == 20, faltan[11]
     # Todos los motores tienen un numero: la cache cubre toda su vida.
     assert set(faltan) == {11, 14, 15}
 

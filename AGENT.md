@@ -1,12 +1,13 @@
 # AGENT.md — NASA DS02 RUL project
 
 ## Stack
-- Python (venv .venv, Python 3.10 artifacts loadable on 3.12 via portability fix).
-- BiLSTM + LightGBM stacking ensemble for RUL prediction on N-CMAPSS DS02.
-- Best model: LightGBM (RMSE 13.42). Worst: XGBoost (RMSE 26.16). Full comparison in v2_metrics.json.
+- Python 3.12.10 (venv .venv; legacy Python 3.10 artifacts were migrated via `LastStepPooling`, no shim needed anymore).
+- BiLSTM + LightGBM stacking ensemble for RUL prediction on N-CMAPSS DS02 (bundle B, 2026-10-26).
+- Shipped: hybrid + EMA5 ref RMSE 4.251 (mean 4.340 ± 0.101); BiLSTM solo 6.218 ± 0.541; LightGBM solo 7.098 ± 0.034. Full record in `models/ds02_manifest.json`.
+- (`models/v2_metrics.json` holds the older FD001 comparison: LightGBM 13.42 / XGBoost 26.16. Do not cite it for DS02.)
 
 ## Key facts
-- Conformal band calibrated on select_beta_grouped(oof..., span=5, use_cycle_feature=False)['oof_calib'] (fold-specific metas, 17450 rows), NOT the shipped meta on _p1_oof_cache.npz.
+- Shipped band: split-conformal in `models/ds02_manifest.json` (dev rows, 17450). R6 band: `mia/calibracion_banda.json` (14915 pure OOF rows, units 2/5/10/18/20, no unit 16). Different bands, different uses.
 - BiLSTM branch of oof_base_predictions is non-deterministic (p_lgb bit-identical, p_lstm max|diff| ~26 across seeded runs) → band not bit-reproducible.
 - Rule-layer measurements: INFORME_reglas_oof.md (repo root). Probe scripts in Hermes scratch dir.
 

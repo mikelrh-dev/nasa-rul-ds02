@@ -35,7 +35,7 @@ CASOS = [
     ("U11 ciclo 21 (inspeccion)", 11, 21, "INSPECCION"),
     ("U11 ciclo 26 (hangar)", 11, 26, "HANGAR"),
     ("U14 ciclo 3 (inicio de vida)", 14, 3, "APTO"),
-    ("U14 ciclo 30 (inspeccion)", 14, 30, "INSPECCION"),
+    ("U14 ciclo 30 (hangar)", 14, 30, "HANGAR"),
     ("U14 ciclo 60 (hangar)", 14, 60, "HANGAR"),
     ("U15 ciclo 20 (pleno servicio)", 15, 20, "APTO"),
     ("U15 ciclo 26 (hangar)", 15, 26, "HANGAR"),

@@ -81,7 +81,7 @@ def test_el_modo_historia_se_deriva_de_la_cache():
     # Paso 1: el hangar esta mañana, en el primer ciclo puntuado.
     assert (pasos[0]["unidad"], pasos[0]["ciclo"]) == (11, 1)
     # Paso 2: la primera inspección del motor problemático (el de mayor RMSE).
-    assert (pasos[1]["unidad"], pasos[1]["ciclo"]) == (14, 8)
+    assert (pasos[1]["unidad"], pasos[1]["ciclo"]) == (14, 9)
     # Paso 3: su primera derivación a hangar.
     assert (pasos[2]["unidad"], pasos[2]["ciclo"]) == (14, 29)
     # Paso 4: los mismos umbrales aflojados en 5.
@@ -119,5 +119,5 @@ def test_el_paso_critico_cae_en_hangar_y_el_primero_no():
         return "HANGAR"
 
     assert estado(11, 1, pasos[0]["umbrales"]) == "APTO"
-    assert estado(14, 8, pasos[1]["umbrales"]) == "INSPECCION"
+    assert estado(14, 8, pasos[1]["umbrales"]) == "APTO"
     assert estado(14, 29, pasos[2]["umbrales"]) == "HANGAR"

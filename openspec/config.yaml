@@ -20,8 +20,10 @@ context: |
            cells executed with no error outputs); `notebook_nasa_fd001.ipynb` holds
            the FD001 pipeline. Notebooks are GENERATED as pure nbformat builders by
            `scripts/build_*.py` and MUST be regenerated, never hand-edited.
-  Persistence: `ensemble.joblib` and `scaler.joblib`, each duplicated under
-           `models/`. The FD001 v3 bundle is `models/v3_bundle.joblib`, served by
+  Persistence: canonical artifacts under `models/` (`ensemble.joblib`,
+           `scaler.joblib`, `bilstm_ds02.keras`, `ds02_manifest.json`). Root-level
+           `ensemble.joblib`/`scaler.joblib` copies are gitignored leftovers, never
+           the contract. The FD001 v3 bundle is `models/v3_bundle.joblib`, served by
            `scripts/predict.py`.
   Metrics: RMSE, MAE, R^2 and the NASA scoring function — which is a SUM of
            asymmetric exponentials, exp(-d/13) when RUL is underestimated and

@@ -1,6 +1,8 @@
-# Pendiente si se adopta el bundle B (reentreno 2026-10-26)
+# Pendiente: adopcion del bundle B (RESUELTO 2026-10-31 — adoptado)
 
-Estado: experimento sin commit. Bundle nuevo `ensemble 7acba335…`, `bilstm d0c5ed7f…`.
+Adopcion completada: 4 tests adaptados al bundle B, mia/casos.py actualizado (U14 ciclo 30 ahora HANGAR), cifras README/spec actualizadas. Suite verde.
+
+Estado: ADOPTADO 2026-10-31. Bundle nuevo `ensemble 7acba335…`, `bilstm d0c5ed7f…`.
 Baseline intacto en `git HEAD` (`ensemble 0acd795b…`) + backup `/tmp/ds02_backup_pre_refactor/`.
 No commitear ni pushear hasta decidir.
 
