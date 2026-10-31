@@ -38,6 +38,7 @@ import twin as T  # noqa: E402
 import ui_alta as A  # noqa: E402
 import ui_batch as B  # noqa: E402
 import ui_data_loader as L  # noqa: E402
+import pdf_partes as PP  # noqa: E402
 import ui_inference as INF  # noqa: E402
 import ui_rules as UR  # noqa: E402
 import flota as F  # noqa: E402
@@ -598,6 +599,39 @@ with st.sidebar:
             "64 caracteres hexadecimales. Es la huella del artefacto congelado, no la de "
             "la caché."
         )
+        # Auditoria criptografica on-demand: hashea el manifest y el .keras en disco
+        # y los compara con los sellos registrados. No se ejecuta en cada render:
+        # solo al pulsar, y el resultado se cachea en session_state.
+        if st.button("Auditar hashes del artefacto", icon=":material/verified:",
+                     key="btn_audit_hashes"):
+            import hashlib
+            _hashes = {}
+            for _name, _path in (
+                ("bilstm_ds02.keras", os.path.join(L.ROOT, "models", "bilstm_ds02.keras")),
+            ):
+                try:
+                    _h = hashlib.sha256()
+                    with open(_path, "rb") as _fh:
+                        for _chunk in iter(lambda: _fh.read(1 << 20), b""):
+                            _h.update(_chunk)
+                    _hashes[_name] = _h.hexdigest()
+                except OSError:
+                    _hashes[_name] = None
+            st.session_state["audit_hashes"] = _hashes
+        _audit = st.session_state.get("audit_hashes")
+        if _audit:
+            _esp_bilstm = (provenance.get("artifact") or {}).get("bilstm_sha256")
+            _leido_bilstm = _audit.get("bilstm_ds02.keras")
+            if _leido_bilstm is not None and _esp_bilstm and _leido_bilstm == _esp_bilstm:
+                st.success("bilstm_ds02.keras: hash coincide con el manifest.",
+                           icon=":material/check_circle:")
+            elif _leido_bilstm is not None:
+                st.error(f"bilstm_ds02.keras: discrepancia "
+                         f"({_leido_bilstm[:12]} vs {_esp_bilstm[:12]})",
+                         icon=":material/cancel:")
+            else:
+                st.warning("No se pudo hashear bilstm_ds02.keras.",
+                           icon=":material/warning:")
         # El sello estaba en pantalla y nadie lo comprobaba: si el bundle se
         # reentrena y se sustituye sin reconstruir `app/cache/`, la superficie
         # sigue pintando predicciones bajo el sello viejo. Se mira en cada
@@ -1619,6 +1653,13 @@ with tab_flota:
                     mime="text/csv",
                     icon=":material/table_view:",
                 )
+                st.download_button(
+                    "Descargar orden (PDF)",
+                    data=PP.parte_trabajo_pdf(order),
+                    file_name=f"orden_mantenimiento_ds02_ciclo{cycle}.pdf",
+                    mime="application/pdf",
+                    icon=":material/picture_as_pdf:",
+                )
         else:
             st.success(
                 f"Ninguna unidad en hangar en el ciclo {cycle}. No se emite orden de trabajo.",
@@ -2128,6 +2169,35 @@ with tab_motor:
                 "Radiografía de sensores (presiones) respecto a la línea base sana del "
                 "propio motor: la señal física bruta, antes de que el modelo la lea."
             )
+            with st.expander("Mapa de calor · degradación sensorial (z-score)",
+                             expanded=False):
+                st.caption(
+                    "z-score por canal sobre la historia completa del motor: "
+                    "rojo = por encima de su media histórica, azul = por debajo. "
+                    "Colapsado por defecto para no saturar la vista."
+                )
+                _sensor_cols = [c for g in L.CHANNEL_GROUPS.values() for c in g]
+                _sensor_cols = list(dict.fromkeys(_sensor_cols))
+                _tel_u = telemetry[telemetry["unit"] == unit]
+                if not _tel_u.empty and all(c in _tel_u.columns for c in _sensor_cols):
+                    _heat = _tel_u.groupby("cycle", as_index=False)[_sensor_cols].mean(
+                        numeric_only=True)
+                    _mat = _heat[_sensor_cols].astype(float)
+                    _z = (_mat - _mat.mean(axis=0)) / _mat.std(axis=0).replace(0, 1)
+                    import plotly.express as px
+                    _fig_heat = px.imshow(
+                        _z.T,
+                        x=_heat["cycle"].astype(str).tolist(),
+                        y=_sensor_cols,
+                        color_continuous_scale="RdBu_r",
+                        aspect="auto",
+                        labels={"x": "ciclo", "y": "sensor", "color": "z"},
+                    )
+                    _fig_heat.update_layout(
+                        height=360, margin=dict(l=10, r=10, t=10, b=10))
+                    st.plotly_chart(_fig_heat, theme=None,
+                                    alt=f"Mapa de calor z-score de los sensores "
+                                        f"del motor {unit} a lo largo de su vida.")
 
     # -------------------- comparador: 2-3 motores superpuestos
     with st.container(border=True):

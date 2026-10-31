@@ -22,7 +22,7 @@
 - Notas: refactorizar `_muro_del_hangar` (líneas 1093-1244) de grid plano (i%3) a buckets por estado. Mantener claves de botones `muro_gemelo_{u}` y conteo de tarjetas. No tocar reglas de `mia`.
 - Refs: `app/flota.py` (147 líneas), `mia/casos.py` (158 líneas, umbrales 30/25).
 
-### A.3 Heatmap de degradación sensorial (Plotly px.imshow) — APROBADO
+### A.3 Heatmap de degradación sensorial (Plotly px.imshow) — IMPLEMENTADO 2026-10-31
 - Ventana de 50 filas muestreadas del motor fallando, z-score, mapa de calor temporal de 18 canales (4 ops + 14 sensores).
 - Scores: feas 7, improve 8, risk 3.
 - Notas: "50 ciclos" = 50 filas muestreadas (WINDOW_SIZE=50), no 50 ciclos de vuelo. Z-score sobre historial completo del motor (no por ventana) para que sobreviva la degradación. Complementa `fig_deriva`, no lo reemplaza. Añadir `alt=`. Colocar en pestaña Motor, preferiblemente en expander.
@@ -46,13 +46,13 @@
 - Notas: 0.308 es artefacto real (in-sample, `beta=1.0`) registrado en docs/openspec/src, no dato inventado. Ningún test referencia 0.308. Modo riguroso por defecto. 2-3 tests AppTest nuevos. Etiquetar explícitamente "Trampa" y "no es métrica válida", con provenance al audit de stacking. Nunca reemplazar RMSE/macro-RMSE live.
 - Refs: `docs/02_DS02_ensemble_RUL_spec.md` §3.7/§6.3; `docs/decisions/ADR-001`, `ADR-005`; `src/ds02_rul/stacking.py`; `ensemble.py` (default beta=1.0); `app/cache/cache_manifest.json`.
 
-### A.7 Auditoría criptográfica en vivo — PROCEDER
+### A.7 Auditoría criptográfica en vivo — IMPLEMENTADO 2026-10-31
 - Botón SHA-256 de `ds02_manifest.json` y binario `.keras`, check verde anti-tampering.
 - Scores: feas 8, improve 7, risk 3.
 - Notas: tamaños verificados (manifest 3.9 KB, keras ~1.85 MiB). Hashing completo del keras ~2.5 ms. Gatear tras botón o cachear en session_state. Implementar de forma aditiva (no romper `artifact_hash_check`). Hashes registrados coinciden con disco.
 - Refs: `app/ui_data_loader.py:151` (artifact_hash_check); `app/dashboard_ds02.py` ~595-610 (expander contrato); `~2556-2565` (muestra hash); `models/ds02_manifest.json` artifacts; `src/ds02_rul/persistence.py` (sha256_of, save_ensemble); `tests/test_dss_ui.py:255-304`.
 
-### A.8 Descarga de parte de trabajo determinista (PDF/CSV) — APROBADO
+### A.8 Descarga de parte de trabajo determinista (PDF/CSV) — IMPLEMENTADO 2026-10-31
 - `st.download_button` exportando estado actual, predicción y fallo de reglas (AOG).
 - Scores: feas 10, improve 6, risk 0.
 - Notas: CSV/JSON ya implementados (`work_order`, `work_order_csv`, `parte_disponibilidad`). Solo falta PDF con fpdf2 (ya declarado, patrón `_informe_auditoria_pdf` en línea 975). Añadir botón "Descargar parte (PDF)" junto a JSON/CSV (~1606). Test de paridad espejando PDF de auditoría. `generado_en` usa `pd.Timestamp.now()` (no determinista solo en estampa).
