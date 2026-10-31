@@ -20,6 +20,7 @@ Mapas, teorías y esquemas en español. El quiz interactivo queda pendiente (vau
 - B4: [[10-ablacion-cyc-norm]] · [[11-oof-agrupado]] · [[12-beta-mediana-y-diagnostico]]
 - B5: [[13-stacking-hibrido]] · [[14-bandas-conformal]] · [[15-macro-rmse]]
 - B6: [[16-multisemilla]] · [[17-regla-del-empate]] · [[18-diagnostico]] · [[19-persistencia-reload]]
+- B7: [[20-indice-funciones-y-api]] · [[21-api-datos-e-ingestion]] · [[22-api-ventanas-e-inferencia]] · [[23-api-modelo-bilstm-y-pooling]] · [[24-api-pipeline-y-semillas]] · [[25-api-stacking-interno]] · [[26-api-ensamble-e-intervalos]] · [[27-api-conformal]] · [[28-api-persistencia-y-reload]] · [[29-api-metricas]] · [[30-api-visualizacion]] · [[31-api-residualizador-y-suavizado]]
 - B0: [[00-guion-30-segundos]] · [[00-datos-prepro-ventanas]] · [[00-bases-lgbm-bilstm]] · [[00-oof-beta-stacking]] · [[00-ema-conformal-metricas]] · [[00-persistencia-notebooks]] · [[00-cifras-autoritativas]] · [[01-anexo-nb01-celdas]] · [[02-anexo-nb02-celdas]] · [[03-anexo-nb03-celdas]]
 - [[#B0 Guion defensa — bloque núcleo (2026-10-26)]]
 

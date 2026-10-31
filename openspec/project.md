@@ -28,8 +28,11 @@ DS02 declares its channel names in the file itself: `W_var` carries the 4 operat
 conditions `alt, Mach, TRA, T2`, and `X_s_var` carries the 14 physical sensors
 `T24, T30, T48, T50, P15, P2, P21, P24, Ps30, P40, P50, Nf, Nc, Wf`.
 
-The DS02 loader is a waterfall over candidate paths and falls back to the FD001 text
-loader if no HDF5 is found. **In the current run the fallback is dead code.**
+The DS02 loader probes candidate paths and **raises** if no HDF5 resolves
+(`resolve_ds02` names every path it probed). The old FD001 fallback was removed
+by the `2026-10-20-ds02-honest-deployable` change; FD001 is only reachable
+through the separate, explicit `load_fd001_reference`, which never touches the
+DS02 artifact path.
 
 ## Repository layout
 

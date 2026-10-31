@@ -15,7 +15,7 @@ docker compose up --build      # http://localhost:8000/docs and http://localhost
 
 ## Results — test units 11 / 14 / 15, 6 196 windows, mean ± std over seeds [42, 7, 123]
 
-### Baseline v4.1.0 (kept for comparison)
+### Baseline v4.1.0 (historical — kept for comparison)
 
 | Model | RMSE | MAE | R² | NASA score |
 | --- | --- | --- | --- | --- |
@@ -33,7 +33,7 @@ rather than an artefact: with the cycle counter removed from the meta-learner th
 stacking layer actually depends on the two base models, so it inherits their
 variance instead of reading a counter (see the ablation section below).
 
-### This revision — 2026-10-21
+### Revision 2026-10-21 (historical)
 
 Same models, same protocol. The additions are two metrics, not extra accuracy.
 
@@ -42,7 +42,15 @@ Same models, same protocol. The additions are two metrics, not extra accuracy.
 | LightGBM quantile 0.35 (standalone) | 7.098 ± 0.034 | 5.572 ± 0.034 | 0.8557 ± 0.0014 | 5772.5 ± 50.1 |
 | BiLSTM triple pooling (standalone) | 6.337 ± 0.811 | 4.872 ± 0.756 | 0.8837 ± 0.0305 | 4509.9 ± 1051.1 |
 | **Hybrid stacking + causal EMA5** | **4.344 ± 0.075** | **3.209 ± 0.058** | **0.9459 ± 0.0019** | **2338.2 ± 49.1** |
-| Hybrid, artifact currently on disk (2026-10-21, re-run) | 4.352 ± 0.055 | 3.221 ± 0.036 | 0.9458 ± 0.0013 | 2342.3 ± 28.0 |
+
+### Vigente — bundle B (2026-10-26, lo que sirve `models/` + `app/cache/`)
+
+| Model | RMSE | MAE | R² | NASA score |
+| --- | --- | --- | --- | --- |
+| LightGBM quantile 0.35 (standalone) | 7.098 ± 0.034 | 5.572 ± 0.034 | 0.8557 ± 0.0014 | 5772.5 ± 50.1 |
+| BiLSTM triple pooling (standalone) | 6.218 ± 0.541 | 4.820 ± 0.477 | 0.8887 ± 0.0191 | 4397.8 ± 550.9 |
+| **Hybrid stacking + causal EMA5** | **4.340 ± 0.101** | **3.235 ± 0.054** | **0.9460 ± 0.0025** | **2347.7 ± 49.4** |
+| Hybrid, reference row on disk | 4.251 | 3.183 | 0.9482 | 2305.1 |
 
 The 4.301 → 4.344 → 4.352 differences are TensorFlow CPU non-determinism between
 runs, not a change in the model: the base models and the `beta` protocol are
@@ -50,9 +58,9 @@ untouched. The spread between runs (±0.05) is the resolution at which any futur
 change has to be judged, and it is why every claim in this repository is quoted
 with its seed spread.
 
-**Macro-RMSE, which the weighted figure hides.** Per engine: 11 → 3.762,
-14 → 8.319, 15 → 2.736 (current artifact: 3.773 / 8.175 / 2.760). Unweighted mean
-**4.939** (current: 4.903), against a window-weighted **4.313**. The gap of +0.6
+**Macro-RMSE, which the weighted figure hides.** Bundle B per engine: 11 → 3.7874,
+14 → 7.9974, 15 → 2.7451 (historical runs: 3.762 / 8.319 / 2.736). Unweighted mean
+**4.8433**, against a window-weighted **4.2515**. The gap of +0.6
 is the cost of engine 14 having both the worst error and the fewest windows (760 of
 6 196, yet 43.7 % of the squared error). The fleet average is kinder than what a
 randomly chosen engine suffers.
@@ -124,8 +132,8 @@ Four conclusions, all measured:
    not aggregating two noisy learners, it was reading a counter.
 3. Removing the clock from the stacking layer — while keeping it in both base
    models, where it is a legitimate input — is the fix, and it is the
-   configuration now shipped: **RMSE 4.301 ± 0.068** against the previous
-   5.523 ± 0.001, with the meta-learner splitting its weight between the two
+   configuration shipped in bundle B: **RMSE 4.251** (mean 4.340 ± 0.101) against
+   the previous 5.523 ± 0.001, with the meta-learner splitting its weight between the two
    branches instead of betting everything on one counter.
 4. Removing it from *every* component instead (5.568) is a different experiment:
    it also re-trains the base models without the clock, which costs the BiLSTM
@@ -242,8 +250,8 @@ nothing written under `models/`.
 | `R7_APTO` | decision | 1 | `L_inf >= 30` → `APTO` |
 
 **The toggle is off by default.** Off is the cached reading, the one that
-reproduces `models/ds02_manifest.json` (RMSE 4.289 / MAE 3.179 / R² 0.9473 /
-NASA 2310.6 over the 6 196 windows). On shows the corrected point and the
+reproduces `models/ds02_manifest.json` (RMSE 4.251 / MAE 3.183 / R² 0.9482 /
+NASA 2305.1 over the 6 196 windows). On shows the corrected point and the
 recalibrated band; the raw values stay in `pred_enviada`, `lower_enviada` and
 `upper_enviada`, so both readings remain available.
 
@@ -316,6 +324,21 @@ The measurements behind every claim above live in
 [`docs/informes/`](docs/informes/README.md), one document per question, indexed by
 date with a table of old→new names for anything still citing the pre-2026-10-22
 root filenames.
+
+---
+
+## File conventions (read this before touching the tree)
+
+- **Canonical artifacts live in `models/`.** `ensemble.joblib` / `scaler.joblib`
+  in the repo root are bit-identical leftovers, ignored by git; never load them
+  by purpose — the contract is `models/ensemble.joblib` + `models/bilstm_ds02.keras`.
+- **Legacy, do not run as the challenge.** `notebook_nasa_fd001.ipynb` (C-MAPSS
+  FD001) and `app/dashboard.py` (loads the 2.3 GB HDF5 + Keras at render) are
+  superseded by `notebooks/ds02_ensemble/01→02→03` and `app/dashboard_ds02.py`.
+- **14915 vs 17450, both correct.** The R6 band in `mia/calibracion_banda.json`
+  is calibrated on 14 915 pure out-of-fold rows (fit units 2/5/10/18/20, unit 16
+  excluded); the shipped split-conformal band in the manifest on 17 450 dev rows.
+  Different bands, different uses — see `docs/informes/informe-2026-10-21-reglas-oof.md`.
 
 ---
 

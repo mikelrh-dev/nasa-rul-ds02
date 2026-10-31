@@ -30,8 +30,8 @@ Their errors are different enough that a learned meta-learner can exploit the di
 | BiLSTM 2-layer + causal EMA (span 5) | 5.597 | 4.331 | 0.9103 | 3716.8 |
 | **Hybrid stacking (beta = 1.00, EMA 5)** | **4.301 ± 0.068** | **3.181 ± 0.021** | **0.9470 ± 0.0017** | **2315.6 ± 20.0** |
 | Hybrid, revision 2026-10-21 (same model, re-run) | 4.344 ± 0.075 | 3.209 ± 0.058 | 0.9459 ± 0.0019 | 2338.2 ± 49.1 |
-| Hybrid, re-run after the reverted `alpha` experiment (artifact on disk) | 4.352 ± 0.055 | 3.221 ± 0.036 | 0.9458 ± 0.0013 | 2342.3 ± 28.0 |
-| Hybrid, macro-RMSE per engine (2026-10-21) | 4.939 (current artifact 4.903) | — | — | — |
+| Hybrid, artifact currently on disk (bundle B, 2026-10-26) | 4.251 | 3.183 | 0.9482 | 2305.1 |
+| Hybrid, macro-RMSE per engine (bundle B) | 4.8433 (11:3.7874, 14:7.9974, 15:2.7451) | — | — | — |
 
 The architectural core of the solution is a **physical separation of degradation from flight regime**: the 14 sensors are residualised against a degree-2 Ridge model of the 4 operational-condition channels before either model sees them, so that LightGBM reads degradation rather than pilot manoeuvre. That single change moved the standalone tabular branch from RMSE 13.349 to 7.087.
 
