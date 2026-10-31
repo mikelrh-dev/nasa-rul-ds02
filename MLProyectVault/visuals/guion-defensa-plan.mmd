@@ -1,0 +1,7 @@
+flowchart LR
+    GUION[guion 30s] --> DATOS[datos prepro ventanas]
+    DATOS --> BASES[bases LGBM BiLSTM]
+    BASES --> OOF[OOF beta stacking]
+    OOF --> DEC[EMA conformal metricas]
+    DEC --> PERS[persistencia notebooks]
+    PERS --> CIFRAS[cifras manifiesto]

@@ -58,6 +58,18 @@ copiacuadernos/
 *.bak
 notebooks/ds02_ensemble/artifacts/
 
+# root duplicates of DS02 bundle — canonical lives in models/
+/ensemble.joblib
+/scaler.joblib
+
+# retrain execution logs (nbconvert) — generated, not deliverable
+retrain_*.log
+
+# Obsidian app state — user-specific, not part of the vault content
+MLProyectVault/.obsidian/
+# jupyter checkpoints — generated
+.ipynb_checkpoints/
+
 # scratch notebooks and dumps
 _run_v3.ipynb
 nbconvert_output.txt

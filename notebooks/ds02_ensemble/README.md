@@ -1,5 +1,7 @@
 # DS02 Ensamble RUL — 3 cuadernos (mismo código que `02_DS02_ensemble_RUL.ipynb`)
 
+> Fuente de verdad para presentación: esta secuencia 01 → 02 → 03. El `02_DS02_ensemble_RUL.ipynb` de la raíz es el artefacto generado congelado de referencia (vía `scripts/build_02_notebook.py`) y **no debe re-ejecutarse**: su celda de persistencia reescribe `models/` y la re-ejecución cambia las cifras por no-determinismo CPU de TensorFlow (ver `EVALUACION_EJECUCION.md`).
+
 El original de 77 celdas se partió **sin cambiar ningún cálculo**, solo por tiempo y lectura.
 
 | Cuaderno | Contenido original | Tiempo aprox | Requisito |

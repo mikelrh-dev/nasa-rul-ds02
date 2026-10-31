@@ -309,7 +309,7 @@ tests/                 pytest suite: artifact contract, DSS, rules layer
 openspec/              SDD: deployed spec, change proposal, tasks
 docs/                  spec, decisions/ (ADR-001…009), informes/ (measurements), plans/
 models/                artifacts + manifest + ablation results
-02_DS02_ensemble_RUL.ipynb   executed notebook (generated)
+02_DS02_ensemble_RUL.ipynb   executed notebook (generated, frozen reference — do not re-execute; use notebooks/ds02_ensemble/01→02→03 for presentation)
 ```
 
 The measurements behind every claim above live in
