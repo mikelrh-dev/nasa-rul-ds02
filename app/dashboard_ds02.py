@@ -2864,6 +2864,100 @@ with tab_casos:
             f"reales restantes: dentro del propio ciclo baja de {_lo_max:.1f} a {_lo_min:.1f}."
             + _nota_mono
         )
+    with st.container(border=True):
+        st.subheader("Explora por ciclo", icon=":material/timeline:")
+        st.caption(
+            "Elige un motor y un punto de su vida: se genera el tramo y se muestra "
+            "el estado calculado. No se puntúa hasta pulsar \"Evaluar este tramo\"."
+        )
+        _exp_cols = st.columns(3)
+        with _exp_cols[0]:
+            _exp_unit = st.selectbox(
+                "Motor",
+                [11, 14, 15],
+                key="explorar_unit",
+                help="Unidad de la caché (11, 14 o 15).",
+            )
+        with _exp_cols[1]:
+            _exp_len = st.selectbox(
+                "Largo del tramo",
+                [50, 300],
+                index=1,
+                key="explorar_len",
+                help="50 = una ventana; 300 = trayectoria con EMA suavizada.",
+            )
+        with _exp_cols[2]:
+            _exp_pos = st.slider(
+                "Punto final (posición en la vida del motor)",
+                0.0, 1.0, 0.5, 0.01,
+                key="explorar_pos",
+                help="0.0 = inicio, 1.0 = final. El tramo termina en ese punto.",
+            )
+        try:
+            _exp_tab, _exp_meta = INF.example_window(
+                _exp_unit, _exp_pos, rows=_exp_len)
+            _exp_pf = INF.preflight(_exp_tab)
+            _exp_ok = bool(_exp_pf["ok"])
+            st.session_state["explorar_table"] = _exp_tab
+            st.session_state["explorar_meta"] = _exp_meta
+            st.session_state["explorar_ok"] = _exp_ok
+            st.session_state["explorar_avisos"] = _exp_pf["avisos"]
+            _exp_end_cycle = int(_exp_meta["end_cycle"])
+            _cached = windows[(windows["unit"] == _exp_unit)
+                              & (windows["cycle"] == _exp_end_cycle)]
+            if not _cached.empty:
+                _exp_lower = float(_cached["lower"].iloc[-1])
+                _exp_state = L.classify(
+                    _exp_lower, umbrales["apto"], umbrales["hangar"])
+            else:
+                _exp_state = "sin referencia en caché"
+            st.session_state["explorar_state"] = _exp_state
+            _exp_err = None if _exp_ok else _exp_pf["error"]
+        except ValueError as _exc:
+            _exp_tab = None
+            _exp_meta = None
+            st.session_state["explorar_table"] = None
+            st.session_state["explorar_meta"] = None
+            st.session_state["explorar_ok"] = False
+            st.session_state["explorar_state"] = "—"
+            _exp_err = str(_exc)
+        if _exp_err:
+            st.error(_exp_err, icon=":material/error:")
+        else:
+            st.caption(
+                f"Tramo: ciclos {_exp_meta['start_cycle']}→{_exp_meta['end_cycle']} · "
+                f"{len(_exp_tab)} filas · estado estimado: **{_exp_state}**"
+            )
+            for _av in st.session_state.get("explorar_avisos", []) or []:
+                st.warning(_av, icon=":material/warning:")
+        if st.button(
+            "Evaluar este tramo",
+            key="explorar_evaluar",
+            type="primary",
+            icon=":material/play_arrow:",
+            disabled=not st.session_state.get("explorar_ok", False),
+        ):
+            _tab = st.session_state.get("explorar_table")
+            _meta = st.session_state.get("explorar_meta")
+            if _tab is not None:
+                try:
+                    st.session_state["live_engine_id"] = (
+                        f"ESN-EXPLORAR-{_exp_unit}")
+                    st.session_state["_editor_value"] = _tab
+                    st.session_state["live_result"] = INF.score_table(
+                        _tab, engine_id=f"ESN-EXPLORAR-{_exp_unit}")
+                    st.session_state["live_meta"] = _meta
+                    st.session_state["live_warnings"] = (
+                        st.session_state.get("explorar_avisos", []) or [])
+                    st.session_state["live_error"] = None
+                    st.session_state["live_flash"] = (
+                        f"Tramo explorado puntuado (ciclos "
+                        f"{_meta['start_cycle']}→{_meta['end_cycle']}).")
+                except ValueError as _exc:
+                    st.session_state["live_result"] = None
+                    st.session_state["live_error"] = str(_exc)
+                st.rerun()
+
     st.subheader("Puntúa un motor con datos que aportes tú", icon=":material/science:")
     st.caption(
         "Las tres rutas desembocan en el mismo validador y en la misma llamada al "

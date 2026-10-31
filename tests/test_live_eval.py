@@ -762,3 +762,50 @@ def test_el_preset_demo_funciona_tambien_en_modo_editar():
 
     assert len(app.session_state["_editor_value"]) == INF.DEMO_ROWS
     assert app.session_state["live_engine_id"] == "ESN-SANO-01"
+
+
+# ------------------------------------------------------- explorar por ciclo
+@needs_cache
+def test_explorar_por_ciclo_genera_tabla_valida():
+    """El bloque genera una tabla válida sin puntuar."""
+    from streamlit.testing.v1 import AppTest
+
+    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"),
+                            default_timeout=180)
+    app.run()
+    assert not app.exception, app.exception
+
+    sel = next(s for s in app.selectbox if s.key == "explorar_unit")
+    sel.select(14).run()
+    assert not app.exception, app.exception
+
+    sl = next(s for s in app.slider if s.key == "explorar_pos")
+    sl.set_value(0.5).run()
+    assert not app.exception, app.exception
+
+    tabla = app.session_state.get("explorar_table")
+    assert tabla is not None
+    assert len(tabla) >= INF.window_size()
+    assert list(tabla.columns) == INF.required_columns()
+    # No se ha puntuado todavía.
+    assert app.session_state.get("live_result") is None
+
+
+@needs_cache
+def test_explorar_por_ciclo_evaluar_funciona():
+    """Pulsar 'Evaluar este tramo' produce un resultado."""
+    from streamlit.testing.v1 import AppTest
+
+    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"),
+                            default_timeout=300)
+    app.run()
+    assert not app.exception, app.exception
+
+    boton = next(b for b in app.button if b.key == "explorar_evaluar")
+    boton.click().run()
+    assert not app.exception, app.exception
+
+    resultado = app.session_state.get("live_result")
+    assert resultado is not None
+    assert resultado.get("windows") is not None
+    assert len(resultado["windows"]) > 0
