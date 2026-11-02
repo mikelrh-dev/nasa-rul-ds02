@@ -111,7 +111,7 @@ flowchart TD
     F --> H[INSPECCIÓN]
     F --> I[HANGAR]
     D --> J[SHAP TreeExplainer<br/>global + waterfall]
-    J --> K[Top-10 features<br/>por mean |SHAP|]
+    J --> K[Top-10 features<br/>por mean abs SHAP]
 ```
 
 ---
