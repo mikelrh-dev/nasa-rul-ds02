@@ -1,5 +1,12 @@
 # N-CMAPSS DS02 — Remaining Useful Life
 
+> **Entrega de clase (Reto 1 SAA + PIA + MIA):** el track académico vive en
+> `track_clase/` (código), `notebooks/01–05` (relato), `data/processed/`
+> (dataset con nulos MAR + `fase_vuelo`) y `resultados/` (métricas y figuras).
+> Punto de entrada: [`track_clase/README.md`](track_clase/README.md) (6 apartados),
+> app de clase: `streamlit run track_clase/app_clase.py`.
+> Lo de abajo es el sistema en producción (bundle B congelado, RMSE 4.251).
+
 Predicting remaining useful life on the N-CMAPSS DS02 turbofan dataset, packaged
 so that it **loads, serves and is honest about what it measures**.
 
