@@ -95,7 +95,21 @@ producción sigue siendo bundle B.
 
 ---
 
-## Flujo de datos y explicabilidad
+## Experimento de robustez (3 vías)
+
+Para decidir si el modelo de producción debe ser B (limpio) o C (con nulos), se evaluó B sobre datos con nulos imputados:
+
+| Modelo | RMSE | MAE | R² | NASA | Escenario |
+|---|---|---|---|---|---|
+| B-bajo-dropout | **4.247** | 3.165 | 0.9483 | 2290.0 | B (limpio) + datos con nulos imputados |
+| B-limpio (congelado) | 4.251 | 3.183 | 0.9482 | 2305.1 | B (limpio) + datos limpios |
+| C-media (3 semillas) | 4.314 | — | — | 2339.1 | C (reentrenado) + datos con nulos |
+
+**Conclusión:** B sobre datos con nulos (4.247) es indistinguible de B sobre datos limpios (4.251). El ffill repara los huecos aislados del MAR T30, así que B es **insensible a este régimen**. No hace falta reentrenar: B sigue en producción. C (4.314) no supera la puerta D11.
+
+**Evidencia:** `resultados/comparativa_b_dropout.csv`, `track_clase/evaluar_b_en_adaptada.py`, `tests/test_clase_b_robusto.py`, `notebooks/05_ensemble_adaptado.ipynb`.
+
+---
 
 ```mermaid
 flowchart TD

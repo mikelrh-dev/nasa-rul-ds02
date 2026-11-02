@@ -107,6 +107,8 @@ flowchart LR
 
 **Test (una lectura):** MLP E1 RMSE 7.70 · MAE 5.57 · R² 0.84. Híbrido RMSE 4.25 · MAE 3.18 · R² 0.948.
 
+**Experimento de robustez (3 vías):** B sobre datos con nulos (4.247) es indistinguible de B sobre datos limpios (4.251). No hace falta reentrenar: B sigue en producción. C (4.314) no supera la puerta D11. Evidencia: `resultados/comparativa_b_dropout.csv`, `track_clase/evaluar_b_en_adaptada.py`.
+
 ![Real vs predicho](../resultados/mlp_real_vs_pred.png)
 
 **Qué pesan más (SHAP TreeExplainer, LightGBM del híbrido):** xs_mean_T50, xs_mean_T48, xs_last10_T50, cyc_norm. Describe el modelo, no el motor (no causal). Además, permutación sobre SVM (200 filas): T50, cycle, T48; T30 5ª (el ffill la sostiene tras el dropout).
