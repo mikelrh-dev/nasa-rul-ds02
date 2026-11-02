@@ -1,0 +1,6 @@
+flowchart LR
+    A[L_inf] --> B{>=30?}
+    B -->|si| C[APTO]
+    B -->|no| D{>=25?}
+    D -->|si| E[INSPECCION]
+    D -->|no| F[HANGAR]
