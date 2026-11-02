@@ -1,10 +1,12 @@
 # DS02 clase · predicción de RUL y decisión de hangar
 
+> **Español** | [English](../../README.md)
+
 Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir de telemetría y propone APTO / INSPECCIÓN / HANGAR. **El mejor MLP de clase logra RMSE 7.70 en test (uds 11/14/15); el híbrido en producción (BiLSTM + LightGBM + stacking) está en 4.25.**
 
-![App de clase](../resultados/app_clase.png)
+![App de producción](../resultados/dashboard_ds02.png)
 
-**Herramientas:** Python · pandas · matplotlib · scikit-learn · XGBoost · Streamlit (MLflow y n8n pendientes, declarados abajo).
+**Herramientas:** Python · pandas · matplotlib · scikit-learn · XGBoost · LightGBM · Streamlit · SHAP (MLflow y n8n pendientes, declarados abajo).
 
 ---
 
@@ -32,7 +34,7 @@ graph LR
 
 El modelo estima ciclos restantes. Las reglas (`mia/`, 6 con prioridad + seguridad R1) deciden sobre la estimación. n8n (MIA 3, siguiente change) llevará cada decisión a su acción (HANGAR → Postgres+Calendar+correo, INSPECCIÓN → Sheets, APTO → log).
 
-**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Ventaja: barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), Streamlit (app); MLflow y n8n se añaden en el change siguiente.
+**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Ventaja: barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer). MLflow y n8n se añaden en el change siguiente.
 
 ## Los datos
 
@@ -75,36 +77,47 @@ El modelo estima ciclos restantes. Las reglas (`mia/`, 6 con prioridad + segurid
 
 **Modelo elegido (clase): MLP E1 (RMSE 7.70).** No es el de menor tiempo (SVM es 37× más rápido), y se elige igualmente: RMSE manda porque un fallo gordo (motor parado) cuesta órdenes de magnitud más que segundos de CPU; a igualdad de RMSE se preferiría el más simple.
 
-**Test (una lectura):** MLP E1 RMSE 7.70 · MAE 5.57 · R² 0.84.
+**Modelo de producción (bundle B):** híbrido BiLSTM + LightGBM + stacking + EMA, RMSE 4.25 (test uds 11/14/15). El híbrido es el "extra no visto en clase" del criterio SAA 6. No se menciona como "bundle B" en la defensa: se denomina "umbral preestablecido de calidad industrial (RMSE < 4.25)".
+
+**Test (una lectura):** MLP E1 RMSE 7.70 · MAE 5.57 · R² 0.84. Híbrido RMSE 4.25 · MAE 3.18 · R² 0.948.
 
 ![Real vs predicho](../resultados/mlp_real_vs_pred.png)
 
-**Qué pesan más (permutación, SVM, 200 filas):** T50, cycle, T48; T30 5ª (el ffill la sostiene tras el dropout). Describe el modelo, no el motor (no causal).
+**Qué pesan más (SHAP TreeExplainer, LightGBM del híbrido):** xs_mean_T50, xs_mean_T48, xs_last10_T50, cyc_norm. Describe el modelo, no el motor (no causal). Además, permutación sobre SVM (200 filas): T50, cycle, T48; T30 5ª (el ffill la sostiene tras el dropout).
 
-![Importancia](../resultados/importancia_permutacion.png)
+![Importancia SHAP](../resultados/shap_importancia.png)
+![Importancia permutación](../resultados/importancia_permutacion.png)
 
-**Pendiente declarado (no hecho en este change):** registro MLflow + capturas MLflow y flujo n8n. La tabla comparativa es `resultados/comparativa.csv` (pandas). El híbrido en producción (4.25) es el "extra no visto en clase" del criterio SAA 6.
+**Pendiente declarado (no hecho en este change):** registro MLflow + capturas MLflow y flujo n8n. La tabla comparativa es `resultados/comparativa.csv` (pandas).
+
+## Tests
+
+22 tests de clase (`tests/test_clase_*.py`) + tests de la app (`tests/test_live_eval.py`). Todos pasan (23/23 en la última verificación). Cobertura: dataset, pipeline, clásicos, MLP, SHAP, tablas, ventanas, bundle C, robustez.
 
 ## Estructura del track
 
 ```text
-clase/                  dataset_clase.py, pipeline_clase.py, train_clasicos.py, train_mlp.py, app_clase.py, README.md
+track_clase/            dataset_clase.py, pipeline_clase.py, train_clasicos.py, train_mlp.py, README.md
+                        shap_clase.py, tabla_final.py, ventanas_adaptadas.py, evaluar_b_en_adaptada.py
 data/raw|processed/     HDF5 fuera de git; train_con_nulos + imputados + X/y + auditoria_nulos.json
-notebooks/              01_eda.ipynb, 02_modelos_A.ipynb, 03_modelos_B.ipynb (+outs)
+notebooks/              01_eda.ipynb, 02_modelos_A.ipynb, 03_modelos_B.ipynb, 04_lgbm_adaptada.ipynb,
+                        05_ensemble_adaptado.ipynb (todos con outputs)
 models/                 mejor_modelo_clase.joblib (Pipeline completo; el híbrido congelado no se toca)
 n8n/                    flujo.json (placeholder MIA 3)
-resultados/             eda_*.png, comparativa.csv, mlp_*.png/csv, importancia_*.png/csv, app_clase.png
+resultados/             eda_*.png, comparativa.csv, mlp_*.png/csv, importancia_*.png/csv, shap_*.png/csv
 src/reglas.py           re-export de mia/reglas.py (6 reglas + seguridad)
 src/n8n.py              stub (levanta NotImplementedError hasta el change n8n)
+app/ui_shap.py          SHAP en la app de producción (TreeExplainer, global + waterfall)
 ```
 
 ## Cómo ejecutarlo
 
 ```bash
-python -m clase.train_clasicos     # 5 modelos + comparativa.csv + joblib (~2 min)
-python -m clase.train_mlp           # MLP base+3 + importancia (~3 min)
-streamlit run clase/app_clase.py    # métricas + caso nuevo + decisión
-python -m pytest tests/test_clase_dataset.py tests/test_clase_pipeline.py tests/test_clase_clasicos.py tests/test_clase_mlp.py -q
+python -m track_clase.train_clasicos     # 5 modelos + comparativa.csv + joblib (~2 min)
+python -m track_clase.train_mlp           # MLP base+3 + importancia (~3 min)
+python -m track_clase.shap_clase          # SHAP TreeExplainer + PNG/CSV
+streamlit run app/dashboard_ds02.py        # app de producción (bundle B + SHAP)
+python -m pytest tests/test_clase_*.py tests/test_live_eval.py -q
 ```
 
 ## Autoría

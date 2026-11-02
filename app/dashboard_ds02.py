@@ -2400,6 +2400,40 @@ with tab_motor:
             )
 
 
+    # ------------------------------------------------------------- SHAP
+    with st.container(border=True):
+        st.subheader("Explicabilidad · SHAP (LightGBM del híbrido)",
+                     icon=":material/psychology:")
+        st.caption(
+            "Qué features del LightGBM pesan más en la predicción de este motor. "
+            "TreeExplainer exacto sobre el modelo congelado (no reentrena). "
+            "El SHAP explica el componente tabular del híbrido, no el BiLSTM ni el "
+            "stacking."
+        )
+        try:
+            import ui_shap as USH
+
+            if st.button("Calcular SHAP para este motor",
+                        icon=":material/psychology:", key="btn_shap"):
+                _shap_df = USH.shap_top_features(int(unit), top_k=10)
+                if _shap_df is not None and not _shap_df.empty:
+                    import plotly.express as px
+
+                    _fig_shap = px.bar(
+                        _shap_df.sort_values("abs_shap"),
+                        x="abs_shap", y="feature", orientation="h",
+                        labels={"abs_shap": "mean |SHAP| (ciclos RUL)",
+                                "feature": "feature"},
+                        title=f"Top-10 features · motor {int(unit)}",
+                    )
+                    st.plotly_chart(_fig_shap, use_container_width=True)
+                    st.dataframe(_shap_df, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Sin datos suficientes para calcular SHAP.")
+        except Exception as _e:
+            st.warning(f"No se pudo calcular SHAP: {_e}")
+
+
 # ------------------------------------------------------- auditoría: el cómo
 with tab_auditoria:
     # La deriva de sensores ya se ve en «Motor» (radiografía del motor
@@ -3542,6 +3576,27 @@ with tab_casos:
                 _guardar_registros()
                 st.session_state["twin_flash"] = "Flota registrada borrada."
                 st.rerun()
+
+
+    # ------------------------------------------------------------- SHAP waterfall
+    with st.container(border=True):
+        st.subheader("Explicabilidad local · SHAP waterfall",
+                     icon=":material/psychology:")
+        st.caption(
+            "Por qué el modelo predice este RUL para el motor seleccionado. "
+            "TreeExplainer exacto sobre el LightGBM del híbrido (no reentrena). "
+            "El waterfall muestra la contribución de cada feature a la predicción."
+        )
+        try:
+            import ui_shap as USH
+
+            _wf_unit = int(st.session_state.get("unit", 14))
+            if st.button("Generar waterfall SHAP", icon=":material/psychology:",
+                        key="btn_shap_wf"):
+                _wf_path = USH.shap_waterfall_png(_wf_unit)
+                st.image(_wf_path, caption=f"SHAP waterfall · motor {_wf_unit}")
+        except Exception as _e:
+            st.warning(f"No se pudo generar el waterfall: {_e}")
 
 
 # --------------------------------- auditoría (cont.): calidad y procedencia
