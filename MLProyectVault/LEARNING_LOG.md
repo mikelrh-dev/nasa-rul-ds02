@@ -3,93 +3,98 @@ source: learn-teacher
 mode: repo
 repo: nasa
 created: 2026-10-23
+updated: 2026-11-01
+version: 2
 ---
 
 # LEARNING_LOG — MLProyectVault
 
-Vault de estudio del proyecto DS02 (N-CMAPSS): ensamble híbrido de stacking para RUL.
-Mapas, teorías y esquemas en español. El quiz interactivo queda pendiente (vault construido a petición directa, sin fase teach).
-
-## Índice
-
-- [[#Cartografía del repo (2026-10-23)]]
-- [[#Plan aprobado — vault MLProyectVault (2026-10-23)]]
-- B1: [[01-que-predecimos-rul]] · [[02-reparto-por-motor-y-fuga]] · [[03-baseline-media-train]]
-- B2: [[04-prepro-solo-fit-motores]] · [[05-sensor-residualizado-regimen]] · [[06-ventanas-y-cyc-norm]]
-- B3: [[07-lightgbm-cuantil]] · [[08-bilstm-triple-pooling]] · [[09-ema-causal]]
-- B4: [[10-ablacion-cyc-norm]] · [[11-oof-agrupado]] · [[12-beta-mediana-y-diagnostico]]
-- B5: [[13-stacking-hibrido]] · [[14-bandas-conformal]] · [[15-macro-rmse]]
-- B6: [[16-multisemilla]] · [[17-regla-del-empate]] · [[18-diagnostico]] · [[19-persistencia-reload]]
-- B7: [[20-indice-funciones-y-api]] · [[21-api-datos-e-ingestion]] · [[22-api-ventanas-e-inferencia]] · [[23-api-modelo-bilstm-y-pooling]] · [[24-api-pipeline-y-semillas]] · [[25-api-stacking-interno]] · [[26-api-ensamble-e-intervalos]] · [[27-api-conformal]] · [[28-api-persistencia-y-reload]] · [[29-api-metricas]] · [[30-api-visualizacion]] · [[31-api-residualizador-y-suavizado]]
-- B0: [[00-guion-30-segundos]] · [[00-datos-prepro-ventanas]] · [[00-bases-lgbm-bilstm]] · [[00-oof-beta-stacking]] · [[00-ema-conformal-metricas]] · [[00-persistencia-notebooks]] · [[00-cifras-autoritativas]] · [[01-anexo-nb01-celdas]] · [[02-anexo-nb02-celdas]] · [[03-anexo-nb03-celdas]]
-- [[#B0 Guion defensa — bloque núcleo (2026-10-26)]]
+Vault de estudio del proyecto **DS02 — RUL con ensamble híbrido** (N-CMAPSS).
+Objetivo: entender los tres cuadernos, entender el proyecto y sus conceptos, y defenderlo en voz alta.
 
 ## Estado actual
 
-- **Modo:** repo · **Tema activo:** proyecto DS02 completo · **Objetivo:** entender conceptos, código y desarrollo de los 3 notebooks para defender el proyecto.
-- **Nodos firmes:** ninguno verificado con quiz todavía (pendiente).
-- **Siguiente bloque:** B0 — Guion defensa (quiz pendiente, luego B1).
+**Modo:** repo · **Tema activo:** proyecto completo · **Idioma:** español.
+
+| | |
+|---|---|
+| Notas activas | 44 (15 conceptos · 14 sistema · 5 notebooks · 7 defensa · 3 evidencia) |
+| Consolidadas | 0 |
+| Sin estudiar | 44 |
+| Última reestructuración | 2026-11-01 (v2) |
+
+### Cómo se usa este vault
+
+1. **Entender un concepto** → `10-Conceptos/`. Cada nota termina en flashcards plegables: contestalas sin abrir.
+2. **Entender cómo se implementó** → `20-Sistema/`. Cada nota cita `archivo:línea` del repo.
+3. **Entender qué hace un cuaderno** → `30-Notebooks/`. Celda por celda, con la salida real.
+4. **Ensayar la defensa** → `40-Defensa/`. Se lee **en voz alta**, no se estudia en silencio.
+5. **Verificar un dato** → `50-Evidencia/`. Una sola página tiene decimales.
+
+### Ruta de estudio sugerida
+
+| Tramo | Qué leer | Criterio para avanzar |
+|---|---|---|
+| 1 | `c01` → `c07` | podés explicar ventana, cuantil, BiLSTM y pooling sin mirar |
+| 2 | `c08` → `c14` + `s01` → `s07` | podés contar el pipeline de punta a punta |
+| 3 | `s08` → `s14` + `n01` → `n05` | podés abrir cualquier cuaderno y decir qué hace cada celda |
+| 4 | `d01` → `d07` | decís el guion de 30 s sin leer y respondés 30 de las 40 preguntas |
+
+**Bucle por nota:** leer → contestar flashcards con el callout cerrado → decir la frase de `Di esto en el tribunal` en voz alta → marcar `status`. Si no sale hablando, no está consolidada.
 
 ### Perfil del estudiante
 
 - `preferencia_quiz: cada_nodo` · `formato: adaptativo` · `ritmo: normal` · idioma: español.
+- Pedir sesión de estudio: "hazme quiz de `c03`" → dos preguntas, tres opciones cada una, con "No lo sé".
 
 ### Nivel del estudiante
 
-- nivel: sin calibrar (probe pendiente) · evidencia: 0/0.
+- `nivel: sin calibrar` · `evidencia: 0/0`. Se recalcula con los veredictos, no con impresiones.
 
-## Cartografía del repo (2026-10-23)
+## Reglas del vault
 
-> [!quote] Estudiante
-> Crear el vault MLProyectVault de los 3 notebooks: conceptos, código y desarrollo.
+1. **Una idea, un lugar.** Las notas de concepto explican el mecanismo; las de sistema dicen cómo aterriza; las de notebook dicen qué hace la celda. Si un tema aparece en dos, una enseña y la otra enlaza.
+2. **Una cifra, una fuente.** Solo [[e00-cifras-autoritativas]] tiene decimales. El resto redondea o cita.
+3. **Toda nota termina hablando.** El bloque `Di esto en el tribunal` es la salida real del estudio.
+4. **Nada de plugins.** Las flashcards son callouts plegables nativos (`> [!question]-`): funcionan en cualquier Obsidian.
+5. **El repo manda sobre el vault.** Si la nota y el código discrepan, se corrige la nota.
 
-Mapa real del código (todo verificado en archivos):
+## Índice
 
-```mermaid
-flowchart LR
-    H5[N-CMAPSS_DS02-006.h5] --> LOAD[data.py:load_ds02]
-    LOAD --> PREP[features.py:fit_preprocessing]
-    PREP --> WIN[features.py:build_windows]
-    WIN --> LGBM[pipeline.py:make_lgbm]
-    WIN --> BILSTM[model.py:build_champion_bilstm]
-    LGBM --> OOF[pipeline.py:oof_base_predictions]
-    BILSTM --> OOF
-    OOF --> BETA[stacking.py:select_beta_grouped]
-    BETA --> ENS[ensemble.py:HybridStackingEnsemble]
-    ENS --> CONF[conformal.py:fit_conformal]
-    ENS --> SAVE[persistence.py:save_ensemble]
-```
-Fuente: [[visuals/mlproyect-plan.mmd]]
+### 10-Conceptos — qué es y por qué funciona así
 
-**Fuentes:** `src/ds02_rul/{data,features,model,pooling,stacking,smoothing,pipeline,conformal,metrics,ensemble,residualizer,persistence,inference}.py` + `notebooks/ds02_ensemble/01`, `02`, `03`.
+- [[c00-glosario]] — 40 términos en una línea
+- [[c01-que-es-rul]] · [[c02-ventanas-y-horizonte]] · [[c03-fuga-de-informacion]]
+- [[c04-metricas-y-baseline]] · [[c05-regresion-cuantilica]]
+- [[c06-bilstm-y-secuencias]] · [[c07-pooling-temporal]]
+- [[c08-residualizacion]] · [[c09-ensembles]]
+- [[c10-oof-y-validacion-agrupada]] · [[c11-shrinkage-beta]]
+- [[c12-conformal-prediction]] · [[c13-ema-causal]] · [[c14-ruido-y-reproducibilidad]]
 
-**Estado tras el bloque:** cartografía completa, 14 módulos leídos. Nodo firme: estructura del repo.
+### 20-Sistema — cómo está hecho aquí
 
-## Plan aprobado — vault MLProyectVault (2026-10-23)
+- [[s01-protocolo-honesto]] · [[s02-datos-ds02-y-reparto]] · [[s03-preproceso-sin-fuga]] · [[s04-ventanas-y-features]]
+- [[s05-lightgbm-cuantilico]] · [[s06-bilstm-triple-pooling]] · [[s07-ema-por-motor]]
+- [[s08-ablacion-cyc-norm]] · [[s09-oof-y-beta]] · [[s10-stacking-hibrido]] · [[s11-banda-conformal]]
+- [[s12-persistencia-y-contrato]] · [[s13-capa-de-reglas-y-decision]] · [[s14-app-y-despliegue]]
 
-> [!quote] Estudiante
-> Plan con bloques y nombres de .md aprobado; crear el vault.
+### 30-Notebooks — qué hace cada celda
 
-6 bloques, 19 nodos, formato triple (teoría + esquema + quiz pendiente): B1 Protocolo honesto · B2 Prepro y features · B3 Modelos base · B4 Ablación, OOF y beta · B5 Ensamble y conformal · B6 Evidencia y diagnóstico. Visuals: mapa del plan + uno por bloque.
+- [[n01-recorrido-nb01]] · [[n02-recorrido-nb02]] · [[n03-recorrido-nb03]]
+- [[n04-cadena-de-estado]] · [[n05-api-src-ds02-rul]]
 
-## B0 Guion defensa — bloque núcleo (2026-10-26)
+### 40-Defensa — guion y performance
 
-> [!quote] Estudiante
-> Necesito entender los .py + los 3 notebooks completos, denso pero sencillo. Amplía el vault.
+- [[d01-guion-30s]] · [[d02-guion-5min]]
+- [[d03-banco-de-preguntas]] · [[d04-objeciones-duras]]
+- [[d05-como-decir-las-cifras]] · [[d06-demo-y-plan-b]] · [[d07-checklist-la-noche-antes]]
 
-Carpeta `00-Guion-Defensa/`: 7 núcleo (guion, datos, bases, oof, ema, persistencia, cifras) + 3 anexos celda a celda (NB01 12, NB02 18, NB03 25 códigos) con snippets literales `archivo:línea`, entra/sale/por-qué y frase para contar. Visuals: `guion-defensa-plan.mmd`, `mapa-puente.mmd`, `anexos-celdas.mmd`.
+### 50-Evidencia — trazabilidad
 
-```mermaid
-flowchart LR
-    GUION[guion 30s] --> DATOS[datos prepro ventanas]
-    DATOS --> BASES[bases LGBM BiLSTM]
-    BASES --> OOF[OOF beta stacking]
-    OOF --> DEC[EMA conformal metricas]
-    DEC --> PERS[persistencia notebooks]
-    PERS --> CIFRAS[cifras manifiesto]
-```
-Fuente: [[visuals/guion-defensa-plan.mmd]]
+- [[e00-cifras-autoritativas]] · [[e01-adr-index]] · [[e02-informes-index]]
 
-**Fuentes:** `src/ds02_rul/{data:49, features:25/79, model:19, pipeline:46/88/157, stacking:161/184/234, smoothing:14, conformal:28/90, persistence:108/189, metrics:21/45}.py` + NB01/02/03 + `models/ds02_manifest.json` + `EVALUACION_EJECUCION.md`.
+## Historia
 
-**Estado tras el bloque:** B0 creado (10 teorías + 9 esquemas + 3 visuals). Pendiente quiz y `00-Definiciones-del-Autor/` si el estudiante fija frases. Cifras autoritativas: manifiesto 2026-10-26 manda.
+- **2026-11-01 — v2 (reestructuración).** El vault v1 tenía 120 notas, tres copias del mismo contenido y cifras desactualizadas en la propia nota que decía "el manifiesto manda". Se archivó completo en `90-Archivo/` (incluido el log v1: [[LEARNING_LOG-v1]] desde la raíz del archivo) y se reconstruyó por ejes: conceptos, sistema, notebooks, defensa, evidencia. Ninguna nota se borró.
+- **2026-10-26 — v1.** Bloque B0 de guion de defensa (10 notas + 3 anexos celda a celda) y variante "refactor novato".
+- **2026-10-23 — v1.** Cartografía del repo y 6 bloques B1–B7 (31 nodos, formato teoría + esquema).

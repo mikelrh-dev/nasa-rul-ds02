@@ -1,0 +1,9 @@
+flowchart LR
+    A[p_lstm] --> C[Meta Ridge+LGBM]
+    B[p_lgb] --> C
+    N[cyc_norm] --> C
+    C --> D[p_meta]
+    D --> E[beta 1.0]
+    A --> E
+    E --> F[EMA5]
+    F --> G[Banda]
