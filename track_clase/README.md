@@ -1,6 +1,6 @@
 # DS02 clase · predicción de RUL y decisión de hangar
 
-> **Español** | [English](../../README.md)
+> **Español** | [English](../../README.en.md)
 
 Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir de telemetría y propone APTO / INSPECCIÓN / HANGAR. **El mejor MLP de clase logra RMSE 7.70 en test (uds 11/14/15); el híbrido en producción (BiLSTM + LightGBM + stacking) está en 4.25.**
 
@@ -26,6 +26,9 @@ Taller MRO con flota DS02: un motor parado en pista cuesta decenas de miles de e
 
 ```mermaid
 graph LR
+    accTitle: Flujo de alto nivel DS02 clase
+    accDescr: Telemetría → modelo RUL → reglas de decisión → n8n → orden de taller.
+
     A[Telemetría DS02] --> B[Modelo: RUL]
     B --> C[Reglas: APTO/INSPECCIÓN/HANGAR]
     C --> D[n8n pendiente]
@@ -58,6 +61,29 @@ El modelo estima ciclos restantes. Las reglas (`mia/`, 6 con prioridad + segurid
 
 ![Fases](../resultados/eda_barras_fase.png)
 ![Alt vs Mach](../resultados/eda_scatter_alt_mach.png)
+
+## Pipeline de datos
+
+```mermaid
+flowchart LR
+    accTitle: Pipeline de datos DS02 clase
+    accDescr: Desde el HDF5 hasta las métricas, pasando por inyección de nulos e imputación.
+
+    A[HDF5 DS02<br/>0 nulos] --> B[Inyección MAR<br/>2-4% en T30]
+    B --> C[Imputación causal<br/>ffill por unidad]
+    C --> D[fase_vuelo<br/>de alt/Mach]
+    D --> E[Residualización<br/>Ridge sobre régimen]
+    E --> F[5 clásicos<br/>+ GridSearchCV]
+    E --> G[MLP<br/>base + 3 exp]
+    E --> H[LightGBM<br/>adaptada]
+    E --> I[Ensemble<br/>bundle C]
+    F --> J[Métricas<br/>RMSE/MAE/R²]
+    G --> J
+    H --> J
+    I --> J
+```
+
+---
 
 ## Resultados
 
