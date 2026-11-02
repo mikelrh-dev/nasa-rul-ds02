@@ -2974,7 +2974,7 @@ with tab_casos:
             "Elige un motor y un punto de su vida: se genera el tramo y se muestra "
             "el estado calculado. No se puntúa hasta pulsar \"Evaluar este tramo\"."
         )
-        _exp_cols = st.columns(3)
+        _exp_cols = st.columns(4)
         with _exp_cols[0]:
             _exp_unit = st.selectbox(
                 "Motor",
@@ -2991,15 +2991,39 @@ with tab_casos:
                 help="50 = una ventana; 300 = trayectoria con EMA suavizada.",
             )
         with _exp_cols[2]:
-            _exp_pos = st.slider(
-                "Punto final (posición en la vida del motor)",
-                0.0, 1.0, 0.5, 0.01,
-                key="explorar_pos",
-                help="0.0 = inicio, 1.0 = final. El tramo termina en ese punto.",
+            _exp_mode = st.selectbox(
+                "Modo",
+                ["Posición relativa", "Ciclo final"],
+                key="explorar_mode",
+                help="Posición relativa: fracción de la vida (0-1). "
+                     "Ciclo final: elige el ciclo exacto en que termina el tramo.",
             )
+        with _exp_cols[3]:
+            if _exp_mode == "Posición relativa":
+                _exp_pos = st.slider(
+                    "Punto final (posición en la vida del motor)",
+                    0.0, 1.0, 0.5, 0.01,
+                    key="explorar_pos",
+                    help="0.0 = inicio, 1.0 = final. El tramo termina en ese punto.",
+                )
+            else:
+                _ciclos_disp = sorted(
+                    int(c) for c in windows[windows["unit"] == _exp_unit]["cycle"].unique()
+                )
+                _exp_cycle = st.selectbox(
+                    "Ciclo final",
+                    _ciclos_disp,
+                    key="explorar_cycle",
+                    help="Ciclo exacto en que termina el tramo. "
+                         "El tramo abarca los ciclos anteriores según el largo elegido.",
+                )
         try:
-            _exp_tab, _exp_meta = INF.example_window(
-                _exp_unit, _exp_pos, rows=_exp_len)
+            if _exp_mode == "Posición relativa":
+                _exp_tab, _exp_meta = INF.example_window(
+                    _exp_unit, _exp_pos, rows=_exp_len)
+            else:
+                _exp_tab, _exp_meta = INF.window_ending_at(
+                    _exp_unit, _exp_cycle, rows=_exp_len)
             _exp_pf = INF.preflight(_exp_tab)
             _exp_ok = bool(_exp_pf["ok"])
             st.session_state["explorar_table"] = _exp_tab
