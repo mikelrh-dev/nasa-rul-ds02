@@ -172,6 +172,22 @@ three folds selected `beta = 0` — i.e. that fold saw no value in the meta-lear
 
 ---
 
+## Robustness experiment (3-way)
+
+To decide whether the production model should be B (clean) or C (with nulls), B was evaluated on data with imputed nulls:
+
+| Model | RMSE | MAE | R² | NASA | Scenario |
+|---|---|---|---|---|---|
+| B-under-dropout | **4.247** | 3.165 | 0.9483 | 2290.0 | B (clean) + data with imputed nulls |
+| B-clean (frozen) | 4.251 | 3.183 | 0.9482 | 2305.1 | B (clean) + clean data |
+| C-mean (3 seeds) | 4.314 | — | — | 2339.1 | C (retrained) + data with nulls |
+
+**Conclusion:** B on data with nulls (4.247) is indistinguishable from B on clean data (4.251). The ffill repairs the isolated MAR T30 gaps, so B is **insensitive to this regime**. No need to retrain: B stays in production. C (4.314) does not pass gate D11.
+
+**Evidence:** `resultados/comparativa_b_dropout.csv`, `track_clase/evaluar_b_en_adaptada.py`, `tests/test_clase_b_robusto.py`, `notebooks/05_ensemble_adaptado.ipynb`.
+
+---
+
 ## Deployability
 
 The first artifact could not be loaded by the repository's own interpreter:
