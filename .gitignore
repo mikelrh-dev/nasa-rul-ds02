@@ -86,3 +86,8 @@ app/registros_flota.json
 # class material (notebooks/ds02_ensemble/RequisitosClase/Ejemplos) — not part of
 # the deliverable: regenerable exercise folders and their data
 notebooks/ds02_ensemble/RequisitosClase/Ejemplos/
+
+# class track generated data and results
+data/
+resultados/
+track_clase/models/

@@ -11,6 +11,8 @@ keras==3.15.1
 h5py==3.14.0
 joblib==1.6.0
 matplotlib==3.11.2
+xgboost==3.4.1
+shap==0.54.1
 
 # notebook generation / execution
 nbformat>=5.10
