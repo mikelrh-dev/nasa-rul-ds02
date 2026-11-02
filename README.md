@@ -9,6 +9,16 @@
 > app de producción: `streamlit run app/dashboard_ds02.py` (bundle B + SHAP).
 > Lo de abajo es el sistema en producción (bundle B congelado, RMSE 4.251).
 
+![App del track de clase](resultados/app_clase.png)
+
+*Captura real de la app Streamlit del track académico (métricas en test + caso nuevo con decisión de reglas).*
+
+## La necesidad de negocio
+
+Taller MRO con flota DS02: un motor parado en pista (AOG) cuesta del orden de 50 k€/día (estimación sectorial); una inspección a tiempo cuesta una fracción. Hoy la decisión de hangar depende de juicio experto sin número.
+
+**Objetivo:** predecir la RUL de cada motor para que el jefe de taller decida APTO / INSPECCIÓN / HANGAR, con la predicción convertida en decisión por reglas (`mia/`, 6 con prioridad + seguridad R1) y, más adelante, en acción automática vía n8n. Evitar una sola parada no planificada al año paga el sistema. Detalle académico: [`track_clase/README.md`](track_clase/README.md).
+
 Predicción de vida útil restante en el dataset turbofán N-CMAPSS DS02, empaquetado
 para que **cargue, sirva y sea honesto sobre lo que mide**.
 
@@ -108,6 +118,8 @@ Para decidir si el modelo de producción debe ser B (limpio) o C (con nulos), se
 **Conclusión:** B sobre datos con nulos (4.247) es indistinguible de B sobre datos limpios (4.251). El ffill repara los huecos aislados del MAR T30, así que B es **insensible a este régimen**. No hace falta reentrenar: B sigue en producción. C (4.314) no supera la puerta D11.
 
 **Evidencia:** `resultados/comparativa_b_dropout.csv`, `track_clase/evaluar_b_en_adaptada.py`, `tests/test_clase_b_robusto.py`, `notebooks/05_ensemble_adaptado.ipynb`.
+
+*Nota sobre casillas vacías: NASA solo se calcula en grano ventana (pipeline `evaluate_predictions`); en grano fila la comparativa oficial es RMSE/MAE/R². La fila C-media agrega los titulares RMSE/NASA de las 3 semillas; su re-derivación completa con media±std queda pendiente y no afecta a la puerta D11.*
 
 ---
 

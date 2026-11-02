@@ -4,7 +4,9 @@
 
 Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir de telemetría y propone APTO / INSPECCIÓN / HANGAR. **El mejor MLP de clase logra RMSE 7.70 en test (uds 11/14/15); el híbrido en producción (BiLSTM + LightGBM + stacking) está en 4.25.**
 
-![App de producción](../resultados/dashboard_ds02.png)
+![App del track de clase](../resultados/app_clase.png)
+
+*Captura real de la app del track (métricas + caso nuevo con decisión de reglas). La del dashboard de producción va en el README raíz.*
 
 **Herramientas:** Python · pandas · matplotlib · scikit-learn · XGBoost · LightGBM · Streamlit · SHAP (MLflow y n8n pendientes, declarados abajo).
 
@@ -21,6 +23,7 @@ Taller MRO con flota DS02: un motor parado en pista cuesta decenas de miles de e
 | Tipo de problema | Regresión supervisada (RUL en ciclos; sin clases → SMOTE no aplicable) |
 | Quién lo usa | Jefe de taller, que recibe la RUL + decisión por motor |
 | Referencia externa | Las aerolíneas programan hangar por horas de vuelo; aquí por RUL predicha |
+| Cuánto vale acertar (estimación sectorial) | Un AOG imprevisto cuesta ~50 k€/día; una inspección programada cuesta una fracción. Evitar una sola parada no planificada al año paga el sistema |
 
 ## Qué hemos construido
 
@@ -48,7 +51,20 @@ El modelo estima ciclos restantes. Las reglas (`mia/`, 6 con prioridad + segurid
 | `unit` | Motor (grupo, no predictor) | numérica | 0% | 0% |
 | `cycle` | Ciclo de vuelo | numérica | 0% | 0% |
 | `alt, Mach, TRA, T2` | Régimen de vuelo | numéricas | 0% | 0% |
-| `T24..Wf` (14) | Sensores del motor | numéricas | ~1.8% MAR solo en T30 | 0% tras ffill+mediana train |
+| `T24` | Temp. salida LPC (°R) | numérica | 0% | 0% |
+| `T30` | Temp. salida HPC (°R), sonda con dropout | numérica | ~1.8% MAR (crucero alto) | 0% tras ffill+mediana |
+| `T48` | Temp. salida HPT (°R) | numérica | 0% | 0% |
+| `T50` | Temp. salida LPT (°R) | numérica | 0% | 0% |
+| `P15` | Presión sangrado (psia) | numérica | 0% | 0% |
+| `P2` | Presión entrada fan (psia) | numérica | 0% | 0% |
+| `P21` | Presión salida LPC (psia) | numérica | 0% | 0% |
+| `P24` | Presión salida HPC (psia) | numérica | 0% | 0% |
+| `Ps30` | Presión estática HPC (psia) | numérica | 0% | 0% |
+| `P40` | Presión total HPT (psia) | numérica | 0% | 0% |
+| `P50` | Presión total LPT (psia) | numérica | 0% | 0% |
+| `Nf` | RPM del fan | numérica | 0% | 0% |
+| `Nc` | RPM del núcleo | numérica | 0% | 0% |
+| `Wf` | Caudal combustible (pps) | numérica | 0% | 0% |
 | `fase_vuelo` | Ascenso/Crucero/Descenso (nueva, de alt/Mach) | categórica | 0% | 0% |
 | `RUL` | **Objetivo:** ciclos restantes | numérica | 0% (nunca se inyecta) | 0% |
 
@@ -111,7 +127,7 @@ flowchart LR
 
 ![Real vs predicho](../resultados/mlp_real_vs_pred.png)
 
-**Qué pesan más (SHAP TreeExplainer, LightGBM del híbrido):** xs_mean_T50, xs_mean_T48, xs_last10_T50, cyc_norm. Describe el modelo, no el motor (no causal). Además, permutación sobre SVM (200 filas): T50, cycle, T48; T30 5ª (el ffill la sostiene tras el dropout).
+**Qué pesan más (SHAP TreeExplainer exacto, XGB con mejores hiperparámetros de `comparativa.csv`, fondo 200 train):** xs_mean_T50, xs_mean_T48, xs_last10_T50, cyc_norm. Describe el modelo, no el motor (no causal). Además, permutación sobre SVM (200 filas): T50, cycle, T48; T30 5ª (el ffill la sostiene tras el dropout).
 
 ![Importancia SHAP](../resultados/shap_importancia.png)
 ![Importancia permutación](../resultados/importancia_permutacion.png)

@@ -74,10 +74,20 @@ def channel_order() -> list[str]:
 
 
 def window_size() -> int:
+    """Ventana temporal (lecturas) que espera el bundle congelado.
+
+    Se lee de la provenance de la caché, nunca se escribe a mano: si el
+    artefacto cambiase de ventana, la UI la hereda sin editar código.
+    """
     return int(L.get_provenance()["source"]["window"])
 
 
 def required_columns() -> list[str]:
+    """Columnas del caso nuevo: cycle + los 18 canales DS02.
+
+    El orden lo da `channel_order()` (heredado de la caché/HDF5): un cambio
+    de orden aquí alimentaría al bundle con columnas cruzadas.
+    """
     return ["cycle"] + channel_order()
 
 

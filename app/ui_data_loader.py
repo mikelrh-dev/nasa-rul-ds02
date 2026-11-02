@@ -132,6 +132,11 @@ def get_rows() -> pd.DataFrame:
 
 @st.cache_data(show_spinner=False)
 def get_provenance() -> dict:
+    """Provenance de `app/cache/cache_manifest.json`: dataset, ventana y hashes.
+
+    La UI la usa para saber qué artefacto está mostrando y sellar la
+    coherencia caché-manifest-bundle.
+    """
     with open(PROVENANCE_PATH, encoding="utf-8") as fh:
         return json.load(fh)
 
@@ -144,6 +149,11 @@ def get_manifest() -> dict:
 
 
 def cache_available() -> bool:
+    """True si existen los tres ficheros de caché (ventanas, filas, provenance).
+
+    La app lo consulta al arrancar para mostrar un mensaje útil en vez de
+    romper si la caché no se generó (`scripts/build_ui_cache.py`).
+    """
     return all(os.path.exists(p) for p in (WINDOWS_PATH, ROWS_PATH, PROVENANCE_PATH))
 
 
@@ -208,6 +218,11 @@ def classify(lower: float, airworthy: float = DEFAULT_AIRWORTHY,
 
 def classify_series(lower, airworthy: float = DEFAULT_AIRWORTHY,
                     aog: float = DEFAULT_AOG) -> pd.Series:
+    """Vectoriza `classify()` sobre una serie de límites inferiores.
+
+    Misma semántica umbral que el caso escalar (APTO/INSPECCIÓN/HANGAR
+    sobre el lower conformal), aplicada fila a fila conservando el índice.
+    """
     values = np.asarray(lower, dtype=float)
     return pd.Series(
         [classify(v, airworthy, aog) for v in values],
