@@ -1,4 +1,4 @@
-"""Puente entre la caché del DS02 y la capa de reglas (`mia/`).
+"""Puente entre la caché del DS02 y la capa de reglas (`src/mia/`).
 
 Toma el frame de ventanas ya cacheado y le aplica las dos reglas de correccion:
 
@@ -6,9 +6,9 @@ Toma el frame de ventanas ya cacheado y le aplica las dos reglas de correccion:
   por ciclo. Ojo: el ajuste es no creciente, la serie devuelta no necesariamente
   (ver seccion 13 de `docs/informes/informe-2026-10-21-reglas-oof.md`).
 * `R6_BANDA` — banda conformal recalibrada sobre el punto corregido, con los
-  coeficientes congelados en `mia/calibracion_banda.json`.
+  coeficientes congelados en `src/mia/calibracion_banda.json`.
 
-Despues corre la pasada A (`mia.motor`): R1_SEGURIDAD, R9_HANGAR, R8_INSPECCION
+Despues corre la pasada A (`src.mia.motor`): R1_SEGURIDAD, R9_HANGAR, R8_INSPECCION
 y R7_APTO deciden el estado sobre el limite inferior, con los umbrales de la
 barra lateral. El estado no se reclasifica aqui: se pregunta al motor, de modo
 que la UI y el cuaderno de practica aplican exactamente las mismas reglas.
@@ -28,10 +28,10 @@ import pandas as pd
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(APP_DIR)
-sys.path.insert(0, os.path.join(ROOT, "mia"))
+sys.path.insert(0, ROOT)
 
-import motor as M  # noqa: E402
-import reglas as R  # noqa: E402
+from src.mia import motor as M  # noqa: E402
+from src.mia import reglas as R  # noqa: E402
 
 COLUMNAS_COPIA = {
     "pred": "pred_enviada",
@@ -95,7 +95,7 @@ def alertas_de_ventana(frame: pd.DataFrame) -> list[list[str]]:
 
 def decidir_ventanas(frame: pd.DataFrame, umbrales: dict,
                      alertas: list[list[str]] | None = None) -> pd.DataFrame:
-    """Aplica la pasada A del motor (`mia.motor`) a cada ventana.
+    """Aplica la pasada A del motor (`src.mia.motor`) a cada ventana.
 
     Devuelve el frame con `decision`, `regla_decision` y `motivo_decision`. La
     decision se lee del limite inferior y de los umbrales en vigor, no del punto.

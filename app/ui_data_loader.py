@@ -158,6 +158,24 @@ def cache_available() -> bool:
 
 
 # ------------------------------------------------------- cache / artifact seal
+@st.cache_data(ttl=3600, show_spinner=False)
+def _sha256_cached(path: str, _size: int, _mtime_ns: int) -> str | None:
+    """SHA-256 de un fichero, cacheado y atado a su contenido.
+
+    La clave incluye tamaño y mtime: si el artefacto se sustituye en disco, la
+    clave cambia y el hash se recalcula; si no, cada render reutiliza el digest
+    en vez de releer el fichero.
+    """
+    try:
+        h = hashlib.sha256()
+        with open(path, "rb") as fh:
+            for chunk in iter(lambda: fh.read(HASH_CHUNK), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except OSError:
+        return None
+
+
 def artifact_hash_check(provenance: dict) -> dict:
     """Compare the recorded ensemble hash with models/ensemble.joblib on disk.
 
@@ -184,14 +202,14 @@ def artifact_hash_check(provenance: dict) -> dict:
         return {"checked": False, "ok": False, "esperado": None, "leido": None}
 
     try:
-        digest = hashlib.sha256()
-        with open(ARTIFACT_PATH, "rb") as fh:
-            for chunk in iter(lambda: fh.read(HASH_CHUNK), b""):
-                digest.update(chunk)
+        st_file = os.stat(ARTIFACT_PATH)
     except OSError:
         return {"checked": False, "ok": False, "esperado": esperado, "leido": None}
-
-    leido = digest.hexdigest()
+    leido = _sha256_cached(
+        ARTIFACT_PATH, int(st_file.st_size), int(st_file.st_mtime_ns)
+    )
+    if leido is None:
+        return {"checked": False, "ok": False, "esperado": esperado, "leido": None}
     return {"checked": True, "ok": leido == esperado,
             "esperado": esperado, "leido": leido}
 

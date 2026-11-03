@@ -308,6 +308,96 @@ def st_badge_estado(estado: str) -> None:
     )
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _sha256_cached(path: str, _size: int, _mtime_ns: int) -> str | None:
+    """SHA-256 de un fichero de auditoría, cacheado por path/tamaño/mtime."""
+    import hashlib
+
+    try:
+        h = hashlib.sha256()
+        with open(path, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except OSError:
+        return None
+
+
+def shap_panel(unit: int, suffix: str = "motor") -> None:
+    """Panel SHAP unificado: top features + waterfall Plotly.
+
+    Sustituye a los dos bloques SHAP duplicados (Motor y Casos nuevos): una
+    sola definición, dos call sites con claves de botón distintas.
+    """
+    try:
+        import ui_shap as USH
+    except ImportError:
+        st.info(
+            "SHAP no instalado: `ui_shap` no está en el entorno. Instala el "
+            "paquete con `pip install shap` y recarga. El resto de la app "
+            "sigue funcionando sin explicabilidad.",
+            icon=":material/info:",
+        )
+        return
+
+    if st.button(
+        "Calcular SHAP para este motor",
+        icon=":material/psychology:",
+        key=f"btn_shap_{suffix}",
+        help="Calcula las contribuciones exactas del LightGBM del híbrido "
+             "(TreeExplainer) para la última ventana del motor.",
+    ):
+        try:
+            _shap_df = USH.shap_top_features(int(unit), top_k=10)
+        except ImportError:
+            st.info(
+                "SHAP no instalado: falta el paquete `shap` (`pip install shap`). "
+                "Sin él no se puede explicar la predicción.",
+                icon=":material/info:",
+            )
+            return
+        except Exception as _e:
+            st.warning(f"No se pudo calcular SHAP: {_e}", icon=":material/warning:")
+            return
+        if _shap_df is not None and not _shap_df.empty:
+            import plotly.express as px
+
+            _fig_shap = px.bar(
+                _shap_df.sort_values("abs_shap"),
+                x="abs_shap", y="feature", orientation="h",
+                labels={"abs_shap": "mean |SHAP| (ciclos RUL)",
+                        "feature": "feature"},
+                title=f"Top-10 features · motor {int(unit)}",
+            )
+            _fig_shap.update_layout(**chart_layout(height=360))
+            st.plotly_chart(
+                _fig_shap, use_container_width=True,
+                alt=f"Top-10 contribuciones SHAP del motor {int(unit)}.",
+            )
+            st.dataframe(_shap_df, use_container_width=True, hide_index=True)
+            try:
+                _wf_fig = USH.shap_waterfall_fig(int(unit), max_display=12)
+            except ImportError:
+                st.info(
+                    "SHAP no instalado: falta el paquete `shap` (`pip install shap`).",
+                    icon=":material/info:",
+                )
+                return
+            except Exception as _e2:
+                st.warning(f"No se pudo generar el waterfall: {_e2}",
+                           icon=":material/warning:")
+                return
+            _wf_fig.update_layout(**chart_layout(height=420))
+            style_axes(_wf_fig, x_title="feature", y_title="contribución")
+            st.plotly_chart(
+                _wf_fig, use_container_width=True,
+                alt=f"SHAP waterfall del motor {int(unit)}.",
+            )
+        else:
+            st.info("Sin datos suficientes para calcular SHAP.",
+                    icon=":material/info:")
+
+
 st.set_page_config(
     page_title="DS02 · Soporte a la decisión",
     page_icon=":material/flight:",
@@ -534,7 +624,9 @@ with st.sidebar:
             st.caption("Ninguna aeronave de alta en esta sesión.")
         else:
             a_quitar = st.selectbox(
-                "Aeronave", [a["matricula"] for a in altas], key="alta_quitar")
+                "Aeronave", [a["matricula"] for a in altas], key="alta_quitar",
+                help="Aeronave de alta a quitar de esta sesión. La flota de la caché no se toca.",
+            )
             if st.button("Quitar", icon=":material/delete:", key="alta_quitar_btn"):
                 registro = {F.ALTAS_KEY: st.session_state.get(F.ALTAS_KEY) or {}}
                 registro = F.quitar_alta(registro, a_quitar)
@@ -665,6 +757,12 @@ critical_mae = L.critical_zone_mae(frame_cache, threshold_aog)
 grounded = int((snapshot["state"] == L.AOG).sum())
 critical_start = truth_cycle
 
+# Orden compartido entre pestañas: Flota la pinta y Motor la consulta para el
+# «Orden de trabajo» del motor. Se calcula a nivel módulo (antes de los tabs)
+# para que los fragmentos `_tab_flota` y `_tab_motor` lean el mismo global.
+order = L.work_order(snapshot, provenance, threshold_apto, threshold_aog,
+                     banda=banda_en_uso, correccion=correccion_en_uso)
+
 # ---------------------------------------------------------------------- header
 _mostrar_toast_pendiente()
 head_left, head_right = st.columns([3, 2], vertical_alignment="center")
@@ -691,11 +789,13 @@ with head_right:
 
 with st.container(border=True):
     st.subheader("Primera lectura", icon=":material/visibility:")
+    _total_muro = len(tarjetas_cache) + len(tarjetas_gemelos)
+    hangar_en_muro = grounded + derivados_gemelos
     with st.container(horizontal=True):
         st.metric("Unidades monitorizadas", f"{global_metrics['units']}",
                   f"{global_metrics['windows']:,} ventanas evaluadas",
                   border=True, icon=":material/groups:", delta_color="off")
-        st.metric("Unidades en hangar", f"{grounded} / {len(snapshot)}",
+        st.metric("Unidades en hangar", f"{hangar_en_muro} / {_total_muro}",
                   f"en el ciclo {cycle}", border=True,
                   icon=":material/local_shipping:", delta_color="off")
     st.caption(
@@ -703,15 +803,11 @@ with st.container(border=True):
         "el peor caso de su banda. Por eso un motor puede quedar en hangar con "
         "vida útil estimada por encima del umbral."
     )
-    if derivados_gemelos:
-        # La métrica de arriba cuenta la flota visible en `frame` (caché + altas).
-        # Los motores registrados en esta sesión no están en ese recuento, y
-        # decirlo es lo único que evita que el número mienta.
-        st.caption(
-            f"Además, **{derivados_gemelos}** motor(es) de los registrados en esta "
-            "sesión están derivados a hangar con los umbrales en vigor: los verás en "
-            "el muro y en «Gemelos registrados»."
-        )
+    st.caption(
+        f"El contador incluye la flota de la caché y los motores registrados: "
+        f"{grounded} de caché + {derivados_gemelos} registrados = {hangar_en_muro} "
+        f"en el muro, sobre {_total_muro} tarjetas."
+    )
 
 @st.fragment
 def _sandbox_estres() -> None:
@@ -983,6 +1079,26 @@ def _informe_auditoria_pdf(
     return bytes(pdf.output())
 
 
+@st.cache_data(ttl=3600, show_spinner="Generando informe de auditoría…")
+def _informe_pdf_cached(
+    threshold_apto: float,
+    threshold_aog: float,
+    critical_mae: float,
+    ensemble_sha256: str,
+    windows_sig: str,
+) -> bytes:
+    """Constructor cacheado del PDF de auditoría.
+
+    Lee los globales de la app (`windows`, `curves`, `unidades_vistas`,
+    `provenance`): la clave son escalares (umbrales, SHA y firma de caché), así
+    que no hay que hashear DataFrames en cada render.
+    """
+    return _informe_auditoria_pdf(
+        windows, curves, unidades_vistas,
+        threshold_apto, threshold_aog, provenance, critical_mae,
+    )
+
+
 # La vista la escribe el widget de la barra lateral; aquí solo se lee. Turno
 # esconde en Flota el material de demo y de auditoría.
 _vista_tribunal = str(st.session_state.get("vista_modo", "Tribunal")) == "Tribunal"
@@ -998,2511 +1114,2531 @@ tab_flota, tab_motor, tab_casos, tab_auditoria = st.tabs(
 
 
 with tab_flota:
-    # Onboarding eliminado: el modo historia ("La narrativa en cuatro pasos") es
-    # el único punto de entrada narrativa. El muro y "El taller" arrancan aquí.
+    @st.fragment
+    def _tab_flota() -> None:
+        # Onboarding eliminado: el modo historia ("La narrativa en cuatro pasos") es
+        # el único punto de entrada narrativa. El muro y "El taller" arrancan aquí.
 
-    # El muro: una tarjeta por motor. Es lo que un operador de taller reconoce.
-    with st.container(border=True):
-        st.subheader("Muro del hangar", icon=":material/grid_view:")
-        st.caption(
-            "Una tarjeta por motor, con la sparkline de su límite inferior. El color y el "
-            "estado los dicta `L_inf`; pulsa «Ver gemelo» para abrir su ficha completa. "
-            "La flota de la caché y los motores registrados en esta sesión comparten muro."
-        )
-
-        @st.fragment
-        def _muro_del_hangar() -> None:
-            orden = st.pills(
-                "Orden del muro",
-                ["Por urgencia", "Por unidad"],
-                default="Por urgencia",
-                key="muro_orden",
-                help="Por urgencia adelanta las unidades en hangar; por unidad respeta "
-                     "el orden de la caché y deja los motores registrados al final.",
+        # El muro: una tarjeta por motor. Es lo que un operador de taller reconoce.
+        with st.container(border=True):
+            st.subheader("Muro del hangar", icon=":material/grid_view:")
+            st.caption(
+                "Una tarjeta por motor, con la sparkline de su límite inferior. El color y el "
+                "estado los dicta `L_inf`; pulsa «Ver gemelo» para abrir su ficha completa. "
+                "La flota de la caché y los motores registrados en esta sesión comparten muro."
             )
-            tarjetas = tarjetas_cache + tarjetas_gemelos
-            if orden == "Por unidad":
-                tarjetas = sorted(tarjetas, key=lambda t: t["orden_unidad"])
-            else:
-                tarjetas = sorted(
-                    tarjetas,
-                    key=lambda t: (RANGO_ESTADO.get(t["estado"], 9), t["orden_unidad"]),
+
+            @st.fragment
+            def _muro_del_hangar() -> None:
+                orden = st.pills(
+                    "Orden del muro",
+                    ["Por urgencia", "Por unidad"],
+                    default="Por urgencia",
+                    key="muro_orden",
+                    help="Por urgencia adelanta las unidades en hangar; por unidad respeta "
+                         "el orden de la caché y deja los motores registrados al final.",
                 )
-            columnas = st.columns(3)
-            for i, tarjeta in enumerate(tarjetas):
-                etiqueta = tarjeta["etiqueta"]
-                estado = tarjeta["estado"]
-                curva = tarjeta["curva"]
-                _pred = "—" if pd.isna(tarjeta["pred"]) else f"{tarjeta['pred']:.1f}"
-                _lo = "—" if pd.isna(tarjeta["lower"]) else f"{tarjeta['lower']:.1f}"
-                with columnas[i % 3]:
-                    with st.container(border=True):
-                        st.markdown(f"**{etiqueta}**")
-                        st.badge(
-                            L.STATE_LABELS.get(estado, str(estado)),
-                            icon=BADGE_ICON.get(estado, ":material/circle:"),
-                            color=BADGE_COLOR.get(estado, "gray"),
-                        )
-                        st.metric("L_inf (decide)", _lo, "ciclos",
-                                  border=True, delta_color="off",
-                                  icon=":material/trending_down:")
-                        if pd.isna(tarjeta["lower"]):
-                            _primer_ciclo_u = int(curva["cycle"].min())
-                            st.caption(
-                                f"Sin telemetría en este ciclo: esta unidad vuela desde "
-                                f"el ciclo {_primer_ciclo_u}. Avanza el reloj de flota o "
-                                f"incorpórala con ese ciclo."
+                tarjetas = tarjetas_cache + tarjetas_gemelos
+                if orden == "Por unidad":
+                    tarjetas = sorted(tarjetas, key=lambda t: t["orden_unidad"])
+                else:
+                    tarjetas = sorted(
+                        tarjetas,
+                        key=lambda t: (RANGO_ESTADO.get(t["estado"], 9), t["orden_unidad"]),
+                    )
+                columnas = st.columns(3)
+                for i, tarjeta in enumerate(tarjetas):
+                    etiqueta = tarjeta["etiqueta"]
+                    estado = tarjeta["estado"]
+                    curva = tarjeta["curva"]
+                    _pred = "—" if pd.isna(tarjeta["pred"]) else f"{tarjeta['pred']:.1f}"
+                    _lo = "—" if pd.isna(tarjeta["lower"]) else f"{tarjeta['lower']:.1f}"
+                    with columnas[i % 3]:
+                        with st.container(border=True):
+                            st.markdown(f"**{etiqueta}**")
+                            st.badge(
+                                L.STATE_LABELS.get(estado, str(estado)),
+                                icon=BADGE_ICON.get(estado, ":material/circle:"),
+                                color=BADGE_COLOR.get(estado, "gray"),
                             )
-                        if st.button(
-                            "Ver gemelo", key=tarjeta["clave_boton"],
-                            icon=":material/visibility:", type="secondary",
-                        ):
-                            if tarjeta["gemelo"]:
-                                # Un gemelo no tiene ficha en la pestaña del motor: su
-                                # registro es la tabla de debajo. Decirlo es mejor que
-                                # prometer una ficha que no existe.
-                                st.session_state["_gemelo_pendiente"] = tarjeta["gemelo"]
-                                st.session_state["_toast_pendiente"] = (
-                                    f"{etiqueta}: su estado se recalcula con los umbrales "
-                                    "en vigor en «Gemelos registrados», bajo el muro."
+                            st.metric("L_inf (decide)", _lo, "ciclos",
+                                      border=True, delta_color="off",
+                                      icon=":material/trending_down:")
+                            if pd.isna(tarjeta["lower"]):
+                                _primer_ciclo_u = int(curva["cycle"].min())
+                                st.caption(
+                                    f"Sin telemetría en este ciclo: esta unidad vuela desde "
+                                    f"el ciclo {_primer_ciclo_u}. Avanza el reloj de flota o "
+                                    f"incorpórala con ese ciclo."
                                 )
-                            else:
-                                st.session_state["_escenario_pendiente"] = (
-                                    tarjeta["unidad"], tarjeta["ciclo_tarjeta"])
-                                st.session_state["_toast_pendiente"] = (
-                                    f"{etiqueta} seleccionada. Abre su ficha en la "
-                                    "pestaña «Motor · qué le pasa a este»."
-                                )
-                            st.rerun()
+                            if st.button(
+                                "Ver gemelo", key=tarjeta["clave_boton"],
+                                icon=":material/visibility:", type="secondary",
+                            ):
+                                if tarjeta["gemelo"]:
+                                    # Un gemelo no tiene ficha en la pestaña del motor: su
+                                    # registro es la tabla de debajo. Decirlo es mejor que
+                                    # prometer una ficha que no existe.
+                                    st.session_state["_gemelo_pendiente"] = tarjeta["gemelo"]
+                                    st.session_state["_toast_pendiente"] = (
+                                        f"{etiqueta}: su estado se recalcula con los umbrales "
+                                        "en vigor en «Gemelos registrados», bajo el muro."
+                                    )
+                                else:
+                                    st.session_state["_escenario_pendiente"] = (
+                                        tarjeta["unidad"], tarjeta["ciclo_tarjeta"])
+                                    st.session_state["_toast_pendiente"] = (
+                                        f"{etiqueta} seleccionada. Abre su ficha en la "
+                                        "pestaña «Motor · qué le pasa a este»."
+                                    )
+                                st.rerun()
 
-        _muro_del_hangar()
+            _muro_del_hangar()
 
-    with st.expander("Cronología de estado de flota", icon=":material/timeline:",
-                     expanded=False):
-        st.caption(
-            "**Leyenda:** ● verde → Apto · ■ naranja → Inspección · ✕ rojo → Hangar. "
-            "Solo `L_inf` (límite inferior de la banda) decide el color; la línea "
-            "vertical punteada es el reloj de flota."
-        )
-        ribbon_rows = []
-        por_ciclo = UR.estado_por_ciclo(frame)
-        for u in unidades_vistas:
-            curva = curves[u]
-            sub = por_ciclo[por_ciclo["unit"] == u].sort_values("cycle")
-            ribbon_rows.append(
-                pd.DataFrame(
-                    {
-                        "unidad": _etiqueta_unidad(float(u)),
-                        "ciclo": curva["cycle"],
-                        "estado": sub["decision"].to_numpy(),
-                        "L_inf": curva["lower"],
-                    }
+        with st.expander("Cronología de estado de flota", icon=":material/timeline:",
+                         expanded=False):
+            st.caption(
+                "**Leyenda:** ● verde → Apto · ■ naranja → Inspección · ✕ rojo → Hangar. "
+                "Solo `L_inf` (límite inferior de la banda) decide el color; la línea "
+                "vertical punteada es el reloj de flota."
+            )
+            ribbon_rows = []
+            por_ciclo = UR.estado_por_ciclo(frame)
+            for u in unidades_vistas:
+                curva = curves[u]
+                sub = por_ciclo[por_ciclo["unit"] == u].sort_values("cycle")
+                ribbon_rows.append(
+                    pd.DataFrame(
+                        {
+                            "unidad": _etiqueta_unidad(float(u)),
+                            "ciclo": curva["cycle"],
+                            "estado": sub["decision"].to_numpy(),
+                            "L_inf": curva["lower"],
+                        }
+                    )
+                )
+            ribbon = pd.concat(ribbon_rows, ignore_index=True)
+            ribbon["color"] = ribbon["estado"].map(STATE_COLORS)
+            ribbon["etiqueta"] = ribbon["estado"].map(STATE_WORD)
+            ribbon["simbolo"] = ribbon["estado"].map(L.STATE_SYMBOLS).fillna("circle")
+
+            fig_fleet = go.Figure(
+                go.Scatter(
+                    x=ribbon["ciclo"],
+                    y=ribbon["unidad"],
+                    mode="markers",                            marker=dict(color=ribbon["color"], size=11, symbol=ribbon["simbolo"],
+                                            line=dict(width=0)),
+                    customdata=np.column_stack([ribbon["etiqueta"], ribbon["L_inf"]]),
+                    hovertemplate=(
+                        "U%{y} · ciclo %{x}<br>estado: %{customdata[0]}"
+                        "<br>L_inf: %{customdata[1]:.1f} ciclos<extra></extra>"
+                    ),
+                    name="Estado por ciclo",
                 )
             )
-        ribbon = pd.concat(ribbon_rows, ignore_index=True)
-        ribbon["color"] = ribbon["estado"].map(STATE_COLORS)
-        ribbon["etiqueta"] = ribbon["estado"].map(STATE_WORD)
-        ribbon["simbolo"] = ribbon["estado"].map(L.STATE_SYMBOLS).fillna("circle")
-
-        fig_fleet = go.Figure(
-            go.Scatter(
-                x=ribbon["ciclo"],
-                y=ribbon["unidad"],
-                mode="markers",                            marker=dict(color=ribbon["color"], size=11, symbol=ribbon["simbolo"],
-                                        line=dict(width=0)),
-                customdata=np.column_stack([ribbon["etiqueta"], ribbon["L_inf"]]),
-                hovertemplate=(
-                    "U%{y} · ciclo %{x}<br>estado: %{customdata[0]}"
-                    "<br>L_inf: %{customdata[1]:.1f} ciclos<extra></extra>"
-                ),
-                name="Estado por ciclo",
+            fig_fleet.add_vline(
+                x=cycle, line_color=INK, line_width=1.5, line_dash="dot",
+                annotation_text=f"ciclo {cycle}", annotation_position="top",
+                annotation_font=dict(color=INK, size=11),
             )
-        )
-        fig_fleet.add_vline(
-            x=cycle, line_color=INK, line_width=1.5, line_dash="dot",
-            annotation_text=f"ciclo {cycle}", annotation_position="top",
-            annotation_font=dict(color=INK, size=11),
-        )
-        fig_fleet.update_layout(
-            **chart_layout(height=240, showlegend=False,
-                           hovermode="closest"),
-            xaxis_title="Ciclo de vuelo",
-            yaxis=dict(
-                categoryorder="array", categoryarray=[_etiqueta_unidad(float(u)) for u in reversed(unidades_vistas)],
-            ),
-        )
-        style_axes(fig_fleet)
-        st.plotly_chart(
-            fig_fleet, theme=None,
-            alt="Cronología de estado por unidad: verde apto, ámbar inspección y rojo hangar a lo largo de los ciclos.",
-        )
-
-    # -------------------- sala 3: el taller (¿qué pasa si cambio la política?)
-    with st.container(border=True):
-        st.subheader("El taller · qué pasa si cambio la política",
-                     icon=":material/tune:")
-        _taller_a, _taller_b = st.columns([2, 1])
-        with _taller_a:
-            st.selectbox(
-                "Preset de umbrales",
-                list(_PRESETS),
-                key="preset",
-                help="Rellena los dos umbrales de abajo. Después puedes ajustarlos a mano.",
-            )
-            with st.container(horizontal=True):
-                st.number_input(
-                    "Apto si L_inf ≥ (ciclos)", min_value=1.0, max_value=100.0,
-                    value=_preset_vals[0], step=1.0, key=f"th_apto_{preset}",
-                    help="Estado verde gobernado por el límite inferior conformal, no "
-                         "por la predicción puntual.",
-                )
-                st.number_input(
-                    "Hangar si L_inf < (ciclos)", min_value=0.0, max_value=99.0,
-                    value=_preset_vals[1], step=1.0, key=f"th_aog_{preset}",
-                    help="Por debajo de este límite inferior la unidad se inmoviliza y "
-                         "se emite orden de trabajo.",
-                )
-            st.caption(f"Banda en uso: {banda_en_uso}. Corrección: {correccion_en_uso}.")
-        with _taller_b:
-            st.toggle(
-                "Aplicar corrección de reglas",
-                value=False,
-                key="aplicar_reglas",
-                help=(
-                    "Pasada B del motor de reglas (paquete mia/): R2b ajuste isotonico "
-                    "causal y R6 banda conformal recalibrada sobre el punto corregido. "
-                    "Apagado, la UI muestra la lectura cruda de la caché, que es la que "
-                    "reproduce el contrato congelado del artefacto."
+            fig_fleet.update_layout(
+                **chart_layout(height=240, showlegend=False,
+                               hovermode="closest"),
+                xaxis_title="Ciclo de vuelo",
+                yaxis=dict(
+                    categoryorder="array", categoryarray=[_etiqueta_unidad(float(u)) for u in reversed(unidades_vistas)],
                 ),
             )
-        st.caption(
-            "La decisión sigue siendo por límite inferior: mover estos controles no "
-            "cambia esa agregación, solo los números que la disparan. El reloj de "
-            "flota vive en la barra lateral, junto a la unidad."
-        )
+            style_axes(fig_fleet)
+            st.plotly_chart(
+                fig_fleet, theme=None,
+                alt="Cronología de estado por unidad: verde apto, ámbar inspección y rojo hangar a lo largo de los ciclos.",
+            )
 
-    # -------------------- avance de flota: el reloj se mueve, los retenidos no
-    with st.container(border=True):
-        st.subheader("Avanzar la flota", icon=":material/fast_forward:")
-        st.caption(
-            "Mueve el reloj compartido. El motor que ya cruzó el umbral deja de "
-            "volar: se queda donde está en vez de extrapolarle. Los números salen "
-            "de la caché ya puntuada; no se recalcula nada."
-        )
-        _decidido = UR.decidir_ventanas(windows, umbrales)
-        _retenidos = S.retenidos(_decidido, cycle, umbrales)
-        _faltan = S.ciclos_hasta_fallo(_decidido, cycle, umbrales)
-        _fila_av = st.columns([1, 2])
-        with _fila_av[0]:
-            if st.button("Avanzar 10 ciclos de flota",
-                         icon=":material/fast_forward:", key="avanzar_flota",
-                         type="primary"):
-                # No se escribe `cycle` aqui: el widget ya se instancio en esta
-                # pasada y Streamlit lo prohibe
-                # (`StreamlitWidgetAlreadyInstantiatedError`): la pagina revienta.
-                # Se deja la bandera y el bloque de escrituras diferidas la aplica
-                # antes de que el widget nazca.
-                st.session_state["_avance_flota"] = int(min(
-                    cycle + 10, int(windows["cycle"].max())))
-                st.rerun()
-        with _fila_av[1]:
-            if _retenidos:
-                st.caption(
-                    "No vuelan: " + ", ".join(
-                        F.etiqueta(F.clave_de(float(u), _registro()))
-                        for u in sorted(_retenidos)))
-            else:
-                st.caption("Toda la flota puede volar en este ciclo.")
-        _faltan_txt = " · ".join(
-            f"{F.etiqueta(F.clave_de(float(u), _registro()))}: "
-            + ("nunca en la vida registrada" if v is None else f"{v} ciclos")
-            for u, v in sorted(_faltan.items()))
-        st.caption(f"Ciclos hasta el umbral de hangar · {_faltan_txt}")
-
-    # -------------------- registro de sesión
-    # Plegado: es un log de auditoría de la sesión, no algo que se mire en directo.
-    if _vista_tribunal:
-        with st.expander("Registro de sesión · qué se ha hecho en esta sesión",
-                         icon=":material/receipt_long:"):
-            _log_sesion = st.session_state.get("_sesion_log") or []
-            if not _log_sesion:
-                st.caption(
-                    "Todavía no has hecho nada en esta sesión. El registro se llena con "
-                    "cada acción discreta: altas, escenarios, lotes y gemelos."
-                )
-            else:
-                st.dataframe(
-                    pd.DataFrame(_log_sesion),
-                    hide_index=True,
-                    column_config={
-                        "at": st.column_config.TextColumn("Cuándo"),
-                        "que": st.column_config.TextColumn("Qué"),
-                    },
-                    alt="Registro de sesión: las acciones hechas, con su fecha.",
+        # -------------------- sala 3: el taller (¿qué pasa si cambio la política?)
+        with st.container(border=True):
+            st.subheader("El taller · qué pasa si cambio la política",
+                         icon=":material/tune:")
+            _taller_a, _taller_b = st.columns([2, 1])
+            with _taller_a:
+                st.selectbox(
+                    "Preset de umbrales",
+                    list(_PRESETS),
+                    key="preset",
+                    help="Rellena los dos umbrales de abajo. Después puedes ajustarlos a mano.",
                 )
                 with st.container(horizontal=True):
-                    st.download_button(
-                        "Descargar registro (CSV)",
-                        data=pd.DataFrame(_log_sesion).to_csv(index=False),
-                        file_name="registro_sesion_ds02.csv",
-                        mime="text/csv",
-                        icon=":material/download:",
+                    st.number_input(
+                        "Apto si L_inf ≥ (ciclos)", min_value=1.0, max_value=100.0,
+                        value=_preset_vals[0], step=1.0, key=f"th_apto_{preset}",
+                        help="Estado verde gobernado por el límite inferior conformal, no "
+                             "por la predicción puntual.",
                     )
-                    if st.button("Vaciar registro", icon=":material/delete:",
-                                 key="sesion_vaciar"):
-                        st.session_state["_sesion_log"] = []
-                        st.rerun()
-
-    if correccion:
-        st.caption(
-            f"**Corrección de reglas activa** (pasada B del motor `mia/`): "
-            f"{correccion['ventanas_corregidas']:,} de {correccion['ventanas']:,} "
-            f"ventanas movidas ({correccion['porcentaje']} %) · "
-            f"Δ punto medio {correccion['delta_medio_punto']:+.2f} ciclos · "
-            f"Δ L_inf medio {correccion['delta_medio_l_inf']:+.2f}. "
-            "La lectura cruda de la caché sigue disponible en la pestaña de auditoría."
-        )
-
-
-    # Plegada la tabla; la tarjeta «Regla de negocio» se queda fuera, a la vista.
-    with st.expander("Cola de mantenimiento · tabla por unidad",
-                     icon=":material/assignment:", expanded=False):
-        display = pd.DataFrame(
-            {
-                "Motor": [_etiqueta_unidad(float(u)) for u in snapshot["unit"]],
-                "Ciclo": snapshot["cycle"],
-                "RUL real": snapshot["y_true"],
-                "RUL p35": snapshot["pred"],
-                "L_inf (riesgo)": snapshot["lower"],
-                "L_sup": snapshot["upper"],
-                "Estado": snapshot["state_label"],
-                "Regla": snapshot["rule"],
-                "Por qué decide así": [
-                    (
-                        f"L_inf {lo:.1f} ≥ {threshold_apto:.0f}: vuela"
-                        if estado == L.AIRWORTHY else
-                        f"L_inf {lo:.1f} < {threshold_aog:.0f}: al hangar"
-                        if estado == L.AOG else
-                        (f"L_inf {lo:.1f} entre {threshold_aog:.0f} y "
-                         f"{threshold_apto:.0f}: vigilar"
-                         if pd.notna(lo) else "sin telemetría en este ciclo")
+                    st.number_input(
+                        "Hangar si L_inf < (ciclos)", min_value=0.0, max_value=99.0,
+                        value=_preset_vals[1], step=1.0, key=f"th_aog_{preset}",
+                        help="Por debajo de este límite inferior la unidad se inmoviliza y "
+                             "se emite orden de trabajo.",
                     )
-                    for lo, estado in zip(snapshot["lower"], snapshot["state"])
-                ],
-                "Acción automática asignada": snapshot["action"],
-            }
-        )
-
-        def _row_style(row: pd.Series) -> list[str]:
-            label = row["Estado"]
-            state = next((s for s, name in L.STATE_LABELS.items() if name == label), L.NO_DATA)
-            return [STATE_BG[state]] * len(row)
-
-        styled = display.style.apply(_row_style, axis=1)
-        st.dataframe(
-            styled,
-            hide_index=True,
-            column_config={
-                "Ciclo": st.column_config.NumberColumn("Ciclo", format="%d"),
-                "RUL real": st.column_config.NumberColumn("RUL real", format="%.1f"),
-                "RUL p35": st.column_config.NumberColumn("RUL p35", format="%.1f",
-                                                help="Cuantil 0.35 de la RUL (ADR-003)."),
-                "L_inf (riesgo)": st.column_config.NumberColumn(
-                    "L_inf (riesgo)", format="%.1f",
-                    help="Límite inferior de la banda conformal: es lo que decide el estado.",
-                ),
-                "L_sup": st.column_config.NumberColumn("L_sup", format="%.1f"),
-                "Regla": st.column_config.TextColumn(
-                    "Regla",
-                    help="Regla de la pasada A que firmó el estado (mia.motor).",
-                ),
-            },
-            alt="Cola de mantenimiento: estado y acción por unidad en el ciclo simulado.",
-        )
-
-        clamped = snapshot[snapshot["clamped"]]
-        if not clamped.empty:
-            st.caption(
-                "Limitadas a su último ciclo evaluado: "
-                + ", ".join(
-                    f"U{int(r.unit)} en {int(r.scored_cycle)}" for r in clamped.itertuples()
+                st.caption(f"Banda en uso: {banda_en_uso}. Corrección: {correccion_en_uso}.")
+            with _taller_b:
+                st.toggle(
+                    "Aplicar corrección de reglas",
+                    value=False,
+                    key="aplicar_reglas",
+                    help=(
+                        "Pasada B del motor de reglas (paquete mia/): R2b ajuste isotonico "
+                        "causal y R6 banda conformal recalibrada sobre el punto corregido. "
+                        "Apagado, la UI muestra la lectura cruda de la caché, que es la que "
+                        "reproduce el contrato congelado del artefacto."
+                    ),
                 )
-                + ". No se extrapola más allá de la vida registrada."
+            st.caption(
+                "La decisión sigue siendo por límite inferior: mover estos controles no "
+                "cambia esa agregación, solo los números que la disparan. El reloj de "
+                "flota vive en la barra lateral, junto a la unidad."
             )
 
-    st.info(
-        f"**Apto** si `L_inf ≥ {threshold_apto:.0f}` · "
-        f"**inspección** si `{threshold_aog:.0f} ≤ L_inf < {threshold_apto:.0f}` · "
-        f"**hangar** si `L_inf < {threshold_aog:.0f}`. El estado se decide con el límite "
-        "inferior de la banda: la predicción puntual puede estar por encima del umbral y la "
-        "unidad aun así quedar inmovilizada. Es deliberado (ADR-008): el error del modelo no "
-        "es simétrico entre motores.",
-        title="Regla de negocio",
-        icon=":material/shield:",
-    )
-
-    with st.expander("Comparar con otros umbrales", icon=":material/compare:"):
-        st.caption(
-            "Recalcula la flota con un segundo juego de umbrales (sin re-puntuar) y "
-            "muestra qué cambiaría respecto a los en vigor."
-        )
-        comp_a = st.number_input("Apto alternativo", min_value=1.0, max_value=100.0,
-                                  value=threshold_apto + 5.0, step=1.0, key="comp_apto")
-        comp_h = st.number_input("Hangar alternativo", min_value=0.0, max_value=99.0,
-                                  value=threshold_aog + 5.0, step=1.0, key="comp_aog")
-        if comp_h >= comp_a:
-            st.error("El hangar alternativo debe ser menor que el apto alternativo.",
-                      icon=":material/rule:")
-        else:
-            snap_b = L.fleet_snapshot(frame, cycle, comp_a, comp_h)
-            cuenta_a = snapshot["state"].value_counts()
-            cuenta_b = snap_b["state"].value_counts()
-            comp = pd.DataFrame({
-                "Estado": [L.STATE_LABELS.get(s, s) for s in L.STATE_LABELS],
-                "En vigor": [int(cuenta_a.get(s, 0)) for s in L.STATE_LABELS],
-                "Alternativo": [int(cuenta_b.get(s, 0)) for s in L.STATE_LABELS],
-            })
-            st.dataframe(comp, hide_index=True,
-                         alt="Comparativa de estados de flota entre umbrales en vigor y alternativos.")
-            merged = snapshot[["unit", "state"]].merge(
-                snap_b[["unit", "state"]], on="unit", suffixes=("", "_alt"))
-            cambian = merged[merged["state"] != merged["state_alt"]]
-            if cambian.empty:
-                st.caption("Nada cambiaría: los mismos estados con los otros umbrales.")
-            else:
-                st.dataframe(
-                    pd.DataFrame({
-                        "Motor": [f"U{int(u)}" for u in cambian["unit"]],
-                        "Ahora": [L.STATE_LABELS.get(s, s) for s in cambian["state"]],
-                        "Con alternativos": [L.STATE_LABELS.get(s, s)
-                                              for s in cambian["state_alt"]],
-                    }),
-                    hide_index=True,
-                    alt="Unidades que cambiarían de estado con los umbrales alternativos.",
-                )
-
-    with st.expander("Historial de la unidad: cómo llegó a este estado",
-                      icon=":material/history:"):
-        hist = UR.estado_por_ciclo(frame)
-        hu = hist[hist["unit"] == unit].sort_values("cycle").reset_index(drop=True)
-        if hu.empty:
-            st.caption("Sin ciclos evaluados para esta unidad.")
-        else:
-            rachas, inicio = [], hu.iloc[0]
-            previo = None
-            for _, fila_h in hu.iterrows():
-                if previo is not None and fila_h["decision"] != previo["decision"]:
-                    rachas.append({"Desde": int(previo["cycle"]),
-                                   "Hasta": int(fila_h["cycle"] - 1),
-                                   "Estado": L.STATE_LABELS.get(previo["decision"],
-                                                                  str(previo["decision"])),
-                                   "L_inf mín": round(float(hu[(hu["cycle"] >= previo["cycle"]) &
-                                                                 (hu["cycle"] < fila_h["cycle"])]
-                                                              ["lower"].min()), 1)})
-                    previo = fila_h
-                elif previo is None:
-                    previo = fila_h
-            if previo is not None:
-                rachas.append({"Desde": int(previo["cycle"]),
-                               "Hasta": int(hu["cycle"].max()),
-                               "Estado": L.STATE_LABELS.get(previo["decision"],
-                                                              str(previo["decision"])),
-                               "L_inf mín": round(float(hu[hu["cycle"] >= previo["cycle"]]
-                                                          ["lower"].min()), 1)})
-            st.dataframe(pd.DataFrame(rachas), hide_index=True,
-                         alt="Rachas de estado de la unidad seleccionada a lo largo de los ciclos.")
-
-    if _vista_tribunal:
+        # -------------------- avance de flota: el reloj se mueve, los retenidos no
         with st.container(border=True):
-            st.subheader("Motor de reglas · traza del caso", icon=":material/rule:")
-            fila = snapshot[snapshot["unit"] == unit].iloc[0]
+            st.subheader("Avanzar la flota", icon=":material/fast_forward:")
             st.caption(
-                "Pasada A de `mia.motor` sobre la unidad seleccionada: la misma función del "
-                "cuaderno de práctica, no una reclasificación paralela. Gana la regla de "
-                "mayor prioridad que se cumpla."
+                "Mueve el reloj compartido. El motor que ya cruzó el umbral deja de "
+                "volar: se queda donde está en vez de extrapolarle. Los números salen "
+                "de la caché ya puntuada; no se recalcula nada."
             )
-            if bool(fila["reached"]):
-                traza = UR.traza_decision(float(fila["lower"]), umbrales)
-                st.markdown(
-                    f"**U{int(unit)} · ciclo {cycle}** · `L_inf = {fila['lower']:.1f}` → "
-                    f"**{traza['decision'] or 'sin decisión'}** · reglas: "
-                    + (" → ".join(traza["usadas"]) or "(ninguna)")
-                )
-                for linea in traza["porque"]:
-                    st.caption(linea)
-            else:
-                st.caption(
-                    "La unidad todavía no tiene ventanas evaluadas en este ciclo: el motor no "
-                    "emite una decisión que no pueda sostener."
-                )
-            catalogo = pd.DataFrame(UR.catalogo_decision()).rename(
-                columns={"regla": "Regla", "prioridad": "Prioridad", "porque": "Porqué"}
+            _decidido = UR.decidir_ventanas(windows, umbrales)
+            _retenidos = S.retenidos(_decidido, cycle, umbrales)
+            _faltan = S.ciclos_hasta_fallo(_decidido, cycle, umbrales)
+            _fila_av = st.columns([1, 2])
+            with _fila_av[0]:
+                if st.button("Avanzar 10 ciclos de flota",
+                             icon=":material/fast_forward:", key="avanzar_flota",
+                             type="primary"):
+                    # No se escribe `cycle` aqui: el widget ya se instancio en esta
+                    # pasada y Streamlit lo prohibe
+                    # (`StreamlitWidgetAlreadyInstantiatedError`): la pagina revienta.
+                    # Se deja la bandera y el bloque de escrituras diferidas la aplica
+                    # antes de que el widget nazca.
+                    st.session_state["_avance_flota"] = int(min(
+                        cycle + 10, int(windows["cycle"].max())))
+                    st.rerun()
+            with _fila_av[1]:
+                if _retenidos:
+                    st.caption(
+                        "No vuelan: " + ", ".join(
+                            F.etiqueta(F.clave_de(float(u), _registro()))
+                            for u in sorted(_retenidos)))
+                else:
+                    st.caption("Toda la flota puede volar en este ciclo.")
+            _faltan_txt = " · ".join(
+                f"{F.etiqueta(F.clave_de(float(u), _registro()))}: "
+                + ("nunca en la vida registrada" if v is None else f"{v} ciclos")
+                for u, v in sorted(_faltan.items()))
+            st.caption(f"Ciclos hasta el umbral de hangar · {_faltan_txt}")
+
+        # -------------------- registro de sesión
+        # Plegado: es un log de auditoría de la sesión, no algo que se mire en directo.
+        if _vista_tribunal:
+            with st.expander("Registro de sesión · qué se ha hecho en esta sesión",
+                             icon=":material/receipt_long:"):
+                _log_sesion = st.session_state.get("_sesion_log") or []
+                if not _log_sesion:
+                    st.caption(
+                        "Todavía no has hecho nada en esta sesión. El registro se llena con "
+                        "cada acción discreta: altas, escenarios, lotes y gemelos."
+                    )
+                else:
+                    st.dataframe(
+                        pd.DataFrame(_log_sesion),
+                        hide_index=True,
+                        column_config={
+                            "at": st.column_config.TextColumn("Cuándo"),
+                            "que": st.column_config.TextColumn("Qué"),
+                        },
+                        alt="Registro de sesión: las acciones hechas, con su fecha.",
+                    )
+                    with st.container(horizontal=True):
+                        st.download_button(
+                            "Descargar registro (CSV)",
+                            data=pd.DataFrame(_log_sesion).to_csv(index=False),
+                            file_name="registro_sesion_ds02.csv",
+                            mime="text/csv",
+                            icon=":material/download:",
+                        )
+                        if st.button("Vaciar registro", icon=":material/delete:",
+                                     key="sesion_vaciar"):
+                            st.session_state["_sesion_log"] = []
+                            st.rerun()
+
+        if correccion:
+            st.caption(
+                f"**Corrección de reglas activa** (pasada B del motor `mia/`): "
+                f"{correccion['ventanas_corregidas']:,} de {correccion['ventanas']:,} "
+                f"ventanas movidas ({correccion['porcentaje']} %) · "
+                f"Δ punto medio {correccion['delta_medio_punto']:+.2f} ciclos · "
+                f"Δ L_inf medio {correccion['delta_medio_l_inf']:+.2f}. "
+                "La lectura cruda de la caché sigue disponible en la pestaña de auditoría."
             )
+
+
+        # Plegada la tabla; la tarjeta «Regla de negocio» se queda fuera, a la vista.
+        with st.expander("Cola de mantenimiento · tabla por unidad",
+                         icon=":material/assignment:", expanded=False):
+            display = pd.DataFrame(
+                {
+                    "Motor": [_etiqueta_unidad(float(u)) for u in snapshot["unit"]],
+                    "Ciclo": snapshot["cycle"],
+                    "RUL real": snapshot["y_true"],
+                    "RUL p35": snapshot["pred"],
+                    "L_inf (riesgo)": snapshot["lower"],
+                    "L_sup": snapshot["upper"],
+                    "Estado": snapshot["state_label"],
+                    "Regla": snapshot["rule"],
+                    "Por qué decide así": [
+                        (
+                            f"L_inf {lo:.1f} ≥ {threshold_apto:.0f}: vuela"
+                            if estado == L.AIRWORTHY else
+                            f"L_inf {lo:.1f} < {threshold_aog:.0f}: al hangar"
+                            if estado == L.AOG else
+                            (f"L_inf {lo:.1f} entre {threshold_aog:.0f} y "
+                             f"{threshold_apto:.0f}: vigilar"
+                             if pd.notna(lo) else "sin telemetría en este ciclo")
+                        )
+                        for lo, estado in zip(snapshot["lower"], snapshot["state"])
+                    ],
+                    "Acción automática asignada": snapshot["action"],
+                }
+            )
+
+            def _row_style(row: pd.Series) -> list[str]:
+                label = row["Estado"]
+                state = next((s for s, name in L.STATE_LABELS.items() if name == label), L.NO_DATA)
+                return [STATE_BG[state]] * len(row)
+
+            styled = display.style.apply(_row_style, axis=1)
             st.dataframe(
-                catalogo,
-                hide_index=True,
-                column_config={
-                    "Prioridad": st.column_config.NumberColumn("Prioridad", format="%d"),
-                },
-                alt="Reglas de la pasada A, con su prioridad y su justificación.",
-            )
-
-    order = L.work_order(snapshot, provenance, threshold_apto, threshold_aog,
-                         banda=banda_en_uso, correccion=correccion_en_uso)
-    blocked = order["unidades"]
-    with st.container(border=True):
-        st.subheader("Orden de trabajo", icon=":material/description:")
-        if blocked:
-            st.caption(
-                f"{len(blocked)} unidad(es) bloqueada(s) en el ciclo {cycle}. El documento lleva "
-                "el hash del artefacto y los umbrales en vigor."
-            )
-            with st.container(horizontal=True):
-                st.download_button(
-                    "Descargar orden (JSON)",
-                    data=json.dumps(order, ensure_ascii=False, indent=2),
-                    file_name=f"orden_mantenimiento_ds02_ciclo{cycle}.json",
-                    mime="application/json",
-                    type="primary",
-                    icon=":material/download:",
-                )
-                st.download_button(
-                    "Descargar orden (CSV)",
-                    data=L.work_order_csv(order),
-                    file_name=f"orden_mantenimiento_ds02_ciclo{cycle}.csv",
-                    mime="text/csv",
-                    icon=":material/table_view:",
-                )
-                st.download_button(
-                    "Descargar orden (PDF)",
-                    data=PP.parte_trabajo_pdf(order),
-                    file_name=f"orden_mantenimiento_ds02_ciclo{cycle}.pdf",
-                    mime="application/pdf",
-                    icon=":material/picture_as_pdf:",
-                )
-        else:
-            st.success(
-                f"Ninguna unidad en hangar en el ciclo {cycle}. No se emite orden de trabajo.",
-                title="Flota disponible",
-                icon=":material/check_circle:",
-            )
-            parte = L.parte_disponibilidad(snapshot, provenance, threshold_apto,
-                                            threshold_aog)
-            with st.container(horizontal=True):
-                st.download_button(
-                    "Descargar parte de disponibilidad (JSON)",
-                    data=json.dumps(parte, ensure_ascii=False, indent=2),
-                    file_name=f"parte_disponibilidad_ds02_ciclo{cycle}.json",
-                    mime="application/json",
-                    icon=":material/download:",
-                    help="Deja constancia firmable de que se miró la flota y no había nada que derivar.",
-                )
-                st.download_button(
-                    "Descargar parte de flota (CSV)",
-                    data=snapshot[["unit", "cycle", "state", "rule"]].to_csv(index=False),
-                    file_name=f"parte_flota_ds02_ciclo{cycle}.csv",
-                    mime="text/csv",
-                    icon=":material/table_view:",
-                )
-
-
-    # ------------------------------------------------------ gemelos y hangar
-    with st.container(border=True):
-        st.subheader("Gemelos registrados", icon=":material/precision_manufacturing:")
-        aviso_gemelo = st.session_state.get("twin_flash")
-        if aviso_gemelo:
-            del st.session_state["twin_flash"]
-            st.toast(aviso_gemelo, icon=":material/check_circle:")
-        # El muro manda: una tarjeta de gemelo apunta aqui. Se consume en cuanto se
-        # lee, para que no vuelva a salir en el siguiente render.
-        gemelo_pendiente = st.session_state.pop("_gemelo_pendiente", None)
-        if gemelo_pendiente:
-            if gemelo_pendiente in gemelos:
-                _estado_pendiente = T.estado_actual(gemelos[gemelo_pendiente], umbrales)
-                st.caption(
-                    f"**{gemelo_pendiente}**: "
-                    f"{L.STATE_LABELS.get(_estado_pendiente['decision'])} "
-                    f"con los umbrales en vigor, L_inf {_estado_pendiente['lower_min']:.1f} ciclos."
-                )
-            else:
-                st.caption(f"El motor `{gemelo_pendiente}` ya no está registrado.")
-        if not gemelos:
-            st.caption(
-                "Ningún motor externo registrado todavía. Puntúa uno en «Evaluar unidad "
-                "nueva» y añádelo: la serie queda guardada y su estado se recalcula con "
-                "los umbrales en vigor, sin volver a llamar al modelo."
-            )
-        else:
-            filas_gemelos = []
-            for gemelo_id, gemelo in gemelos.items():
-                estado_g = T.estado_actual(gemelo, umbrales)
-                metricas_g = T.metricas_verdad(gemelo)
-                filas_gemelos.append({
-                    "Motor": gemelo_id,
-                    "Ciclo": estado_g["cycle"],
-                    "L_inf": estado_g["lower_min"],
-                    "Estado": L.STATE_LABELS.get(estado_g["decision"],
-                                                 str(estado_g["decision"])),
-                    "Regla": estado_g["regla"],
-                    "Banda": gemelo["banda"],
-                    "Verdad": ("sin reportar" if not metricas_g else
-                               f"{metricas_g['rul_real']:.0f} · "
-                               f"{'dentro' if metricas_g['cubierta'] else 'fuera'}"),
-                    "Huella": gemelo["fingerprint"][:8],
-                })
-            st.dataframe(
-                pd.DataFrame(filas_gemelos),
+                styled,
                 hide_index=True,
                 column_config={
                     "Ciclo": st.column_config.NumberColumn("Ciclo", format="%d"),
-                    "L_inf": st.column_config.NumberColumn("L_inf", format="%.2f"),
-                    "Huella": st.column_config.TextColumn("Huella", help="SHA-256 de la tabla puntuada."),
+                    "RUL real": st.column_config.NumberColumn("RUL real", format="%.1f"),
+                    "RUL p35": st.column_config.NumberColumn("RUL p35", format="%.1f",
+                                                    help="Cuantil 0.35 de la RUL (ADR-003)."),
+                    "L_inf (riesgo)": st.column_config.NumberColumn(
+                        "L_inf (riesgo)", format="%.1f",
+                        help="Límite inferior de la banda conformal: es lo que decide el estado.",
+                    ),
+                    "L_sup": st.column_config.NumberColumn("L_sup", format="%.1f"),
+                    "Regla": st.column_config.TextColumn(
+                        "Regla",
+                        help="Regla de la pasada A que firmó el estado (mia.motor).",
+                    ),
                 },
-                alt="Motores externos registrados con su estado recalculado, la regla aplicada y la banda usada.",
+                alt="Cola de mantenimiento: estado y acción por unidad en el ciclo simulado.",
             )
-            resumen_gemelos = T.resumen(gemelos)
-            if resumen_gemelos["con_verdad"]:
-                st.caption(
-                    f"{resumen_gemelos['con_verdad']} gemelo(s) con verdad reportada · "
-                    f"cobertura {resumen_gemelos['cubiertos']}/{resumen_gemelos['con_verdad']} · "
-                    f"MAE {resumen_gemelos['mae']:.2f} ciclos"
-                )
-            st.markdown("**Gestión de los gemelos registrados**")
-            with st.expander("Reportar la RUL real de un gemelo", icon=":material/fact_check:"):
-                elegido_v = st.selectbox("Motor", list(gemelos), key="truth_engine")
-                ciclo_v = st.number_input(
-                    "Ciclo en que se conoció", min_value=0.0, step=1.0,
-                    value=float(gemelos[elegido_v]["serie"][-1]["cycle"]),
-                    key=f"truth_cycle_{elegido_v}",
-                )
-                rul_v = st.number_input(
-                    "RUL real (ciclos)", min_value=0.0, step=1.0, value=0.0,
-                    key=f"truth_rul_{elegido_v}",
-                )
-                st.caption(
-                    "La cobertura se mide contra la ventana más pesimista de ese ciclo: "
-                    "si esa banda cubre la verdad, la decisión que la acompañó era defendible."
-                )
-                if st.button("Guardar verdad", icon=":material/save:", key="truth_save"):
-                    try:
-                        actualizado = T.con_verdad(gemelos[elegido_v], rul_v, ciclo_v)
-                    except ValueError as exc:
-                        st.error(str(exc), title="Valor no válido", icon=":material/rule:")
-                    else:
-                        st.session_state["twins"] = {**gemelos, elegido_v: actualizado}
-                        _guardar_registros()
-                        st.rerun()
 
-            with st.expander("Documentar un gemelo", icon=":material/description:"):
-                motor_doc = st.selectbox("Motor", list(gemelos), key="twin_doc")
-                gemelo_doc = gemelos[motor_doc]
-                estado_doc = T.estado_actual(gemelo_doc, umbrales)
-                orden_gemelo = INF.live_work_order(
-                    T.vista_resultado(gemelo_doc),
-                    {"source": gemelo_doc["source"],
-                     "registrado_en": gemelo_doc["created_at"],
-                     "huella": gemelo_doc["fingerprint"]},
-                    threshold_apto, threshold_aog,
-                    banda=gemelo_doc["banda"], correccion=gemelo_doc["correccion"],
-                )
-                # El documento describe un gemelo guardado, no una evaluación recién hecha.
-                orden_gemelo["documento"] = f"Orden de mantenimiento — gemelo {motor_doc}"
-                orden_gemelo["modo"] = "gemelo registrado (serie guardada, sin repuntuar)"
-                ciclo_doc = estado_doc["cycle"]
-                # El id lo escribe el usuario: un `/` en el nombre del fichero rompe la descarga.
-                slug_doc = _slug_motor(motor_doc.lower())
-                etiqueta_doc = L.STATE_LABELS.get(estado_doc["decision"],
-                                                 str(estado_doc["decision"]))
+            clamped = snapshot[snapshot["clamped"]]
+            if not clamped.empty:
                 st.caption(
-                    f"Estado con los umbrales en vigor: **{etiqueta_doc}**"
-                    + (f" en el ciclo {ciclo_doc:.0f}" if ciclo_doc is not None else "")
-                    + ". El documento describe la peor ventana de ese ciclo, con la huella y "
-                    "la banda que se guardaron al puntuar: no se llama al modelo."
+                    "Limitadas a su último ciclo evaluado: "
+                    + ", ".join(
+                        f"U{int(r.unit)} en {int(r.scored_cycle)}" for r in clamped.itertuples()
+                    )
+                    + ". No se extrapola más allá de la vida registrada."
+                )
+
+        st.info(
+            f"**Apto** si `L_inf ≥ {threshold_apto:.0f}` · "
+            f"**inspección** si `{threshold_aog:.0f} ≤ L_inf < {threshold_apto:.0f}` · "
+            f"**hangar** si `L_inf < {threshold_aog:.0f}`. El estado se decide con el límite "
+            "inferior de la banda: la predicción puntual puede estar por encima del umbral y la "
+            "unidad aun así quedar inmovilizada. Es deliberado (ADR-008): el error del modelo no "
+            "es simétrico entre motores.",
+            title="Regla de negocio",
+            icon=":material/shield:",
+        )
+
+        with st.expander("Comparar con otros umbrales", icon=":material/compare:"):
+            st.caption(
+                "Recalcula la flota con un segundo juego de umbrales (sin re-puntuar) y "
+                "muestra qué cambiaría respecto a los en vigor."
+            )
+            comp_a = st.number_input("Apto alternativo", min_value=1.0, max_value=100.0,
+                                      value=threshold_apto + 5.0, step=1.0, key="comp_apto")
+            comp_h = st.number_input("Hangar alternativo", min_value=0.0, max_value=99.0,
+                                      value=threshold_aog + 5.0, step=1.0, key="comp_aog")
+            if comp_h >= comp_a:
+                st.error("El hangar alternativo debe ser menor que el apto alternativo.",
+                          icon=":material/rule:")
+            else:
+                snap_b = L.fleet_snapshot(frame, cycle, comp_a, comp_h)
+                cuenta_a = snapshot["state"].value_counts()
+                cuenta_b = snap_b["state"].value_counts()
+                comp = pd.DataFrame({
+                    "Estado": [L.STATE_LABELS.get(s, s) for s in L.STATE_LABELS],
+                    "En vigor": [int(cuenta_a.get(s, 0)) for s in L.STATE_LABELS],
+                    "Alternativo": [int(cuenta_b.get(s, 0)) for s in L.STATE_LABELS],
+                })
+                st.dataframe(comp, hide_index=True,
+                             alt="Comparativa de estados de flota entre umbrales en vigor y alternativos.")
+                merged = snapshot[["unit", "state"]].merge(
+                    snap_b[["unit", "state"]], on="unit", suffixes=("", "_alt"))
+                cambian = merged[merged["state"] != merged["state_alt"]]
+                if cambian.empty:
+                    st.caption("Nada cambiaría: los mismos estados con los otros umbrales.")
+                else:
+                    st.dataframe(
+                        pd.DataFrame({
+                            "Motor": [f"U{int(u)}" for u in cambian["unit"]],
+                            "Ahora": [L.STATE_LABELS.get(s, s) for s in cambian["state"]],
+                            "Con alternativos": [L.STATE_LABELS.get(s, s)
+                                                  for s in cambian["state_alt"]],
+                        }),
+                        hide_index=True,
+                        alt="Unidades que cambiarían de estado con los umbrales alternativos.",
+                    )
+
+        with st.expander("Historial de la unidad: cómo llegó a este estado",
+                          icon=":material/history:"):
+            hist = UR.estado_por_ciclo(frame)
+            hu = hist[hist["unit"] == unit].sort_values("cycle").reset_index(drop=True)
+            if hu.empty:
+                st.caption("Sin ciclos evaluados para esta unidad.")
+            else:
+                rachas, inicio = [], hu.iloc[0]
+                previo = None
+                for _, fila_h in hu.iterrows():
+                    if previo is not None and fila_h["decision"] != previo["decision"]:
+                        rachas.append({"Desde": int(previo["cycle"]),
+                                       "Hasta": int(fila_h["cycle"] - 1),
+                                       "Estado": L.STATE_LABELS.get(previo["decision"],
+                                                                      str(previo["decision"])),
+                                       "L_inf mín": round(float(hu[(hu["cycle"] >= previo["cycle"]) &
+                                                                     (hu["cycle"] < fila_h["cycle"])]
+                                                                  ["lower"].min()), 1)})
+                        previo = fila_h
+                    elif previo is None:
+                        previo = fila_h
+                if previo is not None:
+                    rachas.append({"Desde": int(previo["cycle"]),
+                                   "Hasta": int(hu["cycle"].max()),
+                                   "Estado": L.STATE_LABELS.get(previo["decision"],
+                                                                  str(previo["decision"])),
+                                   "L_inf mín": round(float(hu[hu["cycle"] >= previo["cycle"]]
+                                                              ["lower"].min()), 1)})
+                st.dataframe(pd.DataFrame(rachas), hide_index=True,
+                             alt="Rachas de estado de la unidad seleccionada a lo largo de los ciclos.")
+
+        if _vista_tribunal:
+            with st.container(border=True):
+                st.subheader("Motor de reglas · traza del caso", icon=":material/rule:")
+                fila = snapshot[snapshot["unit"] == unit].iloc[0]
+                st.caption(
+                    "Pasada A de `mia.motor` sobre la unidad seleccionada: la misma función del "
+                    "cuaderno de práctica, no una reclasificación paralela. Gana la regla de "
+                    "mayor prioridad que se cumpla."
+                )
+                if bool(fila["reached"]):
+                    traza = UR.traza_decision(float(fila["lower"]), umbrales)
+                    st.markdown(
+                        f"**U{int(unit)} · ciclo {cycle}** · `L_inf = {fila['lower']:.1f}` → "
+                        f"**{traza['decision'] or 'sin decisión'}** · reglas: "
+                        + (" → ".join(traza["usadas"]) or "(ninguna)")
+                    )
+                    for linea in traza["porque"]:
+                        st.caption(linea)
+                else:
+                    st.caption(
+                        "La unidad todavía no tiene ventanas evaluadas en este ciclo: el motor no "
+                        "emite una decisión que no pueda sostener."
+                    )
+                catalogo = pd.DataFrame(UR.catalogo_decision()).rename(
+                    columns={"regla": "Regla", "prioridad": "Prioridad", "porque": "Porqué"}
+                )
+                st.dataframe(
+                    catalogo,
+                    hide_index=True,
+                    column_config={
+                        "Prioridad": st.column_config.NumberColumn("Prioridad", format="%d"),
+                    },
+                    alt="Reglas de la pasada A, con su prioridad y su justificación.",
+                )
+
+        blocked = order["unidades"]
+        with st.container(border=True):
+            st.subheader("Orden de trabajo", icon=":material/description:")
+            if blocked:
+                st.caption(
+                    f"{len(blocked)} unidad(es) bloqueada(s) en el ciclo {cycle}. El documento lleva "
+                    "el hash del artefacto y los umbrales en vigor."
                 )
                 with st.container(horizontal=True):
                     st.download_button(
-                        "Descargar ficha del gemelo (JSON)",
-                        data=json.dumps(orden_gemelo, ensure_ascii=False, indent=2),
-                        file_name=f"orden_mantenimiento_{slug_doc}.json",
+                        "Descargar orden (JSON)",
+                        data=json.dumps(order, ensure_ascii=False, indent=2),
+                        file_name=f"orden_mantenimiento_ds02_ciclo{cycle}.json",
                         mime="application/json",
+                        type="primary",
                         icon=":material/download:",
-                        key="twin_doc_json",
                     )
                     st.download_button(
-                        "Descargar ficha del gemelo (CSV)",
-                        data=L.work_order_csv(orden_gemelo),
-                        file_name=f"orden_mantenimiento_{slug_doc}.csv",
+                        "Descargar orden (CSV)",
+                        data=L.work_order_csv(order),
+                        file_name=f"orden_mantenimiento_ds02_ciclo{cycle}.csv",
                         mime="text/csv",
                         icon=":material/table_view:",
-                        key="twin_doc_csv",
+                    )
+                    st.download_button(
+                        "Descargar orden (PDF)",
+                        data=PP.parte_trabajo_pdf(order),
+                        file_name=f"orden_mantenimiento_ds02_ciclo{cycle}.pdf",
+                        mime="application/pdf",
+                        icon=":material/picture_as_pdf:",
+                    )
+            else:
+                st.success(
+                    f"Ninguna unidad en hangar en el ciclo {cycle}. No se emite orden de trabajo.",
+                    title="Flota disponible",
+                    icon=":material/check_circle:",
+                )
+                parte = L.parte_disponibilidad(snapshot, provenance, threshold_apto,
+                                                threshold_aog)
+                with st.container(horizontal=True):
+                    st.download_button(
+                        "Descargar parte de disponibilidad (JSON)",
+                        data=json.dumps(parte, ensure_ascii=False, indent=2),
+                        file_name=f"parte_disponibilidad_ds02_ciclo{cycle}.json",
+                        mime="application/json",
+                        icon=":material/download:",
+                        help="Deja constancia firmable de que se miró la flota y no había nada que derivar.",
+                    )
+                    st.download_button(
+                        "Descargar parte de flota (CSV)",
+                        data=snapshot[["unit", "cycle", "state", "rule"]].to_csv(index=False),
+                        file_name=f"parte_flota_ds02_ciclo{cycle}.csv",
+                        mime="text/csv",
+                        icon=":material/table_view:",
                     )
 
-            with st.expander("Eliminar un gemelo", icon=":material/delete:"):
-                borrar = st.selectbox("Motor", list(gemelos), key="twin_del")
-                st.caption(
-                    "Borrar un gemelo no toca su registro de hangar: el gemelo es lo que el "
-                    "modelo dijo, el registro es lo que pasó después."
-                )
-                if st.button("Eliminar gemelo", icon=":material/delete_forever:",
-                             key="twin_del_btn"):
-                    st.session_state["twins"] = T.eliminar(gemelos, borrar)
-                    _guardar_registros()
-                    st.session_state["twin_flash"] = f"Gemelo `{borrar}` eliminado."
-                    st.rerun()
 
-
-    def _panel_gemelo() -> None:
-        """Detalle del gemelo registrado: su curva, su banda y su ventana.
-
-        Antes no existía. La serie del gemelo (cycle, pred, lower, upper, start_row)
-        ya estaba guardada en `twins`; el muro la dibujaba y nada más. Aquí se ve
-        completa, con la banda y con las dos preguntas que un gemelo digital tiene
-        que responder: cuánto le queda y en qué ventana se basó la decisión.
-
-        Se alimenta de `st.session_state`, nunca de un global de módulo: es un
-        contenedor de primer nivel y se re-ejecuta completo en cada pasada.
-        """
+        # ------------------------------------------------------ gemelos y hangar
         with st.container(border=True):
-            st.subheader("Gemelo digital · detalle",
-                         icon=":material/precision_manufacturing:")
-            st.caption(
-                "El gemelo es lo que el modelo dijo, guardado una vez. Su estado se "
-                "recalcula con los umbrales en vigor sin volver a llamar al modelo: "
-                "la serie no cambia, la lectura sí."
-            )
-            _gemelos = st.session_state.get("twins") or {}
-            if not _gemelos:
+            st.subheader("Gemelos registrados", icon=":material/precision_manufacturing:")
+            aviso_gemelo = st.session_state.get("twin_flash")
+            if aviso_gemelo:
+                del st.session_state["twin_flash"]
+                st.toast(aviso_gemelo, icon=":material/check_circle:")
+            # El muro manda: una tarjeta de gemelo apunta aqui. Se consume en cuanto se
+            # lee, para que no vuelva a salir en el siguiente render.
+            gemelo_pendiente = st.session_state.pop("_gemelo_pendiente", None)
+            if gemelo_pendiente:
+                if gemelo_pendiente in gemelos:
+                    _estado_pendiente = T.estado_actual(gemelos[gemelo_pendiente], umbrales)
+                    st.caption(
+                        f"**{gemelo_pendiente}**: "
+                        f"{L.STATE_LABELS.get(_estado_pendiente['decision'])} "
+                        f"con los umbrales en vigor, L_inf {_estado_pendiente['lower_min']:.1f} ciclos."
+                    )
+                else:
+                    st.caption(f"El motor `{gemelo_pendiente}` ya no está registrado.")
+            if not gemelos:
                 st.caption(
-                    "Ningún gemelo registrado todavía. Puntúa un motor en «Evaluar "
-                    "unidad nueva» y aparece aquí con su curva completa."
+                    "Ningún motor externo registrado todavía. Puntúa uno en «Evaluar unidad "
+                    "nueva» y añádelo: la serie queda guardada y su estado se recalcula con "
+                    "los umbrales en vigor, sin volver a llamar al modelo."
                 )
-                return
-            _elegido = st.selectbox(
-                "Gemelo", list(_gemelos), key="gemelo_detalle_sel",
-                help="Motores registrados en esta sesión, con su serie guardada.",
-            )
-            _gemelo = _gemelos[_elegido]
-            _curva = T.ciclo_a_ciclo(_gemelo, umbrales)
-            if _curva.empty:
-                st.caption(f"`{_elegido}` no tiene serie que dibujar.")
-                return
+            else:
+                filas_gemelos = []
+                for gemelo_id, gemelo in gemelos.items():
+                    estado_g = T.estado_actual(gemelo, umbrales)
+                    metricas_g = T.metricas_verdad(gemelo)
+                    filas_gemelos.append({
+                        "Motor": gemelo_id,
+                        "Ciclo": estado_g["cycle"],
+                        "L_inf": estado_g["lower_min"],
+                        "Estado": L.STATE_LABELS.get(estado_g["decision"],
+                                                     str(estado_g["decision"])),
+                        "Regla": estado_g["regla"],
+                        "Banda": gemelo["banda"],
+                        "Verdad": ("sin reportar" if not metricas_g else
+                                   f"{metricas_g['rul_real']:.0f} · "
+                                   f"{'dentro' if metricas_g['cubierta'] else 'fuera'}"),
+                        "Huella": gemelo["fingerprint"][:8],
+                    })
+                st.dataframe(
+                    pd.DataFrame(filas_gemelos),
+                    hide_index=True,
+                    column_config={
+                        "Ciclo": st.column_config.NumberColumn("Ciclo", format="%d"),
+                        "L_inf": st.column_config.NumberColumn("L_inf", format="%.2f"),
+                        "Huella": st.column_config.TextColumn("Huella", help="SHA-256 de la tabla puntuada."),
+                    },
+                    alt="Motores externos registrados con su estado recalculado, la regla aplicada y la banda usada.",
+                )
+                resumen_gemelos = T.resumen(gemelos)
+                if resumen_gemelos["con_verdad"]:
+                    st.caption(
+                        f"{resumen_gemelos['con_verdad']} gemelo(s) con verdad reportada · "
+                        f"cobertura {resumen_gemelos['cubiertos']}/{resumen_gemelos['con_verdad']} · "
+                        f"MAE {resumen_gemelos['mae']:.2f} ciclos"
+                    )
+                st.markdown("**Gestión de los gemelos registrados**")
+                with st.expander("Reportar la RUL real de un gemelo", icon=":material/fact_check:"):
+                    elegido_v = st.selectbox(
+                        "Motor", list(gemelos), key="truth_engine",
+                        help="Gemelo registrado sobre el que se declara la RUL real conocida.",
+                    )
+                    ciclo_v = st.number_input(
+                        "Ciclo en que se conoció", min_value=0.0, step=1.0,
+                        value=float(gemelos[elegido_v]["serie"][-1]["cycle"]),
+                        key=f"truth_cycle_{elegido_v}",
+                    )
+                    rul_v = st.number_input(
+                        "RUL real (ciclos)", min_value=0.0, step=1.0, value=0.0,
+                        key=f"truth_rul_{elegido_v}",
+                    )
+                    st.caption(
+                        "La cobertura se mide contra la ventana más pesimista de ese ciclo: "
+                        "si esa banda cubre la verdad, la decisión que la acompañó era defendible."
+                    )
+                    if st.button("Guardar verdad", icon=":material/save:", key="truth_save"):
+                        try:
+                            actualizado = T.con_verdad(gemelos[elegido_v], rul_v, ciclo_v)
+                        except ValueError as exc:
+                            st.error(str(exc), title="Valor no válido", icon=":material/rule:")
+                        else:
+                            st.session_state["twins"] = {**gemelos, elegido_v: actualizado}
+                            _guardar_registros()
+                            st.rerun()
 
-            _ultima = _curva.iloc[-1]
-            _decision = str(_ultima["decision"])
-            _pred = float(_ultima["pred"])
-            _lo = float(_ultima["lower_min"])
-            _ciclo_ult = int(_ultima["cycle"])
+                with st.expander("Documentar un gemelo", icon=":material/description:"):
+                    motor_doc = st.selectbox(
+                        "Motor", list(gemelos), key="twin_doc",
+                        help="Gemelo registrado a documentar (orden de trabajo JSON).",
+                    )
+                    gemelo_doc = gemelos[motor_doc]
+                    estado_doc = T.estado_actual(gemelo_doc, umbrales)
+                    orden_gemelo = INF.live_work_order(
+                        T.vista_resultado(gemelo_doc),
+                        {"source": gemelo_doc["source"],
+                         "registrado_en": gemelo_doc["created_at"],
+                         "huella": gemelo_doc["fingerprint"]},
+                        threshold_apto, threshold_aog,
+                        banda=gemelo_doc["banda"], correccion=gemelo_doc["correccion"],
+                    )
+                    # El documento describe un gemelo guardado, no una evaluación recién hecha.
+                    orden_gemelo["documento"] = f"Orden de mantenimiento — gemelo {motor_doc}"
+                    orden_gemelo["modo"] = "gemelo registrado (serie guardada, sin repuntuar)"
+                    ciclo_doc = estado_doc["cycle"]
+                    # El id lo escribe el usuario: un `/` en el nombre del fichero rompe la descarga.
+                    slug_doc = _slug_motor(motor_doc.lower())
+                    etiqueta_doc = L.STATE_LABELS.get(estado_doc["decision"],
+                                                     str(estado_doc["decision"]))
+                    st.caption(
+                        f"Estado con los umbrales en vigor: **{etiqueta_doc}**"
+                        + (f" en el ciclo {ciclo_doc:.0f}" if ciclo_doc is not None else "")
+                        + ". El documento describe la peor ventana de ese ciclo, con la huella y "
+                        "la banda que se guardaron al puntuar: no se llama al modelo."
+                    )
+                    with st.container(horizontal=True):
+                        st.download_button(
+                            "Descargar ficha del gemelo (JSON)",
+                            data=json.dumps(orden_gemelo, ensure_ascii=False, indent=2),
+                            file_name=f"orden_mantenimiento_{slug_doc}.json",
+                            mime="application/json",
+                            icon=":material/download:",
+                            key="twin_doc_json",
+                        )
+                        st.download_button(
+                            "Descargar ficha del gemelo (CSV)",
+                            data=L.work_order_csv(orden_gemelo),
+                            file_name=f"orden_mantenimiento_{slug_doc}.csv",
+                            mime="text/csv",
+                            icon=":material/table_view:",
+                            key="twin_doc_csv",
+                        )
 
-            # Ciclos hasta el umbral: la misma pregunta que la flota le hace a la
-            # caché, hecha aquí sobre la serie guardada.
-            _cruce = _curva[_curva["lower_min"] < umbrales["hangar"]]
-            _falta = (None if _cruce.empty
-                      else int(_cruce["cycle"].min()) - _ciclo_ult)
-            _falta_txt = ("no cruza el umbral en la vida registrada" if _falta is None
-                          else ("ya está por debajo del umbral" if _falta <= 0
-                                else f"{_falta} ciclos"))
-
-            st.metric("RUL p35 (conservadora)", f"{_pred:.1f}", "cuantil 0.35",
-                      border=True, delta_color="off", icon=":material/speed:",
-                      help="Cuantil 0.35 de la RUL (ADR-003). El estado no lo decide "
-                           "este número: lo decide L_inf.")
-            st.metric("L_inf (decide)", f"{_lo:.1f}", "ciclos",
-                      border=True, delta_color="off", icon=":material/trending_down:",
-                      help="Límite inferior de la banda al 90 %. Es el número que gobierna "
-                           "la decisión de hangar (ADR-008).")
-            st.metric("Estado", L.STATE_LABELS.get(_decision, _decision),
-                      str(_ultima["regla"] or "(sin regla)"),
-                      border=True, delta_color="off", icon=":material/rule:")
-            st.metric("Ciclos hasta el umbral", _falta_txt, f"ciclo {_ciclo_ult}",
-                      border=True, delta_color="off", icon=":material/hourglass_bottom:",
-                      help="Primer ciclo de la serie guardada en que L_inf cae por debajo "
-                           "del umbral de hangar, menos el último ciclo registrado.")
-
-            # La ventana que decidió: `vista_resultado` ya la elige; aquí se cita.
-            _vista = T.vista_resultado(_gemelo)
-            _vent = _vista["windows"].iloc[0]
-            st.caption(
-                f"La ventana que decide es la posición **{int(_vent['window'])}** de la "
-                f"serie guardada, del ciclo **{int(_vent['cycle'])}**, que empieza en la fila "
-                f"**{int(_vent['start_row'])}** de la tabla puntuada: la más pesimista "
-                "de ese ciclo. Es el dato que sostiene el estado."
-            )
-
-            _fig = go.Figure()
-            _fig.add_trace(go.Scatter(
-                x=_curva["cycle"], y=_curva["upper"], mode="lines",
-                line=dict(width=0), showlegend=False, hoverinfo="skip",
-            ))
-            _fig.add_trace(go.Scatter(
-                x=_curva["cycle"], y=_curva["lower_media"], mode="lines",
-                line=dict(width=0), name="Banda 90 %", fill="tonexty",
-                fillcolor="rgba(56,189,248,0.18)", hoverinfo="skip",
-            ))
-            _fig.add_trace(go.Scatter(
-                x=_curva["cycle"], y=_curva["pred"], mode="lines", name="RUL p35",
-                line=dict(width=2, color=SKY),
-                hovertemplate="ciclo %{x}<br>RUL %{y:.1f}<extra></extra>",
-            ))
-            _fig.add_trace(go.Scatter(
-                x=_curva["cycle"], y=_curva["lower_min"], mode="lines",
-                name="L_inf (decide)", line=dict(width=2, color=ROSE),
-                hovertemplate="ciclo %{x}<br>L_inf %{y:.1f}<extra></extra>",
-            ))
-            _fig.add_hline(
-                y=umbrales["hangar"], line_color=ROSE, line_dash="dash", line_width=1.5,
-                annotation_text=f"hangar ({umbrales['hangar']:.0f})",
-                annotation_position="top right",
-                annotation_font=dict(color=ROSE, size=11),
-            )
-            _fig.update_layout(**chart_layout(height=340, hovermode="closest"))
-            style_axes(_fig, x_title="Ciclo de vuelo", y_title="RUL (ciclos)")
-            st.plotly_chart(
-                _fig, theme=None,
-                alt=f"Curva de RUL del gemelo {_elegido} con su banda conformal al 90 %, "
-                    "el límite inferior que decide y el umbral de hangar.",
-            )
-            st.warning(
-                "La banda es la de la serie guardada: **no se recalibra** al mover los "
-                "umbrales, porque la calibración es parte del artefacto congelado. "
-                "Mover el umbral cambia la lectura, no la banda.",
-                icon=":material/info:",
-            )
+                with st.expander("Eliminar un gemelo", icon=":material/delete:"):
+                    borrar = st.selectbox(
+                        "Motor", list(gemelos), key="twin_del",
+                        help="Gemelo registrado a eliminar de la flota de la sesión.",
+                    )
+                    st.caption(
+                        "Borrar un gemelo no toca su registro de hangar: el gemelo es lo que el "
+                        "modelo dijo, el registro es lo que pasó después."
+                    )
+                    if st.button("Eliminar gemelo", icon=":material/delete_forever:",
+                                 key="twin_del_btn"):
+                        st.session_state["twins"] = T.eliminar(gemelos, borrar)
+                        _guardar_registros()
+                        st.session_state["twin_flash"] = f"Gemelo `{borrar}` eliminado."
+                        st.rerun()
 
 
-    _panel_gemelo()
+        def _panel_gemelo() -> None:
+            """Detalle del gemelo registrado: su curva, su banda y su ventana.
 
-    with st.container(border=True):
-        st.subheader("Hangar · ciclo de vida", icon=":material/warehouse:")
-        resumen_h = HGR.resumen(registros)
-        with st.container(horizontal=True):
-            st.metric("Registros", resumen_h["total"], border=True, delta_color="off",
-                      icon=":material/inventory_2:")
-            st.metric("Abiertos", resumen_h["abiertos"], border=True, delta_color="off",
-                      icon=":material/pending_actions:")
-            st.metric("En taller", resumen_h["por_estado"][HGR.TALLER], border=True,
-                      delta_color="off", icon=":material/build:")
-        if not registros:
-            st.caption(
-                "Ningún registro abierto. Al derivar una unidad se congela aquí la decisión "
-                "de entrada, con sus umbrales: mover los sliders después no reescribe la "
-                "historia."
-            )
-        else:
-            filas_hangar = []
-            for registro in HGR.cola(registros):
-                decision_hoy = UR.traza_decision(registro["entrada"]["lower"], umbrales)["decision"]
-                revision = HGR.revision(registro, umbrales, decision_hoy)
-                filas_hangar.append({
-                    "Unidad": registro["unidad"],
-                    "Estado": HGR.ETIQUETAS.get(registro["estado"], registro["estado"]),
-                    "L_inf de entrada": registro["entrada"]["lower"],
-                    "Umbral de entrada": registro["entrada"]["umbrales"]["hangar"],
-                    "Regla": registro["entrada"]["regla"],
-                    "Hoy": "coincide" if not revision["cambia"] else revision["hoy"],
-                })
-            st.dataframe(
-                pd.DataFrame(filas_hangar),
-                hide_index=True,
-                column_config={
-                    "L_inf de entrada": st.column_config.NumberColumn(
-                        "L_inf de entrada", format="%.2f"),
-                    "Umbral de entrada": st.column_config.NumberColumn(
-                        "Umbral de entrada", format="%.0f"),
-                },
-                alt="Cola de hangar ordenada por urgencia, con la decisión congelada y la de hoy.",
-            )
+            Antes no existía. La serie del gemelo (cycle, pred, lower, upper, start_row)
+            ya estaba guardada en `twins`; el muro la dibujaba y nada más. Aquí se ve
+            completa, con la banda y con las dos preguntas que un gemelo digital tiene
+            que responder: cuánto le queda y en qué ventana se basó la decisión.
 
-        candidatos = {}
-        for _, fila in snapshot[snapshot["state"] == L.AOG].iterrows():
-            # La clave sale del registro: una alta responde a su matricula, un motor
-            # de caché a U<int>. Antes se montaba a mano con f"U{int(unit)}" y las
-            # altas entraban al hangar como U-1000.
-            candidatos[F.clave_de(float(fila["unit"]), _registro())] = {
-                "ciclo": int(fila["cycle"]),
-                "lower": float(fila["lower"]),
-                "regla": str(fila["rule"]),
-            }
-        for gemelo_id, gemelo in gemelos.items():
-            estado_g = T.estado_actual(gemelo, umbrales)
-            if estado_g["decision"] == L.AOG:
-                candidatos[gemelo_id] = {
-                    "ciclo": int(estado_g["cycle"] or 0),
-                    "lower": float(estado_g["lower_min"]),
-                    "regla": estado_g["regla"],
-                }
-        disponibles = [clave for clave in candidatos if clave not in registros]
-        if disponibles:
-            with st.form("hangar_abrir"):
-                elegido_h = st.selectbox("Unidad a derivar", disponibles)
-                nota_alta = st.text_input("Nota de entrada", value="")
-                if st.form_submit_button("Abrir registro", icon=":material/login:"):
-                    datos = candidatos[elegido_h]
-                    st.session_state["hangar"] = {
-                        **registros,
-                        elegido_h: HGR.abrir(elegido_h, datos["ciclo"], datos["lower"],
-                                             umbrales, datos["regla"], nota=nota_alta),
-                    }
-                    _guardar_registros()
-                    st.rerun()
-        else:
-            st.caption(
-                "No hay unidades en hangar sin registro en este ciclo, ni gemelos "
-                "derivados pendientes de abrir."
-            )
-
-        if registros:
+            Se alimenta de `st.session_state`, nunca de un global de módulo: es un
+            contenedor de primer nivel y se re-ejecuta completo en cada pasada.
+            """
             with st.container(border=True):
-                unidad_sel = st.selectbox("Registro", list(registros), key="hangar_sel")
-                actual = registros[unidad_sel]["estado"]
-                destino = st.selectbox(
-                    "Nuevo estado",
-                    HGR.permitidas(actual),
-                    format_func=lambda estado: HGR.ETIQUETAS.get(estado, estado),
-                    key="hangar_destino",
-                    help="Solo se ofrecen los estados alcanzables desde el actual.",
+                st.subheader("Gemelo digital · detalle",
+                             icon=":material/precision_manufacturing:")
+                st.caption(
+                    "El gemelo es lo que el modelo dijo, guardado una vez. Su estado se "
+                    "recalcula con los umbrales en vigor sin volver a llamar al modelo: "
+                    "la serie no cambia, la lectura sí."
                 )
-                nota_mov = st.text_input("Nota del evento", key="hangar_nota")
-                if st.button("Registrar movimiento", icon=":material/logout:", key="hangar_mover"):
-                    try:
-                        movido = HGR.avanzar(registros[unidad_sel], destino,
-                                             int(cycle), nota=nota_mov)
-                    except ValueError as exc:
-                        st.error(str(exc), title="Movimiento no permitido",
-                                 icon=":material/rule:")
-                    else:
-                        st.session_state["hangar"] = {**registros, unidad_sel: movido}
+                _gemelos = st.session_state.get("twins") or {}
+                if not _gemelos:
+                    st.caption(
+                        "Ningún gemelo registrado todavía. Puntúa un motor en «Evaluar "
+                        "unidad nueva» y aparece aquí con su curva completa."
+                    )
+                    return
+                _elegido = st.selectbox(
+                    "Gemelo", list(_gemelos), key="gemelo_detalle_sel",
+                    help="Motores registrados en esta sesión, con su serie guardada.",
+                )
+                _gemelo = _gemelos[_elegido]
+                _curva = T.ciclo_a_ciclo(_gemelo, umbrales)
+                if _curva.empty:
+                    st.caption(f"`{_elegido}` no tiene serie que dibujar.")
+                    return
+
+                _ultima = _curva.iloc[-1]
+                _decision = str(_ultima["decision"])
+                _pred = float(_ultima["pred"])
+                _lo = float(_ultima["lower_min"])
+                _ciclo_ult = int(_ultima["cycle"])
+
+                # Ciclos hasta el umbral: la misma pregunta que la flota le hace a la
+                # caché, hecha aquí sobre la serie guardada.
+                _cruce = _curva[_curva["lower_min"] < umbrales["hangar"]]
+                _falta = (None if _cruce.empty
+                          else int(_cruce["cycle"].min()) - _ciclo_ult)
+                _falta_txt = ("no cruza el umbral en la vida registrada" if _falta is None
+                              else ("ya está por debajo del umbral" if _falta <= 0
+                                    else f"{_falta} ciclos"))
+
+                st.metric("RUL p35 (conservadora)", f"{_pred:.1f}", "cuantil 0.35",
+                          border=True, delta_color="off", icon=":material/speed:",
+                          help="Cuantil 0.35 de la RUL (ADR-003). El estado no lo decide "
+                               "este número: lo decide L_inf.")
+                st.metric("L_inf (decide)", f"{_lo:.1f}", "ciclos",
+                          border=True, delta_color="off", icon=":material/trending_down:",
+                          help="Límite inferior de la banda al 90 %. Es el número que gobierna "
+                               "la decisión de hangar (ADR-008).")
+                st.metric("Estado", L.STATE_LABELS.get(_decision, _decision),
+                          str(_ultima["regla"] or "(sin regla)"),
+                          border=True, delta_color="off", icon=":material/rule:")
+                st.metric("Ciclos hasta el umbral", _falta_txt, f"ciclo {_ciclo_ult}",
+                          border=True, delta_color="off", icon=":material/hourglass_bottom:",
+                          help="Primer ciclo de la serie guardada en que L_inf cae por debajo "
+                               "del umbral de hangar, menos el último ciclo registrado.")
+
+                # La ventana que decidió: `vista_resultado` ya la elige; aquí se cita.
+                _vista = T.vista_resultado(_gemelo)
+                _vent = _vista["windows"].iloc[0]
+                st.caption(
+                    f"La ventana que decide es la posición **{int(_vent['window'])}** de la "
+                    f"serie guardada, del ciclo **{int(_vent['cycle'])}**, que empieza en la fila "
+                    f"**{int(_vent['start_row'])}** de la tabla puntuada: la más pesimista "
+                    "de ese ciclo. Es el dato que sostiene el estado."
+                )
+
+                _fig = go.Figure()
+                _fig.add_trace(go.Scatter(
+                    x=_curva["cycle"], y=_curva["upper"], mode="lines",
+                    line=dict(width=0), showlegend=False, hoverinfo="skip",
+                ))
+                _fig.add_trace(go.Scatter(
+                    x=_curva["cycle"], y=_curva["lower_media"], mode="lines",
+                    line=dict(width=0), name="Banda 90 %", fill="tonexty",
+                    fillcolor="rgba(56,189,248,0.18)", hoverinfo="skip",
+                ))
+                _fig.add_trace(go.Scatter(
+                    x=_curva["cycle"], y=_curva["pred"], mode="lines", name="RUL p35",
+                    line=dict(width=2, color=SKY),
+                    hovertemplate="ciclo %{x}<br>RUL %{y:.1f}<extra></extra>",
+                ))
+                _fig.add_trace(go.Scatter(
+                    x=_curva["cycle"], y=_curva["lower_min"], mode="lines",
+                    name="L_inf (decide)", line=dict(width=2, color=ROSE),
+                    hovertemplate="ciclo %{x}<br>L_inf %{y:.1f}<extra></extra>",
+                ))
+                _fig.add_hline(
+                    y=umbrales["hangar"], line_color=ROSE, line_dash="dash", line_width=1.5,
+                    annotation_text=f"hangar ({umbrales['hangar']:.0f})",
+                    annotation_position="top right",
+                    annotation_font=dict(color=ROSE, size=11),
+                )
+                _fig.update_layout(**chart_layout(height=340, hovermode="closest"))
+                style_axes(_fig, x_title="Ciclo de vuelo", y_title="RUL (ciclos)")
+                st.plotly_chart(
+                    _fig, theme=None,
+                    alt=f"Curva de RUL del gemelo {_elegido} con su banda conformal al 90 %, "
+                        "el límite inferior que decide y el umbral de hangar.",
+                )
+                st.warning(
+                    "La banda es la de la serie guardada: **no se recalibra** al mover los "
+                    "umbrales, porque la calibración es parte del artefacto congelado. "
+                    "Mover el umbral cambia la lectura, no la banda.",
+                    icon=":material/info:",
+                )
+
+
+        _panel_gemelo()
+
+        with st.container(border=True):
+            st.subheader("Hangar · ciclo de vida", icon=":material/warehouse:")
+            resumen_h = HGR.resumen(registros)
+            with st.container(horizontal=True):
+                st.metric("Registros", resumen_h["total"], border=True, delta_color="off",
+                          icon=":material/inventory_2:")
+                st.metric("Abiertos", resumen_h["abiertos"], border=True, delta_color="off",
+                          icon=":material/pending_actions:")
+                st.metric("En taller", resumen_h["por_estado"][HGR.TALLER], border=True,
+                          delta_color="off", icon=":material/build:")
+            if not registros:
+                st.caption(
+                    "Ningún registro abierto. Al derivar una unidad se congela aquí la decisión "
+                    "de entrada, con sus umbrales: mover los sliders después no reescribe la "
+                    "historia."
+                )
+            else:
+                filas_hangar = []
+                for registro in HGR.cola(registros):
+                    decision_hoy = UR.traza_decision(registro["entrada"]["lower"], umbrales)["decision"]
+                    revision = HGR.revision(registro, umbrales, decision_hoy)
+                    filas_hangar.append({
+                        "Unidad": registro["unidad"],
+                        "Estado": HGR.ETIQUETAS.get(registro["estado"], registro["estado"]),
+                        "L_inf de entrada": registro["entrada"]["lower"],
+                        "Umbral de entrada": registro["entrada"]["umbrales"]["hangar"],
+                        "Regla": registro["entrada"]["regla"],
+                        "Hoy": "coincide" if not revision["cambia"] else revision["hoy"],
+                    })
+                st.dataframe(
+                    pd.DataFrame(filas_hangar),
+                    hide_index=True,
+                    column_config={
+                        "L_inf de entrada": st.column_config.NumberColumn(
+                            "L_inf de entrada", format="%.2f"),
+                        "Umbral de entrada": st.column_config.NumberColumn(
+                            "Umbral de entrada", format="%.0f"),
+                    },
+                    alt="Cola de hangar ordenada por urgencia, con la decisión congelada y la de hoy.",
+                )
+
+            candidatos = {}
+            for _, fila in snapshot[snapshot["state"] == L.AOG].iterrows():
+                # La clave sale del registro: una alta responde a su matricula, un motor
+                # de caché a U<int>. Antes se montaba a mano con f"U{int(unit)}" y las
+                # altas entraban al hangar como U-1000.
+                candidatos[F.clave_de(float(fila["unit"]), _registro())] = {
+                    "ciclo": int(fila["cycle"]),
+                    "lower": float(fila["lower"]),
+                    "regla": str(fila["rule"]),
+                }
+            for gemelo_id, gemelo in gemelos.items():
+                estado_g = T.estado_actual(gemelo, umbrales)
+                if estado_g["decision"] == L.AOG:
+                    candidatos[gemelo_id] = {
+                        "ciclo": int(estado_g["cycle"] or 0),
+                        "lower": float(estado_g["lower_min"]),
+                        "regla": estado_g["regla"],
+                    }
+            disponibles = [clave for clave in candidatos if clave not in registros]
+            if disponibles:
+                with st.form("hangar_abrir"):
+                    elegido_h = st.selectbox(
+                        "Unidad a derivar", disponibles,
+                        help="Unidad en hangar sin registro abierto en este ciclo.",
+                    )
+                    nota_alta = st.text_input("Nota de entrada", value="")
+                    if st.form_submit_button("Abrir registro", icon=":material/login:"):
+                        datos = candidatos[elegido_h]
+                        st.session_state["hangar"] = {
+                            **registros,
+                            elegido_h: HGR.abrir(elegido_h, datos["ciclo"], datos["lower"],
+                                                 umbrales, datos["regla"], nota=nota_alta),
+                        }
                         _guardar_registros()
                         st.rerun()
-
-
-
-# ------------------------------------------------------------------- tab 2
-
-
-with tab_motor:
-    # ------------------------------------------------------------- el gemelo
-    # Una sala, una respuesta: ¿por qué está así este motor? Su verdad estaba
-    # repartida en cuatro pestañas; aquí está junta.
-    _fila_g = snapshot[snapshot["unit"] == unit].iloc[0]
-    _etiqueta_g = _etiqueta_unidad(float(unit))
-    _pred_g = float(_fila_g["pred"]) if pd.notna(_fila_g["pred"]) else 0.0
-    _lo_g = float(_fila_g["lower"]) if pd.notna(_fila_g["lower"]) else float("nan")
-
-    with st.container(border=True):
-        st.subheader(f"Vista consolidada · {_etiqueta_g}",
-                     icon=":material/precision_manufacturing:")
-        st.caption(
-            "Lo que dice la caché sobre este motor, junto: la métrica que decide, "
-            "la traza de la regla y el ciclo de vida del hangar. El gemelo "
-            "registrado tiene su propio panel, arriba."
-        )
-        _gauge_col, _decision_col = st.columns([1, 2])
-        with _gauge_col:
-            _gauge = go.Figure(
-                go.Indicator(
-                    mode="gauge+number",
-                    value=round(_pred_g, 1),
-                    number={"suffix": " ciclos", "font": {"color": INK, "size": 26}},
-                    title={"text": "RUL restante", "font": {"color": MUTED, "size": 13}},
-                    gauge={
-                        "axis": {"range": [0, max_life], "tickfont": {"color": MUTED}},
-                        "bar": {"color": SKY, "thickness": 0.4},
-                        "bgcolor": SURFACE,
-                        "bordercolor": GRID,
-                        "steps": [
-                            {"range": [0, threshold_aog],
-                             "color": "rgba(248,113,113,0.28)"},
-                            {"range": [threshold_aog, threshold_apto],
-                             "color": "rgba(245,158,11,0.22)"},
-                            {"range": [threshold_apto, max_life],
-                             "color": "rgba(52,211,153,0.22)"},
-                        ],
-                        "threshold": {"line": {"color": ROSE, "width": 3},
-                                      "thickness": 0.7, "value": threshold_aog},
-                    },
-                )
-            )
-            _gauge.update_layout(**chart_layout(height=240, showlegend=False,
-                                                margin=dict(l=18, r=18, t=46, b=8)))
-            st.plotly_chart(
-                _gauge, theme=None,
-                alt=f"Gauge de RUL restante de {_etiqueta_g}: {_pred_g:.1f} ciclos, con "
-                    f"la zona de hangar por debajo de {threshold_aog:.0f} sombreada.",
-            )
-        with _decision_col:
-            st_badge_estado(_fila_g["state"])
-            with st.container(horizontal=True):
-                st.metric("RUL p35 (conservadora)",
-                          f"{_pred_g:.1f}" if pd.notna(_fila_g["pred"]) else "—",
-                          "cuantil 0.35", border=True, delta_color="off",
-                          icon=":material/speed:",
-                          help="Cuantil 0.35 de la RUL (ADR-003): conservador. "
-                               "El estado lo decide L_inf, el limite inferior de la banda.")
-                st.metric("L_inf (decide)",
-                          f"{_lo_g:.1f}" if pd.notna(_fila_g["lower"]) else "—",
-                          "ciclos", border=True, delta_color="off",
-                          icon=":material/trending_down:")
-                st.metric("Regla que decide", str(_fila_g["rule"] or "(ninguna)"),
-                          "pasada A · mia.motor", border=True, delta_color="off",
-                          icon=":material/rule:")
-            if pd.notna(_lo_g):
-                for linea in UR.traza_decision(_lo_g, umbrales)["porque"]:
-                    st.caption(linea)
-            _registro_g = registros.get(F.clave_de(float(unit), _registro()))
-            if _registro_g:
-                st.markdown(
-                    f"**Ciclo de vida del hangar**: "
-                    f"{HGR.ETIQUETAS.get(_registro_g['estado'], _registro_g['estado'])}"
-                    f" · abierto en el ciclo {_registro_g['entrada']['ciclo']} con "
-                    f"`L_inf = {_registro_g['entrada']['lower']:.1f}`."
-                )
             else:
-                st.markdown("**Ciclo de vida del hangar**: sin registro abierto.")
-            _bloqueada = next(
-                (u for u in order["unidades"] if int(u["unidad"]) == int(unit)), None)
-            if _bloqueada:
-                st.markdown(
-                    f"**Orden de trabajo**: derivación a hangar · "
-                    f"`L_inf {_bloqueada['limite_inferior']:.1f}` < {threshold_aog:.0f} · "
-                    f"{_bloqueada['accion']}"
-                )
-            else:
-                st.markdown(
-                    "**Orden de trabajo**: ninguna para este motor en el ciclo del reloj.")
-        # Radiografía de sensores: la misma señal que en su pestaña, sin salir de aquí.
-        _presiones = L.CHANNEL_GROUPS["Presiones"]
-        _per_cycle_g = (
-            telemetry[telemetry["unit"] == unit]
-            .groupby("cycle", as_index=False)[_presiones]
-            .mean(numeric_only=True)
-        )
-        if not _per_cycle_g.empty:
-            st.plotly_chart(
-                fig_deriva(_per_cycle_g, _presiones,
-                           int(_per_cycle_g["cycle"].max()),
-                           critical_start, threshold_aog, height=220),
-                theme=None,
-                alt=f"Radiografía de sensores de {_etiqueta_g}: deriva porcentual de las "
-                    "presiones frente a su línea base sana.",
-            )
-            st.caption(
-                "Radiografía de sensores (presiones) respecto a la línea base sana del "
-                "propio motor: la señal física bruta, antes de que el modelo la lea."
-            )
-            with st.expander("Mapa de calor · degradación sensorial (z-score)",
-                             expanded=False):
                 st.caption(
-                    "z-score por canal sobre la historia completa del motor: "
-                    "rojo = por encima de su media histórica, azul = por debajo. "
-                    "Colapsado por defecto para no saturar la vista."
+                    "No hay unidades en hangar sin registro en este ciclo, ni gemelos "
+                    "derivados pendientes de abrir."
                 )
-                _sensor_cols = [c for g in L.CHANNEL_GROUPS.values() for c in g]
-                _sensor_cols = list(dict.fromkeys(_sensor_cols))
-                _tel_u = telemetry[telemetry["unit"] == unit]
-                if not _tel_u.empty and all(c in _tel_u.columns for c in _sensor_cols):
-                    _heat = _tel_u.groupby("cycle", as_index=False)[_sensor_cols].mean(
-                        numeric_only=True)
-                    _mat = _heat[_sensor_cols].astype(float)
-                    _z = (_mat - _mat.mean(axis=0)) / _mat.std(axis=0).replace(0, 1)
-                    import plotly.express as px
-                    _fig_heat = px.imshow(
-                        _z.T,
-                        x=_heat["cycle"].astype(str).tolist(),
-                        y=_sensor_cols,
-                        color_continuous_scale="RdBu_r",
-                        aspect="auto",
-                        labels={"x": "ciclo", "y": "sensor", "color": "z"},
+
+            if registros:
+                with st.container(border=True):
+                    unidad_sel = st.selectbox("Registro", list(registros), key="hangar_sel")
+                    actual = registros[unidad_sel]["estado"]
+                    destino = st.selectbox(
+                        "Nuevo estado",
+                        HGR.permitidas(actual),
+                        format_func=lambda estado: HGR.ETIQUETAS.get(estado, estado),
+                        key="hangar_destino",
+                        help="Solo se ofrecen los estados alcanzables desde el actual.",
                     )
-                    _fig_heat.update_layout(
-                        height=360, margin=dict(l=10, r=10, t=10, b=10))
-                    st.plotly_chart(_fig_heat, theme=None,
-                                    alt=f"Mapa de calor z-score de los sensores "
-                                        f"del motor {unit} a lo largo de su vida.")
+                    nota_mov = st.text_input("Nota del evento", key="hangar_nota")
+                    if st.button("Registrar movimiento", icon=":material/logout:", key="hangar_mover"):
+                        try:
+                            movido = HGR.avanzar(registros[unidad_sel], destino,
+                                                 int(cycle), nota=nota_mov)
+                        except ValueError as exc:
+                            st.error(str(exc), title="Movimiento no permitido",
+                                     icon=":material/rule:")
+                        else:
+                            st.session_state["hangar"] = {**registros, unidad_sel: movido}
+                            _guardar_registros()
+                            st.rerun()
 
-    # -------------------- comparador: 2-3 motores superpuestos
-    with st.container(border=True):
-        st.subheader("Comparador · superpone trayectorias",
-                     icon=":material/compare_arrows:")
-        st.caption(
-            "Elige 2–3 motores y superpone su límite inferior — lo que decide — y su "
-            "predicción puntual, solo para comparar. La línea roja es el umbral de hangar."
-        )
-        _comparar = st.multiselect(
-            "Motores a comparar",
-            unidades_vistas,
-            default=unidades_vistas[:2],
-            format_func=lambda u: _etiqueta_unidad(float(u)),
-            key="comparador_unidades",
-            help="El límite inferior es lo que decide el estado; la predicción puntual "
-                 "se dibuja solo para comparar.",
-        )
-        if _comparar:
-            _fig_c = go.Figure()
-            for u in _comparar:
-                _curva_c = curves[u]
-                _et_c = _etiqueta_unidad(float(u))
-                _fig_c.add_trace(go.Scatter(
-                    x=_curva_c["cycle"], y=_curva_c["lower"], mode="lines",
-                    name=f"L_inf · {_et_c}", line=dict(width=2),
-                ))
-                _fig_c.add_trace(go.Scatter(
-                    x=_curva_c["cycle"], y=_curva_c["pred"], mode="lines",
-                    name=f"RUL predicha · {_et_c}", line=dict(width=1.2, dash="dot"),
-                ))
-            _fig_c.add_hline(
-                y=threshold_aog, line_color=ROSE, line_dash="dash", line_width=1.5,
-                annotation_text=f"hangar ({threshold_aog:.0f})",
-                annotation_position="top right", annotation_font=dict(color=ROSE, size=11),
-            )
-            _fig_c.update_layout(**chart_layout(height=380))
-            style_axes(_fig_c, x_title="Ciclo de vuelo", y_title="RUL (ciclos)")
-            st.plotly_chart(
-                _fig_c, theme=None,
-                alt="Comparador de trayectorias: límite inferior y RUL predicha de los "
-                    "motores seleccionados.",
-            )
 
-    with st.container(border=True):
-        st.subheader("Trayectoria de RUL y banda conformal", icon=":material/ssid_chart:")
-        st.caption(
-            f"Unidad {int(unit)} · {len(_wu)} ventanas evaluadas · cobertura por ventana "
-            f"{coverage:.0%} (objetivo 90 %). El gráfico dibuja medias por ciclo; "
-            f"la decisión y este número usan cada ventana."
-        )
-        fig = go.Figure()
-        fig.add_trace(
-            go.Scatter(
-                x=curve["cycle"], y=curve["upper"], mode="lines",
-                line=dict(width=0), name="Límite superior", hoverinfo="skip",
+
+    # ------------------------------------------------------------------- tab 2
+
+
+    _tab_flota()
+with tab_motor:
+    @st.fragment
+    def _tab_motor() -> None:
+        # ------------------------------------------------------------- el gemelo
+        # Una sala, una respuesta: ¿por qué está así este motor? Su verdad estaba
+        # repartida en cuatro pestañas; aquí está junta.
+        _fila_g = snapshot[snapshot["unit"] == unit].iloc[0]
+        _etiqueta_g = _etiqueta_unidad(float(unit))
+        _pred_g = float(_fila_g["pred"]) if pd.notna(_fila_g["pred"]) else 0.0
+        _lo_g = float(_fila_g["lower"]) if pd.notna(_fila_g["lower"]) else float("nan")
+
+        with st.container(border=True):
+            st.subheader(f"Vista consolidada · {_etiqueta_g}",
+                         icon=":material/precision_manufacturing:")
+            st.caption(
+                "Lo que dice la caché sobre este motor, junto: la métrica que decide, "
+                "la traza de la regla y el ciclo de vida del hangar. El gemelo "
+                "registrado tiene su propio panel, arriba."
             )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=curve["cycle"], y=curve["lower"], mode="lines",
-                line=dict(width=0), fill="tonexty",
-                fillcolor="rgba(56, 189, 248, 0.18)",
-                name="Banda conformal 90 %",
+            _gauge_col, _decision_col = st.columns([1, 2])
+            with _gauge_col:
+                _gauge = go.Figure(
+                    go.Indicator(
+                        mode="gauge+number",
+                        value=round(_pred_g, 1),
+                        number={"suffix": " ciclos", "font": {"color": INK, "size": 26}},
+                        title={"text": "RUL restante", "font": {"color": MUTED, "size": 13}},
+                        gauge={
+                            "axis": {"range": [0, max_life], "tickfont": {"color": MUTED}},
+                            "bar": {"color": SKY, "thickness": 0.4},
+                            "bgcolor": SURFACE,
+                            "bordercolor": GRID,
+                            "steps": [
+                                {"range": [0, threshold_aog],
+                                 "color": "rgba(248,113,113,0.28)"},
+                                {"range": [threshold_aog, threshold_apto],
+                                 "color": "rgba(245,158,11,0.22)"},
+                                {"range": [threshold_apto, max_life],
+                                 "color": "rgba(52,211,153,0.22)"},
+                            ],
+                            "threshold": {"line": {"color": ROSE, "width": 3},
+                                          "thickness": 0.7, "value": threshold_aog},
+                        },
+                    )
+                )
+                _gauge.update_layout(**chart_layout(height=240, showlegend=False,
+                                                    margin=dict(l=18, r=18, t=46, b=8)))
+                st.plotly_chart(
+                    _gauge, theme=None,
+                    alt=f"Gauge de RUL restante de {_etiqueta_g}: {_pred_g:.1f} ciclos, con "
+                        f"la zona de hangar por debajo de {threshold_aog:.0f} sombreada.",
+                )
+            with _decision_col:
+                st_badge_estado(_fila_g["state"])
+                with st.container(horizontal=True):
+                    st.metric("RUL p35 (conservadora)",
+                              f"{_pred_g:.1f}" if pd.notna(_fila_g["pred"]) else "—",
+                              "cuantil 0.35", border=True, delta_color="off",
+                              icon=":material/speed:",
+                              help="Cuantil 0.35 de la RUL (ADR-003): conservador. "
+                                   "El estado lo decide L_inf, el limite inferior de la banda.")
+                    st.metric("L_inf (decide)",
+                              f"{_lo_g:.1f}" if pd.notna(_fila_g["lower"]) else "—",
+                              "ciclos", border=True, delta_color="off",
+                              icon=":material/trending_down:")
+                    st.metric("Regla que decide", str(_fila_g["rule"] or "(ninguna)"),
+                              "pasada A · mia.motor", border=True, delta_color="off",
+                              icon=":material/rule:")
+                if pd.notna(_lo_g):
+                    for linea in UR.traza_decision(_lo_g, umbrales)["porque"]:
+                        st.caption(linea)
+                _registro_g = registros.get(F.clave_de(float(unit), _registro()))
+                if _registro_g:
+                    st.markdown(
+                        f"**Ciclo de vida del hangar**: "
+                        f"{HGR.ETIQUETAS.get(_registro_g['estado'], _registro_g['estado'])}"
+                        f" · abierto en el ciclo {_registro_g['entrada']['ciclo']} con "
+                        f"`L_inf = {_registro_g['entrada']['lower']:.1f}`."
+                    )
+                else:
+                    st.markdown("**Ciclo de vida del hangar**: sin registro abierto.")
+                _bloqueada = next(
+                    (u for u in order["unidades"] if int(u["unidad"]) == int(unit)), None)
+                if _bloqueada:
+                    st.markdown(
+                        f"**Orden de trabajo**: derivación a hangar · "
+                        f"`L_inf {_bloqueada['limite_inferior']:.1f}` < {threshold_aog:.0f} · "
+                        f"{_bloqueada['accion']}"
+                    )
+                else:
+                    st.markdown(
+                        "**Orden de trabajo**: ninguna para este motor en el ciclo del reloj.")
+            # Radiografía de sensores: la misma señal que en su pestaña, sin salir de aquí.
+            _presiones = L.CHANNEL_GROUPS["Presiones"]
+            _per_cycle_g = (
+                telemetry[telemetry["unit"] == unit]
+                .groupby("cycle", as_index=False)[_presiones]
+                .mean(numeric_only=True)
             )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=curve["cycle"], y=curve["pred"], mode="lines",
-                line=dict(color=SKY, width=3), name="RUL predicha (ensamble)",
+            if not _per_cycle_g.empty:
+                st.plotly_chart(
+                    fig_deriva(_per_cycle_g, _presiones,
+                               int(_per_cycle_g["cycle"].max()),
+                               critical_start, threshold_aog, height=220),
+                    theme=None,
+                    alt=f"Radiografía de sensores de {_etiqueta_g}: deriva porcentual de las "
+                        "presiones frente a su línea base sana.",
+                )
+                st.caption(
+                    "Radiografía de sensores (presiones) respecto a la línea base sana del "
+                    "propio motor: la señal física bruta, antes de que el modelo la lea."
+                )
+                with st.expander("Mapa de calor · degradación sensorial (z-score)",
+                                 expanded=False):
+                    st.caption(
+                        "z-score por canal sobre la historia completa del motor: "
+                        "rojo = por encima de su media histórica, azul = por debajo. "
+                        "Colapsado por defecto para no saturar la vista."
+                    )
+                    _sensor_cols = [c for g in L.CHANNEL_GROUPS.values() for c in g]
+                    _sensor_cols = list(dict.fromkeys(_sensor_cols))
+                    _tel_u = telemetry[telemetry["unit"] == unit]
+                    if not _tel_u.empty and all(c in _tel_u.columns for c in _sensor_cols):
+                        _heat = _tel_u.groupby("cycle", as_index=False)[_sensor_cols].mean(
+                            numeric_only=True)
+                        _mat = _heat[_sensor_cols].astype(float)
+                        _z = (_mat - _mat.mean(axis=0)) / _mat.std(axis=0).replace(0, 1)
+                        import plotly.express as px
+                        _fig_heat = px.imshow(
+                            _z.T,
+                            x=_heat["cycle"].astype(str).tolist(),
+                            y=_sensor_cols,
+                            color_continuous_scale="RdBu_r",
+                            aspect="auto",
+                            labels={"x": "ciclo", "y": "sensor", "color": "z"},
+                        )
+                        _fig_heat.update_layout(
+                            height=360, margin=dict(l=10, r=10, t=10, b=10))
+                        st.plotly_chart(_fig_heat, theme=None,
+                                        alt=f"Mapa de calor z-score de los sensores "
+                                            f"del motor {unit} a lo largo de su vida.")
+
+        # -------------------- comparador: 2-3 motores superpuestos
+        with st.container(border=True):
+            st.subheader("Comparador · superpone trayectorias",
+                         icon=":material/compare_arrows:")
+            st.caption(
+                "Elige 2–3 motores y superpone su límite inferior — lo que decide — y su "
+                "predicción puntual, solo para comparar. La línea roja es el umbral de hangar."
             )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=curve["cycle"], y=curve["y_true"], mode="lines",
-                line=dict(color="#94a3b8", width=1.6, dash="dot"), name="RUL real",
+            _comparar = st.multiselect(
+                "Motores a comparar",
+                unidades_vistas,
+                default=unidades_vistas[:2],
+                format_func=lambda u: _etiqueta_unidad(float(u)),
+                key="comparador_unidades",
+                help="El límite inferior es lo que decide el estado; la predicción puntual "
+                     "se dibuja solo para comparar.",
             )
-        )
-        if alarm_cycle is not None:
-            at_alarm = curve.loc[curve["cycle"] == alarm_cycle]
+            if _comparar:
+                _fig_c = go.Figure()
+                for u in _comparar:
+                    _curva_c = curves[u]
+                    _et_c = _etiqueta_unidad(float(u))
+                    _fig_c.add_trace(go.Scatter(
+                        x=_curva_c["cycle"], y=_curva_c["lower"], mode="lines",
+                        name=f"L_inf · {_et_c}", line=dict(width=2),
+                    ))
+                    _fig_c.add_trace(go.Scatter(
+                        x=_curva_c["cycle"], y=_curva_c["pred"], mode="lines",
+                        name=f"RUL predicha · {_et_c}", line=dict(width=1.2, dash="dot"),
+                    ))
+                _fig_c.add_hline(
+                    y=threshold_aog, line_color=ROSE, line_dash="dash", line_width=1.5,
+                    annotation_text=f"hangar ({threshold_aog:.0f})",
+                    annotation_position="top right", annotation_font=dict(color=ROSE, size=11),
+                )
+                _fig_c.update_layout(**chart_layout(height=380))
+                style_axes(_fig_c, x_title="Ciclo de vuelo", y_title="RUL (ciclos)")
+                st.plotly_chart(
+                    _fig_c, theme=None,
+                    alt="Comparador de trayectorias: límite inferior y RUL predicha de los "
+                        "motores seleccionados.",
+                )
+
+        with st.container(border=True):
+            st.subheader("Trayectoria de RUL y banda conformal", icon=":material/ssid_chart:")
+            st.caption(
+                f"Unidad {int(unit)} · {len(_wu)} ventanas evaluadas · cobertura por ventana "
+                f"{coverage:.0%} (objetivo 90 %). El gráfico dibuja medias por ciclo; "
+                f"la decisión y este número usan cada ventana."
+            )
+            fig = go.Figure()
             fig.add_trace(
                 go.Scatter(
-                    x=at_alarm["cycle"], y=at_alarm["pred"], mode="markers",
-                    marker=dict(color=ROSE, size=13, symbol="x", line=dict(width=2)),
-                    name=f"Alarma AOG (ciclo {alarm_cycle})",
+                    x=curve["cycle"], y=curve["upper"], mode="lines",
+                    line=dict(width=0), name="Límite superior", hoverinfo="skip",
                 )
             )
-        fig.add_hrect(
-            y0=0, y1=threshold_aog, fillcolor=ROSE, opacity=0.10, line_width=0,
-            annotation_text=f"zona de hangar (RUL < {threshold_aog:.0f})",
-            annotation_position="top left", annotation_font_size=11,
-            annotation_font_color="#fca5a5",
-        )
-        fig.add_vline(
-            x=current, line_dash="dot", line_color=INK, line_width=1.5,
-            annotation_text=f"ciclo {current}", annotation_position="top",
-            annotation_font=dict(color=INK, size=11),
-        )
-        fig.update_layout(**chart_layout(height=430, hovermode="x unified"))
-        style_axes(fig, x_title="Ciclo de vuelo", y_title="RUL (ciclos restantes)")
-        st.plotly_chart(
-            fig, theme=None,
-            alt="RUL real y predicha a lo largo de la vida del motor, con la banda conformal y la zona de hangar sombreada.",
-        )
-
-    with st.container(horizontal=True):
-        if unit_metrics is not None:
-            st.metric("RMSE", f"{unit_metrics['rmse']:.2f}", f"U{int(unit)}", border=True,
-                      icon=":material/analytics:", delta_color="off")
-            st.metric("MAE", f"{unit_metrics['mae']:.2f}", f"U{int(unit)}", border=True,
-                      icon=":material/straighten:", delta_color="off")
-            st.metric("Sesgo (pred − real)", f"{unit_metrics['bias']:+.2f}", "ciclos", border=True,
-                      icon=":material/swap_vert:", delta_color="off")
-        else:
-            st.caption(f"Aeronave de alta {_etiqueta_unidad(float(unit))}: sin verdad en caché para RMSE/MAE/sesgo.")
-        st.metric("Cobertura de banda", f"{coverage * 100:.0f} %", "objetivo 90 %", border=True,
-                  icon=":material/verified:", delta_color="off")
-        if unit_metrics is not None:
-            st.metric("Vida registrada", f"{int(unit_metrics['life'])}", "ciclos", border=True,
-                      icon=":material/schedule:", delta_color="off")
-        st.caption(
-            f"Métricas sobre la lectura "
-            f"{'corregida (R2b + R6)' if aplicar_reglas else 'cruda de la caché'}: "
-            "con la capa de reglas activa no se mezclan las dos lecturas."
-        )
-
-    read_col, table_col = st.columns([1, 1])
-    with read_col:
-        with st.container(border=True, height="stretch"):
-            st.subheader("Lectura de la decisión", icon=":material/lightbulb:")
-            if alarm_cycle is not None:
-                lead = (truth_cycle - alarm_cycle) if truth_cycle is not None else None
-                st.markdown(
-                    f"La alarma de hangar (`L_inf < {threshold_aog:.0f}`) se dispara en el "
-                    f"**ciclo {alarm_cycle}**."
-                )
-                if truth_cycle is not None:
-                    st.markdown(
-                        f"La RUL real cruza {threshold_aog:.0f} ciclos en el **ciclo "
-                        f"{truth_cycle}**: la alarma llega **{lead} ciclos antes**, con una RUL "
-                        f"real de {curve.loc[curve['cycle'] == alarm_cycle, 'y_true'].iloc[0]:.1f}."
-                    )
-            else:
-                st.markdown("La unidad no cruza el umbral de hangar en los ciclos evaluados.")
-            st.caption(
-                "Ese adelanto es el precio de decidir con el límite inferior: la banda es "
-                "conservadora (cobertura realizada por encima del 90 % nominal)."
-            )
-    with table_col:
-        with st.container(border=True, height="stretch"):
-            st.subheader("Errores por unidad", icon=":material/table_chart:")
-            table = per_unit.assign(Motor=[f"U{int(u)}" for u in per_unit["unit"]])
-            st.dataframe(
-                table[["Motor", "windows", "rmse", "mae", "bias"]],
-                hide_index=True,
-                column_config={
-                    "Motor": st.column_config.TextColumn("Motor"),
-                    "windows": st.column_config.NumberColumn("Ventanas", format="%d"),
-                    "rmse": st.column_config.NumberColumn("RMSE", format="%.2f"),
-                    "mae": st.column_config.NumberColumn("MAE", format="%.2f"),
-                    "bias": st.column_config.NumberColumn("Sesgo", format="%+.2f"),
-                },
-                alt="RMSE, MAE y sesgo por motor, calculados de la caché.",
-            )
-            st.caption(
-                "Los sesgos tienen signo opuesto y se cancelan en el promedio global: U11 "
-                "sobreestima, U14 y U15 subestiman."
-            )
-
-    # -------------------- perfil de vuelo: alt vs Mach (canales reales)
-    # Vive aquí y no en «Casos nuevos»: dibuja el motor seleccionado en la barra
-    # lateral, así que es una vista del motor, no una forma de traer casos.
-    with st.container(border=True):
-        st.subheader("Perfil de vuelo · altitud y régimen de vuelo",
-                     icon=":material/flight:")
-        st.caption(
-            "Los dos son canales reales del dataset. No hay mapa: el dataset "
-            "N-CMAPSS no trae coordenadas GPS (no hay latitud, longitud ni "
-            "posición entre sus 18 canales), así que dibujar rutas exigiría "
-            "inventarlas."
-        )
-        _perfil = telemetry[telemetry["unit"] == int(unit)].copy()
-        if not _perfil.empty:
-            _fig_vuelo = go.Figure(
+            fig.add_trace(
                 go.Scatter(
-                    x=_perfil["Mach"], y=_perfil["alt"], mode="lines",
-                    line=dict(color=SKY, width=2), name="Perfil de vuelo",
-                    hovertemplate="Mach %{x:.3f}<br>altitud %{y:.0f} ft<extra></extra>",
+                    x=curve["cycle"], y=curve["lower"], mode="lines",
+                    line=dict(width=0), fill="tonexty",
+                    fillcolor="rgba(56, 189, 248, 0.18)",
+                    name="Banda conformal 90 %",
                 )
             )
-            _fig_vuelo.update_layout(**chart_layout(
-                height=260, showlegend=False, hovermode="closest",
-                xaxis_title="Mach", yaxis_title="altitud (ft)",
-            ))
-            style_axes(_fig_vuelo)
-            st.plotly_chart(
-                _fig_vuelo, theme=None,
-                alt=f"Perfil de vuelo de {_etiqueta_unidad(float(unit))}: altitud "
-                    f"frente a número de Mach, los dos canales reales del dataset.",
+            fig.add_trace(
+                go.Scatter(
+                    x=curve["cycle"], y=curve["pred"], mode="lines",
+                    line=dict(color=SKY, width=3), name="RUL predicha (ensamble)",
+                )
             )
-
-
-    # ------------------------------------------------------------- SHAP
-    with st.container(border=True):
-        st.subheader("Explicabilidad · SHAP (LightGBM del híbrido)",
-                     icon=":material/psychology:")
-        st.caption(
-            "Qué features del LightGBM pesan más en la predicción de este motor. "
-            "TreeExplainer exacto sobre el modelo congelado (no reentrena). "
-            "El SHAP explica el componente tabular del híbrido, no el BiLSTM ni el "
-            "stacking."
-        )
-        try:
-            import ui_shap as USH
-
-            if st.button("Calcular SHAP para este motor",
-                        icon=":material/psychology:", key="btn_shap"):
-                _shap_df = USH.shap_top_features(int(unit), top_k=10)
-                if _shap_df is not None and not _shap_df.empty:
-                    import plotly.express as px
-
-                    _fig_shap = px.bar(
-                        _shap_df.sort_values("abs_shap"),
-                        x="abs_shap", y="feature", orientation="h",
-                        labels={"abs_shap": "mean |SHAP| (ciclos RUL)",
-                                "feature": "feature"},
-                        title=f"Top-10 features · motor {int(unit)}",
+            fig.add_trace(
+                go.Scatter(
+                    x=curve["cycle"], y=curve["y_true"], mode="lines",
+                    line=dict(color="#94a3b8", width=1.6, dash="dot"), name="RUL real",
+                )
+            )
+            if alarm_cycle is not None:
+                at_alarm = curve.loc[curve["cycle"] == alarm_cycle]
+                fig.add_trace(
+                    go.Scatter(
+                        x=at_alarm["cycle"], y=at_alarm["pred"], mode="markers",
+                        marker=dict(color=ROSE, size=13, symbol="x", line=dict(width=2)),
+                        name=f"Alarma AOG (ciclo {alarm_cycle})",
                     )
-                    st.plotly_chart(_fig_shap, use_container_width=True)
-                    st.dataframe(_shap_df, use_container_width=True, hide_index=True)
-                else:
-                    st.info("Sin datos suficientes para calcular SHAP.")
-        except Exception as _e:
-            st.warning(f"No se pudo calcular SHAP: {_e}")
-
-
-# ------------------------------------------------------- auditoría: el cómo
-with tab_auditoria:
-    pass
-
-
-# ------------------------------------------------------------------- tab 4
-
-    st.subheader(
-        "El motor 14 concentra el error y también la evidencia",
-        icon=":material/insights:",
-    )
-
-    with st.container(border=True):
-        bars = go.Figure()
-        bars.add_trace(
-            go.Bar(
-                x=[f"U{int(u)}" for u in per_unit["unit"]], y=per_unit["rmse"],
-                name="RMSE",
-                marker_color=[ROSE if int(u) == 14 else SKY for u in per_unit["unit"]],
-                text=[f"{v:.2f}" for v in per_unit["rmse"]],
-                textposition="outside", textfont=dict(color=INK),
-            )
-        )
-        bars.add_trace(
-            go.Bar(
-                x=[f"U{int(u)}" for u in per_unit["unit"]], y=per_unit["mae"],
-                name="MAE",
-                marker_color=[("#fca5a5" if int(u) == 14 else "#7dd3fc") for u in per_unit["unit"]],
-                text=[f"{v:.2f}" for v in per_unit["mae"]],
-                textposition="outside", textfont=dict(color=INK),
-            )
-        )
-        bars.update_layout(**chart_layout(height=340, barmode="group", hovermode="closest"))
-        style_axes(bars, y_title="ciclos")
-        st.plotly_chart(
-            bars, theme=None,
-            alt="RMSE y MAE por unidad; el motor 14 concentra el error con 760 ventanas.",
-        )
-        st.caption("Calculado de la caché, no de una tabla fija. Rojo = motor 14.")
-
-    u14 = per_unit[per_unit["unit"] == 14].iloc[0]
-    u14_prov = provenance["counts"]["units"]["14"]
-    fit_density = provenance["counts"]["fit_engine_rows_per_cycle"]
-
-    # Las tres hipótesis van plegadas: el tribunal ve primero la métrica limpia
-    # (la barra del motor 14) y abre la justificación solo si la pregunta llega.
-    with st.expander(
-        "¿Por qué el motor 14? Hipótesis probadas y descartadas",
-        icon=":material/help_center:",
-    ):
-        card_a, card_b, card_c = st.columns(3, border=True)
-        with card_a:
-            st.markdown("**Complejidad física**")
-            st.markdown(
-                f"Régimen compuesto: degradación simultánea más agresiva. Medido, no supuesto: "
-                f"RMSE **{u14['rmse']:.2f}** y sesgo **{u14['bias']:+.2f}** ciclos sobre "
-                f"**{int(u14['windows'])}** ventanas."
-            )
-            st.caption(
-                "El sesgo es negativo: el modelo se queda corto. Es el error caro, porque "
-                "sobreestimar vida es lo que la NASA penaliza más."
-            )
-        with card_b:
-            st.markdown("**Densidad de muestreo — medida y descartada**")
-            st.markdown(
-                f"U14 trae **{u14_prov['rows_per_cycle']:.1f} filas/ciclo** frente a "
-                f"**{fit_density:.1f}** de media en los motores de ajuste "
-                f"({u14_prov['density_vs_fit']:.2f}×). La hipótesis se probó re-ventaneando dos "
-                "motores a esa misma densidad, con todo lo demás fijo."
-            )
-            st.caption(
-                "`docs/informes/informe-2026-10-21-p0-p1-prior-de-vida.md`: el sesgo del meta cambió −0.93 / −0.03 / "
-                "+0.34 ciclos. La densidad no explica el error; se reporta como hipótesis refutada."
-            )
-        with card_c:
-            st.markdown("**Prior de vida y mitigación conformal**")
-            st.markdown(
-                "El sesgo en vida alta es ≈ **−0,87 ciclos por ciclo de vida** del motor: el "
-                "conjunto implementa, sin declararlo, `RUL ≈ 63 − ciclo` (63 = vida del motor 16, "
-                "el del *early stopping* y el ajuste del meta)."
-            )
-            st.caption(
-                "La mitigación no es otro meta: es decidir con el límite inferior. La alarma llega "
-                "antes en U14 precisamente porque su sesgo es el peor."
-            )
-
-    band_col, lead_col = st.columns([1, 1])
-    with band_col:
-        with st.container(border=True, height="stretch"):
-            st.subheader("Precisión por tramo de vida", icon=":material/steps:")
-            band_df = L.mae_by_band(windows)
-            populated = band_df[band_df["windows"] > 0]
-            band_fig = go.Figure(
-                go.Bar(
-                    x=populated["band"], y=populated["mae"],
-                    marker_color=[GREEN if b.startswith("[0") else "#475569" for b in populated["band"]],
-                    text=[f"{v:.2f}" for v in populated["mae"]],
-                    textposition="outside", textfont=dict(color=INK),
                 )
-            )
-            band_fig.update_layout(**chart_layout(height=300, hovermode="closest"))
-            style_axes(band_fig, x_title="tramo de RUL real", y_title="MAE (ciclos)")
-            st.plotly_chart(
-                band_fig, theme=None,
-                alt="MAE por tramo de RUL real: mínimo en el tramo crítico 0-25 y máximo en vida alta.",
-            )
-            st.dataframe(
-                populated.assign(Tramo=populated["band"]),
-                hide_index=True,
-                column_config={
-                    "Tramo": st.column_config.TextColumn("Tramo"),
-                    "windows": st.column_config.NumberColumn("Ventanas", format="%d"),
-                    "mae": st.column_config.NumberColumn("MAE", format="%.3f"),
-                    "bias": st.column_config.NumberColumn("Sesgo", format="%+.3f"),
-                },
-                alt="MAE y sesgo por tramo de RUL real.",
-            )
-            if len(populated) < len(band_df):
-                st.caption(
-                    "Ningún motor de test supera los 75 ciclos de RUL real, así que el tramo "
-                    "más alto no tiene filas: no se dibuja una barra vacía ni se inventa un valor."
-                )
-
-    with lead_col:
-        with st.container(border=True, height="stretch"):
-            st.subheader("Alarma vs. verdad", icon=":material/av_timer:")
-            rows = []
-            for u in units:
-                a, t = L.first_alarm_cycle(curves[u], threshold_aog)
-                rows.append({
-                    "Motor": f"U{u}",
-                    "Alarma": a,
-                    "RUL real < umbral": t,
-                    "Adelanto": (t - a) if (a is not None and t is not None) else None,
-                    "RUL real al alarmar": (
-                        float(curves[u].loc[curves[u]["cycle"] == a, "y_true"].iloc[0])
-                        if a is not None else None
-                    ),
-                })
-            st.dataframe(
-                pd.DataFrame(rows),
-                hide_index=True,
-                column_config={
-                    "Motor": st.column_config.TextColumn("Motor"),
-                    "Alarma": st.column_config.NumberColumn("Ciclo de alarma", format="%d"),
-                    "RUL real < umbral": st.column_config.NumberColumn(
-                        "Ciclo con RUL real < umbral", format="%d"
-                    ),
-                    "Adelanto": st.column_config.NumberColumn(
-                        "Adelanto (ciclos)", format="%d"
-                    ),
-                    "RUL real al alarmar": st.column_config.NumberColumn(
-                        "RUL real al alarmar", format="%.1f"
-                    ),
-                },
-                alt="Ciclo de alarma frente al ciclo en que la RUL real cruza el umbral, por unidad.",
-            )
-            st.caption(
-                "El adelanto es el coste en disponibilidad de una cota conservadora: la flota "
-                f"se inmoviliza antes de que la RUL real llegue a {threshold_aog:.0f}. Es "
-                "ajustable desde la barra lateral."
-            )
-
-    with st.container(border=True):
-        st.subheader("Calidad del modelo", icon=":material/insights:")
-        st.caption(
-            "Métricas de calidad, no de decisión: cuánto se equivoca el modelo, no "
-            "lo que decide. Viven aquí porque son para el tribunal, no para el "
-            "operador de taller."
-        )
-        with st.container(horizontal=True):
-            st.metric(
-                "Macro-RMSE", f"{global_metrics['macro_rmse']:.2f} ciclos",
-                f"ponderado {global_metrics['rmse']:.2f}", border=True,
-                delta_color="off", icon=":material/balance:",
-                help="El macro-RMSE da el mismo peso a cada motor; el ponderado lo da a cada ventana.")
-            st.metric(
-                "MAE en zona crítica", f"{critical_mae:.2f} ciclos",
-                f"RUL real < {threshold_aog:.0f}", border=True,
-                delta_color="off", icon=":material/target:",
-                help="Error absoluto medio donde de verdad se decide el mantenimiento.")
-
-    with st.expander("Procedencia verificable", icon=":material/fingerprint:"):
-        st.caption(
-            "Huella SHA-256 del ensemble congelado, copiada del manifiesto que acompaña a "
-            "la caché. La UI no recalcula el artefacto: lo identifica."
-        )
-        st.code(provenance["artifact"]["ensemble_sha256"], language=None)
-        st.markdown(
-            f"**ensemble** `{provenance['artifact'].get('ensemble', 'models/ensemble.joblib')}` · "
-            f"**manifest** `{provenance['artifact'].get('manifest', 'models/ds02_manifest.json')}`"
-        )
-        st.caption(
-            "Para verificarlo en local: `python -c \"import hashlib;print(hashlib.sha256"
-            "(open('models/ensemble.joblib','rb').read()).hexdigest())\"`."
-        )
-        with st.container(horizontal=True):
-            st.metric(
-                "Ventanas en caché",
-                f"{provenance['counts']['windows']:,}",
-                f"generada {provenance['generated_at'][:10]}",
-                border=True, delta_color="off", icon=":material/dataset:")
-        st.caption(
-            f"Contrato: ventana de {provenance['source']['window']} muestras, "
-            f"step={provenance['source']['step']}. La caché va a step=2 y la vía "
-            f"en vivo a step=1, así que no coinciden bit a bit, y el punto está "
-            f"suavizado con un EMA causal por motor. Documentado, no reconciliado."
-        )
-
-    with st.expander("Contrato congelado vs. cálculo en vivo", icon=":material/difference:"):
-        recorded = manifest.get("macro_rmse", {}).get("per_unit_rmse", {})
-        compare = pd.DataFrame(
-            {
-                "Motor": [f"U{int(u)}" for u in per_unit["unit"]],
-                "En vivo (caché)": per_unit["rmse"].to_numpy(),
-                "Registrado (manifest)": [
-                    float(recorded.get(str(float(u)), np.nan)) for u in per_unit["unit"]
-                ],
-            }
-        )
-        compare["Δ"] = compare["En vivo (caché)"] - compare["Registrado (manifest)"]
-        st.dataframe(
-            compare,
-            hide_index=True,
-            column_config={
-                "Motor": st.column_config.TextColumn("Motor"),
-                "En vivo (caché)": st.column_config.NumberColumn(
-                    "RMSE en vivo (caché)", format="%.4f"
-                ),
-                "Registrado (manifest)": st.column_config.NumberColumn(
-                    "RMSE registrado (manifest)", format="%.4f"
-                ),
-                "Δ": st.column_config.NumberColumn("Δ", format="%+.4f"),
-            },
-            alt="Comparación entre el RMSE recalculado de la caché y el registrado en el manifiesto.",
-        )
-        st.caption(
-            "Ambas columnas describen las mismas ventanas. Una diferencia distinta de cero "
-            "sería deriva de regeneración del artefacto, y se publica tal cual: no se ajusta "
-            "ninguna de las dos. El score NASA es una **suma** asimétrica sobre las mismas "
-            "6 196 ventanas y no aplica el recorte de 125 ciclos del camino FD001."
-        )
-
-    with st.expander("Contrato de artefacto congelado", icon=":material/lock:"):
-        shape = manifest.get("model_shape", {})
-        conformal = manifest.get("conformal", {}) or {}
-        st.caption(
-            "Registrado en `models/ds02_manifest.json`. **No** es un cálculo de esta "
-            "caché: es el contrato del artefacto que se está consumiendo."
-        )
-        st.markdown(
-            f"**dataset** `{manifest.get('dataset')}` · "
-            f"**code_version** `{manifest.get('code_version')}` · "
-            f"**seed** `{manifest.get('seed')}`"
-        )
-        st.markdown(
-            f"**test** `{manifest.get('unit_partition', {}).get('test')}` · "
-            f"**ventana** `{shape.get('bilstm_input_shape')}` · "
-            f"**meta** `{shape.get('meta_features')} features`"
-        )
-        st.markdown(
-            f"**banda** objetivo `{conformal.get('target_coverage')}` · "
-            f"*{conformal.get('method')}* · calibración "
-            f"`{conformal.get('n_calibration')}` filas"
-        )
-        st.markdown("**SHA-256 del ensemble**")
-        st.code(provenance["artifact"]["ensemble_sha256"], language=None)
-        st.caption(
-            "64 caracteres hexadecimales. Es la huella del artefacto congelado, no la de "
-            "la caché."
-        )
-        # Auditoria criptografica on-demand: hashea el manifest y el .keras en disco
-        # y los compara con los sellos registrados. No se ejecuta en cada render:
-        # solo al pulsar, y el resultado se cachea en session_state.
-        if st.button("Auditar hashes del artefacto", icon=":material/verified:",
-                     key="btn_audit_hashes"):
-            import hashlib
-            _hashes = {}
-            for _name, _path in (
-                ("bilstm_ds02.keras", os.path.join(L.ROOT, "models", "bilstm_ds02.keras")),
-            ):
-                try:
-                    _h = hashlib.sha256()
-                    with open(_path, "rb") as _fh:
-                        for _chunk in iter(lambda: _fh.read(1 << 20), b""):
-                            _h.update(_chunk)
-                    _hashes[_name] = _h.hexdigest()
-                except OSError:
-                    _hashes[_name] = None
-            st.session_state["audit_hashes"] = _hashes
-        _audit = st.session_state.get("audit_hashes")
-        if _audit:
-            _esp_bilstm = (provenance.get("artifact") or {}).get("bilstm_sha256")
-            _leido_bilstm = _audit.get("bilstm_ds02.keras")
-            if _leido_bilstm is not None and _esp_bilstm and _leido_bilstm == _esp_bilstm:
-                st.success("bilstm_ds02.keras: hash coincide con el manifest.",
-                           icon=":material/check_circle:")
-            elif _leido_bilstm is not None:
-                st.error(f"bilstm_ds02.keras: discrepancia "
-                         f"({_leido_bilstm[:12]} vs {_esp_bilstm[:12]})",
-                         icon=":material/cancel:")
-            else:
-                st.warning("No se pudo hashear bilstm_ds02.keras.",
-                           icon=":material/warning:")
-        # El sello estaba en pantalla y nadie lo comprobaba: si el bundle se
-        # reentrena y se sustituye sin reconstruir `app/cache/`, la superficie
-        # sigue pintando predicciones bajo el sello viejo. Se mira en cada
-        # render y **solo** se avisa cuando discrepan: con el sello en regla no
-        # aparece nada, de modo que el camino verde no mueve ni un widget.
-        _sello = L.artifact_hash_check(provenance)
-        if _sello["checked"] and not _sello["ok"]:
-            st.warning(
-                f"La caché no corresponde al artefacto que hay en disco: el sello "
-                f"registrado es `{_sello['esperado'][:12]}` y el leído es "
-                f"`{_sello['leido'][:12]}`. Las cifras salen de `app/cache/`; "
-                f"reconstrúyela con `python scripts/build_ui_cache.py`.",
-                icon=":material/warning:",
-            )
-        elif not _sello["checked"]:
-            st.caption(
-                "No se pudo comprobar el sello del artefacto contra "
-                "`models/ensemble.joblib`."
-            )
-        recorded = manifest.get("macro_rmse", {}).get("per_unit_rmse", {})
-        if recorded:
-            st.markdown(
-                "**macro-RMSE por motor (registrado)** "
-                + " · ".join(f"U{int(float(k))}: `{v:.3f}`" for k, v in recorded.items())
-            )
-        st.json(
-            {
-                "artefactos": manifest.get("artifacts", {}),
-                "inference_contract": manifest.get("inference_contract", {}),
-                "lgb_objective": manifest.get("lgb_objective", {}),
-            },
-            expanded=False,
-        )
-
-    with st.container(border=True):
-        st.subheader("Informe de auditoría", icon=":material/picture_as_pdf:")
-        st.caption(
-            "Un PDF con las dos tablas de arriba —precisión por tramo y alarma vs. "
-            "verdad— más la huella del artefacto congelado y los umbrales en vigor. "
-            "Es la constancia firmable de cómo se calculó lo que se decide hoy."
-        )
-        try:
-            _pdf_auditoria = _informe_auditoria_pdf(
-                windows, curves, unidades_vistas, threshold_apto, threshold_aog,
-                provenance, critical_mae,
-            )
-        except Exception as exc:  # pragma: no cover - defensa ante fpdf ausente
-            st.warning(
-                f"No se pudo generar el informe PDF ({type(exc).__name__}). "
-                "Las tablas de arriba siguen siendo la fuente.",
-                icon=":material/error:",
-            )
-        else:
-            st.download_button(
-                "Descargar informe de auditoría (PDF)",
-                data=_pdf_auditoria,
-                file_name=f"informe_auditoria_ds02_ciclo{cycle}.pdf",
-                mime="application/pdf",
-                icon=":material/download:",
-                help="Congela las tablas de auditoría y la huella del artefacto.",
-            )
-
-
-# ------------------------------------------- casos nuevos: trae un motor
-with tab_casos:
-    _flash_live = st.session_state.pop("live_flash", None)
-    if _flash_live:
-        st.toast(_flash_live, icon=":material/check_circle:")
-    _flash_twin_live = st.session_state.get("twin_flash")
-    if _flash_twin_live:
-        st.toast(_flash_twin_live, icon=":material/check_circle:")
-
-    # -------------------- sala 4: incorporar (individual en el sidebar, lote aquí)
-    with st.container(border=True):
-        st.subheader("Incorporar en lote · trae uno o doce", icon=":material/library_add:")
-        st.caption(
-            "Puntúa N motores de una vez y devuelve una fila por motor: predicción, "
-            "banda y estado. No reentrena, no toca la caché y no inventa ground truth: "
-            "los datos los aportas tú, así que no hay RMSE ni MAE que reportar."
-        )
-        _lote_mode = st.segmented_control(
-            "Fuente del lote",
-            ["Subir CSV (uno por motor)", "Pegar CSV por bloques"],
-            default="Subir CSV (uno por motor)",
-            key="lote_mode",
-            help="Cada CSV es un motor. En la segunda opción, una columna `unit_id` "
-                 "separa los motores dentro del mismo CSV.",
-        )
-        _bloques: list[dict] = []
-        if _lote_mode == "Subir CSV (uno por motor)":
-            _archivos = st.file_uploader(
-                f"CSV de motores (máximo {B.MAX_MOTORES_LOTE})",
-                type=["csv"], accept_multiple_files=True, key="lote_archivos",
-            )
-            if _archivos:
-                try:
-                    _bloques = B.bloques_de_archivos(_archivos)
-                except Exception as exc:  # noqa: BLE001 - el mensaje se muestra
-                    st.error(f"No se pudieron leer los CSV: {exc}",
-                             icon=":material/error:")
-        else:
-            _texto_lote = st.text_area(
-                "CSV con columna `unit_id`", height=160, key="lote_texto",
-                placeholder="unit_id,cycle,alt,Mach,TRA,T2,T24,…",
-                help="Una columna `unit_id` por motor y los 18 canales del dataset.",
-            )
-            if _texto_lote.strip():
-                try:
-                    _bloques = B.bloques_de_csv(_texto_lote)
-                except Exception as exc:  # noqa: BLE001
-                    st.error(f"No se pudo leer el CSV por bloques: {exc}",
-                             icon=":material/error:")
-
-        if B.excede_limite(len(_bloques)):
-            st.error(
-                f"Traes {len(_bloques)} motores y el tope es {B.MAX_MOTORES_LOTE}. "
-                "Quita algunos: por encima del tope el lote deja de ser interactivo "
-                "en un portátil.",
-                icon=":material/rule:",
-            )
-            _bloques = []
-        elif _bloques:
-            _aviso_lote = B.validar_lote(_bloques)
-            if not _aviso_lote["ok"]:
-                for _mat, _error in _aviso_lote["errores"].items():
-                    st.error(f"`{_mat}`: {_error}", icon=":material/rule:")
-            else:
-                with st.form("lote_evaluar"):
-                    _enviar_lote = st.form_submit_button(
-                        f"Puntuar {_aviso_lote['bloques']} motor(es)",
-                        type="primary", icon=":material/play_arrow:",
-                    )
-                if _enviar_lote:
-                    _barra = st.progress(0.0, text="Puntuando 0 de …")
-
-                    def _progreso(i, n, mat):
-                        _barra.progress(i / n, text=f"Puntuando {i} de {n} · {mat}")
-
-                    try:
-                        _resultado_lote = B.puntuar_lote(
-                            _bloques, umbrales, INF.get_ensemble(), _progreso)
-                    except ValueError as exc:
-                        st.session_state["lote_resultado"] = None
-                        st.error(str(exc), title="No se pudo puntuar el lote",
-                                 icon=":material/rule:")
-                    else:
-                        st.session_state["lote_resultado"] = _resultado_lote
-                        st.session_state["lote_bloques"] = _bloques
-                        _log(f"Lote puntuado: {len(_bloques)} motor(es).")
-                        st.rerun()
-
-    _lote = st.session_state.get("lote_resultado")
-    if _lote is not None:
-        _resumen = B.resumen_lote(_lote)
-        with st.container(horizontal=True):
-            st.metric("Motores puntuados", f"{_resumen['total']}", border=True,
-                      delta_color="off", icon=":material/groups:")
-            st.metric("En hangar", f"{_resumen['por_estado'][L.AOG]}", border=True,
-                      delta_color="off", icon=":material/local_shipping:")
-            st.metric("En inspección", f"{_resumen['por_estado'][L.PREVENTIVE]}",
-                      border=True, delta_color="off", icon=":material/schedule:")
-            st.metric("Aptos", f"{_resumen['por_estado'][L.AIRWORTHY]}", border=True,
-                      delta_color="off", icon=":material/check_circle:")
-        _ver = _lote.rename(columns={
-            "matricula": "Matrícula", "ciclo": "Ciclo", "pred": "RUL p35",
-            "lower": "L_inf (decide)", "upper": "L_sup", "estado": "Estado",
-            "regla": "Regla",
-        })
-        st.dataframe(
-            _ver, hide_index=True,
-            column_config={
-                "Ciclo": st.column_config.NumberColumn("Ciclo", format="%d"),
-                "RUL p35": st.column_config.NumberColumn(
-                    "RUL p35", format="%.1f"),
-                "L_inf (decide)": st.column_config.NumberColumn(
-                    "L_inf (decide)", format="%.1f",
-                    help="Límite inferior de la banda: es lo que decide el estado."),
-                "L_sup": st.column_config.NumberColumn("L_sup", format="%.1f"),
-            },
-            alt="Triage del lote: una fila por motor con su predicción, su banda y "
-                "su estado.",
-        )
-        st.caption(
-            "Predicción del artefacto congelado (`models/ds02_manifest.json`) sobre los "
-            "datos aportados. **Sin ground truth**: no hay error que reportar."
-        )
-        with st.container(horizontal=True):
-            st.download_button(
-                "Descargar triage (CSV)",
-                data=_ver.to_csv(index=False),
-                file_name="triage_lote_ds02.csv",
-                mime="text/csv",
-                icon=":material/download:",
-            )
-            if st.button(
-                "Registrar gemelos", icon=":material/library_add:",
-                key="lote_registrar",
-                help="Guarda los motores del lote en la flota registrada.",
-            ):
-                _barra_g = st.progress(0.0, text="Registrando 0 de …")
-
-                def _progreso_g(i, n, mat):
-                    _barra_g.progress(i / n, text=f"Registrando {i} de {n} · {mat}")
-
-                try:
-                    _gemelos_nuevos = B.registrar_gemelos(
-                        st.session_state.get("lote_bloques") or [],
-                        INF.get_ensemble(), umbrales,
-                        st.session_state.get("twins", {}), _progreso_g)
-                except ValueError as exc:
-                    st.error(str(exc), title="No se pudieron registrar",
-                             icon=":material/rule:")
-                else:
-                    st.session_state["twins"] = _gemelos_nuevos
-                    _guardar_registros()
-                    st.session_state["lote_resultado"] = None
-                    _log(f"{len(_gemelos_nuevos)} gemelo(s) registrados desde el lote.")
-                    st.session_state["twin_flash"] = (
-                        f"{len(_gemelos_nuevos)} gemelo(s) en la flota registrada. "
-                        "Míralos en la primera pestaña, en «Gemelos registrados»."
-                    )
-                    st.rerun()
-
-    # El caso crítico apunta al mismo ciclo que el paso 3 del modo historia: ambos
-    # salen de la caché (`estado_historia` elige el primer ciclo en HANGAR del motor
-    # de mayor RMSE), así que si la caché cambia, los dos cambian con ella. Ningún
-    # ciclo ni ningún límite está esparcido aquí.
-    _paso_hangar = A.estado_historia(windows, umbrales)[2]
-    _u_hangar = int(_paso_hangar["unidad"])
-    _c_hangar = int(_paso_hangar["ciclo"])
-    # Los tramos viven en `ui_inference.demo_presets`: son datos y hay un test que
-    # los fija. Cada nombre promete un estado y el tramo tiene que darlo a
-    # cualquier largo (`DEMO_ROWS`). Antes eran 50 filas (una ventana): el EMA
-    # arrancaba en frio y la grafica tenia un punto.
-    DEMO_PRESETS = INF.demo_presets(_u_hangar, _c_hangar)
-
-    with st.container(border=True):
-        st.subheader("Puntúa un ejemplo en 1 clic", icon=":material/rocket_launch:")
-        st.caption(
-            "El onboarding del tablero está en la primera pestaña. Esto puntúa un tramo "
-            "real de la caché y deja el resultado listo para registrar: no pega nada ni "
-            "sube CSV."
-        )
-        c1, c2, c3 = st.columns(3)
-        for _col, _nombre in zip((c1, c2, c3), list(DEMO_PRESETS)[:3]):
-            with _col:
-                if st.button(_nombre, key=f"live_demo_{_nombre}", type="primary" if "Crítico" in _nombre else "secondary", icon=":material/play_arrow:"):
-                    _u, _p, _ciclo, _did = DEMO_PRESETS[_nombre]
-                    try:
-                        if _ciclo is None:
-                            _tab, _meta = INF.example_window(
-                                _u, _p, rows=INF.DEMO_ROWS)
-                        else:
-                            _tab, _meta = INF.window_ending_at(
-                                _u, _ciclo, rows=INF.DEMO_ROWS)
-                        _pf = INF.preflight(_tab)
-                        if not _pf["ok"]:
-                            raise ValueError(_pf["error"])
-                        st.session_state["live_engine_id"] = _did
-                        st.session_state["_editor_value"] = _tab
-                        st.session_state["live_result"] = INF.score_table(_tab, engine_id=_did)
-                        st.session_state["live_meta"] = _meta
-                        st.session_state["live_warnings"] = _pf["avisos"]
-                        st.session_state["live_error"] = None
-                        st.session_state["live_flash"] = f"{_nombre} puntuado abajo (ciclos {_meta['start_cycle']}→{_meta['end_cycle']}). Puedes cambiar a Editar tabla para modificar valores y reevaluar, o pulsar Registrar gemelo."
-                    except ValueError as exc:
-                        st.session_state["live_result"] = None
-                        st.session_state["live_error"] = str(exc)
-                    st.rerun()
-        # Nota de honestidad: el límite inferior no es monótono y el tribunal lo va a
-        # ver. Los tres números salen de la caché, no están escritos a mano.
-        _fila_hangar = windows[(windows["unit"] == _u_hangar) & (windows["cycle"] == _c_hangar)]
-        _lo_min = float(_fila_hangar["lower"].min())
-        _lo_max = float(_fila_hangar["lower"].max())
-        _y_real = float(_fila_hangar["y_true"].mean())
-        _curva_h = L.unit_curve(windows, _u_hangar).sort_values("cycle")
-        _caida = _curva_h[_curva_h["lower_min"] < umbrales["apto"]]
-        _ciclo_caida = int(_caida["cycle"].min()) if not _caida.empty else None
-        _repunte = (
-            _curva_h[(_curva_h["cycle"] > _ciclo_caida)
-                     & (_curva_h["lower_min"] >= umbrales["apto"])]
-            if _ciclo_caida is not None else _curva_h.iloc[0:0]
-        )
-        _ciclo_repunte = int(_repunte["cycle"].min()) if not _repunte.empty else None
-        _nota_mono = (
-            f" La trayectoria no es monótona — cae a inspección en el ciclo "
-            f"{_ciclo_caida} y vuelve a apto en el {_ciclo_repunte} — porque el EMA "
-            "causal (ADR-006) reduce pero no elimina los saltos de un predictor por "
-            "ventanas. Se muestra tal cual."
-            if _ciclo_caida is not None and _ciclo_repunte is not None else ""
-        )
-        st.caption(
-            f"El caso crítico termina en el ciclo {_c_hangar}, donde el límite inferior "
-            f"cruza el umbral de hangar ({umbrales['hangar']:.0f}) con {_y_real:.0f} ciclos "
-            f"reales restantes: dentro del propio ciclo baja de {_lo_max:.1f} a {_lo_min:.1f}."
-            + _nota_mono
-        )
-    with st.container(border=True):
-        st.subheader("Explora por ciclo", icon=":material/timeline:")
-        st.caption(
-            "Elige un motor y un punto de su vida: se genera el tramo y se muestra "
-            "el estado calculado. No se puntúa hasta pulsar \"Evaluar este tramo\"."
-        )
-        _exp_cols = st.columns(4)
-        with _exp_cols[0]:
-            _exp_unit = st.selectbox(
-                "Motor",
-                [11, 14, 15],
-                key="explorar_unit",
-                help="Unidad de la caché (11, 14 o 15).",
-            )
-        with _exp_cols[1]:
-            _exp_len = st.selectbox(
-                "Largo del tramo",
-                [50, 300],
-                index=1,
-                key="explorar_len",
-                help="50 = una ventana; 300 = trayectoria con EMA suavizada.",
-            )
-        with _exp_cols[2]:
-            _exp_mode = st.selectbox(
-                "Modo",
-                ["Posición relativa", "Ciclo final"],
-                key="explorar_mode",
-                help="Posición relativa: fracción de la vida (0-1). "
-                     "Ciclo final: elige el ciclo exacto en que termina el tramo.",
-            )
-        with _exp_cols[3]:
-            if _exp_mode == "Posición relativa":
-                _exp_pos = st.slider(
-                    "Punto final (posición en la vida del motor)",
-                    0.0, 1.0, 0.5, 0.01,
-                    key="explorar_pos",
-                    help="0.0 = inicio, 1.0 = final. El tramo termina en ese punto.",
-                )
-            else:
-                _ciclos_disp = sorted(
-                    int(c) for c in windows[windows["unit"] == _exp_unit]["cycle"].unique()
-                )
-                _exp_cycle = st.selectbox(
-                    "Ciclo final",
-                    _ciclos_disp,
-                    key="explorar_cycle",
-                    help="Ciclo exacto en que termina el tramo. "
-                         "El tramo abarca los ciclos anteriores según el largo elegido.",
-                )
-        try:
-            if _exp_mode == "Posición relativa":
-                _exp_tab, _exp_meta = INF.example_window(
-                    _exp_unit, _exp_pos, rows=_exp_len)
-            else:
-                _exp_tab, _exp_meta = INF.window_ending_at(
-                    _exp_unit, _exp_cycle, rows=_exp_len)
-            _exp_pf = INF.preflight(_exp_tab)
-            _exp_ok = bool(_exp_pf["ok"])
-            st.session_state["explorar_table"] = _exp_tab
-            st.session_state["explorar_meta"] = _exp_meta
-            st.session_state["explorar_ok"] = _exp_ok
-            st.session_state["explorar_avisos"] = _exp_pf["avisos"]
-            _exp_end_cycle = int(_exp_meta["end_cycle"])
-            _cached = windows[(windows["unit"] == _exp_unit)
-                              & (windows["cycle"] == _exp_end_cycle)]
-            if not _cached.empty:
-                _exp_lower = float(_cached["lower"].iloc[-1])
-                _exp_state = L.classify(
-                    _exp_lower, umbrales["apto"], umbrales["hangar"])
-            else:
-                _exp_state = "sin referencia en caché"
-            st.session_state["explorar_state"] = _exp_state
-            _exp_err = None if _exp_ok else _exp_pf["error"]
-        except ValueError as _exc:
-            _exp_tab = None
-            _exp_meta = None
-            st.session_state["explorar_table"] = None
-            st.session_state["explorar_meta"] = None
-            st.session_state["explorar_ok"] = False
-            st.session_state["explorar_state"] = "—"
-            _exp_err = str(_exc)
-        if _exp_err:
-            st.error(_exp_err, icon=":material/error:")
-        else:
-            st.caption(
-                f"Tramo: ciclos {_exp_meta['start_cycle']}→{_exp_meta['end_cycle']} · "
-                f"{len(_exp_tab)} filas · estado estimado: **{_exp_state}**"
-            )
-            for _av in st.session_state.get("explorar_avisos", []) or []:
-                st.warning(_av, icon=":material/warning:")
-            with st.expander("Ver tramo generado", expanded=False):
-                st.dataframe(
-                    _exp_tab,
-                    hide_index=True,
-                    alt="Tramo generado para explorar por ciclo: ciclos y sensores.",
-                )
-        if st.button(
-            "Evaluar este tramo",
-            key="explorar_evaluar",
-            type="primary",
-            icon=":material/play_arrow:",
-            disabled=not st.session_state.get("explorar_ok", False),
-        ):
-            _tab = st.session_state.get("explorar_table")
-            _meta = st.session_state.get("explorar_meta")
-            if _tab is not None:
-                try:
-                    st.session_state["live_engine_id"] = (
-                        f"ESN-EXPLORAR-{_exp_unit}")
-                    st.session_state["_editor_value"] = _tab
-                    st.session_state["live_result"] = INF.score_table(
-                        _tab, engine_id=f"ESN-EXPLORAR-{_exp_unit}")
-                    st.session_state["live_meta"] = _meta
-                    st.session_state["live_warnings"] = (
-                        st.session_state.get("explorar_avisos", []) or [])
-                    st.session_state["live_error"] = None
-                    st.session_state["live_flash"] = (
-                        f"Tramo explorado puntuado (ciclos "
-                        f"{_meta['start_cycle']}→{_meta['end_cycle']}).")
-                except ValueError as _exc:
-                    st.session_state["live_result"] = None
-                    st.session_state["live_error"] = str(_exc)
-                st.rerun()
-
-    st.subheader("Puntúa un motor con datos que aportes tú", icon=":material/science:")
-    st.caption(
-        "Las tres rutas desembocan en el mismo validador y en la misma llamada al "
-        "artefacto congelado. Una ventana son **50 muestras remuestreadas** (1 de cada "
-        "100 registros), lo que son **~0,4 ciclos de vuelo**, no 50 lecturas seguidas "
-        "ni 50 ciclos. Teclear 900 celdas no es "
-        "viable: usa el ejemplo, pega un bloque desde Excel o sube el CSV."
-    )
-
-    mode = st.segmented_control(
-        "Entrada de datos",
-        ["Ejemplo del test set", "Editar tabla (pegar)", "Subir CSV"],
-        default="Ejemplo del test set",
-        key="live_mode",
-        help="El ejemplo usa una ventana real de la caché; las otras dos aceptan tus datos.",
-    )
-
-    st.session_state.setdefault("live_engine_id", "ESN-DEMO-01")
-    identidad = st.text_input(
-        "Id del motor",
-        key="live_engine_id",
-        help="Se escribe en la orden y en el gemelo. Mínimo 3 caracteres.",
-    )
-    id_ok = len(str(identidad or "").strip()) >= T.MIN_ID
-    if not id_ok:
-        st.error(
-            f"El id necesita al menos {T.MIN_ID} caracteres: se valida ahora, "
-            "no al registrar.",
-            icon=":material/rule:",
-        )
-    # ¿Está ya en la flota? Se responde aquí, antes de evaluar, para que la duda
-    # «¿esto se ha añadido?» no obligue a bajar hasta la tarjeta de registro.
-    try:
-        _id_norm = T.normalizar_id(identidad) if id_ok else ""
-    except ValueError:
-        _id_norm = ""
-    _en_flota = bool(_id_norm) and _id_norm in (st.session_state.get("twins") or {})
-    if _id_norm:
-        st.badge(
-            "EN LA FLOTA" if _en_flota else "SIN REGISTRAR",
-            icon=":material/check_circle:" if _en_flota else ":material/add_circle:",
-            color="green" if _en_flota else "gray",
-        )
-    st.caption(
-        "Paso 1 · trae los datos · Paso 2 · revisa el pre-vuelo de abajo · "
-        "Paso 3 · evalúa · Paso 4 · regístralo en la tarjeta que sale bajo el "
-        "resultado. El botón de evaluar solo se activa con los pasos 1 y 2 en verde."
-    )
-    # La plantilla se descarga desde el expander «Qué es cada columna», que ya
-    # reutiliza `INF.template_csv()` (cabecera + 50 filas vacías) y ya esta
-    # probado. Un segundo boton con la cabecera escrita a mano era un segundo
-    # sitio donde arreglar el mismo contrato.
-
-    def _on_preset_change():
-        _nuevo = st.session_state.get("live_demo_preset")
-        if _nuevo in DEMO_PRESETS:
-            st.session_state["live_engine_id"] = DEMO_PRESETS[_nuevo][3]
-    if mode == "Ejemplo del test set":
-        demo_nombre = st.selectbox(
-            "Dataset demo", list(DEMO_PRESETS), key="live_demo_preset",
-            on_change=_on_preset_change,
-            help=f"Tramos reales de caché con ciclos dispares. Al cambiar se proponen sus {INF.DEMO_ROWS} muestras remuestreadas y su matrícula.",
-        )
-    example_table, example_meta = INF.example_window(14, 0.55)
-    if mode == "Ejemplo del test set" and "demo_nombre" in locals():
-        _du2, _dp2, _ciclo2, _ = DEMO_PRESETS[demo_nombre]
-        if _ciclo2 is None:
-            example_table, example_meta = INF.example_window(
-                _du2, _dp2, rows=INF.DEMO_ROWS)
-        else:
-            example_table, example_meta = INF.window_ending_at(
-                _du2, _ciclo2, rows=INF.DEMO_ROWS)
-    submitted = False
-    table_to_score = None
-    data_meta = example_meta
-    labels = INF.channel_labels()
-    number_columns = {
-        "cycle": st.column_config.NumberColumn(
-            "cycle", format="%d",
-            help="Ciclo de vuelo del registro. Se repite en varias filas porque la "
-                 "ventana es una rejilla remuestreada, no una lectura por ciclo.",
-        )
-    }
-    number_columns.update({
-        c: st.column_config.NumberColumn(c, format="%.3f", help=labels.get(c, c))
-        for c in example_table.columns if c != "cycle"
-    })
-
-    with st.expander("Qué es cada columna y qué rango es normal",
-                     icon=":material/menu_book:", expanded=False):
-        st.caption(
-            "Nombres del dataset N-CMAPSS: `T24` es la salida del compresor de baja "
-            "presión, `Ps30` la presión estática a la salida del de alta. El rango "
-            "está medido sobre `app/cache/ds02_rows.parquet`, no copiado de la "
-            "documentación; `aviso` es ese rango con un 5 % de margen, el punto en "
-            "que la app te avisa de que estás fuera del dominio de entrenamiento."
-        )
-        st.dataframe(
-            INF.observed_envelope(),
-            hide_index=True,
-            height=420,
-            column_config={
-                "canal": st.column_config.TextColumn("canal", width="small"),
-                "qué mide": st.column_config.TextColumn("qué mide", width="large"),
-                "mínimo": st.column_config.NumberColumn("mínimo DS02", format="%.4g"),
-                "máximo": st.column_config.NumberColumn("máximo DS02", format="%.4g"),
-                "aviso_desde": st.column_config.NumberColumn("aviso desde", format="%.4g"),
-                "aviso_hasta": st.column_config.NumberColumn("aviso hasta", format="%.4g"),
-            },
-            alt="Glosario de los 18 canales con su significado físico y el rango "
-                "observado en DS02.",
-        )
-        st.caption(
-            "**`cycle`** es el ciclo de vuelo del registro y **no** se repite por "
-            "accidente: la ventana toma 1 de cada 100 registros, así que varias "
-            "muestras comparten ciclo y 50 muestras cubren ~0,4 vuelos."
-        )
-        st.download_button(
-            "Descargar plantilla CSV (50 muestras remuestreadas vacías)",
-            data=INF.template_csv(),
-            file_name="plantilla_unidad_ds02.csv",
-            mime="text/csv",
-            icon=":material/file_download:",
-        )
-
-    if mode == "Ejemplo del test set":
-        with st.container(border=True):
-            st.caption(
-                f"Ventana real de U{example_meta['unit']} · ciclos "
-                f"{example_meta['start_cycle']}→{example_meta['end_cycle']} · filas "
-                f"{example_meta['row_slice'][0]}–{example_meta['row_slice'][1]} de "
-                f"`{example_meta['source']}`. Desmarca filas para excluirlas (mínimo 50 para puntuar)."
-            )
-            _edit = example_table.copy()
-            _edit.insert(0, "usar", True)
-            _cols_cfg = dict(number_columns)
-            _cols_cfg["usar"] = st.column_config.CheckboxColumn("usar", help="Desmarca para no predecir esa fila.")
-            _edited = st.data_editor(
-                _edit, hide_index=True, height=260, key="live_demo_grid",
-                column_config=_cols_cfg,
-                alt="Ventana demo seleccionable: marca qué filas se puntúan.",
-            )
-            _sel = pd.DataFrame(_edited)
-            _usar = _sel["usar"].fillna(False).to_numpy(dtype=bool) if "usar" in _sel.columns else [True] * len(_sel)
-            _filtrada = _sel.loc[_usar].drop(columns=[c for c in ["usar"] if c in _sel.columns], errors="ignore")
-            st.caption(f"{int(_usar.sum())} de {len(_sel)} muestras seleccionadas → {max(0, int(_usar.sum()) - INF.window_size() + 1)} ventana(s).")
-        preflight_ejemplo = INF.preflight(_filtrada)
-        _preflight_panel(preflight_ejemplo)
-        with st.form("live_eval_example"):
-            submitted = st.form_submit_button(
-                "Evaluar unidad", type="primary", icon=":material/play_arrow:",
-                disabled=not id_ok,
-            )
-        if submitted:
-            table_to_score = _filtrada
-            data_meta = example_meta
-    elif mode == "Editar tabla (pegar)":
-        # `live_editor` es un `st.data_editor`: Streamlit declara su clave de
-        # solo lectura y no se puede escribir desde un handler. La tabla se
-        # guarda en `_editor_value` y se pasa como `data`; se mantiene entre
-        # pasadas para que la rejilla no revierta al tocar una celda.
-        _tabla_editor = st.session_state.get("_editor_value")
-        if _tabla_editor is None:
-            _tabla_editor = example_table
-        edited = st.data_editor(
-            _tabla_editor,
-            num_rows="dynamic",
-            hide_index=True,
-            height=420,
-            key="live_editor",
-            column_config=number_columns,
-        )
-        draft = pd.DataFrame(edited) if edited is not None else example_table
-        if "usar" in draft.columns:
-            draft = draft[draft["usar"].fillna(False).astype(bool)].drop(columns=["usar"])
-        state_rows = len(draft)
-        state_windows = max(0, state_rows - INF.window_size() + 1)
-        if state_rows > INF.UMBRAL_RECORTE_EDITOR:
-            st.warning(
-                f"La rejilla va lenta con {state_rows:,} filas. Puedes recortar a las "
-                f"primeras {INF.UMBRAL_RECORTE_EDITOR:,} para editar con fluidez: "
-                "se puntuará lo visible y el recorte queda a la vista.",
-                icon=":material/speed:",
-            )
-            if st.button(
-                f"Recortar a {INF.UMBRAL_RECORTE_EDITOR:,} primeras filas",
-                icon=":material/content_cut:", key="recortar_editor",
-            ):
-                cortada, _ = INF.limitar_filas(draft)
-                # Igual que arriba: la clave del `data_editor` es de solo lectura.
-                # Se guarda la tabla recortada y la rejilla la dibuja en la
-                # siguiente pasada.
-                st.session_state["_editor_value"] = cortada
-                st.session_state.pop("live_edit_fixed", None)
-                st.rerun()
-        st.caption(
-            f"**{state_rows} muestras** → {state_windows} ventana(s). Pega el bloque "
-            "desde Excel/Sheets sobre la primera celda: la rejilla acepta una "
-            "matriz de 50×19, y con más muestras puntúa todas las ventanas "
-            "deslizantes. No cambies los encabezados."
-        )
-        _fija = st.session_state.get("live_edit_fixed")
-        if (_fija is not None and list(_fija.get("cols", [])) == list(draft.columns)
-                and _fija.get("len") == len(draft)):
-            draft = _fija["table"]
-        pf_edit = INF.preflight(draft)
-        if (not pf_edit["ok"] and "Orden de canales" in (pf_edit["error"] or "")
-                and set(draft.columns) == set(INF.required_columns())):
-            if st.button("Reordenar al orden del dataset",
-                         icon=":material/sort:", key="reorder_edit"):
-                st.session_state["live_edit_fixed"] = {
-                    "cols": list(draft.columns), "len": len(draft),
-                    "table": INF.reordenar_columnas(draft),
-                }
-                st.rerun()
-        _preflight_panel(pf_edit)
-        submitted = st.button(
-            "Evaluar unidad", type="primary", icon=":material/play_arrow:",
-            disabled=not (id_ok and pf_edit["ok"]), key="eval_editor",
-        )
-        if submitted:
-            table_to_score = draft
-            data_meta = {"source": "edición manual en la UI"}
-
-    else:
-        upload = st.file_uploader(
-            "CSV con `cycle` y los 18 canales",
-            type=["csv"],
-            help="Encabezados en el orden del dataset: alt, Mach, TRA, T2, T24 … Wf.",
-        )
-        uploaded_table = None
-        if upload is None:
-            st.info(
-                "Sube un CSV, o usa el ejemplo para ver el flujo completo sin datos "
-                "propios. Si no tienes el formato, descarga la plantilla en «Qué es "
-                "cada columna» y rellénala en Excel.",
-                icon=":material/upload_file:",
-            )
-        else:
-            try:
-                uploaded_table = pd.read_csv(upload)
-            except Exception as exc:  # noqa: BLE001 - the message is shown to the user
-                st.error(f"No se pudo leer el CSV: {exc}", icon=":material/error:")
-            if uploaded_table is not None:
-                st.caption(
-                    f"{len(uploaded_table)} filas y {len(uploaded_table.columns)} columnas."
-                )
-                _fija_csv = st.session_state.get("live_csv_fixed")
-                if (_fija_csv is not None
-                        and _fija_csv.get("name") == getattr(upload, "name", None)):
-                    uploaded_table = _fija_csv["table"]
-                preflight_csv = INF.preflight(uploaded_table)
-                if (not preflight_csv["ok"]
-                        and "Orden de canales" in (preflight_csv["error"] or "")
-                        and set(uploaded_table.columns) == set(INF.required_columns())):
-                    if st.button("Reordenar al orden del dataset",
-                                 icon=":material/sort:", key="reorder_csv"):
-                        st.session_state["live_csv_fixed"] = {
-                            "name": getattr(upload, "name", None),
-                            "table": INF.reordenar_columnas(uploaded_table),
-                        }
-                        st.rerun()
-                    preflight_csv = INF.preflight(
-                        st.session_state["live_csv_fixed"]["table"])
-                    _preflight_panel(preflight_csv)
-                    uploaded_table = st.session_state["live_csv_fixed"]["table"]
-                else:
-                    _preflight_panel(preflight_csv)
-                submitted = st.button(
-                    "Evaluar unidad", type="primary", icon=":material/play_arrow:",
-                    disabled=not (id_ok and preflight_csv["ok"]), key="eval_csv",
-                )
-                if submitted:
-                    table_to_score = uploaded_table
-                    data_meta = {"source": upload.name}
-
-    if submitted and table_to_score is not None:
-        try:
-            preflight = INF.preflight(table_to_score)
-            if not preflight["ok"]:
-                raise ValueError(preflight["error"])
-            st.session_state["live_result"] = INF.score_table(
-                table_to_score, engine_id=identidad)
-            st.session_state["live_meta"] = data_meta
-            st.session_state["live_warnings"] = preflight["avisos"]
-            st.session_state["live_error"] = None
-        except ValueError as exc:
-            st.session_state["live_result"] = None
-            st.session_state["live_warnings"] = []
-            st.session_state["live_error"] = str(exc)
-    live_error = st.session_state.get("live_error")
-    if live_error:
-        st.error(live_error, title="No se pudo evaluar", icon=":material/rule:")
-    for note in st.session_state.get("live_warnings") or []:
-        st.warning(note, icon=":material/find_in_page:")
-
-    live = st.session_state.get("live_result")
-    if live:
-        last = live["windows"].iloc[-1]
-        # La pasada A se toma de `decision_en_vivo`, que decide con la invalidez
-        # real de la banda y no con las cautelas de plausibilidad: esas se pintan
-        # arriba como aviso al operador (2782), pero no son un dato imposible.
-        _decision = UR.decision_en_vivo(live, umbrales)
-        alertas_live = _decision["alertas"]
-        traza_live = _decision["traza"]
-        live_state = (traza_live["decision"] if traza_live["decision"] in L.STATE_LABELS
-                      else L.NO_DATA)
-        tone = {
-            L.AIRWORTHY: "green",
-            L.PREVENTIVE: "orange",
-            L.AOG: "red",
-            L.SIN_DECISION: "gray",
-        }.get(live_state, "gray")
-        with st.container(horizontal=True):
-            st.metric("RUL p35 (conservadora)", f"{last['pred']:.1f}", "cuantil 0.35", border=True,
-                      icon=":material/speed:", delta_color="off")
-            st.metric("Límite inferior", f"{last['lower']:.1f}", "decide el estado",
-                      border=True, icon=":material/trending_down:", delta_color="off")
-            st.metric("Límite superior", f"{last['upper']:.1f}", "banda 90 %",
-                      border=True, icon=":material/trending_up:", delta_color="off")
-            st.metric("Ventanas puntuadas", f"{live['contract']['ventanas']}",
-                      f"{live['contract']['filas']} filas", border=True,
-                      icon=":material/layers:", delta_color="off")
-        reglas_live = " → ".join(traza_live["usadas"])
-        st.markdown(
-            f"Con los umbrales en vigor ({threshold_apto:.0f} / {threshold_aog:.0f}): "
-            f":{tone}-badge[{L.STATE_LABELS[live_state]}]"
-            + (f" · reglas: `{reglas_live}`" if reglas_live else "")
-        )
-        if traza_live["porque"]:
-            st.caption(" · ".join(traza_live["porque"]))
-        # El registro va pegado al resultado: es el paso que se busca justo después
-        # de evaluar. Antes vivía en un expander plegado al final de la sección.
-        gemelos_previos = st.session_state.get("twins", {})
-        motor_live = str(live["contract"].get("motor") or "").strip().upper()
-        ya_existe = motor_live in gemelos_previos
-        reemplazar = False
-        with st.container(border=True):
-            if ya_existe:
-                previo = gemelos_previos[motor_live]
-                verdad_previa = T.metricas_verdad(previo)
-                st.markdown(
-                    f":green-badge[:material/check_circle: EN LA FLOTA] "
-                    f"`{motor_live}` · {len(previo['serie'])} ventana(s) guardada(s)"
-                    + (f" · RUL real {verdad_previa['rul_real']:.0f} ciclos"
-                       if verdad_previa else "")
-                )
-                st.caption(
-                    "Puntuar otra ventana del mismo motor no lo sobrescribe solo: "
-                    "marca la casilla para sustituir la serie."
-                )
-                reemplazar = st.checkbox(
-                    "Reemplazar la serie guardada (la RUL real se conserva)",
-                    key="twin_replace",
-                    help="Se sustituyen la serie, la huella y el contrato. La RUL real "
-                         "es un hecho del motor, no de la ventana: no se borra.",
-                )
-            else:
-                st.markdown(
-                    f":gray-badge[:material/add_circle: SIN REGISTRAR] "
-                    f"`{motor_live}` no está en la flota."
-                )
-                st.caption(
-                    "Regístralo para que aparezca en el muro y en «Gemelos "
-                    "registrados». Su estado se recalcula con los umbrales en vigor; "
-                    "la serie no se vuelve a puntuar."
-                )
-            if st.button(
-                f"Reemplazar gemelo `{motor_live}`" if ya_existe else "Registrar en la flota",
-                icon=":material/sync:" if ya_existe else ":material/add_circle:",
-                key="twin_add", type="primary",
-            ):
-                try:
-                    gemelo = T.make_twin(
-                        live["contract"].get("motor") or "",
-                        live,
-                        source=str((st.session_state.get("live_meta") or {}).get(
-                            "source", "entrada manual")),
-                        banda=INF.BANDA_ARTEFACTO,
-                        correccion=INF.CORRECCION_NINGUNA,
-                        umbrales=umbrales,
-                        fingerprint_value=live["contract"].get("fingerprint", ""),
-                    )
-                    st.session_state["twins"] = T.registrar(
-                        st.session_state.get("twins", {}), gemelo,
-                        reemplazar=reemplazar)
-                    _guardar_registros()
-                    _log(f"Gemelo {gemelo['id']} registrado.")
-                except ValueError as exc:
-                    st.error(str(exc), title="No se pudo registrar", icon=":material/rule:")
-                else:
-                    st.session_state["twin_flash"] = (
-                        f"Gemelo `{gemelo['id']}` actualizado en la flota."
-                        if reemplazar else
-                        f"Gemelo `{gemelo['id']}` registrado en la flota.")
-                    st.rerun()
-
-
-        if len(live["windows"]) > 1:
-            w = live["windows"]
-            fig_live = go.Figure()
-            fig_live.add_trace(
-                go.Scatter(x=w["cycle"], y=w["upper"], mode="lines", line=dict(width=0),
-                           hoverinfo="skip", name="Límite superior")
-            )
-            fig_live.add_trace(
-                go.Scatter(x=w["cycle"], y=w["lower"], mode="lines", line=dict(width=0),
-                           fill="tonexty", fillcolor="rgba(56, 189, 248, 0.18)",
-                           name="Banda conformal")
-            )
-            fig_live.add_trace(
-                go.Scatter(x=w["cycle"], y=w["pred"], mode="lines",
-                           line=dict(color=SKY, width=3), name="RUL estimada")
-            )
-            fig_live.add_hrect(
+            fig.add_hrect(
                 y0=0, y1=threshold_aog, fillcolor=ROSE, opacity=0.10, line_width=0,
-                annotation_text=f"hangar ({threshold_aog:.0f})",
+                annotation_text=f"zona de hangar (RUL < {threshold_aog:.0f})",
                 annotation_position="top left", annotation_font_size=11,
                 annotation_font_color="#fca5a5",
             )
-            fig_live.update_layout(**chart_layout(height=340, hovermode="x unified"))
-            style_axes(fig_live, x_title="Ciclo de vuelo", y_title="RUL (ciclos)")
+            fig.add_vline(
+                x=current, line_dash="dot", line_color=INK, line_width=1.5,
+                annotation_text=f"ciclo {current}", annotation_position="top",
+                annotation_font=dict(color=INK, size=11),
+            )
+            fig.update_layout(**chart_layout(height=430, hovermode="x unified"))
+            style_axes(fig, x_title="Ciclo de vuelo", y_title="RUL (ciclos restantes)")
             st.plotly_chart(
-                fig_live, theme=None,
-                alt="Estimación de RUL y banda conformal para la unidad aportada por el usuario.",
+                fig, theme=None,
+                alt="RUL real y predicha a lo largo de la vida del motor, con la banda conformal y la zona de hangar sombreada.",
             )
 
-        with st.expander(
-            "Contrato y procedencia de esta evaluación", icon=":material/receipt_long:"
-        ):
-            contract = live["contract"]
-            st.markdown(
-                f"**artefacto** `{contract['artefacto']}` · "
-                f"**SHA-256** `{contract['artefacto_sha256']}`"
-            )
-            st.markdown(
-                f"**ventana** `{contract['window']}` filas remuestreadas · "
-                f"**step** `{contract['step']}` · **unidad simulada** "
-                f"`{contract['unidad_simulada']:.0f}` (negativa: nunca se mezcla con "
-                "las unidades en caché)"
-            )
-            st.markdown(
-                "**canales** `" + ", ".join(contract["canales"]) + "`"
-            )
+        with st.container(horizontal=True):
+            if unit_metrics is not None:
+                st.metric("RMSE", f"{unit_metrics['rmse']:.2f}", f"U{int(unit)}", border=True,
+                          icon=":material/analytics:", delta_color="off")
+                st.metric("MAE", f"{unit_metrics['mae']:.2f}", f"U{int(unit)}", border=True,
+                          icon=":material/straighten:", delta_color="off")
+                st.metric("Sesgo (pred − real)", f"{unit_metrics['bias']:+.2f}", "ciclos", border=True,
+                          icon=":material/swap_vert:", delta_color="off")
+            else:
+                st.caption(f"Aeronave de alta {_etiqueta_unidad(float(unit))}: sin verdad en caché para RMSE/MAE/sesgo.")
+            st.metric("Cobertura de banda", f"{coverage * 100:.0f} %", "objetivo 90 %", border=True,
+                      icon=":material/verified:", delta_color="off")
+            if unit_metrics is not None:
+                st.metric("Vida registrada", f"{int(unit_metrics['life'])}", "ciclos", border=True,
+                          icon=":material/schedule:", delta_color="off")
             st.caption(
-                "Las 50 muestras son la rejilla remuestreada (1 de cada 100 registros del "
-                "dataset), lo que son ~0,4 ciclos de vuelo, no 50 lecturas de 1 Hz. Con otro "
-                "muestreo la predicción queda "
-                "fuera de contrato aunque los números sean válidos."
+                f"Métricas sobre la lectura "
+                f"{'corregida (R2b + R6)' if aplicar_reglas else 'cruda de la caché'}: "
+                "con la capa de reglas activa no se mezclan las dos lecturas."
             )
 
-        st.caption(
-            "**Sin ground truth**: esta unidad no trae RUL real, así que no se declara "
-            "RMSE ni MAE. La banda es una cota conservadora calibrada sobre los motores "
-            "de desarrollo; el sesgo de vida alta (`RUL ≈ 63 − ciclo`) también aplica aquí."
+        read_col, table_col = st.columns([1, 1])
+        with read_col:
+            with st.container(border=True, height="stretch"):
+                st.subheader("Lectura de la decisión", icon=":material/lightbulb:")
+                if alarm_cycle is not None:
+                    lead = (truth_cycle - alarm_cycle) if truth_cycle is not None else None
+                    st.markdown(
+                        f"La alarma de hangar (`L_inf < {threshold_aog:.0f}`) se dispara en el "
+                        f"**ciclo {alarm_cycle}**."
+                    )
+                    if truth_cycle is not None:
+                        st.markdown(
+                            f"La RUL real cruza {threshold_aog:.0f} ciclos en el **ciclo "
+                            f"{truth_cycle}**: la alarma llega **{lead} ciclos antes**, con una RUL "
+                            f"real de {curve.loc[curve['cycle'] == alarm_cycle, 'y_true'].iloc[0]:.1f}."
+                        )
+                else:
+                    st.markdown("La unidad no cruza el umbral de hangar en los ciclos evaluados.")
+                st.caption(
+                    "Ese adelanto es el precio de decidir con el límite inferior: la banda es "
+                    "conservadora (cobertura realizada por encima del 90 % nominal)."
+                )
+        with table_col:
+            with st.container(border=True, height="stretch"):
+                st.subheader("Errores por unidad", icon=":material/table_chart:")
+                table = per_unit.assign(Motor=[f"U{int(u)}" for u in per_unit["unit"]])
+                st.dataframe(
+                    table[["Motor", "windows", "rmse", "mae", "bias"]],
+                    hide_index=True,
+                    column_config={
+                        "Motor": st.column_config.TextColumn("Motor"),
+                        "windows": st.column_config.NumberColumn("Ventanas", format="%d"),
+                        "rmse": st.column_config.NumberColumn("RMSE", format="%.2f"),
+                        "mae": st.column_config.NumberColumn("MAE", format="%.2f"),
+                        "bias": st.column_config.NumberColumn("Sesgo", format="%+.2f"),
+                    },
+                    alt="RMSE, MAE y sesgo por motor, calculados de la caché.",
+                )
+                st.caption(
+                    "Los sesgos tienen signo opuesto y se cancelan en el promedio global: U11 "
+                    "sobreestima, U14 y U15 subestiman."
+                )
+
+        # -------------------- perfil de vuelo: alt vs Mach (canales reales)
+        # Vive aquí y no en «Casos nuevos»: dibuja el motor seleccionado en la barra
+        # lateral, así que es una vista del motor, no una forma de traer casos.
+        with st.container(border=True):
+            st.subheader("Perfil de vuelo · altitud y régimen de vuelo",
+                         icon=":material/flight:")
+            st.caption(
+                "Los dos son canales reales del dataset. No hay mapa: el dataset "
+                "N-CMAPSS no trae coordenadas GPS (no hay latitud, longitud ni "
+                "posición entre sus 18 canales), así que dibujar rutas exigiría "
+                "inventarlas."
+            )
+            _perfil = telemetry[telemetry["unit"] == int(unit)].copy()
+            if not _perfil.empty:
+                _fig_vuelo = go.Figure(
+                    go.Scatter(
+                        x=_perfil["Mach"], y=_perfil["alt"], mode="lines",
+                        line=dict(color=SKY, width=2), name="Perfil de vuelo",
+                        hovertemplate="Mach %{x:.3f}<br>altitud %{y:.0f} ft<extra></extra>",
+                    )
+                )
+                _fig_vuelo.update_layout(**chart_layout(
+                    height=260, showlegend=False, hovermode="closest",
+                    xaxis_title="Mach", yaxis_title="altitud (ft)",
+                ))
+                style_axes(_fig_vuelo)
+                st.plotly_chart(
+                    _fig_vuelo, theme=None,
+                    alt=f"Perfil de vuelo de {_etiqueta_unidad(float(unit))}: altitud "
+                        f"frente a número de Mach, los dos canales reales del dataset.",
+                )
+
+
+        # ------------------------------------------------------------- SHAP
+        with st.container(border=True):
+            st.subheader("Explicabilidad · SHAP (LightGBM del híbrido)",
+                         icon=":material/psychology:")
+            st.caption(
+                "Qué features del LightGBM pesan más en la predicción de este motor. "
+                "TreeExplainer exacto sobre el modelo congelado (no reentrena). "
+                "El SHAP explica el componente tabular del híbrido, no el BiLSTM ni el "
+                "stacking."
+            )
+            shap_panel(int(unit), suffix="motor")
+
+
+    # ------------------------------------------------------- auditoría: el cómo
+    _tab_motor()
+with tab_auditoria:
+    @st.fragment
+    def _tab_auditoria() -> None:
+        pass
+
+
+    # ------------------------------------------------------------------- tab 4
+
+        st.subheader(
+            "El motor 14 concentra el error y también la evidencia",
+            icon=":material/insights:",
         )
 
-        if live_state == L.AOG:
-            order_live = INF.live_work_order(
-                live, st.session_state.get("live_meta"), threshold_apto, threshold_aog,
-                alertas=alertas_live,
+        with st.container(border=True):
+            bars = go.Figure()
+            bars.add_trace(
+                go.Bar(
+                    x=[f"U{int(u)}" for u in per_unit["unit"]], y=per_unit["rmse"],
+                    name="RMSE",
+                    marker_color=[ROSE if int(u) == 14 else SKY for u in per_unit["unit"]],
+                    text=[f"{v:.2f}" for v in per_unit["rmse"]],
+                    textposition="outside", textfont=dict(color=INK),
+                )
+            )
+            bars.add_trace(
+                go.Bar(
+                    x=[f"U{int(u)}" for u in per_unit["unit"]], y=per_unit["mae"],
+                    name="MAE",
+                    marker_color=[("#fca5a5" if int(u) == 14 else "#7dd3fc") for u in per_unit["unit"]],
+                    text=[f"{v:.2f}" for v in per_unit["mae"]],
+                    textposition="outside", textfont=dict(color=INK),
+                )
+            )
+            bars.update_layout(**chart_layout(height=340, barmode="group", hovermode="closest"))
+            style_axes(bars, y_title="ciclos")
+            st.plotly_chart(
+                bars, theme=None,
+                alt="RMSE y MAE por unidad; el motor 14 concentra el error con 760 ventanas.",
+            )
+            st.caption("Calculado de la caché, no de una tabla fija. Rojo = motor 14.")
+
+        u14 = per_unit[per_unit["unit"] == 14].iloc[0]
+        u14_prov = provenance["counts"]["units"]["14"]
+        fit_density = provenance["counts"]["fit_engine_rows_per_cycle"]
+
+        # Las tres hipótesis van plegadas: el tribunal ve primero la métrica limpia
+        # (la barra del motor 14) y abre la justificación solo si la pregunta llega.
+        with st.expander(
+            "¿Por qué el motor 14? Hipótesis probadas y descartadas",
+            icon=":material/help_center:",
+        ):
+            card_a, card_b, card_c = st.columns(3, border=True)
+            with card_a:
+                st.markdown("**Complejidad física**")
+                st.markdown(
+                    f"Régimen compuesto: degradación simultánea más agresiva. Medido, no supuesto: "
+                    f"RMSE **{u14['rmse']:.2f}** y sesgo **{u14['bias']:+.2f}** ciclos sobre "
+                    f"**{int(u14['windows'])}** ventanas."
+                )
+                st.caption(
+                    "El sesgo es negativo: el modelo se queda corto. Es el error caro, porque "
+                    "sobreestimar vida es lo que la NASA penaliza más."
+                )
+            with card_b:
+                st.markdown("**Densidad de muestreo — medida y descartada**")
+                st.markdown(
+                    f"U14 trae **{u14_prov['rows_per_cycle']:.1f} filas/ciclo** frente a "
+                    f"**{fit_density:.1f}** de media en los motores de ajuste "
+                    f"({u14_prov['density_vs_fit']:.2f}×). La hipótesis se probó re-ventaneando dos "
+                    "motores a esa misma densidad, con todo lo demás fijo."
+                )
+                st.caption(
+                    "`docs/informes/informe-2026-10-21-p0-p1-prior-de-vida.md`: el sesgo del meta cambió −0.93 / −0.03 / "
+                    "+0.34 ciclos. La densidad no explica el error; se reporta como hipótesis refutada."
+                )
+            with card_c:
+                st.markdown("**Prior de vida y mitigación conformal**")
+                st.markdown(
+                    "El sesgo en vida alta es ≈ **−0,87 ciclos por ciclo de vida** del motor: el "
+                    "conjunto implementa, sin declararlo, `RUL ≈ 63 − ciclo` (63 = vida del motor 16, "
+                    "el del *early stopping* y el ajuste del meta)."
+                )
+                st.caption(
+                    "La mitigación no es otro meta: es decidir con el límite inferior. La alarma llega "
+                    "antes en U14 precisamente porque su sesgo es el peor."
+                )
+
+        band_col, lead_col = st.columns([1, 1])
+        with band_col:
+            with st.container(border=True, height="stretch"):
+                st.subheader("Precisión por tramo de vida", icon=":material/steps:")
+                band_df = L.mae_by_band(windows)
+                populated = band_df[band_df["windows"] > 0]
+                band_fig = go.Figure(
+                    go.Bar(
+                        x=populated["band"], y=populated["mae"],
+                        marker_color=[GREEN if b.startswith("[0") else "#475569" for b in populated["band"]],
+                        text=[f"{v:.2f}" for v in populated["mae"]],
+                        textposition="outside", textfont=dict(color=INK),
+                    )
+                )
+                band_fig.update_layout(**chart_layout(height=300, hovermode="closest"))
+                style_axes(band_fig, x_title="tramo de RUL real", y_title="MAE (ciclos)")
+                st.plotly_chart(
+                    band_fig, theme=None,
+                    alt="MAE por tramo de RUL real: mínimo en el tramo crítico 0-25 y máximo en vida alta.",
+                )
+                st.dataframe(
+                    populated.assign(Tramo=populated["band"]),
+                    hide_index=True,
+                    column_config={
+                        "Tramo": st.column_config.TextColumn("Tramo"),
+                        "windows": st.column_config.NumberColumn("Ventanas", format="%d"),
+                        "mae": st.column_config.NumberColumn("MAE", format="%.3f"),
+                        "bias": st.column_config.NumberColumn("Sesgo", format="%+.3f"),
+                    },
+                    alt="MAE y sesgo por tramo de RUL real.",
+                )
+                if len(populated) < len(band_df):
+                    st.caption(
+                        "Ningún motor de test supera los 75 ciclos de RUL real, así que el tramo "
+                        "más alto no tiene filas: no se dibuja una barra vacía ni se inventa un valor."
+                    )
+
+        with lead_col:
+            with st.container(border=True, height="stretch"):
+                st.subheader("Alarma vs. verdad", icon=":material/av_timer:")
+                rows = []
+                for u in units:
+                    a, t = L.first_alarm_cycle(curves[u], threshold_aog)
+                    rows.append({
+                        "Motor": f"U{u}",
+                        "Alarma": a,
+                        "RUL real < umbral": t,
+                        "Adelanto": (t - a) if (a is not None and t is not None) else None,
+                        "RUL real al alarmar": (
+                            float(curves[u].loc[curves[u]["cycle"] == a, "y_true"].iloc[0])
+                            if a is not None else None
+                        ),
+                    })
+                st.dataframe(
+                    pd.DataFrame(rows),
+                    hide_index=True,
+                    column_config={
+                        "Motor": st.column_config.TextColumn("Motor"),
+                        "Alarma": st.column_config.NumberColumn("Ciclo de alarma", format="%d"),
+                        "RUL real < umbral": st.column_config.NumberColumn(
+                            "Ciclo con RUL real < umbral", format="%d"
+                        ),
+                        "Adelanto": st.column_config.NumberColumn(
+                            "Adelanto (ciclos)", format="%d"
+                        ),
+                        "RUL real al alarmar": st.column_config.NumberColumn(
+                            "RUL real al alarmar", format="%.1f"
+                        ),
+                    },
+                    alt="Ciclo de alarma frente al ciclo en que la RUL real cruza el umbral, por unidad.",
+                )
+                st.caption(
+                    "El adelanto es el coste en disponibilidad de una cota conservadora: la flota "
+                    f"se inmoviliza antes de que la RUL real llegue a {threshold_aog:.0f}. Es "
+                    "ajustable desde la barra lateral."
+                )
+
+        with st.container(border=True):
+            st.subheader("Calidad del modelo", icon=":material/insights:")
+            st.caption(
+                "Métricas de calidad, no de decisión: cuánto se equivoca el modelo, no "
+                "lo que decide. Viven aquí porque son para el tribunal, no para el "
+                "operador de taller."
+            )
+            with st.container(horizontal=True):
+                st.metric(
+                    "Macro-RMSE", f"{global_metrics['macro_rmse']:.2f} ciclos",
+                    f"ponderado {global_metrics['rmse']:.2f}", border=True,
+                    delta_color="off", icon=":material/balance:",
+                    help="El macro-RMSE da el mismo peso a cada motor; el ponderado lo da a cada ventana.")
+                st.metric(
+                    "MAE en zona crítica", f"{critical_mae:.2f} ciclos",
+                    f"RUL real < {threshold_aog:.0f}", border=True,
+                    delta_color="off", icon=":material/target:",
+                    help="Error absoluto medio donde de verdad se decide el mantenimiento.")
+
+        with st.expander("Procedencia verificable", icon=":material/fingerprint:"):
+            st.caption(
+                "Huella SHA-256 del ensemble congelado, copiada del manifiesto que acompaña a "
+                "la caché. La UI no recalcula el artefacto: lo identifica."
+            )
+            st.code(provenance["artifact"]["ensemble_sha256"], language=None)
+            st.markdown(
+                f"**ensemble** `{provenance['artifact'].get('ensemble', 'models/ensemble.joblib')}` · "
+                f"**manifest** `{provenance['artifact'].get('manifest', 'models/ds02_manifest.json')}`"
+            )
+            st.caption(
+                "Para verificarlo en local: `python -c \"import hashlib;print(hashlib.sha256"
+                "(open('models/ensemble.joblib','rb').read()).hexdigest())\"`."
+            )
+            with st.container(horizontal=True):
+                st.metric(
+                    "Ventanas en caché",
+                    f"{provenance['counts']['windows']:,}",
+                    f"generada {provenance['generated_at'][:10]}",
+                    border=True, delta_color="off", icon=":material/dataset:")
+            st.caption(
+                f"Contrato: ventana de {provenance['source']['window']} muestras, "
+                f"step={provenance['source']['step']}. La caché va a step=2 y la vía "
+                f"en vivo a step=1, así que no coinciden bit a bit, y el punto está "
+                f"suavizado con un EMA causal por motor. Documentado, no reconciliado."
+            )
+
+        with st.expander("Contrato congelado vs. cálculo en vivo", icon=":material/difference:"):
+            recorded = manifest.get("macro_rmse", {}).get("per_unit_rmse", {})
+            compare = pd.DataFrame(
+                {
+                    "Motor": [f"U{int(u)}" for u in per_unit["unit"]],
+                    "En vivo (caché)": per_unit["rmse"].to_numpy(),
+                    "Registrado (manifest)": [
+                        float(recorded.get(str(float(u)), np.nan)) for u in per_unit["unit"]
+                    ],
+                }
+            )
+            compare["Δ"] = compare["En vivo (caché)"] - compare["Registrado (manifest)"]
+            st.dataframe(
+                compare,
+                hide_index=True,
+                column_config={
+                    "Motor": st.column_config.TextColumn("Motor"),
+                    "En vivo (caché)": st.column_config.NumberColumn(
+                        "RMSE en vivo (caché)", format="%.4f"
+                    ),
+                    "Registrado (manifest)": st.column_config.NumberColumn(
+                        "RMSE registrado (manifest)", format="%.4f"
+                    ),
+                    "Δ": st.column_config.NumberColumn("Δ", format="%+.4f"),
+                },
+                alt="Comparación entre el RMSE recalculado de la caché y el registrado en el manifiesto.",
+            )
+            st.caption(
+                "Ambas columnas describen las mismas ventanas. Una diferencia distinta de cero "
+                "sería deriva de regeneración del artefacto, y se publica tal cual: no se ajusta "
+                "ninguna de las dos. El score NASA es una **suma** asimétrica sobre las mismas "
+                "6 196 ventanas y no aplica el recorte de 125 ciclos del camino FD001."
+            )
+
+        with st.expander("Contrato de artefacto congelado", icon=":material/lock:"):
+            shape = manifest.get("model_shape", {})
+            conformal = manifest.get("conformal", {}) or {}
+            st.caption(
+                "Registrado en `models/ds02_manifest.json`. **No** es un cálculo de esta "
+                "caché: es el contrato del artefacto que se está consumiendo."
+            )
+            st.markdown(
+                f"**dataset** `{manifest.get('dataset')}` · "
+                f"**code_version** `{manifest.get('code_version')}` · "
+                f"**seed** `{manifest.get('seed')}`"
+            )
+            st.markdown(
+                f"**test** `{manifest.get('unit_partition', {}).get('test')}` · "
+                f"**ventana** `{shape.get('bilstm_input_shape')}` · "
+                f"**meta** `{shape.get('meta_features')} features`"
+            )
+            st.markdown(
+                f"**banda** objetivo `{conformal.get('target_coverage')}` · "
+                f"*{conformal.get('method')}* · calibración "
+                f"`{conformal.get('n_calibration')}` filas"
+            )
+            st.markdown("**SHA-256 del ensemble**")
+            st.code(provenance["artifact"]["ensemble_sha256"], language=None)
+            st.caption(
+                "64 caracteres hexadecimales. Es la huella del artefacto congelado, no la de "
+                "la caché."
+            )
+            # Auditoria criptografica on-demand: hashea el .keras en disco y lo
+            # compara con el sello registrado. El hash va por `@st.cache_data`
+            # (clave path/tamaño/mtime): re-pulsar sin cambio en disco no relee.
+            if st.button("Auditar hashes del artefacto", icon=":material/verified:",
+                         key="btn_audit_hashes"):
+                _path_keras = os.path.join(L.ROOT, "models", "bilstm_ds02.keras")
+                try:
+                    _st_keras = os.stat(_path_keras)
+                    _digest_keras = _sha256_cached(
+                        _path_keras, int(_st_keras.st_size), int(_st_keras.st_mtime_ns)
+                    )
+                except OSError:
+                    _digest_keras = None
+                st.session_state["audit_hashes"] = {"bilstm_ds02.keras": _digest_keras}
+            _audit = st.session_state.get("audit_hashes")
+            if _audit:
+                _esp_bilstm = (provenance.get("artifact") or {}).get("bilstm_sha256")
+                _leido_bilstm = _audit.get("bilstm_ds02.keras")
+                if _leido_bilstm is not None and _esp_bilstm and _leido_bilstm == _esp_bilstm:
+                    st.success("bilstm_ds02.keras: hash coincide con el manifest.",
+                               icon=":material/check_circle:")
+                elif _leido_bilstm is not None:
+                    st.error(f"bilstm_ds02.keras: discrepancia "
+                             f"({_leido_bilstm[:12]} vs {_esp_bilstm[:12]})",
+                             icon=":material/cancel:")
+                else:
+                    st.warning("No se pudo hashear bilstm_ds02.keras.",
+                               icon=":material/warning:")
+            # El sello estaba en pantalla y nadie lo comprobaba: si el bundle se
+            # reentrena y se sustituye sin reconstruir `app/cache/`, la superficie
+            # sigue pintando predicciones bajo el sello viejo. Se mira en cada
+            # render y **solo** se avisa cuando discrepan: con el sello en regla no
+            # aparece nada, de modo que el camino verde no mueve ni un widget.
+            _sello = L.artifact_hash_check(provenance)
+            if _sello["checked"] and not _sello["ok"]:
+                st.warning(
+                    f"La caché no corresponde al artefacto que hay en disco: el sello "
+                    f"registrado es `{_sello['esperado'][:12]}` y el leído es "
+                    f"`{_sello['leido'][:12]}`. Las cifras salen de `app/cache/`; "
+                    f"reconstrúyela con `python scripts/build_ui_cache.py`.",
+                    icon=":material/warning:",
+                )
+            elif not _sello["checked"]:
+                st.caption(
+                    "No se pudo comprobar el sello del artefacto contra "
+                    "`models/ensemble.joblib`."
+                )
+            recorded = manifest.get("macro_rmse", {}).get("per_unit_rmse", {})
+            if recorded:
+                st.markdown(
+                    "**macro-RMSE por motor (registrado)** "
+                    + " · ".join(f"U{int(float(k))}: `{v:.3f}`" for k, v in recorded.items())
+                )
+            st.json(
+                {
+                    "artefactos": manifest.get("artifacts", {}),
+                    "inference_contract": manifest.get("inference_contract", {}),
+                    "lgb_objective": manifest.get("lgb_objective", {}),
+                },
+                expanded=False,
+            )
+
+        with st.container(border=True):
+            st.subheader("Informe de auditoría", icon=":material/picture_as_pdf:")
+            st.caption(
+                "Un PDF con las dos tablas de arriba —precisión por tramo y alarma vs. "
+                "verdad— más la huella del artefacto congelado y los umbrales en vigor. "
+                "Es la constancia firmable de cómo se calculó lo que se decide hoy."
+            )
+            # El PDF solo se genera al pulsar: no se paga en cada render. La
+            # construcción va por `@st.cache_data` (umbrales + SHA + firma de caché).
+            _windows_sig = (
+                f"{provenance['artifact']['ensemble_sha256']}:"
+                f"{provenance['counts']['windows']}:"
+                f"{critical_mae:.6f}:{cycle}"
+            )
+            if st.button(
+                "Generar informe (PDF)",
+                icon=":material/picture_as_pdf:",
+                key="btn_gen_pdf",
+                help="Genera el PDF de auditoría con los umbrales en vigor. Solo se "
+                     "genera al pulsar; luego queda cacheado para la descarga.",
+            ):
+                st.session_state["_pdf_generado"] = True
+            if st.session_state.get("_pdf_generado"):
+                try:
+                    _pdf_auditoria = _informe_pdf_cached(
+                        float(threshold_apto), float(threshold_aog),
+                        float(critical_mae),
+                        str(provenance["artifact"]["ensemble_sha256"]),
+                        _windows_sig,
+                    )
+                except Exception as exc:  # pragma: no cover - defensa ante fpdf ausente
+                    st.warning(
+                        f"No se pudo generar el informe PDF ({type(exc).__name__}). "
+                        "Las tablas de arriba siguen siendo la fuente.",
+                        icon=":material/error:",
+                    )
+                    st.session_state.pop("_pdf_generado", None)
+                else:
+                    st.download_button(
+                        "Descargar informe de auditoría (PDF)",
+                        data=_pdf_auditoria,
+                        file_name=f"informe_auditoria_ds02_ciclo{cycle}.pdf",
+                        mime="application/pdf",
+                        icon=":material/download:",
+                        help="Congela las tablas de auditoría y la huella del artefacto.",
+                    )
+
+
+    # ------------------------------------------- casos nuevos: trae un motor
+    _tab_auditoria()
+with tab_casos:
+    @st.fragment
+    def _tab_casos() -> None:
+        _flash_live = st.session_state.pop("live_flash", None)
+        if _flash_live:
+            st.toast(_flash_live, icon=":material/check_circle:")
+        _flash_twin_live = st.session_state.get("twin_flash")
+        if _flash_twin_live:
+            st.toast(_flash_twin_live, icon=":material/check_circle:")
+
+        # -------------------- sala 4: incorporar (individual en el sidebar, lote aquí)
+        with st.container(border=True):
+            st.subheader("Incorporar en lote · trae uno o doce", icon=":material/library_add:")
+            st.caption(
+                "Puntúa N motores de una vez y devuelve una fila por motor: predicción, "
+                "banda y estado. No reentrena, no toca la caché y no inventa ground truth: "
+                "los datos los aportas tú, así que no hay RMSE ni MAE que reportar."
+            )
+            _lote_mode = st.segmented_control(
+                "Fuente del lote",
+                ["Subir CSV (uno por motor)", "Pegar CSV por bloques"],
+                default="Subir CSV (uno por motor)",
+                key="lote_mode",
+                help="Cada CSV es un motor. En la segunda opción, una columna `unit_id` "
+                     "separa los motores dentro del mismo CSV.",
+            )
+            _bloques: list[dict] = []
+            if _lote_mode == "Subir CSV (uno por motor)":
+                _archivos = st.file_uploader(
+                    f"CSV de motores (máximo {B.MAX_MOTORES_LOTE})",
+                    type=["csv"], accept_multiple_files=True, key="lote_archivos",
+                )
+                if _archivos:
+                    try:
+                        _bloques = B.bloques_de_archivos(_archivos)
+                    except Exception as exc:  # noqa: BLE001 - el mensaje se muestra
+                        st.error(f"No se pudieron leer los CSV: {exc}",
+                                 icon=":material/error:")
+            else:
+                _texto_lote = st.text_area(
+                    "CSV con columna `unit_id`", height=160, key="lote_texto",
+                    placeholder="unit_id,cycle,alt,Mach,TRA,T2,T24,…",
+                    help="Una columna `unit_id` por motor y los 18 canales del dataset.",
+                )
+                if _texto_lote.strip():
+                    try:
+                        _bloques = B.bloques_de_csv(_texto_lote)
+                    except Exception as exc:  # noqa: BLE001
+                        st.error(f"No se pudo leer el CSV por bloques: {exc}",
+                                 icon=":material/error:")
+
+            if B.excede_limite(len(_bloques)):
+                st.error(
+                    f"Traes {len(_bloques)} motores y el tope es {B.MAX_MOTORES_LOTE}. "
+                    "Quita algunos: por encima del tope el lote deja de ser interactivo "
+                    "en un portátil.",
+                    icon=":material/rule:",
+                )
+                _bloques = []
+            elif _bloques:
+                _aviso_lote = B.validar_lote(_bloques)
+                if not _aviso_lote["ok"]:
+                    for _mat, _error in _aviso_lote["errores"].items():
+                        st.error(f"`{_mat}`: {_error}", icon=":material/rule:")
+                else:
+                    with st.form("lote_evaluar"):
+                        _enviar_lote = st.form_submit_button(
+                            f"Puntuar {_aviso_lote['bloques']} motor(es)",
+                            type="primary", icon=":material/play_arrow:",
+                        )
+                    if _enviar_lote:
+                        _barra = st.progress(0.0, text="Puntuando 0 de …")
+
+                        def _progreso(i, n, mat):
+                            _barra.progress(i / n, text=f"Puntuando {i} de {n} · {mat}")
+
+                        try:
+                            _resultado_lote = B.puntuar_lote(
+                                _bloques, umbrales, INF.get_ensemble(), _progreso)
+                        except ValueError as exc:
+                            st.session_state["lote_resultado"] = None
+                            st.error(str(exc), title="No se pudo puntuar el lote",
+                                     icon=":material/rule:")
+                        else:
+                            st.session_state["lote_resultado"] = _resultado_lote
+                            st.session_state["lote_bloques"] = _bloques
+                            _log(f"Lote puntuado: {len(_bloques)} motor(es).")
+                            st.rerun()
+
+        _lote = st.session_state.get("lote_resultado")
+        if _lote is not None:
+            _resumen = B.resumen_lote(_lote)
+            with st.container(horizontal=True):
+                st.metric("Motores puntuados", f"{_resumen['total']}", border=True,
+                          delta_color="off", icon=":material/groups:")
+                st.metric("En hangar", f"{_resumen['por_estado'][L.AOG]}", border=True,
+                          delta_color="off", icon=":material/local_shipping:")
+                st.metric("En inspección", f"{_resumen['por_estado'][L.PREVENTIVE]}",
+                          border=True, delta_color="off", icon=":material/schedule:")
+                st.metric("Aptos", f"{_resumen['por_estado'][L.AIRWORTHY]}", border=True,
+                          delta_color="off", icon=":material/check_circle:")
+            _ver = _lote.rename(columns={
+                "matricula": "Matrícula", "ciclo": "Ciclo", "pred": "RUL p35",
+                "lower": "L_inf (decide)", "upper": "L_sup", "estado": "Estado",
+                "regla": "Regla",
+            })
+            st.dataframe(
+                _ver, hide_index=True,
+                column_config={
+                    "Ciclo": st.column_config.NumberColumn("Ciclo", format="%d"),
+                    "RUL p35": st.column_config.NumberColumn(
+                        "RUL p35", format="%.1f"),
+                    "L_inf (decide)": st.column_config.NumberColumn(
+                        "L_inf (decide)", format="%.1f",
+                        help="Límite inferior de la banda: es lo que decide el estado."),
+                    "L_sup": st.column_config.NumberColumn("L_sup", format="%.1f"),
+                },
+                alt="Triage del lote: una fila por motor con su predicción, su banda y "
+                    "su estado.",
+            )
+            st.caption(
+                "Predicción del artefacto congelado (`models/ds02_manifest.json`) sobre los "
+                "datos aportados. **Sin ground truth**: no hay error que reportar."
+            )
+            with st.container(horizontal=True):
+                st.download_button(
+                    "Descargar triage (CSV)",
+                    data=_ver.to_csv(index=False),
+                    file_name="triage_lote_ds02.csv",
+                    mime="text/csv",
+                    icon=":material/download:",
+                )
+                if st.button(
+                    "Registrar gemelos", icon=":material/library_add:",
+                    key="lote_registrar",
+                    help="Guarda los motores del lote en la flota registrada.",
+                ):
+                    _barra_g = st.progress(0.0, text="Registrando 0 de …")
+
+                    def _progreso_g(i, n, mat):
+                        _barra_g.progress(i / n, text=f"Registrando {i} de {n} · {mat}")
+
+                    try:
+                        _gemelos_nuevos = B.registrar_gemelos(
+                            st.session_state.get("lote_bloques") or [],
+                            INF.get_ensemble(), umbrales,
+                            st.session_state.get("twins", {}), _progreso_g)
+                    except ValueError as exc:
+                        st.error(str(exc), title="No se pudieron registrar",
+                                 icon=":material/rule:")
+                    else:
+                        st.session_state["twins"] = _gemelos_nuevos
+                        _guardar_registros()
+                        st.session_state["lote_resultado"] = None
+                        _log(f"{len(_gemelos_nuevos)} gemelo(s) registrados desde el lote.")
+                        st.session_state["twin_flash"] = (
+                            f"{len(_gemelos_nuevos)} gemelo(s) en la flota registrada. "
+                            "Míralos en la primera pestaña, en «Gemelos registrados»."
+                        )
+                        st.rerun()
+
+        # El caso crítico apunta al mismo ciclo que el paso 3 del modo historia: ambos
+        # salen de la caché (`estado_historia` elige el primer ciclo en HANGAR del motor
+        # de mayor RMSE), así que si la caché cambia, los dos cambian con ella. Ningún
+        # ciclo ni ningún límite está esparcido aquí.
+        _paso_hangar = A.estado_historia(windows, umbrales)[2]
+        _u_hangar = int(_paso_hangar["unidad"])
+        _c_hangar = int(_paso_hangar["ciclo"])
+        # Los tramos viven en `ui_inference.demo_presets`: son datos y hay un test que
+        # los fija. Cada nombre promete un estado y el tramo tiene que darlo a
+        # cualquier largo (`DEMO_ROWS`). Antes eran 50 filas (una ventana): el EMA
+        # arrancaba en frio y la grafica tenia un punto.
+        DEMO_PRESETS = INF.demo_presets(_u_hangar, _c_hangar)
+
+        with st.container(border=True):
+            st.subheader("Puntúa un ejemplo en 1 clic", icon=":material/rocket_launch:")
+            st.caption(
+                "El onboarding del tablero está en la primera pestaña. Esto puntúa un tramo "
+                "real de la caché y deja el resultado listo para registrar: no pega nada ni "
+                "sube CSV."
+            )
+            c1, c2, c3 = st.columns(3)
+            for _col, _nombre in zip((c1, c2, c3), list(DEMO_PRESETS)[:3]):
+                with _col:
+                    if st.button(_nombre, key=f"live_demo_{_nombre}", type="primary" if "Crítico" in _nombre else "secondary", icon=":material/play_arrow:"):
+                        _u, _p, _ciclo, _did = DEMO_PRESETS[_nombre]
+                        try:
+                            if _ciclo is None:
+                                _tab, _meta = INF.example_window(
+                                    _u, _p, rows=INF.DEMO_ROWS)
+                            else:
+                                _tab, _meta = INF.window_ending_at(
+                                    _u, _ciclo, rows=INF.DEMO_ROWS)
+                            _pf = INF.preflight(_tab)
+                            if not _pf["ok"]:
+                                raise ValueError(_pf["error"])
+                            st.session_state["live_engine_id"] = _did
+                            st.session_state["_editor_value"] = _tab
+                            st.session_state["live_result"] = INF.score_table(_tab, engine_id=_did)
+                            st.session_state["live_meta"] = _meta
+                            st.session_state["live_warnings"] = _pf["avisos"]
+                            st.session_state["live_error"] = None
+                            st.session_state["live_flash"] = f"{_nombre} puntuado abajo (ciclos {_meta['start_cycle']}→{_meta['end_cycle']}). Puedes cambiar a Editar tabla para modificar valores y reevaluar, o pulsar Registrar gemelo."
+                        except ValueError as exc:
+                            st.session_state["live_result"] = None
+                            st.session_state["live_error"] = str(exc)
+                        st.rerun()
+            # Nota de honestidad: el límite inferior no es monótono y el tribunal lo va a
+            # ver. Los tres números salen de la caché, no están escritos a mano.
+            _fila_hangar = windows[(windows["unit"] == _u_hangar) & (windows["cycle"] == _c_hangar)]
+            _lo_min = float(_fila_hangar["lower"].min())
+            _lo_max = float(_fila_hangar["lower"].max())
+            _y_real = float(_fila_hangar["y_true"].mean())
+            _curva_h = L.unit_curve(windows, _u_hangar).sort_values("cycle")
+            _caida = _curva_h[_curva_h["lower_min"] < umbrales["apto"]]
+            _ciclo_caida = int(_caida["cycle"].min()) if not _caida.empty else None
+            _repunte = (
+                _curva_h[(_curva_h["cycle"] > _ciclo_caida)
+                         & (_curva_h["lower_min"] >= umbrales["apto"])]
+                if _ciclo_caida is not None else _curva_h.iloc[0:0]
+            )
+            _ciclo_repunte = int(_repunte["cycle"].min()) if not _repunte.empty else None
+            _nota_mono = (
+                f" La trayectoria no es monótona — cae a inspección en el ciclo "
+                f"{_ciclo_caida} y vuelve a apto en el {_ciclo_repunte} — porque el EMA "
+                "causal (ADR-006) reduce pero no elimina los saltos de un predictor por "
+                "ventanas. Se muestra tal cual."
+                if _ciclo_caida is not None and _ciclo_repunte is not None else ""
+            )
+            st.caption(
+                f"El caso crítico termina en el ciclo {_c_hangar}, donde el límite inferior "
+                f"cruza el umbral de hangar ({umbrales['hangar']:.0f}) con {_y_real:.0f} ciclos "
+                f"reales restantes: dentro del propio ciclo baja de {_lo_max:.1f} a {_lo_min:.1f}."
+                + _nota_mono
+            )
+        with st.container(border=True):
+            st.subheader("Explora por ciclo", icon=":material/timeline:")
+            st.caption(
+                "Elige un motor y un punto de su vida: se genera el tramo y se muestra "
+                "el estado calculado. No se puntúa hasta pulsar \"Evaluar este tramo\"."
+            )
+            _exp_cols = st.columns(4)
+            with _exp_cols[0]:
+                _exp_unit = st.selectbox(
+                    "Motor",
+                    [11, 14, 15],
+                    key="explorar_unit",
+                    help="Unidad de la caché (11, 14 o 15).",
+                )
+            with _exp_cols[1]:
+                _exp_len = st.selectbox(
+                    "Largo del tramo",
+                    [50, 300],
+                    index=1,
+                    key="explorar_len",
+                    help="50 = una ventana; 300 = trayectoria con EMA suavizada.",
+                )
+            with _exp_cols[2]:
+                _exp_mode = st.selectbox(
+                    "Modo",
+                    ["Posición relativa", "Ciclo final"],
+                    key="explorar_mode",
+                    help="Posición relativa: fracción de la vida (0-1). "
+                         "Ciclo final: elige el ciclo exacto en que termina el tramo.",
+                )
+            with _exp_cols[3]:
+                if _exp_mode == "Posición relativa":
+                    _exp_pos = st.slider(
+                        "Punto final (posición en la vida del motor)",
+                        0.0, 1.0, 0.5, 0.01,
+                        key="explorar_pos",
+                        help="0.0 = inicio, 1.0 = final. El tramo termina en ese punto.",
+                    )
+                else:
+                    _ciclos_disp = sorted(
+                        int(c) for c in windows[windows["unit"] == _exp_unit]["cycle"].unique()
+                    )
+                    _exp_cycle = st.selectbox(
+                        "Ciclo final",
+                        _ciclos_disp,
+                        key="explorar_cycle",
+                        help="Ciclo exacto en que termina el tramo. "
+                             "El tramo abarca los ciclos anteriores según el largo elegido.",
+                    )
+            try:
+                if _exp_mode == "Posición relativa":
+                    _exp_tab, _exp_meta = INF.example_window(
+                        _exp_unit, _exp_pos, rows=_exp_len)
+                else:
+                    _exp_tab, _exp_meta = INF.window_ending_at(
+                        _exp_unit, _exp_cycle, rows=_exp_len)
+                _exp_pf = INF.preflight(_exp_tab)
+                _exp_ok = bool(_exp_pf["ok"])
+                st.session_state["explorar_table"] = _exp_tab
+                st.session_state["explorar_meta"] = _exp_meta
+                st.session_state["explorar_ok"] = _exp_ok
+                st.session_state["explorar_avisos"] = _exp_pf["avisos"]
+                _exp_end_cycle = int(_exp_meta["end_cycle"])
+                _cached = windows[(windows["unit"] == _exp_unit)
+                                  & (windows["cycle"] == _exp_end_cycle)]
+                if not _cached.empty:
+                    _exp_lower = float(_cached["lower"].iloc[-1])
+                    _exp_state = L.classify(
+                        _exp_lower, umbrales["apto"], umbrales["hangar"])
+                else:
+                    _exp_state = "sin referencia en caché"
+                st.session_state["explorar_state"] = _exp_state
+                _exp_err = None if _exp_ok else _exp_pf["error"]
+            except ValueError as _exc:
+                _exp_tab = None
+                _exp_meta = None
+                st.session_state["explorar_table"] = None
+                st.session_state["explorar_meta"] = None
+                st.session_state["explorar_ok"] = False
+                st.session_state["explorar_state"] = "—"
+                _exp_err = str(_exc)
+            if _exp_err:
+                st.error(_exp_err, icon=":material/error:")
+            else:
+                st.caption(
+                    f"Tramo: ciclos {_exp_meta['start_cycle']}→{_exp_meta['end_cycle']} · "
+                    f"{len(_exp_tab)} filas · estado estimado: **{_exp_state}**"
+                )
+                for _av in st.session_state.get("explorar_avisos", []) or []:
+                    st.warning(_av, icon=":material/warning:")
+                with st.expander("Ver tramo generado", expanded=False):
+                    st.dataframe(
+                        _exp_tab,
+                        hide_index=True,
+                        alt="Tramo generado para explorar por ciclo: ciclos y sensores.",
+                    )
+            if st.button(
+                "Evaluar este tramo",
+                key="explorar_evaluar",
+                type="primary",
+                icon=":material/play_arrow:",
+                disabled=not st.session_state.get("explorar_ok", False),
+            ):
+                _tab = st.session_state.get("explorar_table")
+                _meta = st.session_state.get("explorar_meta")
+                if _tab is not None:
+                    try:
+                        st.session_state["live_engine_id"] = (
+                            f"ESN-EXPLORAR-{_exp_unit}")
+                        st.session_state["_editor_value"] = _tab
+                        st.session_state["live_result"] = INF.score_table(
+                            _tab, engine_id=f"ESN-EXPLORAR-{_exp_unit}")
+                        st.session_state["live_meta"] = _meta
+                        st.session_state["live_warnings"] = (
+                            st.session_state.get("explorar_avisos", []) or [])
+                        st.session_state["live_error"] = None
+                        st.session_state["live_flash"] = (
+                            f"Tramo explorado puntuado (ciclos "
+                            f"{_meta['start_cycle']}→{_meta['end_cycle']}).")
+                    except ValueError as _exc:
+                        st.session_state["live_result"] = None
+                        st.session_state["live_error"] = str(_exc)
+                    st.rerun()
+
+        st.subheader("Puntúa un motor con datos que aportes tú", icon=":material/science:")
+        st.caption(
+            "Las tres rutas desembocan en el mismo validador y en la misma llamada al "
+            "artefacto congelado. Una ventana son **50 muestras remuestreadas** (1 de cada "
+            "100 registros), lo que son **~0,4 ciclos de vuelo**, no 50 lecturas seguidas "
+            "ni 50 ciclos. Teclear 900 celdas no es "
+            "viable: usa el ejemplo, pega un bloque desde Excel o sube el CSV."
+        )
+
+        mode = st.segmented_control(
+            "Entrada de datos",
+            ["Ejemplo del test set", "Editar tabla (pegar)", "Subir CSV"],
+            default="Ejemplo del test set",
+            key="live_mode",
+            help="El ejemplo usa una ventana real de la caché; las otras dos aceptan tus datos.",
+        )
+
+        st.session_state.setdefault("live_engine_id", "ESN-DEMO-01")
+        identidad = st.text_input(
+            "Id del motor",
+            key="live_engine_id",
+            help="Se escribe en la orden y en el gemelo. Mínimo 3 caracteres.",
+        )
+        id_ok = len(str(identidad or "").strip()) >= T.MIN_ID
+        if not id_ok:
+            st.error(
+                f"El id necesita al menos {T.MIN_ID} caracteres: se valida ahora, "
+                "no al registrar.",
+                icon=":material/rule:",
+            )
+        # ¿Está ya en la flota? Se responde aquí, antes de evaluar, para que la duda
+        # «¿esto se ha añadido?» no obligue a bajar hasta la tarjeta de registro.
+        try:
+            _id_norm = T.normalizar_id(identidad) if id_ok else ""
+        except ValueError:
+            _id_norm = ""
+        _en_flota = bool(_id_norm) and _id_norm in (st.session_state.get("twins") or {})
+        if _id_norm:
+            st.badge(
+                "EN LA FLOTA" if _en_flota else "SIN REGISTRAR",
+                icon=":material/check_circle:" if _en_flota else ":material/add_circle:",
+                color="green" if _en_flota else "gray",
+            )
+        st.caption(
+            "Paso 1 · trae los datos · Paso 2 · revisa el pre-vuelo de abajo · "
+            "Paso 3 · evalúa · Paso 4 · regístralo en la tarjeta que sale bajo el "
+            "resultado. El botón de evaluar solo se activa con los pasos 1 y 2 en verde."
+        )
+        # La plantilla se descarga desde el expander «Qué es cada columna», que ya
+        # reutiliza `INF.template_csv()` (cabecera + 50 filas vacías) y ya esta
+        # probado. Un segundo boton con la cabecera escrita a mano era un segundo
+        # sitio donde arreglar el mismo contrato.
+
+        def _on_preset_change():
+            _nuevo = st.session_state.get("live_demo_preset")
+            if _nuevo in DEMO_PRESETS:
+                st.session_state["live_engine_id"] = DEMO_PRESETS[_nuevo][3]
+        if mode == "Ejemplo del test set":
+            demo_nombre = st.selectbox(
+                "Dataset demo", list(DEMO_PRESETS), key="live_demo_preset",
+                on_change=_on_preset_change,
+                help=f"Tramos reales de caché con ciclos dispares. Al cambiar se proponen sus {INF.DEMO_ROWS} muestras remuestreadas y su matrícula.",
+            )
+        example_table, example_meta = INF.example_window(14, 0.55)
+        if mode == "Ejemplo del test set" and "demo_nombre" in locals():
+            _du2, _dp2, _ciclo2, _ = DEMO_PRESETS[demo_nombre]
+            if _ciclo2 is None:
+                example_table, example_meta = INF.example_window(
+                    _du2, _dp2, rows=INF.DEMO_ROWS)
+            else:
+                example_table, example_meta = INF.window_ending_at(
+                    _du2, _ciclo2, rows=INF.DEMO_ROWS)
+        submitted = False
+        table_to_score = None
+        data_meta = example_meta
+        labels = INF.channel_labels()
+        number_columns = {
+            "cycle": st.column_config.NumberColumn(
+                "cycle", format="%d",
+                help="Ciclo de vuelo del registro. Se repite en varias filas porque la "
+                     "ventana es una rejilla remuestreada, no una lectura por ciclo.",
+            )
+        }
+        number_columns.update({
+            c: st.column_config.NumberColumn(c, format="%.3f", help=labels.get(c, c))
+            for c in example_table.columns if c != "cycle"
+        })
+
+        with st.expander("Qué es cada columna y qué rango es normal",
+                         icon=":material/menu_book:", expanded=False):
+            st.caption(
+                "Nombres del dataset N-CMAPSS: `T24` es la salida del compresor de baja "
+                "presión, `Ps30` la presión estática a la salida del de alta. El rango "
+                "está medido sobre `app/cache/ds02_rows.parquet`, no copiado de la "
+                "documentación; `aviso` es ese rango con un 5 % de margen, el punto en "
+                "que la app te avisa de que estás fuera del dominio de entrenamiento."
+            )
+            st.dataframe(
+                INF.observed_envelope(),
+                hide_index=True,
+                height=420,
+                column_config={
+                    "canal": st.column_config.TextColumn("canal", width="small"),
+                    "qué mide": st.column_config.TextColumn("qué mide", width="large"),
+                    "mínimo": st.column_config.NumberColumn("mínimo DS02", format="%.4g"),
+                    "máximo": st.column_config.NumberColumn("máximo DS02", format="%.4g"),
+                    "aviso_desde": st.column_config.NumberColumn("aviso desde", format="%.4g"),
+                    "aviso_hasta": st.column_config.NumberColumn("aviso hasta", format="%.4g"),
+                },
+                alt="Glosario de los 18 canales con su significado físico y el rango "
+                    "observado en DS02.",
+            )
+            st.caption(
+                "**`cycle`** es el ciclo de vuelo del registro y **no** se repite por "
+                "accidente: la ventana toma 1 de cada 100 registros, así que varias "
+                "muestras comparten ciclo y 50 muestras cubren ~0,4 vuelos."
             )
             st.download_button(
-                "Descargar orden de esta unidad (JSON)",
-                data=json.dumps(order_live, ensure_ascii=False, indent=2),
-                file_name="orden_mantenimiento_unidad_externa.json",
-                mime="application/json",
-                icon=":material/download:",
-                type="primary",
+                "Descargar plantilla CSV (50 muestras remuestreadas vacías)",
+                data=INF.template_csv(),
+                file_name="plantilla_unidad_ds02.csv",
+                mime="text/csv",
+                icon=":material/file_download:",
             )
 
-    # -------------------- sala 5: sandbox de estrés en vivo
-    with st.expander("Sandbox de estrés · perturba el motor y mira el pipeline reaccionar",
-                     icon=":material/tune:", expanded=_vista_tribunal):
-        st.caption(
-            "El tribunal mueve el deslizador y la app re-puntúa el tramo con el "
-            "artefacto congelado y re-decide con el motor oficial. No se reentrena "
-            "nada: lo que cambia es la entrada."
-        )
-        _sandbox_estres()
-
-
-    with st.expander("Demo en vivo", icon=":material/movie:", expanded=_vista_tribunal):
-        st.caption(
-            "Deja la app en el estado desde el que se cuenta la historia: umbrales "
-            "30/25, ciclo 29 y la unidad 14, que es la que entra en hangar."
-        )
-        if st.button("Cargar escenario de demo", icon=":material/play_circle:",
-                     key="demo_cargar", type="primary"):
-            st.session_state["_demo_pendiente"] = True
-            _log("Escenario de demo cargado (umbrales 30/25, ciclo 29, U14).")
-            st.rerun()
-        with st.expander("Restablecer demo", icon=":material/restart_alt:"):
+        if mode == "Ejemplo del test set":
+            with st.container(border=True):
+                st.caption(
+                    f"Ventana real de U{example_meta['unit']} · ciclos "
+                    f"{example_meta['start_cycle']}→{example_meta['end_cycle']} · filas "
+                    f"{example_meta['row_slice'][0]}–{example_meta['row_slice'][1]} de "
+                    f"`{example_meta['source']}`. Desmarca filas para excluirlas (mínimo 50 para puntuar)."
+                )
+                _edit = example_table.copy()
+                _edit.insert(0, "usar", True)
+                _cols_cfg = dict(number_columns)
+                _cols_cfg["usar"] = st.column_config.CheckboxColumn("usar", help="Desmarca para no predecir esa fila.")
+                _edited = st.data_editor(
+                    _edit, hide_index=True, height=260, key="live_demo_grid",
+                    column_config=_cols_cfg,
+                    alt="Ventana demo seleccionable: marca qué filas se puntúan.",
+                )
+                _sel = pd.DataFrame(_edited)
+                _usar = _sel["usar"].fillna(False).to_numpy(dtype=bool) if "usar" in _sel.columns else [True] * len(_sel)
+                _filtrada = _sel.loc[_usar].drop(columns=[c for c in ["usar"] if c in _sel.columns], errors="ignore")
+                st.caption(f"{int(_usar.sum())} de {len(_sel)} muestras seleccionadas → {max(0, int(_usar.sum()) - INF.window_size() + 1)} ventana(s).")
+            preflight_ejemplo = INF.preflight(_filtrada)
+            _preflight_panel(preflight_ejemplo)
+            with st.form("live_eval_example"):
+                submitted = st.form_submit_button(
+                    "Evaluar unidad", type="primary", icon=":material/play_arrow:",
+                    disabled=not id_ok,
+                )
+            if submitted:
+                table_to_score = _filtrada
+                data_meta = example_meta
+        elif mode == "Editar tabla (pegar)":
+            # `live_editor` es un `st.data_editor`: Streamlit declara su clave de
+            # solo lectura y no se puede escribir desde un handler. La tabla se
+            # guarda en `_editor_value` y se pasa como `data`; se mantiene entre
+            # pasadas para que la rejilla no revierta al tocar una celda.
+            _tabla_editor = st.session_state.get("_editor_value")
+            if _tabla_editor is None:
+                _tabla_editor = example_table
+            edited = st.data_editor(
+                _tabla_editor,
+                num_rows="dynamic",
+                hide_index=True,
+                height=420,
+                key="live_editor",
+                column_config=number_columns,
+            )
+            draft = pd.DataFrame(edited) if edited is not None else example_table
+            if "usar" in draft.columns:
+                draft = draft[draft["usar"].fillna(False).astype(bool)].drop(columns=["usar"])
+            state_rows = len(draft)
+            state_windows = max(0, state_rows - INF.window_size() + 1)
+            if state_rows > INF.UMBRAL_RECORTE_EDITOR:
+                st.warning(
+                    f"La rejilla va lenta con {state_rows:,} filas. Puedes recortar a las "
+                    f"primeras {INF.UMBRAL_RECORTE_EDITOR:,} para editar con fluidez: "
+                    "se puntuará lo visible y el recorte queda a la vista.",
+                    icon=":material/speed:",
+                )
+                if st.button(
+                    f"Recortar a {INF.UMBRAL_RECORTE_EDITOR:,} primeras filas",
+                    icon=":material/content_cut:", key="recortar_editor",
+                ):
+                    cortada, _ = INF.limitar_filas(draft)
+                    # Igual que arriba: la clave del `data_editor` es de solo lectura.
+                    # Se guarda la tabla recortada y la rejilla la dibuja en la
+                    # siguiente pasada.
+                    st.session_state["_editor_value"] = cortada
+                    st.session_state.pop("live_edit_fixed", None)
+                    st.rerun()
             st.caption(
-                "Borra la flota registrada —gemelos y registros de hangar— de la "
-                "sesión y del disco. La caché y el artefacto no se tocan."
+                f"**{state_rows} muestras** → {state_windows} ventana(s). Pega el bloque "
+                "desde Excel/Sheets sobre la primera celda: la rejilla acepta una "
+                "matriz de 50×19, y con más muestras puntúa todas las ventanas "
+                "deslizantes. No cambies los encabezados."
             )
-            confirma = st.checkbox("Confirmo que quiero borrar la flota registrada",
-                                    key="reset_confirm")
-            if st.button("Borrar gemelos y hangar", icon=":material/delete_forever:",
-                           disabled=not confirma, key="reset_demo"):
-                st.session_state["twins"] = {}
-                st.session_state["hangar"] = {}
-                _guardar_registros()
-                st.session_state["twin_flash"] = "Flota registrada borrada."
+            _fija = st.session_state.get("live_edit_fixed")
+            if (_fija is not None and list(_fija.get("cols", [])) == list(draft.columns)
+                    and _fija.get("len") == len(draft)):
+                draft = _fija["table"]
+            pf_edit = INF.preflight(draft)
+            if (not pf_edit["ok"] and "Orden de canales" in (pf_edit["error"] or "")
+                    and set(draft.columns) == set(INF.required_columns())):
+                if st.button("Reordenar al orden del dataset",
+                             icon=":material/sort:", key="reorder_edit"):
+                    st.session_state["live_edit_fixed"] = {
+                        "cols": list(draft.columns), "len": len(draft),
+                        "table": INF.reordenar_columnas(draft),
+                    }
+                    st.rerun()
+            _preflight_panel(pf_edit)
+            submitted = st.button(
+                "Evaluar unidad", type="primary", icon=":material/play_arrow:",
+                disabled=not (id_ok and pf_edit["ok"]), key="eval_editor",
+            )
+            if submitted:
+                table_to_score = draft
+                data_meta = {"source": "edición manual en la UI"}
+
+        else:
+            upload = st.file_uploader(
+                "CSV con `cycle` y los 18 canales",
+                type=["csv"],
+                help="Encabezados en el orden del dataset: alt, Mach, TRA, T2, T24 … Wf.",
+            )
+            uploaded_table = None
+            if upload is None:
+                st.info(
+                    "Sube un CSV, o usa el ejemplo para ver el flujo completo sin datos "
+                    "propios. Si no tienes el formato, descarga la plantilla en «Qué es "
+                    "cada columna» y rellénala en Excel.",
+                    icon=":material/upload_file:",
+                )
+            else:
+                try:
+                    uploaded_table = pd.read_csv(upload)
+                except Exception as exc:  # noqa: BLE001 - the message is shown to the user
+                    st.error(f"No se pudo leer el CSV: {exc}", icon=":material/error:")
+                if uploaded_table is not None:
+                    st.caption(
+                        f"{len(uploaded_table)} filas y {len(uploaded_table.columns)} columnas."
+                    )
+                    _fija_csv = st.session_state.get("live_csv_fixed")
+                    if (_fija_csv is not None
+                            and _fija_csv.get("name") == getattr(upload, "name", None)):
+                        uploaded_table = _fija_csv["table"]
+                    preflight_csv = INF.preflight(uploaded_table)
+                    if (not preflight_csv["ok"]
+                            and "Orden de canales" in (preflight_csv["error"] or "")
+                            and set(uploaded_table.columns) == set(INF.required_columns())):
+                        if st.button("Reordenar al orden del dataset",
+                                     icon=":material/sort:", key="reorder_csv"):
+                            st.session_state["live_csv_fixed"] = {
+                                "name": getattr(upload, "name", None),
+                                "table": INF.reordenar_columnas(uploaded_table),
+                            }
+                            st.rerun()
+                        preflight_csv = INF.preflight(
+                            st.session_state["live_csv_fixed"]["table"])
+                        _preflight_panel(preflight_csv)
+                        uploaded_table = st.session_state["live_csv_fixed"]["table"]
+                    else:
+                        _preflight_panel(preflight_csv)
+                    submitted = st.button(
+                        "Evaluar unidad", type="primary", icon=":material/play_arrow:",
+                        disabled=not (id_ok and preflight_csv["ok"]), key="eval_csv",
+                    )
+                    if submitted:
+                        table_to_score = uploaded_table
+                        data_meta = {"source": upload.name}
+
+        if submitted and table_to_score is not None:
+            try:
+                preflight = INF.preflight(table_to_score)
+                if not preflight["ok"]:
+                    raise ValueError(preflight["error"])
+                st.session_state["live_result"] = INF.score_table(
+                    table_to_score, engine_id=identidad)
+                st.session_state["live_meta"] = data_meta
+                st.session_state["live_warnings"] = preflight["avisos"]
+                st.session_state["live_error"] = None
+            except ValueError as exc:
+                st.session_state["live_result"] = None
+                st.session_state["live_warnings"] = []
+                st.session_state["live_error"] = str(exc)
+        live_error = st.session_state.get("live_error")
+        if live_error:
+            st.error(live_error, title="No se pudo evaluar", icon=":material/rule:")
+        for note in st.session_state.get("live_warnings") or []:
+            st.warning(note, icon=":material/find_in_page:")
+
+        live = st.session_state.get("live_result")
+        if live:
+            last = live["windows"].iloc[-1]
+            # La pasada A se toma de `decision_en_vivo`, que decide con la invalidez
+            # real de la banda y no con las cautelas de plausibilidad: esas se pintan
+            # arriba como aviso al operador (2782), pero no son un dato imposible.
+            _decision = UR.decision_en_vivo(live, umbrales)
+            alertas_live = _decision["alertas"]
+            traza_live = _decision["traza"]
+            live_state = (traza_live["decision"] if traza_live["decision"] in L.STATE_LABELS
+                          else L.NO_DATA)
+            tone = {
+                L.AIRWORTHY: "green",
+                L.PREVENTIVE: "orange",
+                L.AOG: "red",
+                L.SIN_DECISION: "gray",
+            }.get(live_state, "gray")
+            with st.container(horizontal=True):
+                st.metric("RUL p35 (conservadora)", f"{last['pred']:.1f}", "cuantil 0.35", border=True,
+                          icon=":material/speed:", delta_color="off")
+                st.metric("Límite inferior", f"{last['lower']:.1f}", "decide el estado",
+                          border=True, icon=":material/trending_down:", delta_color="off")
+                st.metric("Límite superior", f"{last['upper']:.1f}", "banda 90 %",
+                          border=True, icon=":material/trending_up:", delta_color="off")
+                st.metric("Ventanas puntuadas", f"{live['contract']['ventanas']}",
+                          f"{live['contract']['filas']} filas", border=True,
+                          icon=":material/layers:", delta_color="off")
+                st.metric("SHA-256 del artefacto",
+                          str(live["contract"]["artefacto_sha256"])[:12], "reproducibilidad",
+                          border=True, icon=":material/fingerprint:", delta_color="off",
+                          help="Huella del artefacto congelado que produjo esta "
+                               "predicción. El contrato completo está en el expander "
+                               "«Contrato y procedencia de esta evaluación».")
+                st.metric("Contrato",
+                          f"w{live['contract']['window']}/s{live['contract']['step']}",
+                          "ventana/step", border=True,
+                          icon=":material/description:", delta_color="off",
+                          help="Ventana de filas remuestreadas y step usados en esta "
+                               "evaluación. Fuera de este contrato la predicción no es "
+                               "reproducible.")
+            reglas_live = " → ".join(traza_live["usadas"])
+            st.markdown(
+                f"Con los umbrales en vigor ({threshold_apto:.0f} / {threshold_aog:.0f}): "
+                f":{tone}-badge[{L.STATE_LABELS[live_state]}]"
+                + (f" · reglas: `{reglas_live}`" if reglas_live else "")
+            )
+            if traza_live["porque"]:
+                st.caption(" · ".join(traza_live["porque"]))
+            # El registro va pegado al resultado: es el paso que se busca justo después
+            # de evaluar. Antes vivía en un expander plegado al final de la sección.
+            gemelos_previos = st.session_state.get("twins", {})
+            motor_live = str(live["contract"].get("motor") or "").strip().upper()
+            ya_existe = motor_live in gemelos_previos
+            reemplazar = False
+            with st.container(border=True):
+                if ya_existe:
+                    previo = gemelos_previos[motor_live]
+                    verdad_previa = T.metricas_verdad(previo)
+                    st.markdown(
+                        f":green-badge[:material/check_circle: EN LA FLOTA] "
+                        f"`{motor_live}` · {len(previo['serie'])} ventana(s) guardada(s)"
+                        + (f" · RUL real {verdad_previa['rul_real']:.0f} ciclos"
+                           if verdad_previa else "")
+                    )
+                    st.caption(
+                        "Puntuar otra ventana del mismo motor no lo sobrescribe solo: "
+                        "marca la casilla para sustituir la serie."
+                    )
+                    reemplazar = st.checkbox(
+                        "Reemplazar la serie guardada (la RUL real se conserva)",
+                        key="twin_replace",
+                        help="Se sustituyen la serie, la huella y el contrato. La RUL real "
+                             "es un hecho del motor, no de la ventana: no se borra.",
+                    )
+                else:
+                    st.markdown(
+                        f":gray-badge[:material/add_circle: SIN REGISTRAR] "
+                        f"`{motor_live}` no está en la flota."
+                    )
+                    st.caption(
+                        "Regístralo para que aparezca en el muro y en «Gemelos "
+                        "registrados». Su estado se recalcula con los umbrales en vigor; "
+                        "la serie no se vuelve a puntuar."
+                    )
+                if st.button(
+                    f"Reemplazar gemelo `{motor_live}`" if ya_existe else "Registrar en la flota",
+                    icon=":material/sync:" if ya_existe else ":material/add_circle:",
+                    key="twin_add", type="primary",
+                ):
+                    try:
+                        gemelo = T.make_twin(
+                            live["contract"].get("motor") or "",
+                            live,
+                            source=str((st.session_state.get("live_meta") or {}).get(
+                                "source", "entrada manual")),
+                            banda=INF.BANDA_ARTEFACTO,
+                            correccion=INF.CORRECCION_NINGUNA,
+                            umbrales=umbrales,
+                            fingerprint_value=live["contract"].get("fingerprint", ""),
+                        )
+                        st.session_state["twins"] = T.registrar(
+                            st.session_state.get("twins", {}), gemelo,
+                            reemplazar=reemplazar)
+                        _guardar_registros()
+                        _log(f"Gemelo {gemelo['id']} registrado.")
+                    except ValueError as exc:
+                        st.error(str(exc), title="No se pudo registrar", icon=":material/rule:")
+                    else:
+                        st.session_state["twin_flash"] = (
+                            f"Gemelo `{gemelo['id']}` actualizado en la flota."
+                            if reemplazar else
+                            f"Gemelo `{gemelo['id']}` registrado en la flota.")
+                        st.rerun()
+
+
+            if len(live["windows"]) > 1:
+                w = live["windows"]
+                fig_live = go.Figure()
+                fig_live.add_trace(
+                    go.Scatter(x=w["cycle"], y=w["upper"], mode="lines", line=dict(width=0),
+                               hoverinfo="skip", name="Límite superior")
+                )
+                fig_live.add_trace(
+                    go.Scatter(x=w["cycle"], y=w["lower"], mode="lines", line=dict(width=0),
+                               fill="tonexty", fillcolor="rgba(56, 189, 248, 0.18)",
+                               name="Banda conformal")
+                )
+                fig_live.add_trace(
+                    go.Scatter(x=w["cycle"], y=w["pred"], mode="lines",
+                               line=dict(color=SKY, width=3), name="RUL estimada")
+                )
+                fig_live.add_hrect(
+                    y0=0, y1=threshold_aog, fillcolor=ROSE, opacity=0.10, line_width=0,
+                    annotation_text=f"hangar ({threshold_aog:.0f})",
+                    annotation_position="top left", annotation_font_size=11,
+                    annotation_font_color="#fca5a5",
+                )
+                fig_live.update_layout(**chart_layout(height=340, hovermode="x unified"))
+                style_axes(fig_live, x_title="Ciclo de vuelo", y_title="RUL (ciclos)")
+                st.plotly_chart(
+                    fig_live, theme=None,
+                    alt="Estimación de RUL y banda conformal para la unidad aportada por el usuario.",
+                )
+
+            with st.expander(
+                "Contrato y procedencia de esta evaluación", icon=":material/receipt_long:"
+            ):
+                contract = live["contract"]
+                st.markdown(
+                    f"**artefacto** `{contract['artefacto']}` · "
+                    f"**SHA-256** `{contract['artefacto_sha256']}`"
+                )
+                st.markdown(
+                    f"**ventana** `{contract['window']}` filas remuestreadas · "
+                    f"**step** `{contract['step']}` · **unidad simulada** "
+                    f"`{contract['unidad_simulada']:.0f}` (negativa: nunca se mezcla con "
+                    "las unidades en caché)"
+                )
+                st.markdown(
+                    "**canales** `" + ", ".join(contract["canales"]) + "`"
+                )
+                st.caption(
+                    "Las 50 muestras son la rejilla remuestreada (1 de cada 100 registros del "
+                    "dataset), lo que son ~0,4 ciclos de vuelo, no 50 lecturas de 1 Hz. Con otro "
+                    "muestreo la predicción queda "
+                    "fuera de contrato aunque los números sean válidos."
+                )
+
+            st.caption(
+                "**Sin ground truth**: esta unidad no trae RUL real, así que no se declara "
+                "RMSE ni MAE. La banda es una cota conservadora calibrada sobre los motores "
+                "de desarrollo; el sesgo de vida alta (`RUL ≈ 63 − ciclo`) también aplica aquí."
+            )
+
+            if live_state == L.AOG:
+                order_live = INF.live_work_order(
+                    live, st.session_state.get("live_meta"), threshold_apto, threshold_aog,
+                    alertas=alertas_live,
+                )
+                st.download_button(
+                    "Descargar orden de esta unidad (JSON)",
+                    data=json.dumps(order_live, ensure_ascii=False, indent=2),
+                    file_name="orden_mantenimiento_unidad_externa.json",
+                    mime="application/json",
+                    icon=":material/download:",
+                    type="primary",
+                )
+
+        # -------------------- sala 5: sandbox de estrés en vivo
+        with st.expander("Sandbox de estrés · perturba el motor y mira el pipeline reaccionar",
+                         icon=":material/tune:", expanded=_vista_tribunal):
+            st.caption(
+                "El tribunal mueve el deslizador y la app re-puntúa el tramo con el "
+                "artefacto congelado y re-decide con el motor oficial. No se reentrena "
+                "nada: lo que cambia es la entrada."
+            )
+            _sandbox_estres()
+
+
+        with st.expander("Demo en vivo", icon=":material/movie:", expanded=_vista_tribunal):
+            st.caption(
+                "Deja la app en el estado desde el que se cuenta la historia: umbrales "
+                "30/25, ciclo 29 y la unidad 14, que es la que entra en hangar."
+            )
+            if st.button("Cargar escenario de demo", icon=":material/play_circle:",
+                         key="demo_cargar", type="primary"):
+                st.session_state["_demo_pendiente"] = True
+                _log("Escenario de demo cargado (umbrales 30/25, ciclo 29, U14).")
                 st.rerun()
+            with st.expander("Restablecer demo", icon=":material/restart_alt:"):
+                st.caption(
+                    "Borra la flota registrada —gemelos y registros de hangar— de la "
+                    "sesión y del disco. La caché y el artefacto no se tocan."
+                )
+                confirma = st.checkbox("Confirmo que quiero borrar la flota registrada",
+                                        key="reset_confirm")
+                if st.button("Borrar gemelos y hangar", icon=":material/delete_forever:",
+                               disabled=not confirma, key="reset_demo"):
+                    st.session_state["twins"] = {}
+                    st.session_state["hangar"] = {}
+                    _guardar_registros()
+                    st.session_state["twin_flash"] = "Flota registrada borrada."
+                    st.rerun()
 
 
-    # ------------------------------------------------------------- SHAP waterfall
-    with st.container(border=True):
-        st.subheader("Explicabilidad local · SHAP waterfall",
-                     icon=":material/psychology:")
-        st.caption(
-            "Por qué el modelo predice este RUL para el motor seleccionado. "
-            "TreeExplainer exacto sobre el LightGBM del híbrido (no reentrena). "
-            "El waterfall muestra la contribución de cada feature a la predicción."
-        )
-        try:
-            import ui_shap as USH
-
+        # ------------------------------------------------------------- SHAP waterfall
+        with st.container(border=True):
+            st.subheader("Explicabilidad local · SHAP waterfall",
+                         icon=":material/psychology:")
+            st.caption(
+                "Por qué el modelo predice este RUL para el motor seleccionado. "
+                "TreeExplainer exacto sobre el LightGBM del híbrido (no reentrena). "
+                "El waterfall muestra la contribución de cada feature a la predicción."
+            )
             _wf_unit = int(st.session_state.get("unit", 14))
-            if st.button("Generar waterfall SHAP", icon=":material/psychology:",
-                        key="btn_shap_wf"):
-                _wf_path = USH.shap_waterfall_png(_wf_unit)
-                st.image(_wf_path, caption=f"SHAP waterfall · motor {_wf_unit}")
-        except Exception as _e:
-            st.warning(f"No se pudo generar el waterfall: {_e}")
+            shap_panel(_wf_unit, suffix="casos")
+    _tab_casos()
