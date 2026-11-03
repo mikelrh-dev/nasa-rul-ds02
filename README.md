@@ -96,8 +96,8 @@ Producción: RMSE 4.251 · MAE 3.183 · R² 0.9482 · NASA 2305.1 (semilla 42, s
 
 | Modelo | RMSE | MAE | R² | NASA score |
 | --- | --- | --- | --- | --- |
-| MLP E1 (mejor clásico) | 7.70 | 5.57 | 0.84 | — |
-| SVM (mejor clásico) | 9.06 | 7.99 | 0.77 | — |
+| MLP E2 (mejor MLP, elegido por val) | 7.72 | 5.81 | 0.83 | — |
+| XGB (mejor clásico, elegido por val) | 11.03 | 9.91 | 0.66 | — |
 | Híbrido-C (con nulos) | 4.338 | 3.227 | 0.9461 | 2336.2 |
 
 El bundle C (con nulos inyectados) no supera al bundle B (4.251). El modelo de

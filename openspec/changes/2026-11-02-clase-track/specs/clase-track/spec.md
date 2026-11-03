@@ -47,11 +47,17 @@ La capacidad SHALL entrenar `MLPRegressor` base + E1 capacidad / E2 regularizaci
 
 ### Requirement: Métricas, elección por negocio y SHAP
 
-La capacidad SHALL reportar MAE/RMSE/R² en train/val + gráfico real-vs-predicho en test (1 sola vez, modelo elegido), explicar qué significan para la empresa (coste hangar vs inspección), elegir por métrica de negocio (no por RMSE ciego, desempate al más simple) y mostrar qué variables pesan más con SHAP (200 filas) o permutación con fallback declarado, en `resultados/shap_*.png`.
+La capacidad SHALL reportar MAE/RMSE/R² en train/val + gráfico real-vs-predicho en test (1 sola vez, modelo elegido), explicar qué significan para la empresa (coste hangar vs inspección), elegir por métrica de negocio (no por RMSE ciego, desempate al más simple) y mostrar qué variables pesan más con SHAP calculado con validación —nunca con test— sobre el modelo elegido (200 filas), en `resultados/shap_*.png/csv` (rúbrica v5, SAA-9 10 pts). La permutación solo vale como lectura complementaria, no como sustituto para el 10.
+
+#### Scenario: SHAP sobre validación
+- GIVEN el modelo elegido
+- WHEN se calculan las atribuciones SHAP
+- THEN se usan filas de validación, nunca de test
+- AND se publica el top-k de variables en `resultados/shap_*.png/csv`
 
 ### Requirement: README de clase y app fina sin MLflow/n8n
 
-El README SHALL traer los 6 apartados obligatorios (título+frase, captura app arriba, negocio con dato+objetivo+quién+€, esquema Mermaid + IA débil/supervisado, datos+hallazgo+figs, resultados con tabla pandas+tiempos+elección+test+real-vs-predicho declarando "MLflow pendiente"). `clase/app_clase.py` SHALL mostrar métricas test, predecir 1 caso nuevo con decisión de `mia/motor` y rechazar vacíos/erróneos reutilizando `validate_table`. En este change NO SHALL hacer `POST` a n8n.
+El README SHALL traer los 6 apartados obligatorios (título+frase, captura app arriba, negocio con dato+objetivo+quién+€, esquema Mermaid + IA débil/supervisado, datos+hallazgo+figs, resultados con tabla pandas+tiempos+elección+test+real-vs-predicho declarando "MLflow pendiente" —techo conocido v5: sin captura MLflow, SAA-9 formal 7 y PIA-4 0). `clase/app_clase.py` SHALL (PIA-5 7 pts v5) mostrar métricas de test con matriz de confusión —o gráfico real-vs-predicho en regresión— y predecir 1 caso nuevo con la decisión de `mia/motor`; y para el 10 SHALL mostrar la `p` del caso nuevo (probabilidad o valor predicho) junto a la decisión. En este change NO SHALL hacer `POST` a n8n (v5 ya no lo exige en PIA-5; el envío vive en el flujo MIA-3).
 
 ### Requirement: Ventaneo honesto de la base adaptada (NB04)
 
