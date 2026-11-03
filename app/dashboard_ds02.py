@@ -449,9 +449,6 @@ with st.sidebar:
     )
     st.divider()
 
-    with st.expander("¿Cómo probar con un caso típico?", icon=":material/help:"):
-        st.caption("Sin CSV ni pegado: elige unidad + ciclo y aparece en flota. "
-                   "Cada ciclo es un estado de degradación distinto.")
     # Sin `st.form`: la matrícula se deriva de la unidad y tiene que refrescarse
     # al cambiarla. En un form el valor no viaja hasta enviar y quedaría obsoleto.
     unidad_libre = st.selectbox(
@@ -552,119 +549,12 @@ with st.sidebar:
 
     with st.expander("Cómo leer esta pantalla", icon=":material/help:"):
         st.markdown(
-            "- **RUL** (*remaining useful life*): ciclos de vuelo que le quedan al motor "
-            "según el modelo. Es una estimación, no una medida.\n"
-            "- **L_inf**: extremo inferior de la banda conformal al 90 %. Es el número que "
-            "gobierna la decisión, no la predicción puntual: equivocarse por pesimismo "
-            "cuesta una inspección, por optimismo cuesta un motor.\n"
-            "- **Banda 90 %**: intervalo calibrado sobre los motores de desarrollo. Si el "
-            "motor se comporta como ellos, su vida real cae dentro 9 de cada 10 veces.\n"
-            "- **Estados**: APTO (`L_inf ≥ apto`) · INSPECCIÓN (entre umbrales) · "
-            "HANGAR/AOG (`L_inf < hangar`: la unidad no vuela y se emite orden).\n"
-            "- **Ciclo de vuelo**: un despegue–aterrizaje. El reloj del taller "
-            "simula el paso del tiempo sobre el conjunto de test congelado.\n"
-            "- **Ventana**: las 50 muestras remuestreadas (~0,4 ciclos de vuelo) que "
-            "el modelo consume de una vez. "
-            "Se puntúa una ventana cada 2 filas, así que un ciclo acumula varias "
-            "predicciones.\n"
-            "- **Orden de trabajo**: documento JSON/CSV con las unidades bloqueadas, su "
-            "banda y la acción de mantenimiento."
+            """- **RUL**: ciclos que le quedan al motor (estimación, no medida).
+- **L_inf / Banda 90 %**: cota inferior conformal; gobierna la decisión (APTO · INSPECCIÓN · HANGAR/AOG).
+- **Ciclo de vuelo / Ventana**: reloj simulado; 50 muestras remuestreadas (~0,4 ciclos) por ventana.
+- **Orden de trabajo**: JSON/CSV de las unidades bloqueadas con banda y acción."""
         )
 
-    with st.expander("Contrato de artefacto congelado", icon=":material/lock:"):
-        shape = manifest.get("model_shape", {})
-        conformal = manifest.get("conformal", {}) or {}
-        st.caption(
-            "Registrado en `models/ds02_manifest.json`. **No** es un cálculo de esta "
-            "caché: es el contrato del artefacto que se está consumiendo."
-        )
-        st.markdown(
-            f"**dataset** `{manifest.get('dataset')}` · "
-            f"**code_version** `{manifest.get('code_version')}` · "
-            f"**seed** `{manifest.get('seed')}`"
-        )
-        st.markdown(
-            f"**test** `{manifest.get('unit_partition', {}).get('test')}` · "
-            f"**ventana** `{shape.get('bilstm_input_shape')}` · "
-            f"**meta** `{shape.get('meta_features')} features`"
-        )
-        st.markdown(
-            f"**banda** objetivo `{conformal.get('target_coverage')}` · "
-            f"*{conformal.get('method')}* · calibración "
-            f"`{conformal.get('n_calibration')}` filas"
-        )
-        st.markdown("**SHA-256 del ensemble**")
-        st.code(provenance["artifact"]["ensemble_sha256"], language=None)
-        st.caption(
-            "64 caracteres hexadecimales. Es la huella del artefacto congelado, no la de "
-            "la caché."
-        )
-        # Auditoria criptografica on-demand: hashea el manifest y el .keras en disco
-        # y los compara con los sellos registrados. No se ejecuta en cada render:
-        # solo al pulsar, y el resultado se cachea en session_state.
-        if st.button("Auditar hashes del artefacto", icon=":material/verified:",
-                     key="btn_audit_hashes"):
-            import hashlib
-            _hashes = {}
-            for _name, _path in (
-                ("bilstm_ds02.keras", os.path.join(L.ROOT, "models", "bilstm_ds02.keras")),
-            ):
-                try:
-                    _h = hashlib.sha256()
-                    with open(_path, "rb") as _fh:
-                        for _chunk in iter(lambda: _fh.read(1 << 20), b""):
-                            _h.update(_chunk)
-                    _hashes[_name] = _h.hexdigest()
-                except OSError:
-                    _hashes[_name] = None
-            st.session_state["audit_hashes"] = _hashes
-        _audit = st.session_state.get("audit_hashes")
-        if _audit:
-            _esp_bilstm = (provenance.get("artifact") or {}).get("bilstm_sha256")
-            _leido_bilstm = _audit.get("bilstm_ds02.keras")
-            if _leido_bilstm is not None and _esp_bilstm and _leido_bilstm == _esp_bilstm:
-                st.success("bilstm_ds02.keras: hash coincide con el manifest.",
-                           icon=":material/check_circle:")
-            elif _leido_bilstm is not None:
-                st.error(f"bilstm_ds02.keras: discrepancia "
-                         f"({_leido_bilstm[:12]} vs {_esp_bilstm[:12]})",
-                         icon=":material/cancel:")
-            else:
-                st.warning("No se pudo hashear bilstm_ds02.keras.",
-                           icon=":material/warning:")
-        # El sello estaba en pantalla y nadie lo comprobaba: si el bundle se
-        # reentrena y se sustituye sin reconstruir `app/cache/`, la superficie
-        # sigue pintando predicciones bajo el sello viejo. Se mira en cada
-        # render y **solo** se avisa cuando discrepan: con el sello en regla no
-        # aparece nada, de modo que el camino verde no mueve ni un widget.
-        _sello = L.artifact_hash_check(provenance)
-        if _sello["checked"] and not _sello["ok"]:
-            st.warning(
-                f"La caché no corresponde al artefacto que hay en disco: el sello "
-                f"registrado es `{_sello['esperado'][:12]}` y el leído es "
-                f"`{_sello['leido'][:12]}`. Las cifras salen de `app/cache/`; "
-                f"reconstrúyela con `python scripts/build_ui_cache.py`.",
-                icon=":material/warning:",
-            )
-        elif not _sello["checked"]:
-            st.caption(
-                "No se pudo comprobar el sello del artefacto contra "
-                "`models/ensemble.joblib`."
-            )
-        recorded = manifest.get("macro_rmse", {}).get("per_unit_rmse", {})
-        if recorded:
-            st.markdown(
-                "**macro-RMSE por motor (registrado)** "
-                + " · ".join(f"U{int(float(k))}: `{v:.3f}`" for k, v in recorded.items())
-            )
-        st.json(
-            {
-                "artefactos": manifest.get("artifacts", {}),
-                "inference_contract": manifest.get("inference_contract", {}),
-                "lgb_objective": manifest.get("lgb_objective", {}),
-            },
-            expanded=False,
-        )
 
 # La capa de reglas (mia/) es opcional y arranca apagada: con ella apagada la UI
 # muestra la lectura cruda de la caché, que es la que reproduce el contrato
@@ -2568,8 +2458,7 @@ with tab_auditoria:
                 delta_color="off", icon=":material/target:",
                 help="Error absoluto medio donde de verdad se decide el mantenimiento.")
 
-    with st.container(border=True):
-        st.subheader("Procedencia verificable", icon=":material/fingerprint:")
+    with st.expander("Procedencia verificable", icon=":material/fingerprint:"):
         st.caption(
             "Huella SHA-256 del ensemble congelado, copiada del manifiesto que acompaña a "
             "la caché. La UI no recalcula el artefacto: lo identifica."
@@ -2596,8 +2485,7 @@ with tab_auditoria:
             f"suavizado con un EMA causal por motor. Documentado, no reconciliado."
         )
 
-    with st.container(border=True):
-        st.subheader("Contrato congelado vs. cálculo en vivo", icon=":material/difference:")
+    with st.expander("Contrato congelado vs. cálculo en vivo", icon=":material/difference:"):
         recorded = manifest.get("macro_rmse", {}).get("per_unit_rmse", {})
         compare = pd.DataFrame(
             {
@@ -2629,6 +2517,101 @@ with tab_auditoria:
             "sería deriva de regeneración del artefacto, y se publica tal cual: no se ajusta "
             "ninguna de las dos. El score NASA es una **suma** asimétrica sobre las mismas "
             "6 196 ventanas y no aplica el recorte de 125 ciclos del camino FD001."
+        )
+
+    with st.expander("Contrato de artefacto congelado", icon=":material/lock:"):
+        shape = manifest.get("model_shape", {})
+        conformal = manifest.get("conformal", {}) or {}
+        st.caption(
+            "Registrado en `models/ds02_manifest.json`. **No** es un cálculo de esta "
+            "caché: es el contrato del artefacto que se está consumiendo."
+        )
+        st.markdown(
+            f"**dataset** `{manifest.get('dataset')}` · "
+            f"**code_version** `{manifest.get('code_version')}` · "
+            f"**seed** `{manifest.get('seed')}`"
+        )
+        st.markdown(
+            f"**test** `{manifest.get('unit_partition', {}).get('test')}` · "
+            f"**ventana** `{shape.get('bilstm_input_shape')}` · "
+            f"**meta** `{shape.get('meta_features')} features`"
+        )
+        st.markdown(
+            f"**banda** objetivo `{conformal.get('target_coverage')}` · "
+            f"*{conformal.get('method')}* · calibración "
+            f"`{conformal.get('n_calibration')}` filas"
+        )
+        st.markdown("**SHA-256 del ensemble**")
+        st.code(provenance["artifact"]["ensemble_sha256"], language=None)
+        st.caption(
+            "64 caracteres hexadecimales. Es la huella del artefacto congelado, no la de "
+            "la caché."
+        )
+        # Auditoria criptografica on-demand: hashea el manifest y el .keras en disco
+        # y los compara con los sellos registrados. No se ejecuta en cada render:
+        # solo al pulsar, y el resultado se cachea en session_state.
+        if st.button("Auditar hashes del artefacto", icon=":material/verified:",
+                     key="btn_audit_hashes"):
+            import hashlib
+            _hashes = {}
+            for _name, _path in (
+                ("bilstm_ds02.keras", os.path.join(L.ROOT, "models", "bilstm_ds02.keras")),
+            ):
+                try:
+                    _h = hashlib.sha256()
+                    with open(_path, "rb") as _fh:
+                        for _chunk in iter(lambda: _fh.read(1 << 20), b""):
+                            _h.update(_chunk)
+                    _hashes[_name] = _h.hexdigest()
+                except OSError:
+                    _hashes[_name] = None
+            st.session_state["audit_hashes"] = _hashes
+        _audit = st.session_state.get("audit_hashes")
+        if _audit:
+            _esp_bilstm = (provenance.get("artifact") or {}).get("bilstm_sha256")
+            _leido_bilstm = _audit.get("bilstm_ds02.keras")
+            if _leido_bilstm is not None and _esp_bilstm and _leido_bilstm == _esp_bilstm:
+                st.success("bilstm_ds02.keras: hash coincide con el manifest.",
+                           icon=":material/check_circle:")
+            elif _leido_bilstm is not None:
+                st.error(f"bilstm_ds02.keras: discrepancia "
+                         f"({_leido_bilstm[:12]} vs {_esp_bilstm[:12]})",
+                         icon=":material/cancel:")
+            else:
+                st.warning("No se pudo hashear bilstm_ds02.keras.",
+                           icon=":material/warning:")
+        # El sello estaba en pantalla y nadie lo comprobaba: si el bundle se
+        # reentrena y se sustituye sin reconstruir `app/cache/`, la superficie
+        # sigue pintando predicciones bajo el sello viejo. Se mira en cada
+        # render y **solo** se avisa cuando discrepan: con el sello en regla no
+        # aparece nada, de modo que el camino verde no mueve ni un widget.
+        _sello = L.artifact_hash_check(provenance)
+        if _sello["checked"] and not _sello["ok"]:
+            st.warning(
+                f"La caché no corresponde al artefacto que hay en disco: el sello "
+                f"registrado es `{_sello['esperado'][:12]}` y el leído es "
+                f"`{_sello['leido'][:12]}`. Las cifras salen de `app/cache/`; "
+                f"reconstrúyela con `python scripts/build_ui_cache.py`.",
+                icon=":material/warning:",
+            )
+        elif not _sello["checked"]:
+            st.caption(
+                "No se pudo comprobar el sello del artefacto contra "
+                "`models/ensemble.joblib`."
+            )
+        recorded = manifest.get("macro_rmse", {}).get("per_unit_rmse", {})
+        if recorded:
+            st.markdown(
+                "**macro-RMSE por motor (registrado)** "
+                + " · ".join(f"U{int(float(k))}: `{v:.3f}`" for k, v in recorded.items())
+            )
+        st.json(
+            {
+                "artefactos": manifest.get("artifacts", {}),
+                "inference_contract": manifest.get("inference_contract", {}),
+                "lgb_objective": manifest.get("lgb_objective", {}),
+            },
+            expanded=False,
         )
 
     with st.container(border=True):
