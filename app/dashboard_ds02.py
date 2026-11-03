@@ -1043,11 +1043,6 @@ with tab_flota:
                             icon=BADGE_ICON.get(estado, ":material/circle:"),
                             color=BADGE_COLOR.get(estado, "gray"),
                         )
-                        st.metric("RUL p35 (conservadora)", _pred, "cuantil 0.35",
-                                  border=True, delta_color="off", icon=":material/speed:",
-                                  help="Cuantil 0.35 de la RUL (ADR-003): una estimacion "
-                                       "conservadora, no la vida esperada. Lo que decide el "
-                                       "estado es el limite inferior de su banda, L_inf.")
                         st.metric("L_inf (decide)", _lo, "ciclos",
                                   border=True, delta_color="off",
                                   icon=":material/trending_down:")
@@ -1058,23 +1053,6 @@ with tab_flota:
                                 f"el ciclo {_primer_ciclo_u}. Avanza el reloj de flota o "
                                 f"incorpórala con ese ciclo."
                             )
-                        fig = go.Figure(
-                            go.Scatter(
-                                x=curva["cycle"], y=curva["lower"], mode="lines",
-                                line=dict(color=SKY, width=2), name="L_inf",
-                                hovertemplate="ciclo %{x}<br>L_inf %{y:.1f}<extra></extra>",
-                            )
-                        )
-                        fig.update_layout(**chart_layout(
-                            height=110, showlegend=False, hovermode="closest",
-                            margin=dict(l=8, r=8, t=6, b=6),
-                        ))
-                        style_axes(fig)
-                        st.plotly_chart(
-                            fig, theme=None,
-                            alt=f"Sparkline del límite inferior de {etiqueta} "
-                                "a lo largo de los ciclos.",
-                        )
                         if st.button(
                             "Ver gemelo", key=tarjeta["clave_boton"],
                             icon=":material/visibility:", type="secondary",
@@ -1099,8 +1077,8 @@ with tab_flota:
 
         _muro_del_hangar()
 
-    with st.container(border=True):
-        st.subheader("Cronología de estado de flota", icon=":material/timeline:")
+    with st.expander("Cronología de estado de flota", icon=":material/timeline:",
+                     expanded=False):
         st.caption(
             "**Leyenda:** ● verde → Apto · ■ naranja → Inspección · ✕ rojo → Hangar. "
             "Solo `L_inf` (límite inferior de la banda) decide el color; la línea "
@@ -1288,7 +1266,7 @@ with tab_flota:
 
     # Plegada la tabla; la tarjeta «Regla de negocio» se queda fuera, a la vista.
     with st.expander("Cola de mantenimiento · tabla por unidad",
-                     icon=":material/assignment:"):
+                     icon=":material/assignment:", expanded=False):
         display = pd.DataFrame(
             {
                 "Motor": [_etiqueta_unidad(float(u)) for u in snapshot["unit"]],
@@ -3090,7 +3068,7 @@ with tab_casos:
     })
 
     with st.expander("Qué es cada columna y qué rango es normal",
-                     icon=":material/menu_book:"):
+                     icon=":material/menu_book:", expanded=False):
         st.caption(
             "Nombres del dataset N-CMAPSS: `T24` es la salida del compresor de baja "
             "presión, `Ps30` la presión estática a la salida del de alta. El rango "
@@ -3473,9 +3451,8 @@ with tab_casos:
             )
 
     # -------------------- sala 5: sandbox de estrés en vivo
-    with st.container(border=True):
-        st.subheader("Sandbox de estrés · perturba el motor y mira el pipeline reaccionar",
-                     icon=":material/tune:")
+    with st.expander("Sandbox de estrés · perturba el motor y mira el pipeline reaccionar",
+                     icon=":material/tune:", expanded=_vista_tribunal):
         st.caption(
             "El tribunal mueve el deslizador y la app re-puntúa el tramo con el "
             "artefacto congelado y re-decide con el motor oficial. No se reentrena "
@@ -3484,8 +3461,7 @@ with tab_casos:
         _sandbox_estres()
 
 
-    with st.container(border=True):
-        st.subheader("Demo en vivo", icon=":material/movie:")
+    with st.expander("Demo en vivo", icon=":material/movie:", expanded=_vista_tribunal):
         st.caption(
             "Deja la app en el estado desde el que se cuenta la historia: umbrales "
             "30/25, ciclo 29 y la unidad 14, que es la que entra en hangar."
