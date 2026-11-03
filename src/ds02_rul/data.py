@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 DS02_CANDIDATE_PATHS = (
+    "data/raw/N-CMAPSS_DS02-006.h5",
     "archive/CCMaps/N-CMAPSS_DS02-006.h5",
     "N-CMAPSS_DS02-006.h5",
     "archive/N-CMAPSS_DS02-006.h5",

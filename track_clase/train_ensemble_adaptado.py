@@ -37,7 +37,7 @@ if os.path.join(_ROOT, "src") not in sys.path:
     sys.path.insert(0, os.path.join(_ROOT, "src"))
 
 from track_clase.dataset_clase import OP_COLS, SENSOR_COLS, imputar_ffill  # noqa: E402
-from ds02_rul import HybridStackingEnsemble  # noqa: E402
+from ds02_rul.ensemble import HybridStackingEnsemble  # noqa: E402
 from ds02_rul.conformal import fit_conformal  # noqa: E402
 from ds02_rul.metrics import evaluate_predictions, macro_rmse  # noqa: E402
 from ds02_rul.persistence import build_manifest, save_ensemble  # noqa: E402

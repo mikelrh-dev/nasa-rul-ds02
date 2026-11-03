@@ -3,7 +3,7 @@
   "generated_at": "2026-10-26T21:17:27+00:00",
   "dataset": "DS02",
   "source": {
-    "h5": "archive/CCMaps/N-CMAPSS_DS02-006.h5",
+    "h5": "data/raw/N-CMAPSS_DS02-006.h5",
     "stride": 100,
     "window": 50,
     "step": 2,
