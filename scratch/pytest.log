@@ -1,0 +1,168 @@
+...........s...............FFF.......................................... [ 29%]
+........................................................................ [ 59%]
+.................................ss....sss.............................. [ 89%]
+.........................                                                [100%]
+================================== FAILURES ===================================
+____________________ test_raw_adaptado_alineado_sin_nulos _____________________
+
+    def test_raw_adaptado_alineado_sin_nulos():
+>       from track_clase.train_ensemble_adaptado import construir_raw_adaptado
+
+tests\test_clase_bundle_c.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Fase 6 (NB05/bundle C): ensemble completo sobre la base adaptada.
+    
+    La base adaptada (MAR T30 + ffill causal) entra POR ARRIBA del pipeline
+    honesto: `construir_raw_adaptado` mapea los parquet a un dict raw
+    (A/W/Xs/y alineados) y a partir de ahí se usan SIN CAMBIOS
+    `run_seed` + `oof_base_predictions` + `select_beta_grouped` +
+    `fit_meta_learners` + `HybridStackingEnsemble` + `fit_conformal`.
+    
+    Diferencias con B (declaradas, son la puerta de adopción):
+    - imputación con medianas SOLO de fit-units (B no imputa: HDF5 limpio);
+    - `dataset='DS02-adaptada'` en el manifest; bundle en `track_clase/models/`
+      (nunca `models/`); SIN re-freeze (requiere otra autorización).
+    
+    Puerta D11 (pre-registrada): se adopta C solo si
+    `RMSE_C <= 4.25 - spread_seeds` Y `NASA_C <= NASA_B` en las mismas
+    6.196 ventanas test. Si no, C queda como experimento y B sigue.
+    """
+    
+    from __future__ import annotations
+    
+    import os
+    import sys
+    import time
+    
+    import joblib
+    import matplotlib
+    
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+    
+    _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if _ROOT not in sys.path:
+        sys.path.insert(0, _ROOT)
+    if os.path.join(_ROOT, "src") not in sys.path:
+        sys.path.insert(0, os.path.join(_ROOT, "src"))
+    
+    from track_clase.dataset_clase import OP_COLS, SENSOR_COLS, imputar_ffill  # noqa: E402
+>   from ds02_rul import HybridStackingEnsemble  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'HybridStackingEnsemble' from 'ds02_rul' (unknown location)
+
+track_clase\train_ensemble_adaptado.py:40: ImportError
+__________________ test_raw_adaptado_particiones_congeladas ___________________
+
+    def test_raw_adaptado_particiones_congeladas():
+>       from track_clase.train_ensemble_adaptado import construir_raw_adaptado
+
+tests\test_clase_bundle_c.py:31: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Fase 6 (NB05/bundle C): ensemble completo sobre la base adaptada.
+    
+    La base adaptada (MAR T30 + ffill causal) entra POR ARRIBA del pipeline
+    honesto: `construir_raw_adaptado` mapea los parquet a un dict raw
+    (A/W/Xs/y alineados) y a partir de ahí se usan SIN CAMBIOS
+    `run_seed` + `oof_base_predictions` + `select_beta_grouped` +
+    `fit_meta_learners` + `HybridStackingEnsemble` + `fit_conformal`.
+    
+    Diferencias con B (declaradas, son la puerta de adopción):
+    - imputación con medianas SOLO de fit-units (B no imputa: HDF5 limpio);
+    - `dataset='DS02-adaptada'` en el manifest; bundle en `track_clase/models/`
+      (nunca `models/`); SIN re-freeze (requiere otra autorización).
+    
+    Puerta D11 (pre-registrada): se adopta C solo si
+    `RMSE_C <= 4.25 - spread_seeds` Y `NASA_C <= NASA_B` en las mismas
+    6.196 ventanas test. Si no, C queda como experimento y B sigue.
+    """
+    
+    from __future__ import annotations
+    
+    import os
+    import sys
+    import time
+    
+    import joblib
+    import matplotlib
+    
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+    
+    _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if _ROOT not in sys.path:
+        sys.path.insert(0, _ROOT)
+    if os.path.join(_ROOT, "src") not in sys.path:
+        sys.path.insert(0, os.path.join(_ROOT, "src"))
+    
+    from track_clase.dataset_clase import OP_COLS, SENSOR_COLS, imputar_ffill  # noqa: E402
+>   from ds02_rul import HybridStackingEnsemble  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'HybridStackingEnsemble' from 'ds02_rul' (unknown location)
+
+track_clase\train_ensemble_adaptado.py:40: ImportError
+__________________ test_raw_adaptado_medianas_solo_fit_units __________________
+
+    def test_raw_adaptado_medianas_solo_fit_units():
+        import pandas as pd
+        from track_clase.dataset_clase import SENSOR_COLS
+>       from track_clase.train_ensemble_adaptado import construir_raw_adaptado
+
+tests\test_clase_bundle_c.py:41: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Fase 6 (NB05/bundle C): ensemble completo sobre la base adaptada.
+    
+    La base adaptada (MAR T30 + ffill causal) entra POR ARRIBA del pipeline
+    honesto: `construir_raw_adaptado` mapea los parquet a un dict raw
+    (A/W/Xs/y alineados) y a partir de ahí se usan SIN CAMBIOS
+    `run_seed` + `oof_base_predictions` + `select_beta_grouped` +
+    `fit_meta_learners` + `HybridStackingEnsemble` + `fit_conformal`.
+    
+    Diferencias con B (declaradas, son la puerta de adopción):
+    - imputación con medianas SOLO de fit-units (B no imputa: HDF5 limpio);
+    - `dataset='DS02-adaptada'` en el manifest; bundle en `track_clase/models/`
+      (nunca `models/`); SIN re-freeze (requiere otra autorización).
+    
+    Puerta D11 (pre-registrada): se adopta C solo si
+    `RMSE_C <= 4.25 - spread_seeds` Y `NASA_C <= NASA_B` en las mismas
+    6.196 ventanas test. Si no, C queda como experimento y B sigue.
+    """
+    
+    from __future__ import annotations
+    
+    import os
+    import sys
+    import time
+    
+    import joblib
+    import matplotlib
+    
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+    
+    _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if _ROOT not in sys.path:
+        sys.path.insert(0, _ROOT)
+    if os.path.join(_ROOT, "src") not in sys.path:
+        sys.path.insert(0, os.path.join(_ROOT, "src"))
+    
+    from track_clase.dataset_clase import OP_COLS, SENSOR_COLS, imputar_ffill  # noqa: E402
+>   from ds02_rul import HybridStackingEnsemble  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'HybridStackingEnsemble' from 'ds02_rul' (unknown location)
+
+track_clase\train_ensemble_adaptado.py:40: ImportError
+=========================== short test summary info ===========================
+FAILED tests/test_clase_bundle_c.py::test_raw_adaptado_alineado_sin_nulos - I...
+FAILED tests/test_clase_bundle_c.py::test_raw_adaptado_particiones_congeladas
+FAILED tests/test_clase_bundle_c.py::test_raw_adaptado_medianas_solo_fit_units
+3 failed, 232 passed, 6 skipped in 253.22s (0:04:13)

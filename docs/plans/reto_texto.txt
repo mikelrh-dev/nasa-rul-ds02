@@ -1,0 +1,250 @@
+IABD · SAA, PIA, MIA · 2026-27
+RETO 1 · SAA + PIA + MIA
+De la predicción a la acción
+Reto por parejas. El proyecto debe estar contextualizado en un negocio y
+responder a una necesidad real de ese negocio:
+1. elegís el problema de una empresa
+2. construís un modelo que lo predice
+3. le dais una utilidad, de forma que la predicción se convierte en una
+decisión y en una acción.
+Es un único proyecto en un único repositorio, pero cada asignatura lo evalúa
+por separado, con su propia rúbrica.
+En la defensa, cada alumno/a responde individualmente a 3 preguntas sobre
+el proyecto, una de cada asignatura.
+Requisitos del dataset
+• Datos en tabla, con valores nulos y al menos una variable categórica.
+• Problema de clasificación o de regresión.
+Qué evalúa cada asignatura
+Asignatura Qué mira del proyecto RA evaluados y peso en el reto
+(suma 100 %)
+SAA Los datos y los modelos: EDA, nulos, RA1 5 % · RA2 10 % · RA3 45 %
+cinco modelos, MLP, comparativa y · RA5 20 % · RA6 20 %
+elección
+PIA El código: estructura, pipeline de RA1 10 % · RA2 90 %
+sklearn, MLflow, app de Streamlit y
+README
+MIA El problema de negocio, las reglas que RA1 20 % · RA5 80 %
+deciden y el flujo de n8n que actúa
+1
+IABD · SAA, PIA, MIA · 2026-27
+Cómo funciona el sistema
+Streamlit: caso nuevo → modelo (p) → reglas (decisión) → webhook de n8n →
+acción
+p es la probabilidad que da el modelo (clasificación) o el valor que predice
+(regresión).
+Parte de SAA · datos y modelos
+• En el README, apartado "Qué hemos construido": un párrafo que
+presente vuestro sistema y explique por qué es una IA débil, qué tipo de
+aprendizaje usa (supervisado: clasificación o regresión) y para qué sirve
+cada herramienta (scikit-learn, XGBoost, MLflow…).
+Análisis de los datos
+• Descripción del dataset: origen, filas, columnas, variable objetivo y
+tabla de campos (nombre, qué significa, tipo y % de nulos). Va en el
+notebook de EDA y en el README.
+• Calidad de los datos: duplicados, valores imposibles y nulos.
+• Al menos 5 gráficos con matplotlib: diagrama de barras, una variable
+numérica (histograma y boxplot), relación entre dos variables (dispersión)
+y correlación (heatmap). Debajo de cada gráfico, qué veo y qué
+conclusión saco.
+• Nulos: ¿al azar o con patrón? Imputad según eso.
+• Variables nuevas, si tienen sentido.
+Modelos
+• Cinco modelos: regresión, KNN, Random Forest, XGBoost, SVM.
+GridSearchCV con validación cruzada (si es necesario).
+• Si las clases están desbalanceadas, aplicad SMOTE y comparad los
+resultados con y sin SMOTE.
+• MLP: modelo base y 3 experimentos cambiando hiperparámetros.
+• Tabla comparativa sacada de MLflow: una fila por modelo con sus
+métricas (train y validación) y el tiempo de entrenamiento. Va en el
+README, con una captura de MLflow. Debajo, qué modelo elegís y por
+qué.
+• Test una sola vez, con el modelo elegido, en la app de Streamlit.
+• Opcional: probad algo que no hayamos visto en clase (un
+hiperparámetro, un modelo nuevo…) y comparadlo con lo que teníais.
+Métricas y errores del modelo: seleccionad las métricas adecuadas para
+vuestro problema. En clasificación: recall, precisión, F1 y matriz de confusión
+(obligatoria). En regresión: MAE, RMSE, R² y un gráfico de valores reales
+frente a predichos. Explicad qué significan para la empresa.
+2
+IABD · SAA, PIA, MIA · 2026-27
+Parte de PIA · código
+• Estructura de carpetas ordenada.
+• Preprocesado con un pipeline de sklearn (StandardScaler,
+OneHotEncoder) que usan todos los modelos.
+• Funciones documentadas.
+• Modelos y experimentos registrados en MLflow.
+• App en Streamlit: evalúa con test el modelo elegido y predice un caso
+nuevo con la decisión de las reglas.
+• requirements.txt
+• README.
+Parte de MIA · utilidad para el negocio
+• En el README: el problema de negocio con un dato, el objetivo (qué se
+predice, para qué y quién lo usa).
+• src/reglas.py: 6 reglas o más, con prioridad, porqué y una regla de
+seguridad.
+• Flujo de n8n: webhook → una rama por decisión → la acción que elijáis
+(Google Sheets, PostgreSQL, Google Calendar, correo…).
+Estructura básica del repositorio
+<nombre-del-proyecto>/
+├── README.md
+├── requirements.txt
+├── data/
+│ ├── raw/ datos originales
+│ └── processed/ X_train, X_test, y_train, y_test
+├── notebooks/
+│ ├── 01_eda.ipynb EDA, nulos y separación
+│ ├── 02_modelos_<A>.ipynb
+│ └── 03_modelos_<B>.ipynb
+├── src/
+│ ├── utils.py funciones del proyecto
+│ ├── reglas.py reglas (MIA)
+│ └── n8n.py envío al webhook (MIA)
+├── app/
+│ └── streamlit_app.py
+├── models/ mejor_modelo.joblib
+├── n8n/ flujo.json
+└── resultados/ capturas de MLflow y de la app
+3
+IABD · SAA, PIA, MIA · 2026-27
+El README
+El README es la carta de presentación del proyecto. Los apartados marcados
+con (*) son obligatorios. Tenéis un ejemplo completo en
+README_ejemplo_CV.md, por si os sirve de ayuda:
+Apartado Qué poner
+1. Título y una frase (*) Qué hace el sistema, para quién y con qué resultado.
+2. Captura de la app (*) Una captura de Streamlit, arriba del todo.
+3. La necesidad de Qué problema tiene la empresa, y a qué necesidad responde
+negocio más desarrollada el sistema.
+(*)
+4. Qué hemos construido Un esquema (modelo → reglas → n8n → acción) y un párrafo
+(*) que presente el sistema y explique por qué es una IA débil y
+qué tipo de aprendizaje usa.
+5. Los datos (*) Descripción del dataset, tabla de campos y lo más importante
+que descubristeis en el EDA, con uno o dos gráficos.
+6. Resultados (*) Tabla con los modelos y sus métricas sacada de MLflow,
+modelo elegido y por qué, resultado de test con sus errores
+(matriz de confusión o gráfico real frente a predicho) y captura
+de MLflow.
+4
+IABD · SAA, PIA, MIA · 2026-27
+Rúbrica SAA · Sistemas de Aprendizaje Automático
+Cada fila adapta al reto los criterios de evaluación (CE) del RA.
+0 puntos 3 puntos 7 puntos 10 puntos
+RA1 5 %
+1. Presenta su sistema No lo menciona. Dice que es IA débil, sin Explica con sus palabras Además lo compara con
+explicando por qué es una IA explicar por qué. por qué su sistema es IA una IA fuerte y razona la
+débil débil. respuesta.
+CE a, d, f · Peso 5 %
+RA2 10 %
+2. Explica el tipo de No lo indica. Solo dice si es Dice que es aprendizaje Además razona el tipo
+aprendizaje de su problema clasificación o regresión. supervisado y si es de aprendizaje y en qué
+CE b, c, d, e · Peso 10 % clasificación o regresión. se diferencia del
+aprendizaje no
+supervisado.
+RA3 45 %
+3. Describe el dataset y sus No describe el dataset. Dice de dónde salen los Tabla con todos los Además la tabla indica
+campos datos, sin describir los campos: nombre, qué los nulos de cada campo
+CE a, b · Peso 5 % campos. significa y tipo. y qué campos quita y
+por qué.
+4. Analiza los datos con No hay gráficos. Gráficos sin comentar. 3 o 4 gráficos Al menos 5 gráficos
+gráficos comentados comentados. comentados: barras,
+CE b · Peso 5 % histograma, boxplot,
+dispersión y heatmap.
+5. Trata los nulos y crea No trata los nulos. Rellena o quita los nulos Explica cómo trata los Además crea alguna
+variables nuevas sin explicar por qué. nulos y por qué (si son al variable nueva útil y
+CE c · Peso 5 % azar o siguen un patrón). explica por qué. Si no se
+puede crear, explica la
+razón.
+5
+IABD · SAA, PIA, MIA · 2026-27
+0 puntos 3 puntos 7 puntos 10 puntos
+6. Entrena y valida los cinco Ningún modelo funciona. Menos de 5 modelos. Los 5 modelos. Además prueba algo no
+modelos visto en clase (un
+CE d, e, f, g, h · Peso 30 % hiperparámetro, un
+modelo nuevo…) y
+demuestra si mejora o
+no.
+RA5 20 %
+7. Experimenta con una red No hay MLP. Modelo base con menos Modelo base y 3 Modelo base y 3
+MLP de 3 experimentos. experimentos, sin experimentos,
+CE a, b, c, d · Peso 20 % explicar por qué realiza explicando por qué
+cada experimento. realiza cada
+experimento.
+RA6 20 %
+8. Valida los modelos con las No calcula métricas. Usa una sola métrica Varias métricas Además explica qué
+métricas adecuadas a su (por ejemplo, accuracy) adecuadas, en train y significan los errores del
+problema sin explicar por qué. validación. Clasificación: modelo para la empresa.
+CE a, b · Peso 10 % recall, precisión, F1 y
+matriz de confusión.
+Regresión: MAE, RMSE,
+R² y gráfico real frente a
+predicho.
+9. Elige el mejor modelo para No compara los Elige el de mejor Tabla con las métricas y Además explica con
+el negocio modelos. métrica, sin ninguna el tiempo de cada SHAP qué variables
+CE a, b · Peso 5 % explicación. modelo. Elige la métrica pesan más.
+según el negocio y, si
+hay empate, el modelo
+más simple.
+6
+IABD · SAA, PIA, MIA · 2026-27
+0 puntos 3 puntos 7 puntos 10 puntos
+10. Responde a una pregunta No responde o la Responde de forma Responde bien sobre su Además lo enseña en su
+individual sobre su proyecto respuesta no tiene que general, sin referirse a proyecto. código o en sus
+CE a, b · Peso 5 % ver con su proyecto. su proyecto. resultados y explica el
+Nota individual
+porqué.
+7
+IABD · SAA, PIA, MIA · 2026-27
+Rúbrica PIA · Programación de Inteligencia Artificial
+0 puntos 3 puntos 7 puntos 10 puntos
+RA1 10 %
+1. Documenta el código y el Sin README ni README incompleto o README con los Además añade
+README comentarios. funciones sin apartados obligatorios y apartados propios a los
+CE e, f · Peso 10 % documentar. funciones obligatorios.
+documentadas.
+RA2 90 %
+2. Organiza el código en Todo en un único Código repetido en cada Sigue la estructura de Además
+carpetas y funciones notebook. notebook. carpetas y usa funciones requirements.txt
+CE d · Peso 10 % comentadas. correcto.
+3. Programa el preprocesado No hay preprocesado. Preprocesa a mano, Un pipeline con Además el modelo
+con un pipeline de sklearn repitiendo el código en StandardScaler y guardado incluye el
+CE c, d · Peso 20 % cada modelo. OneHotEncoder que pipeline y predice un
+usan todos los modelos. caso nuevo.
+4. Registra los experimentos No usa MLflow. Solo algunos modelos. Todos los modelos y Además compara los
+en MLflow experimentos, con modelos en MLflow y lo
+CE b, e · Peso 20 % hiperparámetros y enseña con capturas.
+métricas.
+5. Programa una app en No hay app o no carga Solo muestra las Muestra métricas y Además controla datos
+Streamlit el modelo. métricas de test. errores del modelo, y vacíos o erróneos y
+CE d, e · Peso 25 % predice un caso nuevo envía la decisión a n8n.
+con la decisión de las
+reglas.
+6. Responde a una pregunta No responde o la Responde de forma Responde bien sobre su Además lo enseña en su
+individual sobre su código respuesta no tiene que general, sin referirse a proyecto. código o en sus
+CE c, d · Peso 15 % ver con su proyecto. su proyecto. resultados y explica el
+Nota individual
+porqué.
+8
+IABD · SAA, PIA, MIA · 2026-27
+Rúbrica MIA · Modelos de Inteligencia Artificial
+0 puntos 3 puntos 7 puntos 10 puntos
+RA1 20 %
+1. Contextualiza el problema No hay Describe el problema, Problema con un dato y Además indica qué
+de negocio con un objetivo contextualización. sin objetivo ni datos. objetivo claro: qué se mejora supondría para la
+claro predice, para qué y empresa.
+CE b, d · Peso 20 % quién lo usa.
+RA5 80 %
+2. Crea reglas que convierten No hay reglas. Menos de 6 reglas, o sin Menos de 6 reglas con 6 reglas o más con
+la predicción en una decisión decisión. prioridad, porqué y una prioridad, decisión y una
+CE a, b, d · Peso 30 % regla de seguridad. regla de seguridad.
+3. Conecta la decisión con un No hay flujo. El flujo no recibe la Recibe la decisión por Recibe la decisión por
+flujo de n8n decisión o hace siempre webhook y hace una webhook y hace una
+CE c, e · Peso 35 % lo mismo. acción distinta según la acción distinta a las
+decisión. vistas en clase según la
+decisión.
+4. Responde a una pregunta No responde o la Responde de forma Responde bien sobre su Además lo enseña en su
+individual sobre su proyecto respuesta no tiene que general, sin referirse a proyecto. código o en sus
+CE a, c · Peso 15 % ver con su proyecto. su proyecto. resultados y explica el
+Nota individual
+porqué.
+9

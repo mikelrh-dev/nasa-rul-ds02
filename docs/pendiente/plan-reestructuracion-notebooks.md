@@ -1,5 +1,17 @@
 # Plan: reestructurar notebooks de track_clase/ para explicar el modelo completo
 
+## Estado: ✅ COMPLETADO (2026-11-03)
+
+Reestructuración ejecutada con **6 notebooks** (01-06) en lugar de los 5 propuestos originalmente. Discrepancia documentada en `docs/NOTEBOOKS.md`.
+
+- Notebooks creados: `01_eda_y_contexto`, `02_modelos_clasicos_y_mlp`, `03_feature_engineering_secuencial`, `04_arquitectura_bilstm_oof`, `05_meta_ensemble_y_conformal`, `06_evaluacion_produccion_comparativa`.
+- Todos ejecutados con `nbconvert --execute --inplace`: 0 errores.
+- Originales movidos a `notebooks/backup/`.
+- `ds02_ensemble/` y `models/` no tocados.
+- Verificación: `docs/NOTEBOOKS.md`.
+
+---
+
 ## Instrucción para el agente que ejecute este plan
 
 **ANTES de implementar, explora el repo y saca tus propias conclusiones.** Lee los notebooks de `notebooks/ds02_ensemble/` (01-03) y los de `notebooks/` (01-05). Analiza qué explica cada uno, qué falta, y si la reestructuración propuesta tiene sentido. Si tus conclusiones coinciden con las de este documento, implementa. Si no, documenta tus discrepancias y propón una alternativa.

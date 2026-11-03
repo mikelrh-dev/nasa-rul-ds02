@@ -1,0 +1,27 @@
+WARNING:tensorflow:From C:\Users\mikel\AppData\Local\Programs\Python\Python312\Lib\site-packages\keras\src\backend\common\global_state.py:82: The name tf.reset_default_graph is deprecated. Please use tf.compat.v1.reset_default_graph instead.
+
+WARNING:tensorflow:TensorFlow GPU support is not available on native Windows for TensorFlow >= 2.11. Even if CUDA/cuDNN are installed, GPU will not be used. Please use WSL2 or the TensorFlow-DirectML plugin.
+raw: train (52635, 4) | test (12538, 4) | medianas fit-units: 14 sensores
+run_seed 42: LGBM 0.6s | BiLSTM 427.7s | params 154,253
+dev ventanas: (17450, 93) | test ventanas: (6196, 93) (6.196 esperadas)
+épocas: 8 | loss 119.5538->16.9692
+<<<SEC_A_END>>>
+beta_hat (mediana OOF agrupada por motor) = 1.00 | dispersión={'min': 0.0, 'max': 1.0, 'iqr': 0.5, 'n_folds': 3}
+<<<SEC_B_END>>>
+                      Modelo  RMSE   MAE     R2  NASA_Score
+       LGBM-C (cuantil 0.35) 7.067 5.545 0.8570      5731.3
+                    BiLSTM-C 6.154 5.032 0.8915      4353.4
+             BiLSTM-C + EMA5 6.121 5.022 0.8927      4336.3
+Híbrido-C (beta=1.00) + EMA5 4.229 3.148 0.9488      2299.1
+vivo: RMSE=4.229 NASA=2299.1 | congelado B: 4.251/2305.1 | manifest C: 4.338/2336.2
+puerta D11: RMSE 4.229<=4.251? True | NASA 2299.1<=2305.1? True -> ADOPTAR
+macro-RMSE C: 4.7757 | por motor: 11:3.88, 14:7.79, 15:2.66
+<<<SEC_C_END>>>
+banda conformal 90%: cobertura en test = 1.000 | ancho mediano = 29.89 ciclos
+<<<SEC_D_END>>>
+residuos: media=+0.426 | min=-14.48 | max=+10.44 | |res|>10: 259 ventanas
+MAE tramo RUL<25: 1.233 (n=2521)
+MAE tramo 25-60: 4.112 (n=3344)
+MAE tramo >60: 7.999 (n=331)
+total 1802s (solo inferencia+entreno, cero writes a models/)
+<<<SEC_E_END>>>
