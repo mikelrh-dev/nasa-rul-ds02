@@ -1,10 +1,10 @@
 """Fase 2.3 — MLP base + 3 experimentos + importancia del mejor clásico.
 
 SAA 7: base + E1 capacidad / E2 reg-lr / E3 batch-early, cada uno con hipótesis.
-SAA 9-parcial: importancia por permutación sobre el mejor clásico (SVM) con
-200 filas test (fallback declarado: `shap` no está en requirements; la
-trazabilidad SHAP — explainer/masker/fondo — queda para el change MLflow).
-Todo con el `pre` compartido (sin fuga) y test tocado 1 vez.
+SAA 9-parcial: importancia por permutación sobre el mejor clásico (XGB) con
+200 filas de validación (fold-0). Todo con el `pre` compartido (sin fuga).
+SAA-8: la tabla trae train + validación (OOF de GroupKFold(3) por motor) y el
+test se evalúa UNA sola vez y solo para el elegido (por rmse_val).
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 from sklearn.inspection import permutation_importance
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import GroupKFold, cross_val_predict
 from sklearn.neural_network import MLPRegressor
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -42,15 +43,38 @@ EXPS = {
 }
 
 
-def _m(y_tr, p_tr, y_te, p_te) -> dict:
+ORDEN_MLP = {"base": 0, "E2_reg_lr": 1, "E3_batch": 2, "E1_capacidad": 3}
+CV_MLP = GroupKFold(n_splits=3)
+
+
+def _m_train(y_tr, p_tr) -> dict:
     return {
         "rmse_train": round(float(np.sqrt(mean_squared_error(y_tr, p_tr))), 4),
         "mae_train": round(float(mean_absolute_error(y_tr, p_tr)), 4),
         "r2_train": round(float(r2_score(y_tr, p_tr)), 4),
+    }
+
+
+def _m_oof(y_tr, oof) -> dict:
+    """Validación honesta: predicciones out-of-fold del CV por motor."""
+    return {
+        "rmse_val": round(float(np.sqrt(mean_squared_error(y_tr, oof))), 4),
+        "mae_val": round(float(mean_absolute_error(y_tr, oof)), 4),
+        "r2_val": round(float(r2_score(y_tr, oof)), 4),
+    }
+
+
+def _m_test(y_te, p_te) -> dict:
+    return {
         "rmse_test": round(float(np.sqrt(mean_squared_error(y_te, p_te))), 4),
         "mae_test": round(float(mean_absolute_error(y_te, p_te)), 4),
         "r2_test": round(float(r2_score(y_te, p_te)), 4),
     }
+
+
+# Compat: el NB02 espeja el loop con estas piezas (ver celda 15).
+def _m(y_tr, p_tr, y_te, p_te) -> dict:
+    return {**_m_train(y_tr, p_tr), **_m_test(y_te, p_te)}
 
 
 def entrenar_mlp(verbose: bool = True) -> pd.DataFrame:
@@ -58,36 +82,52 @@ def entrenar_mlp(verbose: bool = True) -> pd.DataFrame:
     y_tr = pd.read_parquet("data/processed/y_train.parquet").values.ravel().astype(float)
     X_te = pd.read_parquet("data/processed/X_test.parquet")
     y_te = pd.read_parquet("data/processed/y_test.parquet").values.ravel().astype(float)
-    filas = []
+    g_tr = X_tr["unit"].to_numpy()
+    filas, pipes = [], {}
     for nombre, (kw, hipotesis) in EXPS.items():
-        pipe = make_pipeline(MLPRegressor(**{**BASE_KW, **kw}))
         t0 = time.time()
+        pipe = make_pipeline(MLPRegressor(**{**BASE_KW, **kw}))
         pipe.fit(X_tr, y_tr)
         secs = time.time() - t0
-        m = _m(y_tr, pipe.predict(X_tr), y_te, pipe.predict(X_te))
+        oof = cross_val_predict(make_pipeline(MLPRegressor(**{**BASE_KW, **kw})),
+                                X_tr, y_tr, groups=g_tr, cv=CV_MLP, n_jobs=1)
+        m = {**_m_train(y_tr, pipe.predict(X_tr)), **_m_oof(y_tr, oof),
+             "rmse_test": float("nan"), "mae_test": float("nan"),
+             "r2_test": float("nan")}
         filas.append({"experimento": nombre, "hipotesis": hipotesis,
                       "params": str(kw), "tiempo_s": round(secs, 1), **m})
+        pipes[nombre] = pipe
         if verbose:
-            print(f"{nombre}: RMSE test {m['rmse_test']:.3f} | {secs:.0f}s")
+            print(f"{nombre}: RMSE val {m['rmse_val']:.3f} | {secs:.0f}s")
     comp = pd.DataFrame(filas)
+    comp["_ord"] = comp["experimento"].map(ORDEN_MLP)
+    mejor = comp.sort_values(["rmse_val", "_ord"]).iloc[0]["experimento"]
+    comp = comp.drop(columns=["_ord"])
+    m_te = _m_test(y_te, pipes[mejor].predict(X_te))
+    for k, v in m_te.items():
+        comp.loc[comp["experimento"] == mejor, k] = v
     comp.to_csv("resultados/mlp_comparativa.csv", index=False)
+    if verbose:
+        print("mejor (por rmse_val):", mejor)
     return comp
 
 
 def importancia_mejor_clasico(n_filas: int = 200, seed: int = 7) -> pd.DataFrame:
-    """Permutación sobre el mejor clásico (SVM): qué variables pesan más.
+    """Permutación sobre el mejor clásico (XGB): qué variables pesan más.
 
-    200 filas test, 5 repeticiones, scoring RMSE. No causal: describe el modelo,
-    no el motor. SHAP (explainer/masker/fondo explícitos) queda para el change
-    MLflow donde se pinnea `shap[plots]==0.52.0`.
+    200 filas de VALIDACIÓN (fold-0, nunca test — v5), 5 repeticiones,
+    scoring RMSE. No causal: describe el modelo, no el motor.
     """
+    from track_clase.train_clasicos import grupos_validacion
     pipe = joblib.load("models/mejor_modelo_clase.joblib")
-    X_te = pd.read_parquet("data/processed/X_test.parquet").reset_index(drop=True)
-    y_te = pd.read_parquet("data/processed/y_test.parquet").reset_index(drop=True).values.ravel().astype(float)
+    X_tr = pd.read_parquet("data/processed/X_train.parquet").reset_index(drop=True)
+    y_tr = pd.read_parquet("data/processed/y_train.parquet").reset_index(drop=True).values.ravel().astype(float)
+    va = grupos_validacion(X_tr["unit"].to_numpy())
+    X_va, y_va = X_tr.iloc[va].reset_index(drop=True), y_tr[va]
     rng = np.random.default_rng(seed)
-    pos = rng.choice(len(X_te), size=min(n_filas, len(X_te)), replace=False)
-    muestra = X_te.iloc[pos].reset_index(drop=True)
-    y_mu = y_te[pos]
+    pos = rng.choice(len(X_va), size=min(n_filas, len(X_va)), replace=False)
+    muestra = X_va.iloc[pos].reset_index(drop=True)
+    y_mu = y_va[pos]
     r = permutation_importance(pipe, muestra, y_mu, n_repeats=5,
                                scoring="neg_root_mean_squared_error",
                                random_state=seed, n_jobs=-1)
@@ -101,7 +141,7 @@ def importancia_mejor_clasico(n_filas: int = 200, seed: int = 7) -> pd.DataFrame
     top = imp.head(15).iloc[::-1]
     fig, ax = plt.subplots(figsize=(7, 5))
     ax.barh(top["variable"], top["peso"], xerr=top["peso_std"])
-    ax.set_title("Importancia por permutación — mejor clásico (SVM, 200 filas test)")
+    ax.set_title("Importancia por permutación — mejor clásico (XGB, 200 filas validación)")
     ax.set_xlabel("caída RMSE al permutar")
     fig.tight_layout()
     fig.savefig("resultados/importancia_permutacion.png", dpi=120)
