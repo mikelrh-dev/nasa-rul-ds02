@@ -430,7 +430,8 @@ def preflight(table: pd.DataFrame) -> dict:
 
 
 def score_table(table: pd.DataFrame, unit_id: float = LIVE_UNIT,
-                engine_id: str | None = None, ensemble=None) -> dict:
+                engine_id: str | None = None, ensemble=None,
+                timeout_s: float | None = 120.0) -> dict:
     """Score every complete window in the table with the frozen bundle.
 
     Returns the per-window frame plus the contract actually used. The band comes
@@ -441,10 +442,18 @@ def score_table(table: pd.DataFrame, unit_id: float = LIVE_UNIT,
 
     `ensemble` lets a caller that already holds the artifact (the batch route)
     reuse it instead of going through `get_ensemble()` again.
+
+    `timeout_s` budgets the scoring wall-clock (bundle load + prediction). When
+    exceeded it raises `TimeoutError` with the row-cap context: 5 000 rows are
+    already ~4 951 windows, so the budget protects the portátil from a
+    non-interactive pause.
     """
+    import time
+
     frame = validate_table(table)
     if len(frame) > MAX_FILAS:
         raise ValueError(_mensaje_limite(len(frame)))
+    _t0 = time.monotonic()
     if SRC not in sys.path:
         sys.path.insert(0, SRC)
     from ds02_rul.inference import raw_windows
@@ -462,6 +471,12 @@ def score_table(table: pd.DataFrame, unit_id: float = LIVE_UNIT,
     if ensemble is None:
         ensemble = get_ensemble()
     point, lower, upper = ensemble.predict_interval(X, cyc_end, uni)
+    if timeout_s is not None and time.monotonic() - _t0 > float(timeout_s):
+        raise TimeoutError(
+            f"La puntuación de {len(frame):,} filas superó el presupuesto de "
+            f"{float(timeout_s):.0f} s (~{max(0, len(frame) - window_size() + 1):,} "
+            f"ventanas). Recorta el histórico o usa un muestreo declarado."
+        )
 
     result = pd.DataFrame(
         {

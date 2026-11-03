@@ -184,17 +184,53 @@ def shap_waterfall_data(unit: int) -> tuple[np.ndarray, np.ndarray, float, list[
     return sv, X_tab.reshape(-1), base, feature_names
 
 
-def shap_waterfall_png(unit: int, out_path: str = "/tmp/shap_waterfall.png") -> str:
+def shap_waterfall_fig(unit: int, max_display: int = 12):
+    """Plotly waterfall figure for the given unit's last window.
+
+    The dashboard renders this figure directly: no file on disk, no fixed temp
+    path, and the chart inherits the app's dark theme via `chart_layout`.
+    """
+    import plotly.graph_objects as go
+
+    sv, values, base, names = shap_waterfall_data(unit)
+    order_idx = np.argsort(np.abs(sv))[::-1][:max_display]
+    feats = [names[i] for i in order_idx]
+    contribs = [float(sv[i]) for i in order_idx]
+    fig = go.Figure(
+        go.Waterfall(
+            name=f"SHAP waterfall · motor {int(unit)}",
+            orientation="v",
+            measure=["relative"] * len(contribs),
+            x=feats,
+            y=contribs,
+            totals=[float(base)],
+            waterfallgap=0.25,
+            hovertemplate="%{x}<br>contribución %{y:.2f}<extra></extra>",
+        )
+    )
+    return fig
+
+
+def shap_waterfall_png(unit: int, out_path: str | None = None) -> str:
     """Generate a SHAP waterfall plot PNG for the given unit's last window.
 
-    Returns the path to the saved PNG.  Uses matplotlib Agg backend.
+    Returns the path to the saved PNG.  Uses matplotlib Agg backend. When no
+    `out_path` is given, a private temp file is created with `tempfile`
+    (never a fixed shared path).
     """
+    import tempfile
+
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import shap
 
+    if out_path is None:
+        fd, out_path = tempfile.mkstemp(suffix=".png", prefix="shap_waterfall_")
+        import os as _os
+
+        _os.close(fd)
     sv, values, base, names = shap_waterfall_data(unit)
 
     explanation = shap.Explanation(

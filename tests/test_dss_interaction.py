@@ -422,11 +422,22 @@ def test_el_informe_de_auditoria_es_un_pdf_descargable():
     Congela las dos tablas de auditoría (precisión por tramo y alarma vs.
     verdad) con la huella del artefacto. El test valida el binario, no solo el
     botón: un PDF truncado sería una promesa incumplida ante el tribunal.
+
+    P1 (mejoras-streamlit): el PDF se genera al pulsar «Generar informe», no en
+    cada render; el test pulsa ese botón antes de buscar la descarga.
     """
     import ast
 
     app = _app()
     app.run()
+    assert not app.exception, app.exception
+
+    for boton in app.button:
+        if boton.key == "btn_gen_pdf":
+            boton.click().run()
+            break
+    else:
+        pytest.fail("no está el botón Generar informe (PDF)")
     assert not app.exception, app.exception
 
     etiquetas = [b.proto.label or "" for b in app.download_button]
