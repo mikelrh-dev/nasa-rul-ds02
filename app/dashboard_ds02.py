@@ -805,9 +805,6 @@ with st.container(border=True):
         st.metric("Unidades monitorizadas", f"{global_metrics['units']}",
                   f"{global_metrics['windows']:,} ventanas evaluadas",
                   border=True, icon=":material/groups:", delta_color="off")
-        st.metric("MAE en zona crítica", f"{critical_mae:.2f} ciclos",
-                  f"RUL real < {threshold_aog:.0f}", border=True,
-                  icon=":material/target:", delta_color="off")
         st.metric("Unidades en hangar", f"{grounded} / {len(snapshot)}",
                   f"en el ciclo {cycle}", border=True,
                   icon=":material/local_shipping:", delta_color="off")
@@ -1354,34 +1351,6 @@ with tab_flota:
             for u, v in sorted(_faltan.items()))
         st.caption(f"Ciclos hasta el umbral de hangar · {_faltan_txt}")
 
-    # -------------------- modo historia: la narrativa en cuatro pasos
-    if _vista_tribunal:
-        with st.container(border=True):
-            st.subheader("Modo historia · la narrativa en cuatro pasos",
-                         icon=":material/auto_stories:")
-            st.caption(
-                "Cuatro estados que cuentan la historia, derivados de la caché. Cada paso "
-                "deja la app donde dice; el cuarto cambia la política para ver el efecto."
-            )
-            _pasos_historia = A.estado_historia(windows, umbrales)
-            _cols_h = st.columns(len(_pasos_historia))
-            for _col, _paso in zip(_cols_h, _pasos_historia):
-                with _col:
-                    if st.button(
-                        f"{_paso['paso']}. {_paso['titulo']}",
-                        key=f"historia_{_paso['paso']}", icon=":material/play_circle:",
-                    ):
-                        st.session_state["_escenario_pendiente"] = (
-                            int(_paso["unidad"]), int(_paso["ciclo"]))
-                        st.session_state["_umbrales_pendientes"] = (
-                            _paso["umbrales"]["apto"], _paso["umbrales"]["hangar"])
-                        _log(f"Modo historia, paso {_paso['paso']}: {_paso['titulo']}.")
-                        st.session_state["_toast_pendiente"] = (
-                            f"Paso {_paso['paso']}: {_paso['titulo']}. {_paso['cuenta']}"
-                        )
-                        st.rerun()
-                    st.caption(_paso["cuenta"])
-
     # -------------------- registro de sesión
     # Plegado: es un log de auditoría de la sesión, no algo que se mire en directo.
     if _vista_tribunal:
@@ -1415,23 +1384,6 @@ with tab_flota:
                                  key="sesion_vaciar"):
                         st.session_state["_sesion_log"] = []
                         st.rerun()
-
-    with st.container(horizontal=True):
-        st.metric(
-            "Flota monitorizada",
-            f"{global_metrics['units']} unidades",
-            f"{global_metrics['windows']:,} ventanas evaluadas",
-            border=True, icon=":material/groups:", delta_color="off",
-        )
-        # En la pantalla de decision solo hay una KPI por concepto. Las metricas
-        # de calidad del modelo (MAE, Macro-RMSE, sesgo, cobertura) viven en
-        # Evidencia: son para el tribunal, no para el operador de taller.
-        st.metric(
-            "Unidades en hangar",
-            f"{grounded} / {len(snapshot)}",
-            f"en el ciclo {cycle}",
-            border=True, icon=":material/local_shipping:", delta_color="off",
-        )
 
     if correccion:
         st.caption(
@@ -2436,64 +2388,7 @@ with tab_motor:
 
 # ------------------------------------------------------- auditoría: el cómo
 with tab_auditoria:
-    # La deriva de sensores ya se ve en «Motor» (radiografía del motor
-    # seleccionado). Aquí queda la lectura operativa: los cuatro canales que el
-    # residualizador descarta antes de que el modelo lea los sensores.
-    ops = [c for c in ("alt", "Mach", "TRA", "T2") if c in telemetry.columns]
-    per_cycle = (
-        telemetry[telemetry["unit"] == unit]
-        .groupby("cycle", as_index=False)[ops]
-        .mean(numeric_only=True)
-    )
-    if per_cycle.empty:
-        # Una unidad de alta no tiene filas propias en `telemetry`: su serie es la
-        # de la unidad de caché de la que se recortó. Se dice en vez de romper.
-        st.info(
-            f"**{_etiqueta_unidad(float(unit))}** es una unidad de alta: su serie "
-            "viene de la caché y no hay telemetría fila a fila que radiografiar "
-            "aquí. Su estado y su curva RUL sí están en las pestañas 1 y 2.",
-            icon=":material/info:",
-        )
-    else:
-        with st.container(border=True, height="stretch"):
-            st.subheader("Condiciones operativas", icon=":material/air:")
-            fig_a = make_subplots(
-                rows=len(ops), cols=1, shared_xaxes=True, vertical_spacing=0.07
-            )
-            for i, ch in enumerate(ops, start=1):
-                fig_a.add_trace(
-                    go.Scatter(
-                        x=per_cycle["cycle"], y=per_cycle[ch], mode="lines",
-                        name=L.CHANNEL_LABELS.get(ch, ch), line=dict(width=1.8, color=SKY),
-                    ),
-                    row=i, col=1,
-                )
-                fig_a.update_yaxes(title_text=ch, row=i, col=1)
-            fig_a.update_layout(**chart_layout(height=360, showlegend=False,
-                                               hovermode="x unified"))
-            style_axes(fig_a, x_title="Ciclo de vuelo")
-            st.plotly_chart(
-                fig_a, theme=None,
-                alt="Altitud, Mach, acelerador y T2 a lo largo de los ciclos del motor seleccionado.",
-            )
-            st.caption(
-                "El régimen de vuelo es lo que el residualizador descarta antes de que el "
-                "modelo lea los sensores."
-            )
-
-    st.caption(
-        "Nomenclatura tomada del propio HDF5 (`X_s_var`, `W_var`): "
-        + ", ".join(
-            L.CHANNEL_LABELS[c].split(" · ")[0]
-            for c in (
-                L.CHANNEL_GROUPS["Temperaturas"]
-                + L.CHANNEL_GROUPS["Presiones"]
-                + L.CHANNEL_GROUPS["Velocidades de rotor"]
-                + L.CHANNEL_GROUPS["Combustible"]
-            )
-        )
-        + ". Nada de etiquetas `s1…s21`, que son de FD001."
-    )
+    pass
 
 
 # ------------------------------------------------------------------- tab 4
@@ -2655,6 +2550,25 @@ with tab_auditoria:
             )
 
     with st.container(border=True):
+        st.subheader("Calidad del modelo", icon=":material/insights:")
+        st.caption(
+            "Métricas de calidad, no de decisión: cuánto se equivoca el modelo, no "
+            "lo que decide. Viven aquí porque son para el tribunal, no para el "
+            "operador de taller."
+        )
+        with st.container(horizontal=True):
+            st.metric(
+                "Macro-RMSE", f"{global_metrics['macro_rmse']:.2f} ciclos",
+                f"ponderado {global_metrics['rmse']:.2f}", border=True,
+                delta_color="off", icon=":material/balance:",
+                help="El macro-RMSE da el mismo peso a cada motor; el ponderado lo da a cada ventana.")
+            st.metric(
+                "MAE en zona crítica", f"{critical_mae:.2f} ciclos",
+                f"RUL real < {threshold_aog:.0f}", border=True,
+                delta_color="off", icon=":material/target:",
+                help="Error absoluto medio donde de verdad se decide el mantenimiento.")
+
+    with st.container(border=True):
         st.subheader("Procedencia verificable", icon=":material/fingerprint:")
         st.caption(
             "Huella SHA-256 del ensemble congelado, copiada del manifiesto que acompaña a "
@@ -2668,6 +2582,18 @@ with tab_auditoria:
         st.caption(
             "Para verificarlo en local: `python -c \"import hashlib;print(hashlib.sha256"
             "(open('models/ensemble.joblib','rb').read()).hexdigest())\"`."
+        )
+        with st.container(horizontal=True):
+            st.metric(
+                "Ventanas en caché",
+                f"{provenance['counts']['windows']:,}",
+                f"generada {provenance['generated_at'][:10]}",
+                border=True, delta_color="off", icon=":material/dataset:")
+        st.caption(
+            f"Contrato: ventana de {provenance['source']['window']} muestras, "
+            f"step={provenance['source']['step']}. La caché va a step=2 y la vía "
+            f"en vivo a step=1, así que no coinciden bit a bit, y el punto está "
+            f"suavizado con un EMA causal por motor. Documentado, no reconciliado."
         )
 
     with st.container(border=True):
@@ -3621,54 +3547,3 @@ with tab_casos:
                 st.image(_wf_path, caption=f"SHAP waterfall · motor {_wf_unit}")
         except Exception as _e:
             st.warning(f"No se pudo generar el waterfall: {_e}")
-
-
-# --------------------------------- auditoría (cont.): calidad y procedencia
-with tab_auditoria:
-    # -------------------- calidad del modelo: era de la pantalla de decision
-    with st.container(border=True):
-        st.subheader("Calidad del modelo", icon=":material/insights:")
-        st.caption(
-            "Métricas de calidad, no de decisión: cuánto se equivoca el modelo, no "
-            "lo que decide. Viven aquí porque son para el tribunal, no para el "
-            "operador de taller."
-        )
-        with st.container(horizontal=True):
-            st.metric(
-                "Macro-RMSE", f"{global_metrics['macro_rmse']:.2f} ciclos",
-                f"ponderado {global_metrics['rmse']:.2f}", border=True,
-                delta_color="off", icon=":material/balance:",
-                help="El macro-RMSE da el mismo peso a cada motor; el ponderado lo da a cada ventana.")
-            st.metric(
-                "MAE en zona crítica", f"{critical_mae:.2f} ciclos",
-                f"RUL real < {threshold_aog:.0f}", border=True,
-                delta_color="off", icon=":material/target:",
-                help="Error absoluto medio donde de verdad se decide el mantenimiento.")
-
-    # -------------------- procedencia y contrato (los dos SHA, plegados)
-    with st.container(border=True):
-        st.subheader("Procedencia y contrato", icon=":material/lock:")
-        st.caption(
-            "Los dos SHA son datos de procedencia, no el nombre del motor. El "
-            "primero identifica el artefacto congelado con el que se calculó; el "
-            "segundo, la ventana exacta que se puntuó. El mismo motor en dos "
-            "ventanas da dos huellas, y dos motores con los mismos datos dan la "
-            "misma: por eso no pueden nombrar un motor."
-        )
-        with st.container(horizontal=True):
-            st.metric(
-                "SHA-256 del artefacto",
-                provenance["artifact"]["ensemble_sha256"][:12],
-                "models/ds02_manifest.json", border=True, delta_color="off",
-                icon=":material/deployed_code:")
-            st.metric(
-                "Ventanas en caché",
-                f"{provenance['counts']['windows']:,}",
-                f"generada {provenance['generated_at'][:10]}",
-                border=True, delta_color="off", icon=":material/dataset:")
-        st.caption(
-            f"Contrato: ventana de {provenance['source']['window']} muestras, "
-            f"step={provenance['source']['step']}. La caché va a step=2 y la vía "
-            f"en vivo a step=1, así que no coinciden bit a bit, y el punto está "
-            f"suavizado con un EMA causal por motor. Documentado, no reconciliado."
-        )
