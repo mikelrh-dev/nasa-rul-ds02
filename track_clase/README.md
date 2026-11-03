@@ -23,7 +23,7 @@ Taller MRO con flota DS02: un motor parado en pista cuesta decenas de miles de e
 | Tipo de problema | Regresión supervisada (RUL en ciclos; sin clases → SMOTE no aplicable) |
 | Quién lo usa | Jefe de taller, que recibe la RUL + decisión por motor |
 | Referencia externa | Las aerolíneas programan hangar por horas de vuelo; aquí por RUL predicha |
-| Cuánto vale acertar (estimación sectorial) | Un AOG imprevisto cuesta ~50 k€/día; una inspección programada cuesta una fracción. Evitar una sola parada no planificada al año (≈50 k€ por cada AOG evitado) paga el sistema |
+| Cuánto vale acertar (rango Boeing, credibilidad Media) | Un AOG imprevisto cuesta 10.000–15.000 USD/h (≈240.000–360.000 USD/día); una inspección programada cuesta una fracción. Evitar una sola parada no planificada al año (≈240.000–360.000 USD por cada AOG evitado) paga el sistema. Fuente: `costes_reales_aeronauticos.md` §1 (Boeing, citado de forma secundaria).
 
 ## Qué hemos construido
 
