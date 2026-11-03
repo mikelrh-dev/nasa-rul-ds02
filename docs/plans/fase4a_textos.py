@@ -74,8 +74,9 @@ tx = tx.replace(old_t, '\n'.join('|' + s[1:] for s in
 # P4: cuantificacion (estimacion declarada como tal)
 old_neg = ('| Referencia externa | Las aerolíneas programan hangar por horas de vuelo; aquí por RUL predicha |')
 assert old_neg in tx
-tx = tx.replace(old_neg, old_neg + '\n| Cuánto vale acertar (estimación sectorial) | Un AOG imprevisto cuesta ~50 k€/día; '
-    'una inspección programada cuesta una fracción. Evitar una sola parada no planificada al año paga el sistema |')
+tx = tx.replace(old_neg, old_neg + '
+| Cuánto vale acertar (rango Boeing, credibilidad Media) | Un AOG imprevisto cuesta 10.000–15.000 USD/h (≈240.000–360.000 USD/día); '
+    'una inspección programada cuesta una fracción. Evitar una sola parada no planificada al año paga el sistema. Fuente: costes_reales_aeronauticos.md §1. |')
 
 # P3: link roto dashboard_ds02.png -> captura real app_clase.png
 old_img = '![App de producción](../resultados/dashboard_ds02.png)'
@@ -103,7 +104,7 @@ bloque = anchor + '''
 
 ## La necesidad de negocio
 
-Taller MRO con flota DS02: un motor parado en pista (AOG) cuesta del orden de 50 k€/día (estimación sectorial); una inspección a tiempo cuesta una fracción. Hoy la decisión de hangar depende de juicio experto sin número.
+Taller MRO con flota DS02: un motor parado en pista (AOG) cuesta del orden de 10.000–15.000 USD/h (rango Boeing, credibilidad Media); una inspección a tiempo cuesta una fracción. Hoy la decisión de hangar depende de juicio experto sin número.
 
 **Objetivo:** predecir la RUL de cada motor para que el jefe de taller decida APTO / INSPECCIÓN / HANGAR, con la predicción convertida en decisión por reglas (`mia/`, 6 con prioridad + seguridad R1) y, más adelante, en acción automática vía n8n. Evitar una sola parada no planificada al año paga el sistema. Detalle académico: [`track_clase/README.md`](track_clase/README.md).'''
 rx = rx.replace(anchor, bloque)

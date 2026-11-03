@@ -31,7 +31,7 @@
 ## MIA — Modelos de IA
 
 - [x] **MIA-2 (30%) — 6 reglas.** R2b+R6+R1+R9+R8+R7 con prioridad, porqué y seguridad R1. Hecho (sabed explicar prioridad y R1).
-- [x] **MIA-1 (20%) — mejora cuantificada.** Hecho: ≈50 k€ por cada AOG evitado en `track_clase/README.md`.
+- [x] **MIA-1 (20%) — mejora cuantificada.** Hecho: ≈240.000–360.000 USD por cada AOG evitado en `track_clase/README.md` (rango Boeing 10.000–15.000 USD/h).
 - [ ] **MIA-3 (35%) — flujo n8n.** ❌ Falta entero: webhook que recibe la decisión + una rama por decisión (HANGAR→Postgres+Calendar+correo, INSPECCIÓN→Sheets, APTO→log); para el 10, acción distinta a las vistas en clase. Evidencia: `n8n/flujo.json` real + `src/n8n.py` sin stub + prueba end-to-end.
 - [ ] **MIA-4 — pregunta individual.** Preparación.
 

@@ -30,7 +30,7 @@ en la evaluación 0-10 de SAA, PIA y MIA (sin implementar MLflow ni n8n).
 
 ### P4 — MIA: cuantificar mejora en README
 - **Archivo:** `README.md` (raíz) + `track_clase/README.md`
-- **Acción:** Añadir en sección "La necesidad de negocio": "Con el modelo, se estima reducir paradas no planificadas en X% y ahorrar Y €/motor/año (estimación basada en coste de AOG ~50k€/día)"
+- **Acción:** Añadir en sección "La necesidad de negocio": "Con el modelo, se estima reducir paradas no planificadas en X% y ahorrar Y €/motor/año (estimación basada en coste de AOG 10.000–15.000 USD/h, rango Boeing)"
 - **Impacto:** +0.5 (7→9) | **Esfuerzo:** 15 min | **Riesgo:** 0
 
 ### P5 — MIA: sección negocio en README raíz

@@ -15,7 +15,7 @@
 
 ## La necesidad de negocio
 
-Taller MRO con flota DS02: un motor parado en pista (AOG) cuesta del orden de 50 k€/día (estimación sectorial); una inspección a tiempo cuesta una fracción. Hoy la decisión de hangar depende de juicio experto sin número.
+Taller MRO con flota DS02: un motor parado en pista (AOG) cuesta del orden de 10.000–15.000 USD/h (rango Boeing, credibilidad Media; ver `costes_reales_aeronauticos.md` §1); una inspección a tiempo cuesta una fracción. Hoy la decisión de hangar depende de juicio experto sin número.
 
 **Objetivo:** predecir la RUL de cada motor para que el jefe de taller decida APTO / INSPECCIÓN / HANGAR, con la predicción convertida en decisión por reglas (`mia/`, 6 con prioridad + seguridad R1) y, más adelante, en acción automática vía n8n. Evitar una sola parada no planificada al año paga el sistema. Detalle académico: [`track_clase/README.md`](track_clase/README.md).
 
