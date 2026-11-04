@@ -1,9 +1,13 @@
 {
   "format_version": 1,
-  "generated_at": "2026-10-26T21:17:27+00:00",
+  "generated_at": "2026-11-04T12:12:42+00:00",
   "dataset": "DS02",
   "source": {
-    "h5": "data/raw/N-CMAPSS_DS02-006.h5",
+    "base": "adaptada (MAR T30 + ffill causal, medianas de fit-units)",
+    "parquet_train": "data\\processed\\train_con_nulos.parquet",
+    "parquet_train_sha256": "a47b9a46e2f32bcf41ffc6809a299dd7eab246014c1f3fe669b7dacbeaba37a3",
+    "parquet_test": "data\\processed\\test_con_nulos.parquet",
+    "parquet_test_sha256": "2f37b2af9fe324984f8e6e1077cb6d74f936d4020655793ae3f6868939f40c0c",
     "stride": 100,
     "window": 50,
     "step": 2,
@@ -28,14 +32,13 @@
       "Nf",
       "Nc",
       "Wf"
-    ],
-    "h5_sha256": "47971a68b239ecb756833218a95d68ded6eb7e63ee84e86671c8b188de1ca765"
+    ]
   },
   "artifact": {
     "ensemble": "models\\ensemble.joblib",
-    "ensemble_sha256": "7acba3352a2c9aac46b1e95ee4045082a812cd9f947bf791fca4659412d64b1b",
+    "ensemble_sha256": "d6c701429eed8623a9d900d922aca1922427d08ff8b4ec00604b8116c1a952dd",
     "manifest": "models\\ds02_manifest.json",
-    "manifest_sha256": "71607f0b543be1f0ecc268ad5cf43c2520e1d967be368dd22fdab9dc883c7a18",
+    "manifest_sha256": "cae963205db9530d97f01d554b6733be101f1f8f79361dabe24bc9a04693b6b9",
     "paradigm": "Hybrid Stacking (BiLSTM triple-pooling + LGBM residualizado + RidgeCV/LGBM meta + EMA5)",
     "beta": 1.0,
     "ema_span": 5,
@@ -71,36 +74,36 @@
       }
     },
     "fit_engine_rows_per_cycle": 118.23,
-    "windows_sha256": "0c18927b8031e04268d1b330d67157d11be54fe4932439975b43fac4715e0b60",
-    "rows_sha256": "bfeecbd230ed9bd13dc2373aa446686b5ac300b3d381b873624bf274f9e4579a"
+    "windows_sha256": "8e0ba2666ada1a2cb007a57bcf3583f3b0a76d648cdc4733a01d9387513af352",
+    "rows_sha256": "0008bca480ab72edd8b9c76e2c7a97ea1a99b7129f82169e88dd0f21f58f7597"
   },
   "metrics": {
-    "rmse": 4.2515,
-    "mae": 3.1826,
-    "macro_rmse": 4.8433,
+    "rmse": 4.3382,
+    "mae": 3.2266,
+    "macro_rmse": 5.0153,
     "per_unit_rmse": {
-      "11.0": 3.7874,
-      "14.0": 7.9974,
-      "15.0": 2.7451
+      "11.0": 3.6328,
+      "14.0": 8.5761,
+      "15.0": 2.8371
     },
     "per_unit": {
       "11": {
         "windows": 3293,
-        "rmse": 3.787,
-        "mae": 3.134,
-        "bias": 3.0982,
+        "rmse": 3.633,
+        "mae": 3.033,
+        "bias": 3.019,
         "mae_by_band": {
           "[0, 25)": {
             "windows": 1429,
-            "mae": 1.3322
+            "mae": 1.3837
           },
           "[25, 50)": {
             "windows": 1359,
-            "mae": 4.9286
+            "mae": 4.7229
           },
           "[50, 75)": {
             "windows": 505,
-            "mae": 3.4012
+            "mae": 3.1527
           },
           "[75, inf)": {
             "windows": 0,
@@ -110,21 +113,21 @@
       },
       "14": {
         "windows": 760,
-        "rmse": 7.997,
-        "mae": 6.084,
-        "bias": -5.0962,
+        "rmse": 8.576,
+        "mae": 6.594,
+        "bias": -5.3063,
         "mae_by_band": {
           "[0, 25)": {
             "windows": 273,
-            "mae": 1.3618
+            "mae": 1.6811
           },
           "[25, 50)": {
             "windows": 233,
-            "mae": 4.631
+            "mae": 5.0017
           },
           "[50, 75)": {
             "windows": 254,
-            "mae": 12.4924
+            "mae": 13.3336
           },
           "[75, inf)": {
             "windows": 0,
@@ -134,21 +137,21 @@
       },
       "15": {
         "windows": 2143,
-        "rmse": 2.745,
-        "mae": 2.229,
-        "bias": -2.1372,
+        "rmse": 2.837,
+        "mae": 2.33,
+        "bias": -2.2593,
         "mae_by_band": {
           "[0, 25)": {
             "windows": 819,
-            "mae": 0.7992
+            "mae": 0.8646
           },
           "[25, 50)": {
             "windows": 810,
-            "mae": 2.7628
+            "mae": 2.9587
           },
           "[50, 75)": {
             "windows": 514,
-            "mae": 3.6651
+            "mae": 3.6739
           },
           "[75, inf)": {
             "windows": 0,
@@ -160,15 +163,15 @@
     "mae_by_band": {
       "[0, 25)": {
         "windows": 2521,
-        "mae": 1.1623
+        "mae": 1.2473
       },
       "[25, 50)": {
         "windows": 2402,
-        "mae": 4.1694
+        "mae": 4.155
       },
       "[50, 75)": {
         "windows": 1273,
-        "mae": 5.3217
+        "mae": 5.3945
       },
       "[75, inf)": {
         "windows": 0,

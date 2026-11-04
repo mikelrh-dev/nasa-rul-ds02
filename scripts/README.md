@@ -2,10 +2,11 @@
 
 ## Vigente (se usa)
 
-- `build_ui_cache.py` — genera `app/cache/` (ventanas demo + provenance).
+- `build_ui_cache.py` — genera `app/cache/` (ventanas demo + provenance). Por defecto
+  `--base adaptada` (base imputada, la del bundle desplegado); `--base limpia` reconstruye
+  desde el HDF5 (comportamiento histórico).
 - `freeze_rules_evidence.py` — evidencia congelada de reglas (gate de tests).
 - `predict_ds02.py` — inferencia CLI sobre el bundle.
-- `build_02_notebook.py`, `build_05_notebook.py` — generan notebooks congelados de referencia.
 - `anclar_raiz_pylance.py` — escribe un `.pth` con la raiz del repo en el venv:
   arregla el subrayado de Pylance en `src.*` cuando abres VS Code en una carpeta
   padre. Solo local (`.venv/` no se versiona); el repo ya trae la config buena.

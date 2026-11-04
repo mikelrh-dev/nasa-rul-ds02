@@ -15,16 +15,16 @@ xgboost==3.4.1
 shap==0.54.1
 
 # notebook generation / execution
-nbformat>=5.10
-ipykernel>=6.29
-jupyter-client>=8.6
+nbformat==5.11.1
+ipykernel==7.4.0
+jupyter-client==8.10.0
 
 # demo surface
 fastapi==0.151.0
 uvicorn==0.54.0
 streamlit==1.66.0
 plotly==7.1.0
-pydantic>=2
+pydantic==2.14.1
 fpdf2==2.7.7
 
 # tests

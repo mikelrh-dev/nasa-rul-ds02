@@ -1,4 +1,5 @@
 """Reglas del motor (MIA). Dos pasadas: corrección (B) y decisión (A).
+Seis reglas en total: 6 = 2 corrección + 4 decisión.
 
 Cada regla es una tupla de cinco datos, siempre en este orden:
 

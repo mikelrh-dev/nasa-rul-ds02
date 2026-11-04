@@ -541,7 +541,7 @@ def test_una_cautela_de_plausibilidad_no_bloquea_la_decision():
     La decision se toma de la invalidez real de la banda (`alertas_de_ventana`),
     no de las cautelas de plausibilidad.
     """
-    tab, _meta = INF.example_window(11, 0.36)
+    tab, _meta = INF.example_window(11, 0.40)  # C: 0.40 -> L_inf 28.1 INSPECCION
     pf = INF.preflight(tab)
     assert any("mismo ciclo" in aviso for aviso in pf["avisos"]), pf["avisos"]
 
@@ -573,7 +573,7 @@ def test_la_ruta_viva_decide_con_la_banda_y_no_con_las_cautelas():
     el test anterior probaría el motor y seguiría en verde aunque el cableado
     volviera a cruzarse.
     """
-    tab, _meta = INF.example_window(11, 0.36)
+    tab, _meta = INF.example_window(11, 0.40)  # C: 0.40 -> L_inf 28.1 INSPECCION
     pf = INF.preflight(tab)
     assert pf["ok"], pf["error"]
     assert pf["avisos"], "el preset trae la cautela de ciclo único"
@@ -679,8 +679,12 @@ def test_cada_preset_cae_en_el_estado_que_dice_su_nombre():
                        if unicodedata.category(c) != "Mn")
 
     umbrales = {"apto": 30.0, "hangar": 25.0}
-    paso = A.estado_historia(L.get_windows(), umbrales)[2]
-    presets = INF.demo_presets(int(paso["unidad"]), int(paso["ciclo"]))
+    # El preset critico usa el ciclo del estado demo (29): es el primer ciclo
+    # cuyo tramo en vivo (ultima ventana) cae en HANGAR con C (L_inf 21.4).
+    # El paso 3 del modo historia (25) es la primera derivacion por peor
+    # ventana de la flota: otra agregacion, no el tramo en vivo.
+    demo = A.estado_demo()
+    presets = INF.demo_presets(int(demo["unidad"]), int(demo["ciclo"]))
     assert len(presets) >= 3, presets
 
     for largo in (INF.window_size(), INF.DEMO_ROWS):

@@ -35,7 +35,7 @@ CASOS = [
     ("U11 ciclo 21 (inspeccion)", 11, 21, "INSPECCION"),
     ("U11 ciclo 26 (hangar)", 11, 26, "HANGAR"),
     ("U14 ciclo 3 (inicio de vida)", 14, 3, "APTO"),
-    ("U14 ciclo 30 (hangar)", 14, 30, "HANGAR"),
+    ("U14 ciclo 35 (hangar)", 14, 35, "HANGAR"),
     ("U14 ciclo 60 (hangar)", 14, 60, "HANGAR"),
     ("U15 ciclo 20 (pleno servicio)", 15, 20, "APTO"),
     ("U15 ciclo 26 (hangar)", 15, 26, "HANGAR"),
@@ -110,7 +110,7 @@ def ficha_invalida() -> dict:
             "la columna ciclo disminuye dentro de la ventana",
         ],
         "umbrales": {"apto": UMBRAL_APTO, "hangar": UMBRAL_HANGAR},
-        "rul_punto": 40.0,
+        "rul_punto": 37.0,  # banda C: L_inf = 37 - 9.09 = 27.9 -> INSPECCION sin R1
         "limite_inferior": 15.0,
         "limite_superior": 65.0,
     }

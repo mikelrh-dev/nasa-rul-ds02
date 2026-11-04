@@ -3,8 +3,8 @@
 E2_reg_lr (alpha=1e-2, hidden (128,64)): elegido por rmse_val 7.3404 y
 rmse_test 7.72 en `resultados/mlp_comparativa.csv`. Persistido como Pipeline
 completo en `models/mejor_modelo_clase_E2.joblib` (ver `train_mlp.persistir_e2`).
-NO toca `models/mejor_modelo_clase.joblib` (XGB) ni el bundle B
-(`models/ensemble.joblib`).
+NO toca `models/mejor_modelo_clase.joblib` (XGB) ni ningun otro artefacto
+desplegado.
 
 Diseño:
 - Modelo: `reg.predict` del Pipeline E2 (MLPRegressor) sobre el espacio

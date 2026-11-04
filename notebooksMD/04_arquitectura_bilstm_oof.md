@@ -1,4 +1,4 @@
-```
+```python
 # Descubrimiento robusto de la raiz del proyecto (no usar ../ relativo)
 import pathlib as _pl, os as _os, sys as _sys
 _ROOT = _pl.Path().resolve()
@@ -13,6 +13,9 @@ print("cwd:", _os.getcwd())
 
 ```
 
+    cwd: C:\Users\mikel\Desktop\Pruebas\nasa
+    
+
 **En cristiano:** este cuaderno responde UNA pregunta con código que se ejecuta. Si vienes del anterior, ya sabes el resultado previo; aquí solo añadimos un paso.
 
 
@@ -20,60 +23,34 @@ print("cwd:", _os.getcwd())
 
 Parte 2 de 3. Mismo código que las secciones 7–8 del original.
 
-**Requisito:** haber corrido el `01` (usa su `artifacts/`). No re-entrena la semilla 42.
+**Requisito:** ninguno. La base adaptada se construye aqui mismo (parquet MAR + ffill con medianas de fit-units) y el bundle se carga de `models/`; no reentrena la semilla 42.
 
 
 
-```
-# FIX ruta: los cuadernos viven en notebooks/ds02_ensemble pero los datos estan en la raiz.
-# Se vuelve a la raiz para que archive/... y models/... resuelvan igual que en el original.
-import pathlib as _pl
-_ROOT = _pl.Path().resolve()
-while not (_ROOT / "pyproject.toml").exists() and _ROOT != _ROOT.parent:
-    _ROOT = _ROOT.parent
-import os as _os
-_os.chdir(_ROOT)
-print("cwd:", _os.getcwd())
+```python
+# Imports y constantes que usan las celdas de abajo (la raiz la fija la 1a celda).
 import os
 import sys
-import time
 import warnings
-warnings.filterwarnings('ignore')
-os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')
+
+warnings.filterwarnings("ignore")
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 
 import numpy as np
 import pandas as pd
 
-import ds02_rul
-from ds02_rul import calculate_nasa_score, evaluate_predictions, macro_rmse
-from ds02_rul.conformal import apply_conformal, empirical_coverage, fit_conformal
-from ds02_rul.data import load_ds02
-from ds02_rul.features import build_windows, fit_preprocessing
-from ds02_rul.model import build_champion_bilstm
-from ds02_rul.persistence import build_manifest, load_ensemble, save_ensemble
+from ds02_rul import evaluate_predictions, macro_rmse
+from ds02_rul.conformal import apply_conformal, empirical_coverage
 from ds02_rul.smoothing import causal_ema_by_unit
-from ds02_rul.stacking import (
-    fit_meta_learners, in_sample_beta_diagnostic, meta_predict, select_beta_grouped,
-)
-from ds02_rul.pipeline import (
-    ablation_table, make_lgbm, oof_base_predictions, run_seed, seed_summary,
-)
-
-import keras
-import lightgbm as lgb
-import sklearn
+from ds02_rul.stacking import select_beta_grouped
+from IPython.display import display
 
 SEEDS = [42, 7, 123]
 PRIMARY_SEED = SEEDS[0]
 WINDOW_SIZE = 50
 STEP_TRAIN = 3
 STEP_TEST = 2
-
-print('python  :', sys.version.split()[0])
-print('keras   :', keras.__version__)
-print('lightgbm:', lgb.__version__)
-print('sklearn :', sklearn.__version__)
-print('ds02_rul:', ds02_rul.__version__, '->', os.path.dirname(ds02_rul.__file__))
+print("protocolo:", SEEDS, "| ventana", WINDOW_SIZE, "| stride", STEP_TRAIN, STEP_TEST)
 
 ```
 
@@ -91,38 +68,44 @@ print('ds02_rul:', ds02_rul.__version__, '->', os.path.dirname(ds02_rul.__file__
 
 
 
-```
-# Puente: recupera lo calculado en NB1 (no re-entrena la semilla 42)
-import pathlib, joblib, numpy as np, pandas as pd
-from ds02_rul.data import load_ds02
-ART = _ROOT / "notebooks" / "ds02_ensemble" / "artifacts"
-assert (ART / "nb1_dev.npz").exists(), "Falta NB1: ejecuta primero 01_datos_y_bases.ipynb"
-d = np.load(ART / "nb1_dev.npz"); t = np.load(ART / "nb1_test.npz")
-aux = joblib.load(ART / "nb1_aux.joblib")
-ra = joblib.load(ART / "nb1_result_arrays.joblib")
-from keras.models import load_model
+```python
+# Puente C: base adaptada (MAR T30 + ffill) + bundle desplegado en models/.
+# Devuelve los mismos nombres que el puente anterior, asi que el resto del
+# cuaderno no cambia. No entrena nada: `load_ensemble` verifica el SHA del
+# artefacto y reconstruye las ventanas con el window/step del entrenamiento.
+import os as _os
+import pathlib as _pl
+import sys as _sys
+
+# Raiz del repo: los cuadernos viven en notebooks/ y los datos una carpeta arriba.
+# La celda se busca la raiz sola, asi no depende del orden de ejecucion.
+_ROOT = _pl.Path.cwd().resolve()
+while not (_ROOT / "pyproject.toml").exists() and _ROOT != _ROOT.parent:
+    _ROOT = _ROOT.parent
+_os.chdir(_ROOT)
+for _p in (str(_ROOT), str(_ROOT / "src")):
+    if _p not in _sys.path:
+        _sys.path.insert(0, _p)
+
+from src.clase.puente_c import puente_c
+
+P = puente_c()
+raw, dev, test, prep = P["raw"], P["dev"], P["test"], P["prep"]
+fit_idx, hold_idx, dev_units = P["fit_idx"], P["hold_idx"], P["dev_units"]
+result = P["result"]
+bilstm, lgbm = result["bilstm"], result["lgbm"]
+p_lstm_hold, p_lstm_test = result["p_lstm_hold"], result["p_lstm_test"]
+p_lgb_hold, p_lgb_test = result["p_lgb_hold"], result["p_lgb_test"]
 FIT_UNITS = [2.0, 5.0, 10.0, 18.0, 20.0]
-HOLDOUT_UNITS = [16.0]; TEST_UNITS = [11.0, 14.0, 15.0]
-raw = load_ds02(stride=100)
-prep = aux["prep"]; fit_idx = aux["fit_idx"]; hold_idx = aux["hold_idx"]
-dev_units = aux["dev_units"]; lgbm = aux["lgbm"]
-p_lgb_hold = aux["p_lgb_hold"]; p_lgb_test = aux["p_lgb_test"]
-dev = {"X_seq": d["X_seq"], "X_tab": d["X_tab"], "y": d["y"], "X_raw": d["X_raw"],
-       "meta": pd.DataFrame({"unit": d["meta_unit"], "cycle": d["meta_cycle"]})}
-test = {"X_seq": t["X_seq"], "X_tab": t["X_tab"], "y": t["y"], "X_raw": t["X_raw"],
-        "meta": pd.DataFrame({"unit": t["meta_unit"], "cycle": t["meta_cycle"]})}
-bilstm = load_model(ART / "bilstm_seed42.keras")
-result = {"bilstm": bilstm, "lgbm": lgbm, "prep": prep, "dev": dev, "test": test,
-          "fit_idx": fit_idx, "hold_idx": hold_idx,
-          "p_lstm_hold": ra["p_lstm_hold"], "p_lstm_test": ra["p_lstm_test"],
-          "p_lgb_hold": ra["p_lgb_hold"], "p_lgb_test": ra["p_lgb_test"],
-          "t_lgb": ra["t_lgb"], "t_lstm": ra["t_lstm"], "history": type("H", (), {"history": ra["history"]})()}
-print("[LOAD NB1 OK] dev", dev["X_seq"].shape, "| test", test["X_seq"].shape, "| bilstm recargado")
+HOLDOUT_UNITS = [16.0]
+TEST_UNITS = [11.0, 14.0, 15.0]
+print("[PUENTE C OK] dev", dev["X_seq"].shape, "| test", test["X_seq"].shape,
+      "| particiones", P["particiones"])
 
 ```
 
 
-```
+```python
 # 2. Alias estilo clase (solo lectura: no entrenan, no cambian numeros).
 #    evaluar_clase/mostrar_clase ya vienen de viz (ver src/ds02_rul/viz.py).
 from ds02_rul.viz import evaluar_clase, mostrar_clase
@@ -130,9 +113,12 @@ print("[FASE A OK] evaluar_clase / mostrar_clase listos (alias, sin efecto en el
 
 ```
 
+    [FASE A OK] evaluar_clase / mostrar_clase listos (alias, sin efecto en el modelo)
+    
 
-```
-dev_units = aux["dev_units"]
+
+```python
+dev_units = P["dev_units"]
 from ds02_rul.pipeline import oof_base_predictions
 PRIMARY_SEED = 42
 WINDOW_SIZE = 50
@@ -151,23 +137,24 @@ print('folds:', oof['unit_folds'])
 > TIP En resumen (para presentar): Dos especialistas ven mejor que uno. BiLSTM lee la pelicula temporal de la ventana (inercia, triple-pooling: ultimo+media+maximo) y LightGBM evalua estadisticas del residuo. El meta-modelo los combina con `beta` elegido fuera de fold (mediana agrupada, `beta=1.0`) y el filtro EMA causal (`ema_span=5`) evita que la alarma parpadee. El OOF agrupado garantiza que cada ventana la puntua un meta ajustado en *otros* motores.
 
 
-## 7 · Calibración fuera de fold de `beta`
+## Calibración fuera de fold de `beta`
 
 `beta` decide cuánto de la opinión del meta-aprendiz reemplaza a la del BiLSTM:
 `p = p_lstm + beta * (p_meta - p_lstm)`, con `beta = 0` degradando sin riesgo al
 campeón.
 
-Elegir `beta` sobre las mismas filas que ajustaron al meta-aprendiz es lo que
-produjo `beta = 1,00` y un RMSE de validación imposible de 0,308 en la revisión
-anterior. Acá cada fold se puntúa con meta-aprendices ajustados sobre los
-**otros** motores, y el preprocesado se reajusta dentro de cada fold.
+Elegir `beta` sobre las mismas filas que ajustaron al meta-aprendiz es la fuga
+clásica: el meta se puntúa sobre lo que ya memorizó, el RMSE de validación se
+desploma a 0,308 y deja de medir algo. Acá cada fold se puntúa con
+meta-aprendices ajustados sobre los **otros** motores, y el preprocesado se
+reajusta dentro de cada fold.
 
 Costo: un par de modelos base por fold (3 folds), no un reajuste anidado por
 muestra.
 
 
 
-```
+```python
 selection = select_beta_grouped(oof['units'], oof['cycles'], oof['y'],
                                 oof['pred_lstm'], oof['pred_lgb'],
                                 span=5, use_cycle_feature=False)
@@ -182,6 +169,14 @@ for fold in selection['folds']:
 
 ```
 
+    beta_hat (mediana de los folds) = 1.00
+    dispersión: {'min': 0.0, 'max': 1.0, 'iqr': 0.5, 'n_folds': 3}
+    
+      fold 0: puntuados [2.0, 10.0] -> beta=1.00 | rmse 8.036 (ref BiLSTM 9.304) | nasa 15107.0 (ref 17312.1)
+      fold 1: puntuados [5.0, 18.0] -> beta=1.00 | rmse 9.658 (ref BiLSTM 10.517) | nasa 18884.0 (ref 21913.7)
+      fold 2: puntuados [16.0, 20.0] -> beta=0.00 | rmse 4.996 (ref BiLSTM 5.017) | nasa 8056.9 (ref 8093.1)
+    
+
 ## Meta en vivo: solo holdout-16, sin `cyc_norm` a proposito
 
 **En cristiano:** el meta-aprendiz no mira sensores ni ciclos. Solo mira dos numeros por ventana: lo que dice la red (`p_lstm`) y lo que dice el arbol (`p_lgb`). Con esas dos columnas (`Z`, sin reloj) ajustamos dos mezcladores — `RidgeCV` (lineal) y un `LGBMRegressor` pequeno — y la prediccion final del meta es `0.5 * Ridge + 0.5 * LGBM`.
@@ -190,7 +185,7 @@ for fold in selection['folds']:
 
 
 
-```
+```python
 # Meta en vivo: se ajusta SOLO en holdout-16 (2535 ventanas), sin cyc_norm a propósito
 # Con cyc_norm el meta pondría ~100% del peso en el reloj e ignoraría las ramas.
 from ds02_rul.stacking import fit_meta_learners, meta_predict
@@ -204,7 +199,10 @@ print(f'meta en {len(y_hold)} ventanas motor 16 | ridge alpha {ridge_meta.alpha_
 
 ```
 
-## 8 · Evaluación híbrida sobre los motores de test
+    meta en 2535 ventanas motor 16 | ridge alpha 14.38 coef [0.1684, 0.7312] | beta=1.00
+    
+
+## Evaluación híbrida sobre los motores de test
 
 Los meta-aprendices se ajustan sobre las 2 535 ventanas del motor 16 y `beta` se
 elige fuera de fold sobre los seis motores de desarrollo. **Se probó lo contrario
@@ -225,7 +223,7 @@ atajo que el aprendiz prefería antes que a los dos modelos que debía conciliar
 
 
 
-```
+```python
 from ds02_rul import HybridStackingEnsemble
 
 ensemble = HybridStackingEnsemble(
@@ -254,7 +252,7 @@ print('¿El ensamble mejora al campeón en NASA?:', rows[3]['NASA_Score'] < rows
 ```
 
 
-```
+```python
 # Baseline en la tabla titular (SOLO lectura: usa predicciones ya calculadas)
 pred_media_nb2 = np.full_like(np.asarray(test["y"]), float(np.asarray(dev["y"])[fit_idx].mean()), dtype=float)
 fila_base_nb2 = evaluar_clase("Baseline (media train)", test["y"], pred_media_nb2)
@@ -265,10 +263,9 @@ print("Cualquier modelo útil tiene que ganarle al baseline; no entra en la elec
 ```
 
 
-```
+```python
 # Fase A+B — extras separados + cascada de la decision (SOLO lectura, sin re-entrenar)
 # Extra estilo clase: sensibilidad al suavizado EMA sobre el BiLSTM (barato, sin ajustar nada)
-from ds02_rul.smoothing import causal_ema_by_unit
 units_t = test["meta"]["unit"].values; cycles_t = test["meta"]["cycle"].values
 extra = []
 for span in [3, 5, 10]:
@@ -293,7 +290,75 @@ print(f"Del BiLSTM al hibrido: {rows[1]['RMSE'] - rows[3]['RMSE']:+.3f} ciclos d
 ```
 
 
-```
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Modelo</th>
+      <th>RMSE</th>
+      <th>MAE</th>
+      <th>R2</th>
+      <th>NASA_Score</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>BiLSTM + EMA10</td>
+      <td>5.592</td>
+      <td>4.302</td>
+      <td>0.910</td>
+      <td>3775.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>BiLSTM + EMA5</td>
+      <td>5.625</td>
+      <td>4.332</td>
+      <td>0.909</td>
+      <td>3801.1</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>BiLSTM + EMA3</td>
+      <td>5.639</td>
+      <td>4.344</td>
+      <td>0.909</td>
+      <td>3811.7</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+    Nota: van en tabla `extra` aparte para no mezclar con la tabla titular, como en clase.
+    
+
+
+    
+![png](04_arquitectura_bilstm_oof_files/04_arquitectura_bilstm_oof_16_2.png)
+    
+
+
+    Del BiLSTM al hibrido: +1.400 ciclos de RMSE
+    
+
+
+```python
 macro = macro_rmse(test['y'], p_ens, test['meta']['unit'].values)
 per_unit = pd.DataFrame([{'motor': int(k), 'RMSE': v}
                         for k, v in macro['per_unit_rmse'].items()])
@@ -312,7 +377,7 @@ print('El motor con mas ventanas pesa mas en el global; el macro da voz igual a 
 > TIP En resumen (para presentar): En aviacion, predecir de mas cuesta un motor en vuelo; predecir de menos solo adelanta una revision. Por eso decidimos sobre `L_inf`, el limite inferior de la banda conformal calibrada fuera de fold al 90% (asimetrica por tramo, `alpha_each_side=0.05`). Si la banda sobre-cubre, se publica el trade-off en vez de estrecharla eligiendo sobre test.
 
 
-## 9 · Banda conformal: el intervalo honesto (90 %)
+## Banda conformal: el intervalo honesto (90 %)
 
 **En cristiano:** el punto predice; la banda dice "y me puedo equivocar en esto". Se calibra con residuales **fuera de fold** (`oof_calib`: ventanas que ningun modelo de fold vio entrenar), por bins de prediccion, con cuantiles asimetricos. Tres bandas, una sola enviada:
 
@@ -324,7 +389,7 @@ print('El motor con mas ventanas pesa mas en el global; el macro da voz igual a 
 
 
 
-```
+```python
 # Banda en vivo: se calibra SOLO con residuales fuera de fold (nada de test)
 from ds02_rul.conformal import fit_conformal
 from ds02_rul.stacking import meta_predict
@@ -341,8 +406,12 @@ print('bandas listas: enviada + motor-16 + sin-sesgo (la tabla siguiente las mid
 
 ```
 
+    n calibracion (oof): 52341 | n holdout-16: 2535
+    bandas listas: enviada + motor-16 + sin-sesgo (la tabla siguiente las mide)
+    
 
-```
+
+```python
 point, lo, hi = ensemble.predict_interval(test['X_raw'], test['meta']['cycle'].values,
                                           test['meta']['unit'].values)
 
@@ -386,11 +455,31 @@ print('tiene que ser estrecho donde el modelo acierta y ancho donde falla.')
 
 ```
 
+                                    banda  cobertura %  ancho medio  por debajo %  por encima %
+                  fuera de fold (enviada)        100.0        25.15           0.0           0.0
+                   motor 16 (diagnostico)         29.3         3.34          43.3          27.4
+    fuera de fold sin sesgo (diagnostico)        100.0        25.21           0.0           0.0
+    
+    Nominal 90 %. La banda enviada sobre-cubre porque la calibraron modelos de fold
+    mas debiles que el desplegado. Estrecharla seria elegir sobre test, y por eso no
+    se envia la mas estrecha: se publica el trade-off.
+    
+    cobertura global en test (banda enviada): 100.0 % | ancho medio 25.15 ciclos
+    
+     motor  ventanas  cobertura %  ancho medio  se pasa %
+        11      3293        100.0        25.65        0.0
+        14       760        100.0        24.60        0.0
+        15      2143        100.0        24.57        0.0
+    
+    dias cubiertos fuera de la banda (ambos lados) y ancho por motor: un intervalo util
+    tiene que ser estrecho donde el modelo acierta y ancho donde falla.
+    
 
-```
+
+```python
 # Guarda lo que el 05 necesita (el 05 no re-entrena nada: lo recarga de aqui)
 import joblib
-ART = _ROOT / "notebooks" / "ds02_ensemble" / "artifacts"
+ART = _ROOT / "notebooks" / "artifacts_c"
 ART.mkdir(parents=True, exist_ok=True)
 joblib.dump({'ridge_meta': ridge_meta, 'lgb_meta': lgb_meta, 'BETA': float(BETA),
              'selection_beta': float(selection['beta']), 'oof_calib': selection['oof_calib'],

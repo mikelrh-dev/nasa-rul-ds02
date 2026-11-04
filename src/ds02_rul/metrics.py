@@ -3,7 +3,7 @@
 `calculate_nasa_score` is a SUM over rows, not a mean: its magnitude scales with
 the number of scored windows and is only comparable between models evaluated on
 the same rows. The DS02 path applies no 125-cycle clamp (that clamp exists only
-in the C-MAPSS FD001 loader).
+in the legacy C-MAPSS pipeline).
 """
 from __future__ import annotations
 
@@ -22,9 +22,9 @@ def macro_rmse(y_true, y_pred, units) -> dict:
     """Mean of the per-engine RMSEs, each engine weighing 1/n regardless of size.
 
     The window-weighted RMSE is dominated by the engine with the most windows.
-    Reporting both is the point: on bundle B the weighted figure (4.2515) is
-    kinder than the macro one (4.8433) because the worst engine is also the
-    smallest.
+    Reporting both is the point: on the deployed bundle the weighted figure
+    (4.3382) is kinder than the macro one (5.0153) because the worst engine is
+    also the smallest.
     """
     y_true = np.asarray(y_true, dtype=np.float64).ravel()
     y_pred = np.asarray(y_pred, dtype=np.float64).ravel()

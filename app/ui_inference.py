@@ -184,7 +184,7 @@ def demo_presets(u_hangar: int, c_hangar: int,
     """
     return {
         "Sano U15 inicio (APTO)": (15, 0.05, None, "ESN-SANO-01"),
-        "Medio U11 desgaste (INSPECCIÓN)": (11, 0.36, None, "ESN-MEDIO-01"),
+        "Medio U11 desgaste (INSPECCIÓN)": (11, 0.40, None, "ESN-MEDIO-01"),  # C: 0.40 -> L_inf 28.1 INSPECCION
         f"Crítico U{u_hangar} · ciclo {c_hangar} (HANGAR)": (
             u_hangar, None, c_hangar, "ESN-CRIT-01"),
         "Clásico U14 (HANGAR)": (14, 0.55, None, "ESN-DEMO-01"),

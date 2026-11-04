@@ -65,12 +65,14 @@ _rate_hits: dict[str, list[float]] = {}
 
 
 def _client_ip(request: Request) -> str:
+    """Client IP for the rate limiter (host, or 'unknown' if absent)."""
     if request.client is not None:
         return request.client.host
     return "unknown"
 
 
 def _check_rate_limit(request: Request) -> None:
+    """Fixed-window per-IP limiter: 10 requests/minute."""
     ip = _client_ip(request)
     now = time.monotonic()
     with _rate_lock:
@@ -104,6 +106,7 @@ def require_api_key(
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    """Loads and verifies the ensemble artifact on startup, clears on shutdown."""
     # load_ensemble verifies the SHA-256 against the manifests before
     # deserializing; on mismatch it raises RuntimeError and startup aborts.
     STATE["ensemble"] = load_ensemble(ARTIFACT)
@@ -138,6 +141,7 @@ app.add_middleware(
 
 @app.middleware("http")
 async def _security_headers(request: Request, call_next):  # noqa: ANN001, ANN202
+    """Adds the security headers to every response."""
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
@@ -154,6 +158,7 @@ class PredictRequest(BaseModel):
     @field_validator("unit")
     @classmethod
     def _unit_must_be_finite(cls, value: float) -> float:
+        """Rejects NaN/Inf in the unit field."""
         # Pydantic/float accepts NaN and Inf by default; reject them here.
         if not math.isfinite(float(value)):
             raise ValueError("unit must be a finite number (NaN/Inf rejected)")
@@ -169,6 +174,7 @@ class PredictResponse(BaseModel):
 
 
 def _raw():
+    """Lazily loads the raw DS02 data (HDF5 is ~2.3 GB)."""
     if STATE.get("raw") is None:
         STATE["raw"] = load_ds02(stride=100)
     return STATE["raw"]
@@ -176,6 +182,7 @@ def _raw():
 
 @app.get("/health")
 def health() -> dict:
+    """Health check: artifact loaded, with its config."""
     ensemble = STATE.get("ensemble")
     if ensemble is None:
         raise HTTPException(status_code=503, detail="artifact not loaded")
@@ -192,12 +199,14 @@ def health() -> dict:
 
 @app.get("/units")
 def units(_auth: None = Depends(require_api_key)) -> dict:
+    """Lists the test engine ids available for scoring."""
     raw = _raw()
     return {"test_units": sorted(float(u) for u in np.unique(raw["A_test"][:, 0]))}
 
 
 @app.post("/predict", response_model=None)
 def predict(req: PredictRequest, _auth: None = Depends(require_api_key)) -> dict:
+    """Scores one window (or the whole trajectory, if all_windows) for an engine."""
     ensemble = STATE.get("ensemble")
     if ensemble is None:
         raise HTTPException(status_code=503, detail="artifact not loaded")

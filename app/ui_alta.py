@@ -23,7 +23,7 @@ PERFILES = {
     "Desgaste operativo medio": (11, 20),
     "Desgaste operativo medio (U14)": (14, 20),
     "Fin de vida / crítico": (14, 29),
-    "Fin de vida / crítico (U11)": (11, 22),
+    "Fin de vida / crítico (U11)": (11, 23),  # C: U11 L_inf<25 desde el ciclo 23
     "Caso atípico (U14)": (14, 3),
 }
 

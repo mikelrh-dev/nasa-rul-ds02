@@ -2,7 +2,7 @@
 
 ## Apertura (30 segundos, memorízala)
 
-> "Predigo la vida útil restante de motores DS02 y la convierto en decisión — APTO, INSPECCIÓN o HANGAR — con reglas de negocio. El mejor modelo de clase es el MLP E2 (RMSE 7,72 en test); la producción usa el híbrido (4,25). Y lo importante: el modelo se elige por validación, el test solo confirma."
+> "Predigo la vida útil restante de motores DS02 y la convierto en decisión — APTO, INSPECCIÓN o HANGAR — con reglas de negocio. El mejor modelo de clase es el MLP E2 (RMSE 7,72 en test); la producción usa el híbrido (4,338). Y lo importante: el modelo se elige por validación, el test solo confirma."
 
 ## El arco (si te pierdes, vuelve aquí)
 
@@ -27,7 +27,7 @@
 - Clásicos val: **XGB 8,22** < Ridge 8,28 < SVM 8,29 (test solo XGB: 11,03).
 - MLP val: **E2 7,34** < base 7,36 < E3 7,36 < E1 7,48 (test E2: 7,72).
 - E1 = overfit de libro: train 5,23 (el mejor) → val 7,48 (el peor).
-- Producción: híbrido **4,251** (bundle B). Clase no compite con producción: la entiende.
+- Producción: híbrido **4,338** (bundle C). Clase no compite con producción: la entiende.
 - Negocio: un AOG ≈ 10.000–15.000 USD/h (rango Boeing; ver `costes_reales_aeronauticos.md` §1); el equivalente 240.000–360.000 USD/día vale solo como hipotético de 24 h continuas. Evitar un AOG paga el sistema. RMSE manda porque un motor parado cuesta más que segundos de CPU.
 - SHAP + permutación (en validación): **cycle ≫ T50 > Nc**.
 
@@ -51,4 +51,4 @@
 - [ ] Abrir la app una vez y puntuar un caso (que no sea la primera vez en vivo).
 - [ ] Recitar la apertura + el arco en voz alta, una vez, con cronómetro.
 - [ ] Tener a mano: esta chuleta, `resultados/comparativa.csv`, `resultados/mlp_comparativa.csv`.
-- [ ] `models/ds02_manifest.json` abre y trae 4.251 (prueba de que lo defendido es lo de disco).
+- [ ] `models/ds02_manifest.json` abre y trae 4.338 (prueba de que lo defendido es lo de disco).

@@ -1,9 +1,9 @@
 {
   "format_version": 1,
-  "code_version": "4.1.0",
+  "code_version": "clase-bundle-C",
   "dataset": "DS02",
   "seed": 42,
-  "python": "3.12.10",
+  "python": null,
   "tensorflow": "2.21.0",
   "keras": "3.15.1",
   "sklearn": "1.9.1",
@@ -60,9 +60,9 @@
           0.0,
           25.0
         ],
-        "n": 5772,
-        "q_low": -5.2697,
-        "q_high": 5.7392,
+        "n": 5730,
+        "q_low": -5.1448,
+        "q_high": 6.1854,
         "source": "bin"
       },
       {
@@ -71,9 +71,9 @@
           25.0,
           50.0
         ],
-        "n": 5851,
-        "q_low": -14.0076,
-        "q_high": 16.7315,
+        "n": 6070,
+        "q_low": -13.798,
+        "q_high": 16.1254,
         "source": "bin"
       },
       {
@@ -82,9 +82,9 @@
           50.0,
           75.0
         ],
-        "n": 4862,
-        "q_low": -23.8524,
-        "q_high": 20.3956,
+        "n": 4663,
+        "q_low": -24.4633,
+        "q_high": 19.9821,
         "source": "bin"
       },
       {
@@ -93,15 +93,15 @@
           75.0,
           null
         ],
-        "n": 965,
-        "q_low": -24.901,
-        "q_high": -17.232,
+        "n": 987,
+        "q_low": -25.3311,
+        "q_high": -17.7596,
         "source": "bin"
       }
     ],
     "global_quantiles": [
-      -21.9794,
-      17.19
+      -22.3938,
+      16.9599
     ],
     "n_calibration": 17450
   },
@@ -120,75 +120,40 @@
   ],
   "metrics": {
     "reference_row": {
-      "Modelo": "H\u00edbrido stacking (beta=1.00) + EMA5",
-      "RMSE": 4.251,
-      "MAE": 3.183,
-      "R2": 0.9482,
-      "NASA_Score": 2305.1
+      "Modelo": "H\u00edbrido-C (beta=1.00) + EMA5",
+      "RMSE": 4.338,
+      "MAE": 3.227,
+      "R2": 0.9461,
+      "NASA_Score": 2336.2
     },
     "beta": 1.0,
-    "mean_std": [
-      {
-        "Modelo": "LightGBM solo",
-        "RMSE": "7.098 \u00b1 0.034",
-        "MAE": "5.572 \u00b1 0.034",
-        "R2": "0.8557 \u00b1 0.0014",
-        "NASA_Score": "5772.5 \u00b1 50.1"
-      },
-      {
-        "Modelo": "BiLSTM solo",
-        "RMSE": "6.218 \u00b1 0.541",
-        "MAE": "4.820 \u00b1 0.477",
-        "R2": "0.8887 \u00b1 0.0191",
-        "NASA_Score": "4397.8 \u00b1 550.9"
-      },
-      {
-        "Modelo": "H\u00edbrido + EMA5",
-        "RMSE": "4.340 \u00b1 0.101",
-        "MAE": "3.235 \u00b1 0.054",
-        "R2": "0.9460 \u00b1 0.0025",
-        "NASA_Score": "2347.7 \u00b1 49.4"
-      }
-    ]
-  },
-  "macro_rmse": {
-    "per_unit_rmse": {
-      "11.0": 3.7874,
-      "14.0": 7.9974,
-      "15.0": 2.7451
-    },
-    "macro_rmse": 4.8433,
-    "n_units": 3
+    "macro_rmse": 5.0153
   },
   "meta_protocol": {
-    "fitted_on": "holdout unit 16",
+    "fitted_on": "holdout unit 16 (adaptada)",
     "rows": 2535,
-    "units": [
-      16
-    ],
-    "rul_range": [
-      0.0,
-      62.0
-    ],
-    "oof_pooling": "measured and rejected (level prior does not transfer)"
+    "beta": "grouped out-of-fold sobre adaptada"
   },
   "protocol": {
-    "preprocessing": "fit units only",
-    "beta": "grouped out-of-fold",
-    "seeds": [
-      42,
-      7,
-      123
-    ],
+    "preprocessing": "fit units only + ffill fit-units",
+    "seed": 42,
     "window": 50,
-    "stride": 100,
-    "step_train": 3,
-    "step_test": 2
+    "stride": "parquet-clase"
   },
   "artifacts": {
-    "ensemble_sha256": "7acba3352a2c9aac46b1e95ee4045082a812cd9f947bf791fca4659412d64b1b",
-    "bilstm_sha256": "d0c5ed7ffc90c8c93d5d626b68454ca86114a17d00e3cb6f89f6d4f5cd94dc79",
-    "bilstm_bytes": 1935382,
-    "ensemble_bytes": 470446
+    "ensemble_sha256": "d6c701429eed8623a9d900d922aca1922427d08ff8b4ec00604b8116c1a952dd",
+    "bilstm_sha256": "bf9620a7de3bf9f8efa65c1993a96d8a95b903dc6fde72c772aa316f4c042219",
+    "bilstm_bytes": 1935767,
+    "ensemble_bytes": 469620
+  },
+  "dataset_variant": "DS02-adaptada (MAR T30 + ffill causal, medianas de fit-units)",
+  "macro_rmse": {
+    "per_unit_rmse": {
+      "11.0": 3.6328,
+      "14.0": 8.5761,
+      "15.0": 2.8371
+    },
+    "macro_rmse": 5.0153,
+    "n_units": 3
   }
 }

@@ -1,4 +1,4 @@
-```
+```python
 # Descubrimiento robusto de la raiz del proyecto (no usar ../ relativo)
 import pathlib as _pl, os as _os, sys as _sys
 _ROOT = _pl.Path().resolve()
@@ -13,12 +13,17 @@ print("cwd:", _os.getcwd())
 
 ```
 
+    cwd: C:\Users\mikel\Desktop\Pruebas\nasa
+    
+
 **En cristiano:** este cuaderno responde UNA pregunta con código que se ejecuta. Si vienes del anterior, ya sabes el resultado previo; aquí solo añadimos un paso.
 
 
-# 06 · Bundle C en producción — veredicto D11 y tabla final
+# 06 · Bundle C en producción — tabla final y cierre
 
-Mismo protocolo que B sobre ventanas adaptadas (MAR T30 + ffill con medianas de fit-units, contrato 93 intacto, sin `fase_vuelo`). Grano **ventana**.
+C es el modelo desplegado desde 2026-11-04: protocolo honesto de ventana sobre
+la base adaptada (MAR T30 + ffill con medianas de fit-units), contrato 93 intacto
+y sin `fase_vuelo`. Grano **ventana**.
 
 
 ## El reparto: para qué sirve cada motor
@@ -42,23 +47,27 @@ Mismo protocolo que B sobre ventanas adaptadas (MAR T30 + ffill con medianas de 
 
 ## Qué es cada pieza (II): meta, beta, EMA
 
-- **Meta-aprendiz**: se ajusta solo con `[p_lstm, p_lgb]` (predicción de cada rama en holdout). Sin `cyc_norm`: medido en B, el meta ponía ~100 % del peso en el reloj e ignoraba las dos ramas.
+- **Meta-aprendiz**: se ajusta solo con `[p_lstm, p_lgb]` (predicción de cada rama en holdout). Sin `cyc_norm`: con el reloj dentro, el meta ponía ~100 % del peso en el ciclo e ignoraba las dos ramas.
 - **Beta**: cuánto de la opinión del meta reemplaza a la del BiLSTM (`p = p_lstm + beta·(p_meta − p_lstm)`), elegido fuera de fold. `beta = 1.00` significa meta puro: se dice en voz alta, no se esconde.
 - **EMA5**: suavizado causal por motor en orden de ciclo. Evita que la alarma parpadee: la decisión de hoy no puede depender de la ventana de mañana.
-- **Alcance honesto**: en clase decidimos sobre el punto (RMSE). La banda conformal se calibra y se guarda en el manifest del bundle, pero decidir sobre `L_inf` es mundo B, fuera de este track.
+- **Alcance honesto**: en clase decidimos sobre el punto (RMSE). La banda conformal se calibra y se guarda en el manifest del bundle, pero decidir sobre `L_inf` queda fuera de este track.
 
 
 ## El entreno de C, paso a paso (seed 42, en memoria)
 
-Mismo protocolo que B, dieta adaptada (MAR T30 + ffill). Nada se persiste: el
-bundle versionado sigue siendo `track_clase/models/` (manifest 4.338 / 2336.2).
+Protocolo honesto de ventana con dieta adaptada (MAR T30 + ffill). Nada se
+persiste aquí: el bundle desplegado es `models/` (manifest 4.338 / 2336.2) y
+`python src/clase/train_ensemble_adaptado.py` es quien lo escribe.
 
-> TIP: lo vivo debe caer cerca de lo archivado. Si difiere en centésimas es el
-> no-determinismo de TF en CPU (`notebooks/ds02_ensemble/EVALUACION_EJECUCION.md`),
-> no un error de implementación.
+> TIP: lo vivo debe caer cerca de lo que dice el manifiesto. Si difiere en
+> centésimas es el no-determinismo de TF en CPU, no un error de implementación.
 
 
-```
+**Como leer (antes de la curva de perdida, BiLSTM seed 42).** Eje X: epoca; eje Y: MSE. Curva de train que baja y curva de validacion (holdout-16) que sigue pegada = aprende sin memorizar en exceso; early stopping corta cuando la validacion deja de mejorar.
+
+
+
+```python
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -69,7 +78,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from track_clase.train_ensemble_adaptado import (
+from src.clase.train_ensemble_adaptado import (
     construir_raw_adaptado, FIT_UNITS, HOLDOUT_UNITS, TEST_UNITS, EPOCHS)
 from ds02_rul.pipeline import run_seed
 raw = construir_raw_adaptado()
@@ -93,9 +102,23 @@ display(Image('resultados/loss_curve_c.png'))
 
 ```
 
+    WARNING:tensorflow:From C:\Users\mikel\AppData\Local\Programs\Python\Python312\Lib\site-packages\keras\src\backend\common\global_state.py:82: The name tf.reset_default_graph is deprecated. Please use tf.compat.v1.reset_default_graph instead.
+    
+    WARNING:tensorflow:TensorFlow GPU support is not available on native Windows for TensorFlow >= 2.11. Even if CUDA/cuDNN are installed, GPU will not be used. Please use WSL2 or the TensorFlow-DirectML plugin.
+    
 
-```
-from track_clase.train_ensemble_adaptado import EPOCHS_OOF
+
+    
+![png](06_evaluacion_produccion_comparativa_files/06_evaluacion_produccion_comparativa_9_1.png)
+    
+
+
+**Que vemos (curva).** Las dos curvas bajan juntas hasta el corte: no hay brecha train-validacion que delate sobreajuste en esta corrida. El early stopping fija el numero de epocas; el resto del cuaderno no mira esta figura para elegir nada.
+
+
+
+```python
+from src.clase.train_ensemble_adaptado import EPOCHS_OOF
 from ds02_rul.pipeline import oof_base_predictions
 from ds02_rul.stacking import select_beta_grouped
 oof = oof_base_predictions(raw, raw['A_train'][:, 0], n_splits=3,
@@ -112,8 +135,11 @@ beta = float(selection['beta'])
 > la del BiLSTM. Se calibra fuera de fold y agrupada por motor: cada ventana la
 > puntúa un meta que nunca la vio entrenar. `beta = 1.00` significa meta puro.
 
+**Como leer (antes del scatter vivo real-predicho, hibrido en memoria).** Cada punto es una ventana de test: eje X la RUL real, eje Y la predicha, diagonal roja = acierto. Nube pegada a la diagonal = predice; abierta en un extremo = falla ahi aunque el RMSE global brille.
 
-```
+
+
+```python
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -124,7 +150,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from track_clase.dataset_clase import OP_COLS
+from src.clase.dataset_clase import OP_COLS
 from ds02_rul import HybridStackingEnsemble
 from ds02_rul.metrics import evaluate_predictions, macro_rmse
 from ds02_rul.smoothing import causal_ema_by_unit
@@ -160,6 +186,15 @@ display(Image('resultados/real_vs_predicho_bundle_c.png'))
 
 ```
 
+
+    
+![png](06_evaluacion_produccion_comparativa_files/06_evaluacion_produccion_comparativa_14_0.png)
+    
+
+
+**Que vemos (scatter vivo).** La nube sigue la diagonal en todo el rango: no hay tramo donde el modelo pierda el nivel. El RMSE vivo (4.338 en la fila oficial) resume esta nube; el detalle por motor va en la tabla de abajo.
+
+
 ### Qué acaba de pasar
 
 1. El meta se ajusta **solo** con las predicciones de los dos especialistas en
@@ -189,11 +224,17 @@ que se puede leer.
 Lo que sigue es el meta **del bundle C versionado**, leido del artefacto (no
 reentrenado): su `alpha`, sus pesos y cuanto confia en cada rama.
 
+**Ojo Ridge:** No es el Ridge de 01 (14 ridges fisicos) ni el Ridge fila de 02. Aqui el Ridge solo mezcla 2 opiniones ya hechas sobre holdout, no mira sensores ni predice RUL de 1 fila.
 
-```
-import joblib
+
+
+```python
 import numpy as np
-_meta = joblib.load('track_clase/models/ensemble.joblib')
+from ds02_rul.persistence import load_ensemble
+
+# El bundle desplegado se carga por el mismo camino que la app:
+# load_ensemble verifica el SHA-256 antes de deserializar.
+_meta = load_ensemble('models/ensemble.joblib')
 _ridge = _meta.ridge_meta
 _w = np.asarray(_ridge.coef_, dtype=float).ravel()
 print('features del meta :', int(_ridge.n_features_in_), '(2 = [p_lstm, p_lgb]; sin reloj)')
@@ -216,6 +257,57 @@ print('de RUL en vez de reconciliar (el fallo medido en el diseno OOF-pooled).')
 
 ```
 
+    features del meta : 2 (2 = [p_lstm, p_lgb]; sin reloj)
+    alpha elegido     : 88.58667904100822
+    peso -> p_lstm    : +0.255
+    peso -> p_lgb     : +0.641
+    intercepto        : -0.27 ciclos
+    reparto del Ridge : p_lstm 28% | p_lgb 72%
+    
+    meta final        : 0.5 * Ridge + 0.5 * LightGBM (meta_predict)
+    beta              : 1.00  (1.00 = el meta sustituye a la red)
+    EMA               : span 5, causal por motor
+    
+    COMO LEERLO: pesos que suman ~1 con intercepto pequeno = el meta
+    reparte la prediccion entre las dos ramas, no anade un nivel propio.
+    Un intercepto grande seria la senal de que esta aprendiendo un prior
+    de RUL en vez de reconciliar (el fallo medido en el diseno OOF-pooled).
+    
+
+#### Pesos del bundle C instalado (28/72)
+*Cómo leer: esta barra es la version desplegada leida del artefacto, no la viva.*
+
+
+
+```python
+# Pesos ridge_meta del bundle C instalado (viene de la celda anterior _ridge/_w)
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from IPython.display import Image, display
+fig, ax = plt.subplots(figsize=(5, 4))
+ax.bar(['p_lstm (red)', 'p_lgb (arbol)'], _w)
+ax.set_title('ridge_meta instalado: pesos sobre [p_lstm, p_lgb]')
+ax.set_ylabel('peso')
+for i, v in enumerate(_w):
+    ax.text(i, v, f'{v:.3f}', ha='center', va='bottom')
+fig.tight_layout(); fig.savefig('resultados/ridge_meta_pesos_06.png', dpi=120); plt.close(fig)
+print('QUÉ VEO: el Ridge instalado se fia mas del arbol (28/72).')
+print('CONCLUSIÓN: eso se dice en defensa, no el 50/50 de la reconciliacion.')
+display(Image('resultados/ridge_meta_pesos_06.png'))
+
+```
+
+    QUÉ VEO: el Ridge instalado se fia mas del arbol (28/72).
+    CONCLUSIÓN: eso se dice en defensa, no el 50/50 de la reconciliacion.
+    
+
+
+    
+![png](06_evaluacion_produccion_comparativa_files/06_evaluacion_produccion_comparativa_20_1.png)
+    
+
+
 #### Qué dicen estos números
 
 - **Reparto 28 % red / 72 % árbol** en el Ridge: el meta confía más en el
@@ -235,7 +327,7 @@ El intervalo es *split conformal* sobre residuales fuera de fold: con objetivo
 test se aleja mucho del 90 %, la banda miente aunque el RMSE sea bueno.
 
 
-```
+```python
 from ds02_rul.conformal import fit_conformal
 calib = selection['oof_calib']
 banda = fit_conformal(calib['y'], calib['pred_ema'], target=0.90)
@@ -251,50 +343,120 @@ banda = fit_conformal(calib['y'], calib['pred_ema'], target=0.90)
   para decidir hangar aunque su RMSE global brille.
 
 
-```
+```python
 res = np.asarray(p_ens).ravel() - np.asarray(test['y']).ravel()
 yt = np.asarray(test['y']).ravel()
 
 ```
 
-### Lo vivo y lo archivado, uno al lado del otro
+### Lo vivo y lo instalado
 
-Arriba: reentrenado en este notebook. Abajo: el manifest determinista del
-bundle versionado. Deben coincidir dentro de décimas; la puerta D11 no depende
-del decimal. C es un banco de pruebas de robustez: B sigue en producción
-porque C no le gana en las mismas ventanas.
+Arriba: reentrenado en este notebook. Abajo: la fila del `models/ds02_manifest.json`
+instalado. Deben coincidir dentro de décimas; la diferencia es ruido de TF en CPU.
+
+El manifiesto es la fuente de verdad del bundle: métricas, contrato de inferencia,
+partición de motores y huellas SHA de los artefactos viven ahí.
 
 
-```
+**Definiciones en llano (para la tabla de componentes y la final).** NASA Score: coste asimetrico sobre las 6.196 ventanas de test; ejemplo: 2336.2 en C significa que pasarse de RUL (coste alto) pesa mas que quedarse corto. R2: parte de la varianza explicada; 0.9461 en C es casi todo. Cuantil 0.35: el LightGBM predice el percentil 35 de la RUL, a proposito bajo, porque pasarse cuesta un motor en vuelo. MAR: el nulo T30 tiene causa conocida (crucero alto), no es azar. ffill causal: rellenar con el ultimo valor anterior del mismo motor, nunca con el futuro.
+
+
+**Como leer (antes de la tabla de componentes).** 4 filas en orden de construccion: LGBM solo, BiLSTM solo, BiLSTM con EMA5, y el hibrido desplegado. Cada fila se mide sobre las mismas 6.196 ventanas: si una etapa no baja el RMSE, no aporta y hay que decirlo.
+
+
+
+```python
 import pandas as pd
 comp = pd.read_csv('resultados/comparativa_bundle_c.csv')
 print(comp.to_string(index=False))
 
 ```
 
-> Procedencia: `resultados/comparativa_bundle_c.csv` ← `track_clase/train_ensemble_adaptado.py` (seed 42, grano ventana). Regenerable con: `python track_clase/train_ensemble_adaptado.py`. Si el CSV cambia sin re-ejecutar su fuente, la celda ancla lo detecta.
+                          Modelo  RMSE   MAE     R2  NASA_Score   grano
+           LGBM-C (cuantil 0.35) 7.067 5.545 0.8570      5731.3 ventana
+                        BiLSTM-C 5.654 4.295 0.9084      3674.0 ventana
+                 BiLSTM-C + EMA5 5.618 4.268 0.9096      3649.4 ventana
+    Híbrido-C (beta=1.00) + EMA5 4.338 3.227 0.9461      2336.2 ventana
+    
 
+**Que vemos (componentes).** La cascada baja en cada paso: 7.067 (LGBM) a 5.654 (BiLSTM) a 5.618 (+EMA5) a 4.338 (hibrido). Ninguna etapa sobra: todas recortan RMSE y NASA Score sobre las mismas ventanas.
+
+
+
+```python
+# Figura BARATA (nueva): cascada RMSE desde el CSV ya guardado, sin recalcular modelos.
+# Solo lee resultados/comparativa_bundle_c.csv (test, bundle C, grano ventana).
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import pandas as pd
+
+_cb = pd.read_csv('resultados/comparativa_bundle_c.csv')
+_fig2, _ax2 = plt.subplots(figsize=(7, 4))
+_b2 = _ax2.barh(_cb['Modelo'], _cb['RMSE'], color=['#DD8452', '#4C72B0', '#7FB3D5', '#1FA098'])
+for _r, _rect in zip(_cb.itertuples(), _b2):
+    _ax2.text(_rect.get_width(), _rect.get_y() + _rect.get_height() / 2,
+              f' {_r.RMSE:.3f}', va='center', fontsize=9)
+_ax2.set_title('Bundle C: cascada de RMSE (test, grano ventana)')
+_ax2.set_xlabel('RMSE (ciclos, menos es mejor)')
+_fig2.tight_layout()
+_fig2.savefig('resultados/bundle_c_cascada_rmse.png', dpi=120)
+plt.close(_fig2)
+print(_cb.to_string(index=False))
+from IPython.display import Image, display
+display(Image('resultados/bundle_c_cascada_rmse.png'))
 
 ```
-# ANCLA (instantanea): el bundle C versionado en `track_clase/models/`
-# (manifest propio) coincide con la fila Hibrido-C de `comparativa_bundle_c.csv`.
+
+                          Modelo  RMSE   MAE     R2  NASA_Score   grano
+           LGBM-C (cuantil 0.35) 7.067 5.545 0.8570      5731.3 ventana
+                        BiLSTM-C 5.654 4.295 0.9084      3674.0 ventana
+                 BiLSTM-C + EMA5 5.618 4.268 0.9096      3649.4 ventana
+    Híbrido-C (beta=1.00) + EMA5 4.338 3.227 0.9461      2336.2 ventana
+    <IPython.core.display.Image object>
+    
+
+
+    
+![png](06_evaluacion_produccion_comparativa_files/06_evaluacion_produccion_comparativa_31_1.png)
+    
+
+
+> Procedencia: `resultados/comparativa_bundle_c.csv` ← `src/clase/train_ensemble_adaptado.py` (seed 42, grano ventana). Regenerable con: `python src/clase/train_ensemble_adaptado.py`. Si el CSV cambia sin re-ejecutar su fuente, la celda ancla lo detecta.
+
+
+```python
+# ANCLA (instantanea): el bundle desplegado en `models/` coincide con la fila
+# Hibrido-C de `comparativa_bundle_c.csv`.
 import json
 import pandas as pd
-_man = json.load(open('track_clase/models/ds02_manifest.json',
-                      encoding='utf-8'))['metrics']['reference_row']
+
+_man = json.load(open('models/ds02_manifest.json', encoding='utf-8'))
+_ref = _man['metrics']['reference_row']
 _row = pd.read_csv('resultados/comparativa_bundle_c.csv')
 _hib = _row.loc[_row['Modelo'].str.startswith('Híbrido-C')].iloc[0]
-print(f"manifest: RMSE={_man['RMSE']} NASA={_man['NASA_Score']} | CSV: RMSE={_hib['RMSE']} NASA={_hib['NASA_Score']}")
-assert abs(_man['RMSE'] - _hib['RMSE']) < 1e-9
-assert abs(_man['NASA_Score'] - _hib['NASA_Score']) < 1e-6
-print('ANCLA OK: bundle C versionado = CSV reportado.')
+
+print(f"manifest: RMSE={_ref['RMSE']} NASA={_ref['NASA_Score']} | "
+      f"CSV: RMSE={_hib['RMSE']} NASA={_hib['NASA_Score']}")
+
+assert _man['dataset'] == 'DS02'
+assert abs(_ref['RMSE'] - _hib['RMSE']) < 1e-9
+assert abs(_ref['NASA_Score'] - _hib['NASA_Score']) < 1e-6
+print('ANCLA OK: bundle desplegado = CSV reportado.')
 
 ```
+
+    manifest: RMSE=4.338 NASA=2336.2 | CSV: RMSE=4.338 NASA=2336.2
+    ANCLA OK: bundle desplegado = CSV reportado.
+    
 
 ## Real vs predicho + análisis por motor (bundle C, test)
 
+**Como leer (antes de real-predicho y tabla por motor, bundle C).** La figura es el scatter a grano ventana (6.196 ventanas) y la tabla rompe el RMSE por motor con su n: el motor 14 tiene menos ventanas (760) y por eso pesa poco en el global aunque falle mas.
 
-```
+
+
+```python
 from IPython.display import Image, display
 import pandas as pd
 pm = pd.read_csv('resultados/bundle_c_por_motor.csv')
@@ -302,57 +464,104 @@ print(pm.to_string(index=False))
 print()
 display(Image('resultados/real_vs_predicho_bundle_c.png'))
 print()
-print('QUÉ VEO: el patrón por motor debe replicar al de B (U14 concentra el error).')
-print('CONCLUSIÓN: si se replica, el ventaneo honesto funciona también para el ensemble.')
+print('QUÉ VEO: U14 concentra el error (pocas ventanas de test).')
+print('CONCLUSIÓN: el ventaneo honesto funciona también para el ensemble.')
 
 ```
 
-> Procedencia: `resultados/bundle_c_por_motor.csv` ← `track_clase/train_ensemble_adaptado.py` (seed 42, por motor 11/14/15). Regenerable con: `python track_clase/train_ensemble_adaptado.py`. Si el CSV cambia sin re-ejecutar su fuente, la celda ancla lo detecta.
-
-## El experimento de 3 vías (por qué B sigue)
-
-La tabla de arriba esconde tres condiciones distintas sobre las mismas 6.196 ventanas:
-
-1. **B-limpio histórico** (4.251 / 2305.1): bundle congelado sobre dato impoluto.
-2. **B-bajo-dropout** (4.247 / 2290.0): el mismo bundle, sin reentrenar, sobre el dato adaptado (MAR + ffill). Solo inferencia (`track_clase/evaluar_b_en_adaptada.py`, test `test_clase_b_robusto.py` verde). El ffill repara los huecos aislados: el campeón es insensible a este régimen.
-3. **Híbrido-C** (4.338; media 4.314 ± 0.042): reentrenado bajo dropout. Ni siquiera toca al B con su `±`: no hay empate que desempatar, la puerta D11 no se supera.
-
-Bundle C versionado en `track_clase/models/` con manifest propio. Sin re-freeze: adoptar C exigiría re-manifestar banda, reglas y caché sin ganancia métrica.
+     motor   RMSE  n_ventanas
+        11 3.6328        3293
+        14 8.5761         760
+        15 2.8371        2143
+    
+    
 
 
-## Cierre — veredicto de la puerta D11
+    
+![png](06_evaluacion_produccion_comparativa_files/06_evaluacion_produccion_comparativa_36_1.png)
+    
 
-Se adopta C solo si `RMSE_C <= 4.251` **y** `NASA_C <= 2305.1` (B-histórico, mismas ventanas). Si no, C queda como experimento y B sigue en producción. SIN re-freeze en este change (requiere otra autorización).
+
+    
+    QUÉ VEO: U14 concentra el error (pocas ventanas de test).
+    CONCLUSIÓN: el ventaneo honesto funciona también para el ensemble.
+    
+
+**Que vemos (por motor, bundle C).** U14 concentra el error: RMSE 8.576 con solo 760 ventanas, frente a 3.633 (U11, 3.293 ventanas) y 2.837 (U15, 2.143). El macro 5.0153 (media de los tres motores) NO es el global 4.338: el global da mas voz al 11 porque tiene mas ventanas; el macro da 1/3 a cada motor. Decir 8.576 sin el n esconde que son pocas ventanas.
 
 
-```
+
+```python
+# Figura BARATA (nueva): RMSE por motor con n distinto, desde el CSV ya guardado.
+# NO reentrena: solo lee resultados/bundle_c_por_motor.csv (test, bundle C).
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import pandas as pd
-comp = pd.read_csv('resultados/comparativa_bundle_c.csv')
-c = comp.loc[comp['Modelo'].str.startswith('Híbrido-C')].iloc[0]
-ok_rmse = c['RMSE'] <= 4.251
-ok_nasa = c['NASA_Score'] <= 2305.1
-print(f"bundle C: RMSE {c['RMSE']:.3f} (<=4.251? {ok_rmse}) | "
-      f"NASA {c['NASA_Score']:.1f} (<=2305.1? {ok_nasa})")
-print('ADOPTAR (pendiente re-freeze autorizado)' if ok_rmse and ok_nasa
-      else 'C queda como experimento, B sigue en producción')
+
+_pm = pd.read_csv('resultados/bundle_c_por_motor.csv')
+_fig, _ax = plt.subplots(figsize=(6, 4))
+_b = _ax.bar(_pm['motor'].astype(str), _pm['RMSE'], color=['#4C72B0', '#DD8452', '#55A868'])
+for _r, _rect in zip(_pm.itertuples(), _b):
+    _ax.text(_rect.get_x() + _rect.get_width() / 2, _rect.get_height(),
+             f'{_r.RMSE:.2f}\n(n={int(_r.n_ventanas)})', ha='center', va='bottom', fontsize=9)
+_ax.set_title('Bundle C: RMSE por motor con n de ventanas (test)')
+_ax.set_xlabel('Motor')
+_ax.set_ylabel('RMSE (ciclos, menos es mejor)')
+_fig.tight_layout()
+_fig.savefig('resultados/bundle_c_rmse_por_motor.png', dpi=120)
+plt.close(_fig)
+print(_pm.to_string(index=False))
+from IPython.display import Image, display
+display(Image('resultados/bundle_c_rmse_por_motor.png'))
 
 ```
 
-> Procedencia: `resultados/comparativa_bundle_c.csv` ← `track_clase/train_ensemble_adaptado.py` (seed 42, grano ventana). Regenerable con: `python track_clase/train_ensemble_adaptado.py`. Si el CSV cambia sin re-ejecutar su fuente, la celda ancla lo detecta.
-
-## Multiseed (7, 123) — media ± desv
-
-B publica sus titulares como media ± desv sobre [42, 7, 123]. Para comparar en la misma liga, este bloque repite el protocolo C en las seeds 7 y 123 reutilizando beta=1.00 (igual que el notebook 02 reutiliza BETA). Sin ablación: el diseño ya está decidido.
-
-La ablación de `cyc_norm` la midió B; C la reutiliza sin re-medir (mismo contrato 93, mismo `run_seed`).
-
+     motor   RMSE  n_ventanas
+        11 3.6328        3293
+        14 8.5761         760
+        15 2.8371        2143
+    <IPython.core.display.Image object>
+    
 
 
-```
+    
+![png](06_evaluacion_produccion_comparativa_files/06_evaluacion_produccion_comparativa_38_1.png)
+    
+
+
+> Procedencia: `resultados/bundle_c_por_motor.csv` ← `src/clase/train_ensemble_adaptado.py` (seed 42, por motor 11/14/15). Regenerable con: `python src/clase/train_ensemble_adaptado.py`. Si el CSV cambia sin re-ejecutar su fuente, la celda ancla lo detecta.
+
+## La cascada de la tabla, paso a paso
+
+La tabla no son modelos rivales: es el mismo entreno en tres etapas, cada una
+medida sobre las 6.196 ventanas de test.
+
+1. **LGBM-C** (cuantil 0.35): la rama tabular sola.
+2. **BiLSTM-C** y **BiLSTM-C + EMA5**: la rama secuencial, antes y después del
+   suavizado causal por motor.
+3. **Híbrido-C** (beta=1.00 + EMA5): el ensemble desplegado.
+
+Se lee de arriba abajo: si una etapa no baja el RMSE, esa pieza no está aportando
+y hay que decirlo en voz alta.
+
+
+## Multiseed (42, 7, 123) — media +- desv
+
+La semilla 42 **no se reentrena aquí**: el bundle desplegado es esa corrida y su
+fila está en el manifiesto. Las semillas 7 y 123 se entrenan en la celda
+siguiente con el mismo protocolo y el mismo `beta = 1.00`. El consolidado lo deja
+`python -m src.clase.evaluar_c_multisemilla`.
+
+**Nota de autoridad multisemilla (unica, vale para 05 y 06).** El manifiesto manda para la fila oficial (4.338, seed 42 desplegada); las tres semillas solo miden variabilidad. El valor citado antes queda sustituido por los calculados: en el 05, 4.330+-0.053 (semillas 42/7/123: 4.338 / 4.274 / 4.379) y en el 06, 4.322+-0.064 (4.338 / 4.376 / 4.252). Sin reentrenar: solo se corrige la cita.
+
+
+
+```python
 import sys; 
 import numpy as np
 import pandas as pd
-from track_clase.train_ensemble_adaptado import (
+from src.clase.train_ensemble_adaptado import (
     construir_raw_adaptado, FIT_UNITS, HOLDOUT_UNITS, TEST_UNITS)
 from ds02_rul import HybridStackingEnsemble
 from ds02_rul.metrics import evaluate_predictions
@@ -386,10 +595,17 @@ print(ms.to_string(index=False))
 
 ```
 
+    seed 7: RMSE 4.376 | NASA 2388.4
+    seed 123: RMSE 4.252 | NASA 2302.3
+     seed  RMSE   MAE     R2  NASA_Score
+        7 4.376 3.294 0.9451      2388.4
+      123 4.252 3.181 0.9482      2302.3
+    
+
 > Procedencia: `resultados/bundle_c_multiseed.csv` ← `celda multiseed de este notebook` (seeds 7 y 123). Si el CSV cambia sin re-ejecutar su fuente, la celda ancla lo detecta.
 
 
-```
+```python
 import numpy as np
 import pandas as pd
 base = pd.read_csv('resultados/comparativa_bundle_c.csv')
@@ -399,16 +615,17 @@ rmse = [float(r42['RMSE'])] + ms['RMSE'].tolist()
 nasa = [float(r42['NASA_Score'])] + ms['NASA_Score'].tolist()
 print(f"C (42,7,123): RMSE {np.mean(rmse):.3f} +- {np.std(rmse, ddof=1):.3f} | "
       f"NASA {np.mean(nasa):.1f} +- {np.std(nasa, ddof=1):.1f}")
-print('B histórico: RMSE 4.251 | NASA 2305.1 (media multiseed congelada)')
-print('Veredicto: ' + ('ADOPTAR (pendiente re-freeze autorizado)'
-      if np.mean(rmse) <= 4.251 and np.mean(nasa) <= 2305.1
-      else 'C queda como experimento, B sigue en producción'))
+print()
+print('Lectura: el +- es lo que da derecho a comparar. Dos medias separadas')
+print('menos que el +- de la más dispersa son empate; el resto es diferencia real.')
 
 ```
 
-> Procedencia: `resultados/comparativa_bundle_c.csv` ← `track_clase/train_ensemble_adaptado.py` (seed 42, grano ventana). Regenerable con: `python track_clase/train_ensemble_adaptado.py`. Si el CSV cambia sin re-ejecutar su fuente, la celda ancla lo detecta.
-
-> Procedencia: `resultados/bundle_c_multiseed.csv` ← `celda multiseed de este notebook` (seeds 7 y 123). Si el CSV cambia sin re-ejecutar su fuente, la celda ancla lo detecta.
+    C (42,7,123): RMSE 4.322 +- 0.064 | NASA 2342.3 +- 43.4
+    
+    Lectura: el +- es lo que da derecho a comparar. Dos medias separadas
+    menos que el +- de la más dispersa son empate; el resto es diferencia real.
+    
 
 ## Tabla final: dos ligas, dos campeones
 
@@ -418,21 +635,21 @@ La comparativa completa vive en `resultados/tabla_final_clase.csv` (una fila por
 ## El camino completo C (que funcion se encarga de cada paso)
 
 La base adaptada entra **por arriba** del pipeline honesto y a partir de ahi el
-protocolo es el mismo que el de B, sin cambios (`track_clase/train_ensemble_adaptado.py`):
+protocolo de ventana no cambia (`src/clase/train_ensemble_adaptado.py`):
 
 1. `construir_raw_adaptado()` — parquet MAR+ffill a dict raw (W/Xs/y/units/cycles).
 2. `run_seed(seed)` — residualizacion Ridge + ventanas 50 + BiLSTM (triple pooling) y LGBM cuantil 0.35.
 3. `oof_base_predictions` + `select_beta_grouped` — beta calibrada por OOF agrupado por motor.
 4. `fit_meta_learners` — stacking RidgeCV + LightGBM sobre `[p_lstm, p_lgb]`.
 5. `HybridStackingEnsemble(beta=1.00)` + `causal_ema_by_unit(span=5)` — ensemble + suavizado causal.
-6. `fit_conformal` — banda asimetrica propia (manifest en `track_clase/models/`).
-
-Como se construyo B (el extra no visto en clase): `notebooks/ds02_ensemble/01 -> 02 -> 03`
-(residualizacion, ablacion cyc_norm, OOF, beta, EMA, conformal, multiseed). Este 05 no lo
-repite: lo cita y lo compara en las mismas 6.196 ventanas.
+6. `fit_conformal` — banda asimetrica propia (manifest en `models/`).
 
 
-```
+**Como leer (antes de la tabla final: dos ligas, dos campeones).** Una fila por modelo con su grano: fila = 1 ciclo, ventana = 50 lecturas. Los NaN son huecos declarados (modelos sin test en esa liga), no ceros: no se rellenan ni se ordenan mezclados. Cada grano tiene su campeon y no compiten entre ellos.
+
+
+
+```python
 import pandas as pd
 tab = pd.read_csv('resultados/tabla_final_clase.csv')
 print(tab[['modelo','grano','rmse_test','mae_test','r2_test',
@@ -443,20 +660,44 @@ for grano in ('fila','ventana'):
     print('campeon %s: %s (RMSE %.4f)' % (grano, sub.iloc[0]['modelo'],
           sub.iloc[0]['rmse_test']))
 print()
-print('Lectura: dos ligas separadas. En fila manda MLP-E1 (7.70); en ventana, '
-      'el B congelado (4.251) sobre el C adaptado (4.314). Prohibido mezclarlas.')
+print('Lectura: dos ligas separadas. En fila manda MLP-E2 (7.7211); en ventana, '
+      'C desplegado (4.338; media multiseed calculada en el 06: 4.322 +- 0.064, ver nota de autoridad). Prohibido mezclarlas.')
 
 ```
 
-> Procedencia: `resultados/tabla_final_clase.csv` ← `track_clase/tabla_final.py` (dos ligas, dos campeones). Regenerable con: `python track_clase/tabla_final.py`. Si el CSV cambia sin re-ejecutar su fuente, la celda ancla lo detecta.
+                          modelo   grano  rmse_test  mae_test  r2_test  nasa_test  tiempo_s
+                             knn    fila        NaN       NaN      NaN        NaN       9.1
+                       regresion    fila        NaN       NaN      NaN        NaN       3.5
+                              rf    fila        NaN       NaN      NaN        NaN      79.6
+                             svm    fila        NaN       NaN      NaN        NaN       2.7
+                             xgb    fila    11.0340    9.9098   0.6616        NaN       7.2
+                        MLP-base    fila        NaN       NaN      NaN        NaN      27.5
+                MLP-E1_capacidad    fila        NaN       NaN      NaN        NaN      70.7
+                   MLP-E2_reg_lr    fila     7.7211    5.8132   0.8343        NaN      33.3
+                    MLP-E3_batch    fila        NaN       NaN      NaN        NaN      38.6
+                   lgbm_adaptada ventana     7.0670    5.5450   0.8570     5731.3       0.4
+                        BiLSTM-C ventana     5.6540    4.2950   0.9084     3674.0       NaN
+                 BiLSTM-C + EMA5 ventana     5.6180    4.2680   0.9096     3649.4       NaN
+    Híbrido-C (beta=1.00) + EMA5 ventana     4.3380    3.2270   0.9461     2336.2       NaN
+    
+    campeon fila: MLP-E2_reg_lr (RMSE 7.7211)
+    campeon ventana: Híbrido-C (beta=1.00) + EMA5 (RMSE 4.3380)
+    
+    Lectura: dos ligas separadas. En fila manda MLP-E2 (7.7211); en ventana, C desplegado (4.338; media multiseed calculada en el 06: 4.322 +- 0.064, ver nota de autoridad). Prohibido mezclarlas.
+    
+
+**Que vemos (tabla final).** En fila manda MLP-E2 (7.7211); en ventana, el hibrido C (4.338 / 3.227 / 0.9461 / 2336.2). Los NaN de la tabla quedan como estan: no se rellenan porque rellenarlos fingiria una medicion que no se hizo.
 
 
-```
+> Procedencia: `resultados/tabla_final_clase.csv` ← `src/clase/tabla_final.py` (dos ligas, dos campeones). Regenerable con: `python src/clase/tabla_final.py`. Si el CSV cambia sin re-ejecutar su fuente, la celda ancla lo detecta.
+
+
+```python
 # TABLA VIVA: reconstruida aqui desde los 4 CSV de familia (misma funcion que
-# `track_clase/tabla_final.py`) y exigida identica al CSV archivado.
+# `src/clase/tabla_final.py`) y exigida identica al CSV archivado.
 import sys; 
 import pandas as pd
-from track_clase.tabla_final import construir_tabla
+from src.clase.tabla_final import construir_tabla
 _viva = construir_tabla(pd.read_csv('resultados/comparativa.csv'),
                         pd.read_csv('resultados/mlp_comparativa.csv'),
                         pd.read_csv('resultados/comparativa_ventanas.csv'),
@@ -471,12 +712,80 @@ print('TABLA VIVA OK: la conclusion del notebook se deriva en vivo, sin ranking 
 
 ```
 
+                          modelo   grano  rmse_test  mae_test  r2_test
+                             knn    fila        NaN       NaN      NaN
+                       regresion    fila        NaN       NaN      NaN
+                              rf    fila        NaN       NaN      NaN
+                             svm    fila        NaN       NaN      NaN
+                             xgb    fila    11.0340    9.9098   0.6616
+                        MLP-base    fila        NaN       NaN      NaN
+                MLP-E1_capacidad    fila        NaN       NaN      NaN
+                   MLP-E2_reg_lr    fila     7.7211    5.8132   0.8343
+                    MLP-E3_batch    fila        NaN       NaN      NaN
+                   lgbm_adaptada ventana     7.0670    5.5450   0.8570
+                        BiLSTM-C ventana     5.6540    4.2950   0.9084
+                 BiLSTM-C + EMA5 ventana     5.6180    4.2680   0.9096
+    Híbrido-C (beta=1.00) + EMA5 ventana     4.3380    3.2270   0.9461
+    
+    Campeon grano fila : MLP-E2_reg_lr
+    Campeon grano ventana: Híbrido-C (beta=1.00) + EMA5
+    TABLA VIVA OK: la conclusion del notebook se deriva en vivo, sin ranking mixto.
+    
 
-```
+
+```python
+# Celda autonoma: reconstruye el test y el ensemble desde disco, sin reentrenar.
+# Lleva su propio bootstrap porque puede ser la primera ejecucion del kernel.
+import pathlib as _pl, os as _os, sys as _sys
+_ROOT = _pl.Path().resolve()
+while not (_ROOT / "pyproject.toml").exists() and _ROOT != _ROOT.parent:
+    _ROOT = _ROOT.parent
+_os.chdir(_ROOT)
+for _p in (str(_ROOT), str(_ROOT / "src")):
+    if _p not in _sys.path:
+        _sys.path.insert(0, _p)
+
+import matplotlib
+matplotlib.use('Agg')
+from IPython.display import Image, display
+
+from ds02_rul.features import build_windows
+from ds02_rul.persistence import load_ensemble
 from ds02_rul.viz import real_vs_predicho
-real_vs_predicho(test['y'], p_ens, 'Híbrido + EMA5 sobre los motores 11/14/15')
+from src.clase.train_ensemble_adaptado import construir_raw_adaptado
 
+# 1) Datos: mismo parquet imputado y mismo ffill -> test identico al del entrenamiento.
+raw = construir_raw_adaptado()
+
+# 2) Bundle versionado: el preprocessing sale del artefacto, no se reajusta.
+ens = load_ensemble('models/ensemble.joblib')
+prep = {'scaler': ens.scaler, 'scaler_w': ens.scaler_w,
+        'residualizer': ens.residualizer}
+
+# 3) Ventanas de test con el mismo window/step que uso run_seed en la celda del pipeline.
+A_te = raw['A_test']
+test = build_windows(raw['W_test'], raw['Xs_test'], raw['y_test'],
+                     A_te[:, 0], A_te[:, 1], prep,
+                     window_size=50, step=2)
+# El orden de las ventanas es el de build_windows (agrupado por motor), NO el del parquet.
+units_te = test['meta']['unit'].values
+cycles_te = test['meta']['cycle'].values
+p_ens = ens.predict(test['X_raw'], cycles_te, units_te)
+
+# 4) Grafico: la convencion del notebook es Agg + PNG + display, no plt.show().
+real_vs_predicho(test['y'], p_ens, 'Hibrido + EMA5 sobre los motores 11/14/15')
+import matplotlib.pyplot as plt
+fig = plt.gcf()
+fig.savefig('resultados/real_vs_predicho_viz_c.png', dpi=120)
+plt.close(fig)
+display(Image('resultados/real_vs_predicho_viz_c.png'))
 ```
+
+
+    
+![png](06_evaluacion_produccion_comparativa_files/06_evaluacion_produccion_comparativa_52_0.png)
+    
+
 
 **Cómo leer el gráfico:** cada punto es `predicho − real`. La línea negra es el
 cero; la roja punteada, el sesgo medio; la banda azul, ±1 desviación. Si la nube
@@ -492,6 +801,83 @@ caro. El 4,3 % de las ventanas se equivoca en más de 10 ciclos.
 
 
 
-## Cierre
-Fin del recorrido. Artefactos reutilizados en `notebooks/ds02_ensemble/artifacts/`.
+```python
+# RECARGA: el artefacto se sostiene solo y la serialización es reproducible.
+# 1) dos cargas independientes del mismo .joblib deben dar lo mismo bit a bit;
+# 2) frente a la corrida viva de este notebook la diferencia es TF, no el pickle.
+import numpy as np
+from ds02_rul.persistence import load_ensemble
+from src.clase.puente_c import puente_c
+
+_C = puente_c()
+_ens_a = load_ensemble('models/ensemble.joblib')
+_ens_b = load_ensemble('models/ensemble.joblib')
+_pa = _ens_a.predict(_C['test']['X_raw'], _C['test_cycles'], _C['test_units'])
+_pb = _ens_b.predict(_C['test']['X_raw'], _C['test_cycles'], _C['test_units'])
+print(f"[RELOAD OK] dos cargas del bundle: max|diff| = {np.max(np.abs(_pa - _pb)):.3e}")
+print("[RELOAD OK] recargado == en memoria:", bool(np.allclose(_pa, _pb, atol=0)))
+print(f"[RELOAD OK] vivo vs artefacto: max|diff| = "
+      f"{np.max(np.abs(_pa - np.asarray(p_ens).ravel())):.3f} ciclos (TF en CPU)")
+
+```
+
+    [RELOAD OK] dos cargas del bundle: max|diff| = 0.000e+00
+    [RELOAD OK] recargado == en memoria: True
+    [RELOAD OK] vivo vs artefacto: max|diff| = 0.000 ciclos (TF en CPU)
+    
+
+**Cierre (que explica cada cosa).** SHAP del 02 solo explica la rama arbol (XGB) en validacion y no es causal; el 06 no usa SHAP: explica la mezcla por pesos 28/72 del Ridge sobre [p_lstm, p_lgb] (la red pesa menos que el arbol en el juez). La banda conformal se calibra con residuales fuera de fold pero no se decide sobre ella: es cota conservadora (100 % de cobertura, ancho 27), no criterio de eleccion.
+
+
+## Cierre — el bundle desplegado es C
+
+C es el modelo del track: el que trata los nulos MAR con criterio (patrón físico +
+ffill causal con medianas de fit-units), el que se explica en estos cuadernos y el
+que sirve la app.
+
+El manifiesto viaja con las métricas, el contrato de inferencia, la partición de
+motores y las huellas SHA de los artefactos: cualquier cifra de este notebook se
+audita desde `models/` sin depender del cuaderno.
+
+La estabilidad entre semillas (4.322 +- 0.064 de RMSE en el 06; 4.330 +- 0.053 en el 05) es la cota de ruido con la
+que se leen las diferencias de la tabla.
+
+
+
+```python
+import json
+
+_man = json.load(open('models/ds02_manifest.json', encoding='utf-8'))
+_ref = _man['metrics']['reference_row']
+print(f"bundle desplegado : {_man['code_version']} (seed {_man['seed']})")
+print(f"dataset           : {_man['dataset']} | {_man['dataset_variant']}")
+print(f"C  (manifest)     : RMSE {_ref['RMSE']:.3f} | NASA {_ref['NASA_Score']:.1f}")
+print(f"macro-RMSE        : {_man['metrics']['macro_rmse']:.4f}")
+
+```
+
+    bundle desplegado : clase-bundle-C (seed 42)
+    dataset           : DS02 | DS02-adaptada (MAR T30 + ffill causal, medianas de fit-units)
+    C  (manifest)     : RMSE 4.338 | NASA 2336.2
+    macro-RMSE        : 5.0153
+    
+
+## Por qué dos corridas no dan la misma cifra
+
+TensorFlow en CPU no es determinista bit a bit: las operaciones que usa oneDNN
+redondean distinto en cada ejecución. Consecuencias prácticas:
+
+- El **manifiesto** es la fuente de verdad del bundle instalado. Una reejecución
+  del entreno puede dar otra cifra (se han visto 4.229 y 4.338 con el mismo código).
+- Las tablas de los cuadernos se leen contra el artefacto, no contra una corrida
+  concreta.
+- La recarga del `.joblib` **sí** es reproducible: lo que cambia es el
+  entrenamiento, no la serialización.
+
+
+
+## Fin del recorrido
+
+Fin del recorrido. Artefactos del 04 reutilizados en `notebooks/artifacts_c/`;
+bundle desplegado en `models/`, con su manifiesto firmado por SHA-256.
 

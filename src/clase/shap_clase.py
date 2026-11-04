@@ -1,12 +1,15 @@
 """SHAP real sobre el track de clase (SAA-9: explainer/masker/fondo explícitos).
 
-Estrategia honesta y barata:
-- Modelo: XGBRegressor (elegido por validación) con los mejores hiperparámetros
-  de `resultados/comparativa.csv`. TreeExplainer exacto, segundos en 200 filas.
-- Fondo (masker): 200 filas de train transformadas.
-- Explicadas: 200 filas de VALIDACIÓN (fold-0 del GroupKFold, nunca test — v5).
-- La permutación sobre el XGB elegido se mantiene como lectura complementaria;
-  SHAP responde "qué variables pesan más" con atribución aditiva por predicción.
+Estrategia honesta y barata, SIN reentreno (v5):
+- Modelo: XGB ya entrenado en `models/mejor_modelo_clase.joblib` (Pipeline
+  pre + XGB elegido por validación en `resultados/comparativa.csv`).
+  TreeExplainer exacto, segundos en 200 filas. La carga del joblib es lazy
+  (dentro de `ejecutar_shap`, no a nivel de módulo) para no arrastrar el
+  modelo al importar este módulo.
+- Fondo (masker): 200 filas de train transformadas con el `pre` persistido.
+- Explicadas: 200 filas de VALIDACIÓN (fold-0 del GroupKFold, nunca test).
+- Check de aditividad: base (expected_value) + suma(SHAP) == predicción,
+  con assert y tolerancia 1e-5; si falla, el error se declara, no se oculta.
 
 Salidas: `resultados/shap_importancia.png` (barras mean|SHAP|) y
 `resultados/shap_importancia.csv` (tabla top-k).
@@ -14,13 +17,12 @@ Salidas: `resultados/shap_importancia.png` (barras mean|SHAP|) y
 
 from __future__ import annotations
 
-import ast
 import os
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 
-import joblib
+import joblib  # noqa: F401
 import matplotlib
 
 matplotlib.use("Agg")
@@ -28,12 +30,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import shap
-from xgboost import XGBRegressor
 
-from src.clase.pipeline_clase import FEATURE_COLS, make_pre
+from src.clase.pipeline_clase import FEATURE_COLS
 
 N_FILAS = 200
 SEED = 7
+MODEL_PATH = "models/mejor_modelo_clase.joblib"
+ADITIVIDAD_TOL = 1e-5
 
 
 def top_shap(shap_values: np.ndarray, nombres: list[str], k: int = 10) -> pd.DataFrame:
@@ -48,6 +51,20 @@ def top_shap(shap_values: np.ndarray, nombres: list[str], k: int = 10) -> pd.Dat
     return top
 
 
+def check_aditividad(sv: np.ndarray, base: float,
+                     pred: np.ndarray, tol: float = ADITIVIDAD_TOL) -> float:
+    """Comprueba base + suma(SHAP) == predicción (tol relativa). Devuelve error max."""
+    suma = base + np.asarray(sv).sum(axis=1)
+    pred = np.asarray(pred, dtype=float)
+    error = float(np.abs(suma - pred).max())
+    # XGB predice en float32: contra |pred| max se compara en relativo.
+    assert error < tol * float(np.abs(pred).max()), (
+        f"SHAP no aditivo: base+suma(SHAP) != predict "
+        f"(error max {error:.3e} >= tol relativa {tol:.3e})"
+    )
+    return error
+
+
 def ejecutar_shap(
     n_filas: int = N_FILAS,
     seed: int = SEED,
@@ -56,33 +73,32 @@ def ejecutar_shap(
     top_k: int = 10,
     verbose: bool = True,
 ) -> pd.DataFrame:
-    """Entrena XGB (mejores params de comparativa.csv), TreeExplainer, guarda PNG+CSV."""
+    """Explica el XGB persistido (sin reentrenar) con TreeExplainer; guarda PNG+CSV."""
     from src.clase.train_clasicos import grupos_validacion
+
+    # Lazy a propósito: importar este módulo no carga el modelo.
+    pipe = joblib.load(MODEL_PATH)
+    pre = pipe.named_steps["pre"]
+    reg = pipe.named_steps["reg"]
+    nombres = list(pre.get_feature_names_out())
+
     Xtr = pd.read_parquet("data/processed/X_train.parquet")
-    ytr = pd.read_parquet("data/processed/y_train.parquet").values.ravel()
     va = grupos_validacion(Xtr["unit"].to_numpy())
     Xva = Xtr.iloc[va].reset_index(drop=True)
     unidades_va = sorted(float(u) for u in Xtr.iloc[va]["unit"].unique())
-    comp = pd.read_csv("resultados/comparativa.csv")
-    params = ast.literal_eval(    comp.loc[comp["modelo"] == "xgb", "mejores_params"].iloc[0])
-    kw = params.get("reg__", params)
-    kw = {k.replace("reg__", ""): v for k, v in kw.items()}
 
-    pre = make_pre().fit(Xtr[FEATURE_COLS])
-    nombres = list(pre.get_feature_names_out())
-    Ztr = pre.transform(Xtr[FEATURE_COLS])
-
-    base = dict(n_estimators=300, max_depth=6, learning_rate=0.05,
-                subsample=0.8, random_state=seed, n_jobs=-1)
-    base.update(kw)
-    reg = XGBRegressor(**base)
-    reg.fit(Ztr, ytr)
-
-    Zva = pre.transform(Xva[FEATURE_COLS])
+    Ztr = pre.transform(Xtr[FEATURE_COLS])  # fondo: train transformado
     fondo = shap.sample(Ztr, min(n_filas, len(Ztr)), random_state=seed)
     explainer = shap.TreeExplainer(reg, data=fondo)  # explainer + fondo explícitos
-    sv = explainer.shap_values(Zva[:n_filas])  # masker: filas de validación
-    top = top_shap(np.asarray(sv), nombres, k=top_k)
+
+    Zva = pre.transform(Xva[FEATURE_COLS])  # masker: filas de validación
+    Zexp = Zva[:n_filas]
+    sv = np.asarray(explainer.shap_values(Zexp), dtype=float)
+    base = float(np.asarray(explainer.expected_value).ravel()[0])
+    pred = np.asarray(reg.predict(Zexp), dtype=float)
+    error_adit = check_aditividad(sv, base, pred)
+
+    top = top_shap(sv, nombres, k=top_k)
     top.to_csv(csv, index=False)
 
     fig, ax = plt.subplots(figsize=(7, 4.5))
@@ -94,10 +110,12 @@ def ejecutar_shap(
     fig.savefig(png, dpi=120)
     plt.close(fig)
     joblib.dump({"nombres": nombres, "top": top, "fuente": "validacion-fold0",
-                 "unidades": unidades_va}, "src/clase/models/shap_xgb.joblib")
+                 "unidades": unidades_va,
+                 "aditividad_max_error": error_adit},
+                "src/clase/models/shap_xgb.joblib")
     if verbose:
         print(top.to_string(index=False))
-        print(f"guardado: {png} + {csv}")
+        print(f"guardado: {png} + {csv} (aditividad_max_error={error_adit:.2e})")
     return top
 
 
