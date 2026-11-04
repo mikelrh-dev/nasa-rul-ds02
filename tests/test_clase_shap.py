@@ -4,7 +4,7 @@ import numpy as np
 
 
 def test_top_shap_ordena_por_media_abs():
-    from track_clase.shap_clase import top_shap
+    from src.clase.shap_clase import top_shap
 
     rng = np.random.default_rng(0)
     sv = rng.normal(0, 1, size=(50, 4))
@@ -18,7 +18,7 @@ def test_top_shap_ordena_por_media_abs():
 
 def test_mascara_validacion_es_determinista_y_sin_test():
     import pandas as pd
-    from track_clase.train_clasicos import grupos_validacion
+    from src.clase.train_clasicos import grupos_validacion
     X_tr = pd.read_parquet("data/processed/X_train.parquet")
     g = X_tr["unit"].to_numpy()
     va1 = grupos_validacion(g)
@@ -31,10 +31,10 @@ def test_mascara_validacion_es_determinista_y_sin_test():
 def test_shap_por_defecto_usa_validacion():
     import joblib
     import pandas as pd
-    from track_clase import shap_clase as SC
+    from src.clase import shap_clase as SC
     SC.ejecutar_shap(n_filas=30, png="resultados/_t.png",
                      csv="resultados/_t.csv", verbose=False)
-    d = joblib.load("track_clase/models/shap_xgb.joblib")
+    d = joblib.load("src/clase/models/shap_xgb.joblib")
     assert d.get("fuente", "").startswith("validacion"), d.get("fuente")
     assert not set(d.get("unidades", [])) & {11.0, 14.0, 15.0}
     import os
@@ -44,7 +44,7 @@ def test_shap_por_defecto_usa_validacion():
 
 def test_nombres_features_coherentes_con_pre():
     import pandas as pd
-    from track_clase.pipeline_clase import FEATURE_COLS, make_pre
+    from src.clase.pipeline_clase import FEATURE_COLS, make_pre
 
     df = pd.DataFrame(
         [{c: (1.0 if c != "fase_vuelo" else "Crucero") for c in FEATURE_COLS} for _ in range(5)]

@@ -7,15 +7,15 @@
 
 ## SAA — Sistemas de Aprendizaje Automático
 
-- [x] **SAA-2 (10%) — tipo de aprendizaje.** Supervisado-regresión + diferencia con no supervisado en `track_clase/README.md`. Solo defenderlo.
+- [x] **SAA-2 (10%) — tipo de aprendizaje.** Supervisado-regresión + diferencia con no supervisado en `src/clase/README.md`. Solo defenderlo.
 - [x] **SAA-5 (5%) — nulos + variable nueva.** MAR auditado + ffill causal + `fase_vuelo`. Hecho.
 - [x] **SAA-6 (30%) — cinco modelos + extra.** Ridge/KNN/RF/XGB/SVR + GridSearchCV GroupKFold + híbrido como extra. Hecho.
 - [x] **SAA-7 (20%) + coherencia val en MLP.** Hecho 2026-11-03 (slice 2a): OOF por motor para los 4; elegido **E2 (val 7.34)** — E1 memoriza train (5.23) y pierde en val (7.48); test solo en E2 (7.72); NB02 13/15/16/18/20/26 retejido; tests verdes.
-- [x] **SAA-1 (5%) — comparar con IA fuerte.** Hecho: NB01 celda 2 ya lo trae + párrafo explícito en `track_clase/README.md`. Solo saber decirlo.
+- [x] **SAA-1 (5%) — comparar con IA fuerte.** Hecho: NB01 celda 2 ya lo trae + párrafo explícito en `src/clase/README.md`. Solo saber decirlo.
 - [x] **SAA-3 (5%) — qué campos se quitan y por qué.** Verificado: NB01 celda 5 ya trae **Descartes** (nada se descarta; unit→grupo, RUL→objetivo). Sin cambios.
 - [x] **SAA-4 (5%) — 5 gráficos comentados.** Verificado: las 5 figuras llevan QUÉ VEO + CONCLUSIÓN en celdas 8/10/12/14. Sin cambios.
 - [x] **SAA-8 (10%) — métricas en train y VALIDACIÓN + significado empresa.** Hecho 2026-11-03: CSV con train/val, NB02 retejido, párrafo negocio en README (RMSE=gordos caros, MAE=margen taller).
-- [ ] **SAA-9 (5%) — SHAP en validación + captura MLflow.** Falta: (a) `track_clase/shap_clase.py` hoy explica TEST → pasar a validación; (b) captura MLflow en README. Evidencia: `shap_importancia.png/csv` desde validación (HECHO 2026-11-03 slice 2b: fold-0, top cycle/T50/Nc, tests verdes) + captura (queda para PIA-4, fuera de este change).
+- [ ] **SAA-9 (5%) — SHAP en validación + captura MLflow.** Falta: (a) `src/clase/shap_clase.py` hoy explica TEST → pasar a validación; (b) captura MLflow en README. Evidencia: `shap_importancia.png/csv` desde validación (HECHO 2026-11-03 slice 2b: fold-0, top cycle/T50/Nc, tests verdes) + captura (queda para PIA-4, fuera de este change).
 - [ ] **SAA-transversal — test una sola vez.** Falta: elegir mejor modelo por validación, no por `rmse_test` (`train_clasicos.py:103`); reservar test como lectura única final. Evidencia: código + CSV coherente.
 - [ ] **SAA-10 — pregunta individual.** Preparación + corte de 15 min (nuevo en v5).
 
@@ -31,7 +31,7 @@
 ## MIA — Modelos de IA
 
 - [x] **MIA-2 (30%) — 6 reglas.** R2b+R6+R1+R9+R8+R7 con prioridad, porqué y seguridad R1. Hecho (sabed explicar prioridad y R1).
-- [x] **MIA-1 (20%) — mejora cuantificada.** Hecho: ≈240.000–360.000 USD por cada AOG evitado en `track_clase/README.md` (rango Boeing 10.000–15.000 USD/h).
+- [x] **MIA-1 (20%) — mejora cuantificada.** Hecho: ≈240.000–360.000 USD por cada AOG evitado en `src/clase/README.md` (rango Boeing 10.000–15.000 USD/h).
 - [ ] **MIA-3 (35%) — flujo n8n.** ❌ Falta entero: webhook que recibe la decisión + una rama por decisión (HANGAR→Postgres+Calendar+correo, INSPECCIÓN→Sheets, APTO→log); para el 10, acción distinta a las vistas en clase. Evidencia: `n8n/flujo.json` real + `src/n8n.py` sin stub + prueba end-to-end.
 - [ ] **MIA-4 — pregunta individual.** Preparación.
 

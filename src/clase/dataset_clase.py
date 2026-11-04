@@ -1,4 +1,4 @@
-"""Dataset de clase DS02 (track `track_clase/`, change 2026-11-02-clase-track).
+"""Dataset de clase DS02 (track `src/clase/`, change 2026-11-02-clase-track).
 
 Pipeline congelado (`src/ds02_rul/`, `models/`, `app/cache/`) SOLO lectura.
 Este módulo construye el dataset tabular de clase a nivel de fila

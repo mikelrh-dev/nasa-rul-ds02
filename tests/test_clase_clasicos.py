@@ -31,7 +31,7 @@ def test_test_solo_lectura_final_del_elegido():
 
 def test_mejor_modelo_se_elige_por_validacion():
     import joblib
-    from track_clase.train_clasicos import ORDEN_SIMPLE
+    from src.clase.train_clasicos import ORDEN_SIMPLE
     comp = pd.read_csv("resultados/comparativa.csv")
     clave = {m: (float(comp.loc[comp["modelo"] == m, "rmse_val"].iloc[0]),
                   ORDEN_SIMPLE[m]) for m in comp["modelo"]}

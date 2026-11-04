@@ -38,7 +38,7 @@ graph LR
     D --> E[Orden de taller]
 ```
 
-El modelo estima ciclos restantes. Las reglas (`mia/`, 6 con prioridad + seguridad R1) deciden sobre la estimación. n8n (MIA 3, siguiente change) llevará cada decisión a su acción (HANGAR → Postgres+Calendar+correo, INSPECCIÓN → Sheets, APTO → log).
+El modelo estima ciclos restantes. Las reglas (`src/mia/`, 6 con prioridad + seguridad R1) deciden sobre la estimación. n8n (MIA 3, siguiente change) llevará cada decisión a su acción (HANGAR → Postgres+Calendar+correo, INSPECCIÓN → Sheets, APTO → log).
 
 **Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer). MLflow y n8n se añaden en el change siguiente.
 
@@ -123,7 +123,7 @@ flowchart LR
 
 **Test (una lectura, solo el elegido):** MLP E2 RMSE 7.72 · MAE 5.81 · R² 0.83. Híbrido RMSE 4.25 · MAE 3.18 · R² 0.948.
 
-**Experimento de robustez (3 vías):** B sobre datos con nulos (4.247) es indistinguible de B sobre datos limpios (4.251). No hace falta reentrenar: B sigue en producción. C (4.314) no supera la puerta D11. Evidencia: `resultados/comparativa_b_dropout.csv`, `track_clase/evaluar_b_en_adaptada.py`.
+**Experimento de robustez (3 vías):** B sobre datos con nulos (4.247) es indistinguible de B sobre datos limpios (4.251). No hace falta reentrenar: B sigue en producción. C (4.314) no supera la puerta D11. Evidencia: `resultados/comparativa_b_dropout.csv`, `src/clase/evaluar_b_en_adaptada.py`.
 
 ![Real vs predicho](../resultados/mlp_real_vs_pred.png)
 
@@ -141,7 +141,7 @@ flowchart LR
 ## Estructura del track
 
 ```text
-track_clase/            dataset_clase.py, pipeline_clase.py, train_clasicos.py, train_mlp.py, README.md
+src/clase/            dataset_clase.py, pipeline_clase.py, train_clasicos.py, train_mlp.py, README.md
                         shap_clase.py, tabla_final.py, ventanas_adaptadas.py, evaluar_b_en_adaptada.py
 data/raw|processed/     HDF5 fuera de git; train_con_nulos + imputados + X/y + auditoria_nulos.json
 notebooks/              01_eda_y_contexto.ipynb, 02_modelos_clasicos_y_mlp.ipynb, 03_feature_engineering_secuencial.ipynb,
@@ -150,7 +150,7 @@ notebooks/              01_eda_y_contexto.ipynb, 02_modelos_clasicos_y_mlp.ipynb
 models/                 mejor_modelo_clase.joblib (Pipeline completo; el híbrido congelado no se toca)
 n8n/                    flujo.json (placeholder MIA 3)
 resultados/             eda_*.png, comparativa.csv, mlp_*.png/csv, importancia_*.png/csv, shap_*.png/csv
-src/reglas.py           re-export de mia/reglas.py (6 reglas + seguridad)
+src/reglas.py           re-export de src.mia.reglas (6 reglas + seguridad)
 src/n8n.py              stub (levanta NotImplementedError hasta el change n8n)
 app/ui_shap.py          SHAP en la app de producción (TreeExplainer, global + waterfall)
 app/dashboard_ds02.py   app de producción: evalúa el modelo desplegado (bundle B) en test, predice casos nuevos
@@ -161,9 +161,9 @@ app/dashboard_ds02.py   app de producción: evalúa el modelo desplegado (bundle
 ## Cómo ejecutarlo
 
 ```bash
-python -m track_clase.train_clasicos     # 5 modelos + comparativa.csv + joblib (~2 min)
-python -m track_clase.train_mlp           # MLP base+3 + importancia (~8 min con validación OOF)
-python -m track_clase.shap_clase          # SHAP TreeExplainer + PNG/CSV
+python -m src.clase.train_clasicos     # 5 modelos + comparativa.csv + joblib (~2 min)
+python -m src.clase.train_mlp           # MLP base+3 + importancia (~8 min con validación OOF)
+python -m src.clase.shap_clase          # SHAP TreeExplainer + PNG/CSV
 streamlit run app/dashboard_ds02.py        # app de producción (bundle B + SHAP)
 python -m pytest tests/test_clase_*.py tests/test_live_eval.py -q
 ```

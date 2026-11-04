@@ -28,6 +28,11 @@ def raw_windows(W, Xs, units, cycles, window: int = 50, step: int = 1):
         mask = units == unit
         Xu = X_full[mask]
         cu = cycles[mask]
+        # Sort stable por (unit, cycle): si la entrada viene desordenada, las
+        # ventanas se cortan en orden temporal y no con el orden de llegada.
+        order = np.argsort(cu, kind="stable")
+        Xu = Xu[order]
+        cu = cu[order]
         n = len(Xu)
         if n < window:
             continue

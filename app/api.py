@@ -1,44 +1,163 @@
 """FastAPI surface over the DS02 artifact.
 
-    uvicorn app.api:app --host 0.0.0.0 --port 8000
-    curl -X POST localhost:8000/predict -H 'content-type: application/json' \
+    uvicorn app.api:app --host 127.0.0.1 --port 8000
+    curl -X POST localhost:8000/predict -H 'content-type: application/json' \\
          -d '{"unit": 11, "window": 0}'
+
+P1 hardening:
+- The artifact SHA-256 is verified by `ds02_rul.persistence.load_ensemble`
+  (against `models/ds02_manifest.json` and `app/cache/cache_manifest.json`)
+  before any deserialization; mismatch raises `RuntimeError`.
+- `DS02_ARTIFACT` is allowlisted: it must resolve inside the repository
+  (`resolve_within_repo`). Free absolute paths outside the repo are refused.
+- `docs_url`/`redoc_url`/`openapi_url` are disabled in production
+  (`ENVIRONMENT=production` or `prod`).
+- CORS is localhost-only; security headers are set on every response.
+- `/predict` and `/units` require an API key when `DS02_API_KEY` is set
+  (`X-API-Key` header via `Depends`); when no API key is configured a
+  fixed-window rate limit of 10 requests/minute per client IP applies.
+- `PredictRequest` validates `unit`/`window` with `ge`/`le` and rejects
+  NaN/Inf via an explicit validator (pydantic allows them by default).
+
+Deployment note: never expose this service on `0.0.0.0` with plain HTTP.
+Bind `0.0.0.0` only behind a TLS-terminating reverse proxy (e.g. nginx,
+Caddy, or a cloud load balancer) that adds TLS and ideally authentication.
+For local/standalone use bind `127.0.0.1` (see `Dockerfile` note).
 """
 from __future__ import annotations
 
+import math
 import os
 import sys
+import threading
+import time
 from contextlib import asynccontextmanager
 
 import numpy as np
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field, field_validator
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
 from ds02_rul.data import load_ds02  # noqa: E402
 from ds02_rul.inference import windows_for_unit  # noqa: E402
-from ds02_rul.persistence import load_ensemble  # noqa: E402
+from ds02_rul.persistence import load_ensemble, resolve_within_repo  # noqa: E402
 
-ARTIFACT = os.environ.get("DS02_ARTIFACT", os.path.join("models", "ensemble.joblib"))
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Allowlist: env may only point inside the repo (relative to repo root or
+# absolute-under-repo). Anything else is refused at import time.
+ARTIFACT = resolve_within_repo(
+    os.environ.get("DS02_ARTIFACT", os.path.join("models", "ensemble.joblib")),
+    base=REPO_ROOT,
+)
 STATE: dict = {}
+
+_ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev").strip().lower()
+_IS_PROD = _ENVIRONMENT in ("production", "prod")
+_API_KEY = os.environ.get("DS02_API_KEY", "").strip() or None
+
+# In-memory fixed-window rate limiter (no extra dependency): 10/min per IP.
+_RATE_LIMIT_PER_MIN = 10
+_RATE_WINDOW_S = 60.0
+_rate_lock = threading.Lock()
+_rate_hits: dict[str, list[float]] = {}
+
+
+def _client_ip(request: Request) -> str:
+    if request.client is not None:
+        return request.client.host
+    return "unknown"
+
+
+def _check_rate_limit(request: Request) -> None:
+    ip = _client_ip(request)
+    now = time.monotonic()
+    with _rate_lock:
+        hits = [t for t in _rate_hits.get(ip, []) if now - t < _RATE_WINDOW_S]
+        if len(hits) >= _RATE_LIMIT_PER_MIN:
+            raise HTTPException(status_code=429, detail="rate limit exceeded (10/min)")
+        hits.append(now)
+        _rate_hits[ip] = hits
+
+
+def _protect(request: Request, x_api_key: str | None = None) -> None:
+    """API-key auth when configured, else in-memory rate limiting."""
+    if _API_KEY is not None:
+        if not x_api_key or x_api_key != _API_KEY:
+            raise HTTPException(status_code=401, detail="invalid or missing API key")
+        return
+    _check_rate_limit(request)
+
+
+def require_api_key(
+    request: Request,
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+) -> None:
+    """`Depends` guard for `/predict` and `/units`.
+
+    If `DS02_API_KEY` is set, requires a matching `X-API-Key` header;
+    otherwise falls back to the 10/min per-IP rate limit.
+    """
+    _protect(request, x_api_key)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # load_ensemble verifies the SHA-256 against the manifests before
+    # deserializing; on mismatch it raises RuntimeError and startup aborts.
     STATE["ensemble"] = load_ensemble(ARTIFACT)
     STATE["raw"] = None  # lazily loaded; the HDF5 is 2.3 GB
     yield
     STATE.clear()
 
 
-app = FastAPI(title="DS02 RUL API", version="4.1.0", lifespan=lifespan)
+app = FastAPI(
+    title="DS02 RUL API",
+    version="4.1.0",
+    lifespan=lifespan,
+    docs_url=None if _IS_PROD else "/docs",
+    redoc_url=None if _IS_PROD else "/redoc",
+    openapi_url=None if _IS_PROD else "/openapi.json",
+)
+
+# CORS: localhost only, no wildcard origins.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:8501",
+        "http://127.0.0.1:8501",
+    ],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-API-Key"],
+)
+
+
+@app.middleware("http")
+async def _security_headers(request: Request, call_next):  # noqa: ANN001, ANN202
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    return response
 
 
 class PredictRequest(BaseModel):
-    unit: float = Field(..., description="engine id, e.g. 11")
-    window: int = Field(0, ge=0, description="window index within the engine")
+    unit: float = Field(..., ge=1, le=10000, description="engine id, e.g. 11")
+    window: int = Field(0, ge=0, le=10000, description="window index within the engine")
     all_windows: bool = Field(False, description="score the whole trajectory")
+
+    @field_validator("unit")
+    @classmethod
+    def _unit_must_be_finite(cls, value: float) -> float:
+        # Pydantic/float accepts NaN and Inf by default; reject them here.
+        if not math.isfinite(float(value)):
+            raise ValueError("unit must be a finite number (NaN/Inf rejected)")
+        return float(value)
 
 
 class PredictResponse(BaseModel):
@@ -72,13 +191,13 @@ def health() -> dict:
 
 
 @app.get("/units")
-def units() -> dict:
+def units(_auth: None = Depends(require_api_key)) -> dict:
     raw = _raw()
     return {"test_units": sorted(float(u) for u in np.unique(raw["A_test"][:, 0]))}
 
 
 @app.post("/predict", response_model=None)
-def predict(req: PredictRequest) -> dict:
+def predict(req: PredictRequest, _auth: None = Depends(require_api_key)) -> dict:
     ensemble = STATE.get("ensemble")
     if ensemble is None:
         raise HTTPException(status_code=503, detail="artifact not loaded")

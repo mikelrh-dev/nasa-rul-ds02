@@ -318,7 +318,7 @@ def test_el_hangar_rechaza_un_movimiento_ilegal():
 def test_el_pre_vuelo_no_carga_tensorflow():
     """La validación de una tabla inválida no debe arrastrar Keras."""
     codigo = (
-        "import sys; sys.path.insert(0, 'app'); sys.path.insert(0, 'mia')\n"
+        "import sys; sys.path.insert(0, 'app'); pass  # (src.mia va por ROOT, ya en path)\n"
         "import pandas as pd, ui_inference as INF\n"
         "tabla = pd.DataFrame({'cycle': [1, 2], 'alt': [1.0, 2.0]})\n"
         "print('ok', INF.preflight(tabla)['ok'])\n"

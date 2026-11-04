@@ -640,6 +640,8 @@ the width is verifiable without opening the bundle.
 Two gaps that were not defects in the model but in how it was reported. Both are
 closed in the 2026-10-21 revision.
 
+> **Banner — bundle A obsoleto, bundle B vigente:** las cifras de esta sección (§6.13, window-weighted 4.313 / macro 4.939) son del bundle A (histórico/pre-B) y no son vigentes. Vigente: bundle B (ref 4.251; media 4.340 ± 0.101). Métricas B no modificadas.
+
 **The headline RMSE was window-weighted.** Engine 14 has the worst error (RMSE
 8.32) and the fewest windows (760 of 6 196), so it contributes 43.7 % of the
 squared error while pulling only 12 % of the average. On the same predictions:

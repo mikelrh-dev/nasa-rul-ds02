@@ -259,7 +259,7 @@ rul = ensemble.predict(raw_windows, cycles, units)   # (n, 50, 18) -> (n,)
 
 ---
 
-## Rules layer — opt-in correction (`mia/`)
+## Rules layer — opt-in correction (src/mia/)
 
 Two passes over an existing prediction: **correction** (R2b, R6) then
 **decision** (R1, R7, R8, R9). It is post-processing — no retraining, no refit,
@@ -360,7 +360,7 @@ root filenames.
 - **Legacy, do not run as the challenge.** `notebook_nasa_fd001.ipynb` (C-MAPSS
   FD001) and `app/dashboard.py` (loads the 2.3 GB HDF5 + Keras at render) are
   superseded by `notebooks/ds02_ensemble/01→02→03` and `app/dashboard_ds02.py`.
-- **14915 vs 17450, both correct.** The R6 band in `mia/calibracion_banda.json`
+- **14915 vs 17450, both correct.** The R6 band in src/mia/calibracion_banda.json
   is calibrated on 14 915 pure out-of-fold rows (fit units 2/5/10/18/20, unit 16
   excluded); the shipped split-conformal band in the manifest on 17 450 dev rows.
   Different bands, different uses — see `docs/informes/informe-2026-10-21-reglas-oof.md`.

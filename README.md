@@ -3,9 +3,9 @@
 > **Español** | [English](README.en.md)
 
 > **Entrega de clase (Reto 1 SAA + PIA + MIA):** el track académico vive en
-> `track_clase/` (código), `notebooks/01–05` (relato), `data/processed/`
+> `src/clase/` (código), `notebooks/01–05` (relato), `data/processed/`
 > (dataset con nulos MAR + `fase_vuelo`) y `resultados/` (métricas y figuras).
-> Punto de entrada: [`track_clase/README.md`](track_clase/README.md) (6 apartados),
+> Punto de entrada: [`src/clase/README.md`](src/clase/README.md) (6 apartados),
 > app de producción: `streamlit run app/dashboard_ds02.py` (bundle B + SHAP).
 > Lo de abajo es el sistema en producción (bundle B congelado, RMSE 4.251).
 
@@ -17,7 +17,7 @@
 
 Taller MRO con flota DS02: un motor parado en pista (AOG) cuesta del orden de 10.000–15.000 USD/h (rango Boeing, credibilidad Media; ver `costes_reales_aeronauticos.md` §1); una inspección a tiempo cuesta una fracción. Hoy la decisión de hangar depende de juicio experto sin número.
 
-**Objetivo:** predecir la RUL de cada motor para que el jefe de taller decida APTO / INSPECCIÓN / HANGAR, con la predicción convertida en decisión por reglas (`mia/`, 6 con prioridad + seguridad R1) y, más adelante, en acción automática vía n8n. Evitar una sola parada no planificada al año paga el sistema. Detalle académico: [`track_clase/README.md`](track_clase/README.md).
+**Objetivo:** predecir la RUL de cada motor para que el jefe de taller decida APTO / INSPECCIÓN / HANGAR, con la predicción convertida en decisión por reglas (`src/mia/`, 6 con prioridad + seguridad R1) y, más adelante, en acción automática vía n8n. Evitar una sola parada no planificada al año paga el sistema. Detalle académico: [`src/clase/README.md`](src/clase/README.md).
 
 Predicción de vida útil restante en el dataset turbofán N-CMAPSS DS02, empaquetado
 para que **cargue, sirva y sea honesto sobre lo que mide**.
@@ -74,9 +74,9 @@ entre semillas; el híbrido es estable a ±0.068. La dispersión del híbrido es
 capa de stacking depende realmente de los dos modelos base, así que hereda su
 varianza en lugar de leer un contador (ver la sección de ablación abajo).
 
-### Revisión 2026-10-21 (histórico)
+### Revisión 2026-10-21 (histórico, pre-B — bundle A obsoleto, no vigente)
 
-Mismos modelos, mismo protocolo. Las adiciones son dos métricas, no precisión extra.
+Mismos modelos, mismo protocolo. Las adiciones son dos métricas, no precisión extra. <!-- bundle A obsoleto: la tabla 4.289 ± 0.018 es histórica/pre-B, no vigente; vigente es el bundle B de abajo (4.251/4.340). No cambiar métricas B. -->
 
 | Modelo | RMSE | MAE | R² | NASA score |
 | --- | --- | --- | --- | --- |
@@ -84,13 +84,13 @@ Mismos modelos, mismo protocolo. Las adiciones son dos métricas, no precisión 
 | BiLSTM triple pooling (standalone) | 6.337 ± 0.811 | 4.872 ± 0.756 | 0.8837 ± 0.0305 | 4509.9 ± 1051.1 |
 | **Hybrid stacking + EMA causal 5** | **4.289 ± 0.018** | **3.183 ± 0.017** | **0.9475 ± 0.0004** | **2297.5 ± 17.4** |
 
-### Bundle B (producción, congelado)
+### Bundle B (producción, congelado — vigente)
 
 | Modelo | RMSE | MAE | R² | NASA score |
 | --- | --- | --- | --- | --- |
 | **Hybrid stacking + EMA causal 5** | **4.251** | **3.183** | **0.9482** | **2305.1** |
 
-Producción: RMSE 4.251 · MAE 3.183 · R² 0.9482 · NASA 2305.1 (semilla 42, sin nulos).
+Producción (vigente, bundle B): RMSE 4.251 · MAE 3.183 · R² 0.9482 · NASA 2305.1 (semilla 42, sin nulos); media multissemilla 4.340 ± 0.101 (ver `README.en.md`).
 
 ### Track de clase (bundle C, experimental)
 
@@ -117,7 +117,7 @@ Para decidir si el modelo de producción debe ser B (limpio) o C (con nulos), se
 
 **Conclusión:** B sobre datos con nulos (4.247) es indistinguible de B sobre datos limpios (4.251). El ffill repara los huecos aislados del MAR T30, así que B es **insensible a este régimen**. No hace falta reentrenar: B sigue en producción. C (4.314) no supera la puerta D11.
 
-**Evidencia:** `resultados/comparativa_b_dropout.csv`, `track_clase/evaluar_b_en_adaptada.py`, `tests/test_clase_b_robusto.py`, `notebooks/05_ensemble_adaptado.ipynb`.
+**Evidencia:** `resultados/comparativa_b_dropout.csv`, `src/clase/evaluar_b_en_adaptada.py`, `tests/test_clase_b_robusto.py`, `notebooks/05_ensemble_adaptado.ipynb`.
 
 *Nota sobre casillas vacías: NASA solo se calcula en grano ventana (pipeline `evaluate_predictions`); en grano fila la comparativa oficial es RMSE/MAE/R². La fila C-media agrega los titulares RMSE/NASA de las 3 semillas; su re-derivación completa con media±std queda pendiente y no afecta a la puerta D11.*
 
@@ -152,6 +152,12 @@ Las features más importantes son `xs_mean_T50`, `xs_mean_T48`, `xs_last10_T50`,
 `cyc_norm`. SHAP explica el componente tabular del híbrido (LightGBM, 93 features
 derivadas), no el BiLSTM ni el stacking.
 
+En el **track de clase** (SAA-9 de 7 a 10) el SHAP es sobre el **MLP E2**
+(`E2_reg_lr`, elegido por rmse_val), no sobre el XGB: PermutationExplainer con
+masker Independent, fondo de 200 filas de train fold-0 y budget 2·n+1
+(`resultados/mlp_shap_E2/`, `src/clase/shap_clase_e2.py`). El XGB conserva su
+SHAP TreeExplainer intacto (`resultados/shap_importancia.*`).
+
 ---
 
 ## Arquitectura
@@ -178,6 +184,29 @@ meta-learner para evitar fuga del contador.
 
 ## Cómo ejecutar
 
+### Puesta en marcha (una vez por PC)
+
+Requiere Python 3.12. Desde la raiz del repo:
+
+```bash
+python -m venv .venv
+.venv/Scripts/activate        # Windows;  POSIX: source .venv/bin/activate
+pip install -r requirements.txt
+pip install -e .              # expone clase/, ds02_rul/ y mia/ como paquetes
+```
+
+`pip install -e .` no es opcional: notebooks y app importan `ds02_rul` y
+`src.clase` como paquetes instalados, no como ficheros sueltos. Sin ese paso
+el notebook arranca pero muere en el primer `import`.
+
+En VS Code, abre **la carpeta del repo (`nasa/`) como raiz del workspace**, no
+una carpeta padre. La resolucion de los imports con prefijo `src.` sale de
+`[tool.pyright]` en `pyproject.toml` y de `python.analysis.extraPaths` en
+`.vscode/settings.json`; con otra carpeta abierta el editor los subraya aunque
+el notebook corra perfectamente.
+
+### Comandos
+
 ```bash
 # App de producción (bundle B + SHAP)
 streamlit run app/dashboard_ds02.py
@@ -186,9 +215,9 @@ streamlit run app/dashboard_ds02.py
 python -m pytest tests/ -q
 
 # Track de clase
-python -m track_clase.train_clasicos
-python -m track_clase.train_mlp
-python -m track_clase.shap_clase
+python -m src.clase.train_clasicos
+python -m src.clase.train_mlp
+python -m src.clase.shap_clase
 ```
 
 ---
@@ -196,10 +225,15 @@ python -m track_clase.shap_clase
 ## Estructura del proyecto
 
 ```
+app/streamlit_app.py    entry-point rúbrica (delega en dashboard_ds02.py)
 app/                    dashboard_ds02.py (producción), ui_shap.py (SHAP), ...
+src/utils.py            fachada rúbrica (re-exporta pipeline_clase + métricas)
+src/reglas.py           fachada rúbrica sobre src.mia/ (6+ reglas, prioridad, seguridad)
+src/n8n.py              envío de la decisión a n8n (MIA-3)
 src/ds02_rul/           data, features, model, pipeline, stacking, metrics, ...
+models/mejor_modelo.joblib  elegido de clase (copia de mejor_modelo_clase.joblib)
 models/                 ensemble.joblib, bilstm_ds02.keras, ds02_manifest.json
-track_clase/            track académico (dataset, pipeline, 5 modelos, MLP, SHAP)
+src/clase/            track académico (dataset, pipeline, 5 modelos, MLP, SHAP)
 notebooks/              01_eda ... 05_ensemble (con outputs)
 tests/                  tests de clase + tests de app
 data/processed/         parquet (ignorado en git, regenerable)
@@ -211,7 +245,7 @@ resultados/             gráficas y CSVs (ignorado en git, regenerable)
 ## Documentación adicional
 
 - README en inglés: [README.md](README.md)
-- Track de clase: [track_clase/README.md](track_clase/README.md)
+- Track de clase: [src/clase/README.md](src/clase/README.md)
 - Rúbrica: `docClase/Reto1_SAA_PIA_MIA_2026-27_v4.pdf`
 - Planificación: `docs/pendiente/planificacion-clase-5notebooks.md`
 

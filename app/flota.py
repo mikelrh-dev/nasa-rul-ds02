@@ -8,8 +8,8 @@ An alta added in the sidebar was keyed `U-1000` and vanished on reload.
 This module is the single source of names. Every view resolves an engine
 through it, so the wall, the twin store, the hangar and the orders all agree.
 
-Named `flota`, not `motor`: `mia/motor.py` is the rules engine and
-`app/ui_rules.py` imports it as `import motor as M`. Both modules sit on
+Named `flota`, not `motor`: `src/mia/motor.py` is the rules engine and
+`app/ui_rules.py` imports it as `from src.mia import motor as M`. Both packages sit on
 `sys.path` when the app runs, so the name would shadow the rules engine and the
 dashboard would import the registry where it expects `motor.motor`.
 
@@ -21,14 +21,15 @@ from __future__ import annotations
 import json
 import os
 
+import hangar as HGR
 import twin as T
 import ui_alta as A
+from ui_alta import PREFIJO_ALTA
 import ui_data_loader as L
 
 ALTAS_KEY = "altas"
-# Negative and reserved: it never collides with the cache units (11/14/15),
-# the live evaluation unit (-1) or the twins (0).
-PREFIJO_ALTA = -1000
+# PREFIJO_ALTA is owned by ui_alta (single definition); re-exported here
+# so existing `flota.PREFIJO_ALTA` imports keep working.
 
 
 def normalizar_matricula(texto) -> str:
@@ -140,8 +141,5 @@ def serializar(registro: dict) -> str:
 
 
 def cargar(ruta: str) -> dict:
-    """Reads the registry; a missing file is an empty registry, not an error."""
-    if not os.path.exists(ruta):
-        return {}
-    with open(ruta, encoding="utf-8") as fh:
-        return dict(json.load(fh))
+    """Reads the registry; missing/corrupt falls back (delegated to hangar)."""
+    return HGR.load_json_dict(ruta)

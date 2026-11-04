@@ -6,6 +6,9 @@
 - `freeze_rules_evidence.py` — evidencia congelada de reglas (gate de tests).
 - `predict_ds02.py` — inferencia CLI sobre el bundle.
 - `build_02_notebook.py`, `build_05_notebook.py` — generan notebooks congelados de referencia.
+- `anclar_raiz_pylance.py` — escribe un `.pth` con la raiz del repo en el venv:
+  arregla el subrayado de Pylance en `src.*` cuando abres VS Code en una carpeta
+  padre. Solo local (`.venv/` no se versiona); el repo ya trae la config buena.
 
 ## Legacy (no tocar, solo historia)
 

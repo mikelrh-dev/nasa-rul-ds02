@@ -246,9 +246,17 @@ def plausibility_warnings(table: pd.DataFrame) -> list[str]:
     for channel in channel_order():
         if channel not in frame.columns:
             continue
-        values = pd.to_numeric(frame[channel], errors="coerce").to_numpy(dtype=float)
+        numeric: pd.Series = pd.to_numeric(frame[channel], errors="coerce")  # type: ignore[assignment]
+        values = numeric.to_numpy(dtype=float)
         low = float(envelope.loc[channel, "aviso_desde"])
         high = float(envelope.loc[channel, "aviso_hasta"])
+        # isna explícito: pd.to_numeric(..., errors="coerce") convierte huecos
+        # en NaN y la comparación con el envelope los ignora en silencio
+        # (NaN < low == False). Se cuentan y se avisan como NaN, no como
+        # fuera de rango, para no confundir "sin dato" con "dato imposible".
+        nan_count = int(numeric.isna().sum())
+        if nan_count:
+            outside.append(f"`{channel}` {nan_count}/{len(values)} NaN")
         count = int(np.sum((values < low) | (values > high)))
         if count:
             outside.append(f"`{channel}` {count}/{len(values)} (DS02: {low:.4g}–{high:.4g})")
@@ -390,7 +398,12 @@ def reordenar_columnas(table: pd.DataFrame) -> pd.DataFrame:
 
 @st.cache_resource(show_spinner="Cargando el artefacto congelado (una sola vez)…")
 def get_ensemble():
-    """Load the frozen bundle on demand — never at page render."""
+    """Load the frozen bundle on demand — never at page render.
+
+    P1 security: `load_ensemble` verifies the artifact SHA-256 against
+    `models/ds02_manifest.json` / `app/cache/cache_manifest.json` and raises
+    `RuntimeError` without deserializing on mismatch. No `eval` is used.
+    """
     if SRC not in sys.path:
         sys.path.insert(0, SRC)
     from ds02_rul.persistence import load_ensemble
@@ -410,6 +423,11 @@ def preflight(table: pd.DataFrame) -> dict:
     except ValueError as exc:
         return {"ok": False, "error": str(exc), "filas": 0, "ventanas": 0,
                 "avisos": [], "fingerprint": "", "ciclos": []}
+    except (FileNotFoundError, OSError) as exc:
+        # Caché/manifiesto ausente: validate_table()->required_columns()->
+        # get_provenance() abre ficheros; no debe tumbar la UI.
+        return {"ok": False, "error": f"Fichero de caché/manifiesto no disponible: {exc}",
+                "filas": 0, "ventanas": 0, "avisos": [], "fingerprint": "", "ciclos": []}
     span = window_size()
     if len(frame) > MAX_FILAS:
         return {"ok": False, "error": _mensaje_limite(len(frame)),
@@ -417,6 +435,11 @@ def preflight(table: pd.DataFrame) -> dict:
                 "fingerprint": "", "ciclos": []}
     ventanas = int(max(0, len(frame) - span + 1))
     ciclos = frame["cycle"].to_numpy(dtype=float)
+    # P1.5 · fingerprint sin caché (documentado, no aplicado): `T.fingerprint`
+    # ya es la huella (SHA-256 sobre CSV, ~6 ms/500 filas medidas); cachearlo
+    # por "hash de tabla" exigiría un pre-hash del mismo coste y `twin.py`
+    # no puede importar Streamlit (diseño testeable sin runtime). Con P1.4
+    # los sliders repetidos ya no llegan aquí: no hay 2ª llamada que ahorrar.
     return {
         "ok": ventanas > 0,
         "error": None if ventanas > 0 else (

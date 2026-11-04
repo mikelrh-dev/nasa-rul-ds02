@@ -126,6 +126,27 @@ def _datos_validos(caso: dict) -> bool:
     return not caso.get("alertas_datos")
 
 
+def _umbrales_validos(caso: dict) -> bool:
+    """Hay límite inferior y umbrales, y vienen ordenados (`hangar < apto`).
+
+    Sin límite o sin umbrales no se puede clasificar: las condiciones de
+    decisión devuelven `False` y el motor cierra en `SIN_DECISION`. Con
+    `hangar >= apto` pasa lo mismo, documentado: `ui_data_loader.classify`
+    lanza `ValueError` en la UI, pero una regla no debe romper la pasada del
+    motor, así que aquí la guarda es no decidir, nunca una decisión silenciosa
+    ni dos reglas contradictorias a la vez.
+    """
+    if caso.get("limite_inferior") is None:
+        return False
+    u = caso.get("umbrales")
+    if not isinstance(u, dict) or u.get("apto") is None or u.get("hangar") is None:
+        return False
+    try:
+        return bool(u["hangar"] < u["apto"])
+    except TypeError:
+        return False
+
+
 # ------------------------------------------------- pasada B: correccion
 def si_R2b_ISOTONICO(caso: dict) -> bool:
     """Hay historial de la misma unidad y un punto que corregir."""
@@ -169,18 +190,18 @@ def efecto_R1_SEGURIDAD(caso: dict) -> dict:
 
 
 def si_R7_APTO(caso: dict) -> bool:
-    return _datos_validos(caso) and caso["limite_inferior"] >= caso["umbrales"]["apto"]
+    return _datos_validos(caso) and _umbrales_validos(caso) and caso["limite_inferior"] >= caso["umbrales"]["apto"]
 
 
 def si_R8_INSPECCION(caso: dict) -> bool:
-    if not _datos_validos(caso):
+    if not _datos_validos(caso) or not _umbrales_validos(caso):
         return False
     u = caso["umbrales"]
     return u["hangar"] <= caso["limite_inferior"] < u["apto"]
 
 
 def si_R9_HANGAR(caso: dict) -> bool:
-    return _datos_validos(caso) and caso["limite_inferior"] < caso["umbrales"]["hangar"]
+    return _datos_validos(caso) and _umbrales_validos(caso) and caso["limite_inferior"] < caso["umbrales"]["hangar"]
 
 
 # ------------------------------------------------------------- las listas

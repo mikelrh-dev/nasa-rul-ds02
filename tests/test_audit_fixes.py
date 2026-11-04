@@ -6,7 +6,7 @@ Cinco familias, una por hallazgo reparado:
 2. la alarma y la MAE crítica usan el umbral y la lectura en vigor;
 3. estado y alarma comparten criterio (la peor ventana del ciclo);
 4. la orden de trabajo declara banda, corrección y regla, y la externa la
-   decide `mia.motor`;
+   decide src.mia.motor;
 5. un tramo con muestra pequeña no estrecha la banda global.
 
 Run:  python -m pytest tests -q
@@ -28,10 +28,10 @@ APP = os.path.join(ROOT, "app")
 SCRIPTS = os.path.join(ROOT, "scripts")
 sys.path.insert(0, APP)
 sys.path.insert(0, SCRIPTS)
-sys.path.insert(0, os.path.join(ROOT, "mia"))
+sys.path.insert(0, ROOT)
 
 import freeze_rules_evidence as G  # noqa: E402
-import reglas as R  # noqa: E402
+from src.mia import reglas as R  # noqa: E402
 import ui_data_loader as L  # noqa: E402
 import ui_inference as INF  # noqa: E402
 import ui_rules as UR  # noqa: E402
@@ -45,7 +45,7 @@ needs_oof = pytest.mark.skipif(
     reason="_p1_oof_cache.npz missing",
 )
 
-CALIBRACION = os.path.join(ROOT, "mia", "calibracion_banda.json")
+CALIBRACION = os.path.join(ROOT, "src", "mia", "calibracion_banda.json")
 
 
 def _sha256(path: str) -> str:

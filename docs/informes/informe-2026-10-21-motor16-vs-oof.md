@@ -1,5 +1,8 @@
 # Informe — ajustar el meta sobre el OOF de los cinco motores: medido y rechazado
 
+> **Banner — bundle A obsoleto, bundle B vigente:** este informe 2026-10-21 describe el bundle A (histórico/pre-B, 4.289 / sha `0acd795b…`) y ya no es vigente como referencia de producción. Vigente: bundle B (ref 4.251; media 4.340 ± 0.101). Las métricas B no se cambian en este diff; las cifras de abajo se conservan como histórico.
+
+
 **Fecha:** 2026-10-21
 **Alcance:** `scripts/build_02_notebook.py`, `src/ds02_rul/stacking.py`
 **Resultado:** la hipótesis se implementó, se midió y **se revirtió**. El pipeline

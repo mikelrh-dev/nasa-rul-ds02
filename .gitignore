@@ -3,6 +3,12 @@
 *.egg-info/
 build/
 dist/
+# secrets — never commit real env values; .env.example templates only.
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
 
 # python
 __pycache__/
@@ -82,6 +88,8 @@ cell_counts.txt
 
 # fleet records persisted by the Streamlit UI (per-machine state)
 app/registros_flota.json
+app/registros_sesiones/
+app/registros_flota.json.bak
 
 # class material (notebooks/ds02_ensemble/RequisitosClase/Ejemplos) — not part of
 # the deliverable: regenerable exercise folders and their data

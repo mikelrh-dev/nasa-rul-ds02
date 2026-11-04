@@ -12,6 +12,7 @@ import ui_rules as UR
 
 # Rango negativo reservado: nunca colisiona con caché (11/14/15),
 # evaluación en vivo (-1) ni gemelos (0).
+# Dueño único de PREFIJO_ALTA; `flota` lo re-exporta (sin redefinir).
 PREFIJO_ALTA = -1000
 
 # Perfil -> (unidad cacheada, ciclo hasta el que se toma la historia).

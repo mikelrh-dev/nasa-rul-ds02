@@ -1,7 +1,7 @@
 """Fase 2.2 — 5 clásicos de clase con GridSearchCV + GroupKFold(groups=unit).
 
 SAA 6 (30%): regresión/Ridge, KNN, RF, XGB, SVR. Grids mínimos publicados.
-PIA 3: mismo `pre` de `track_clase/pipeline_clase.py` dentro de cada Pipeline
+PIA 3: mismo `pre` de `src/clase/pipeline_clase.py` dentro de cada Pipeline
 (pre refit por fold, sin fuga). SVR sobre submuestra 5k estratificada por
 unidad (O(n^2) en 52k imposible). Guarda `resultados/comparativa.csv` y
 `models/mejor_modelo_clase.joblib` (mejor por rmse_val; desempate al simple).
@@ -15,7 +15,7 @@ from __future__ import annotations
 import os
 import sys
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
@@ -32,7 +32,7 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import SVR
 from xgboost import XGBRegressor
 
-from track_clase.pipeline_clase import make_pipeline
+from src.clase.pipeline_clase import make_pipeline
 
 RANDOM_STATE = 42
 CV = GroupKFold(n_splits=3)

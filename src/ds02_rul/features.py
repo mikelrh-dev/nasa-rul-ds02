@@ -117,12 +117,18 @@ def build_windows(
 
     for unit in np.unique(units):
         mask = units == unit
-        S = X_scaled[mask]
-        R = res[mask]
-        Wm = W_scaled[mask]
-        Raw = X_full[mask]
-        y_u = y[mask]
-        c_u = cycles[mask]
+        # Sort stable por (unit, cycle) antes de cortar: garantiza que las
+        # ventanas se construyen en orden temporal aunque la entrada venga
+        # desordenada, y que dos ejecuciones sobre la misma entrada den lo mismo.
+        idx = np.flatnonzero(mask)
+        order = np.argsort(cycles[idx], kind="stable")
+        idx = idx[order]
+        S = X_scaled[idx]
+        R = res[idx]
+        Wm = W_scaled[idx]
+        Raw = X_full[idx]
+        y_u = y[idx]
+        c_u = cycles[idx]
         n = len(S)
         if n < window_size:
             continue

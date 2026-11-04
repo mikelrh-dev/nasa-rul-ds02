@@ -28,7 +28,8 @@
       "Nf",
       "Nc",
       "Wf"
-    ]
+    ],
+    "h5_sha256": "47971a68b239ecb756833218a95d68ded6eb7e63ee84e86671c8b188de1ca765"
   },
   "artifact": {
     "ensemble": "models\\ensemble.joblib",
@@ -69,7 +70,9 @@
         "density_vs_fit": 0.547
       }
     },
-    "fit_engine_rows_per_cycle": 118.23
+    "fit_engine_rows_per_cycle": 118.23,
+    "windows_sha256": "0c18927b8031e04268d1b330d67157d11be54fe4932439975b43fac4715e0b60",
+    "rows_sha256": "bfeecbd230ed9bd13dc2373aa446686b5ac300b3d381b873624bf274f9e4579a"
   },
   "metrics": {
     "rmse": 4.2515,

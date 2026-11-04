@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from track_clase.dataset_clase import (
+from src.clase.dataset_clase import (
     asignar_fase_vuelo,
     elegibles_mar,
     imputar_ffill,

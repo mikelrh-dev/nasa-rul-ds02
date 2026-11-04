@@ -140,11 +140,48 @@ def shap_top_features(unit: int, top_k: int = 10) -> pd.DataFrame:
     return result
 
 
-def shap_waterfall_data(unit: int) -> tuple[np.ndarray, np.ndarray, float, list[str]]:
+def _shap_claves() -> tuple[str, str]:
+    """(solver_sha, rows_sha) que sellan la clave del waterfall cacheado.
+
+    `solver` es la huella del artefacto (rama LightGBM) y `rows` la del
+    parquet de filas: si el bundle o la caché se regeneran, la clave cambia
+    y el TreeExplainer se re-ejecuta en vez de servir un waterfall viejo.
+    """
+    prov = L.get_provenance()
+    solver = str(prov.get("artifact", {}).get("ensemble_sha256", ""))
+    rows = str(prov.get("counts", {}).get("rows_sha256", ""))
+    return solver, rows
+
+
+def _con_claves(solver_sha: str, rows_sha: str) -> tuple[str, str]:
+    """Rellena los shas que falten desde provenance (para la clave de caché)."""
+    if solver_sha and rows_sha:
+        return solver_sha, rows_sha
+    _s, _r = _shap_claves()
+    return solver_sha or _s, rows_sha or _r
+
+
+def shap_waterfall_data(
+    unit: int, solver_sha: str = "", rows_sha: str = ""
+) -> tuple[np.ndarray, np.ndarray, float, list[str]]:
     """Return SHAP values, feature values, base value, and feature names for a waterfall.
 
-    Used for per-prediction explanation in the dashboard.
+    Used for per-prediction explanation in the dashboard. Envuelve al
+    `_shap_waterfall_data_cached` (ttl 3600), así que la clave es siempre
+    (unit, solver_sha, rows_sha) aunque el llamador no pase los shas.
     """
+    solver_sha, rows_sha = _con_claves(solver_sha, rows_sha)
+    return _shap_waterfall_data_cached(unit, solver_sha, rows_sha)
+
+
+@st.cache_data(
+    show_spinner="Calculando SHAP waterfall…", ttl=3600
+)
+def _shap_waterfall_data_cached(
+    unit: int, solver_sha: str, rows_sha: str
+) -> tuple[np.ndarray, np.ndarray, float, list[str]]:
+    """Cuerpo cacheado: evita el 2º TreeExplainer (~1,7 s) si `shap_top_features`
+    ya explicó la ventana (misma `unit`/solver/rows)."""
     import shap
 
     ensemble = INF.get_ensemble()
@@ -184,15 +221,30 @@ def shap_waterfall_data(unit: int) -> tuple[np.ndarray, np.ndarray, float, list[
     return sv, X_tab.reshape(-1), base, feature_names
 
 
-def shap_waterfall_fig(unit: int, max_display: int = 12):
+def shap_waterfall_fig(
+    unit: int, max_display: int = 12, solver_sha: str = "", rows_sha: str = ""
+):
     """Plotly waterfall figure for the given unit's last window.
 
     The dashboard renders this figure directly: no file on disk, no fixed temp
     path, and the chart inherits the app's dark theme via `chart_layout`.
+    Envuelve al `_shap_waterfall_fig_cached` (ttl 3600): la clave es
+    (unit, max_display, solver_sha, rows_sha).
     """
+    solver_sha, rows_sha = _con_claves(solver_sha, rows_sha)
+    return _shap_waterfall_fig_cached(
+        unit, max_display, solver_sha, rows_sha
+    )
+
+
+@st.cache_data(show_spinner="Calculando SHAP waterfall…", ttl=3600)
+def _shap_waterfall_fig_cached(
+    unit: int, max_display: int, solver_sha: str, rows_sha: str
+):
+    """Cuerpo cacheado del waterfall (misma clave, sin TreeExplainer extra)."""
     import plotly.graph_objects as go
 
-    sv, values, base, names = shap_waterfall_data(unit)
+    sv, values, base, names = shap_waterfall_data(unit, solver_sha, rows_sha)
     order_idx = np.argsort(np.abs(sv))[::-1][:max_display]
     feats = [names[i] for i in order_idx]
     contribs = [float(sv[i]) for i in order_idx]

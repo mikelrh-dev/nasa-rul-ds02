@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 
+import hangar as HGR
 import ui_rules as UR
 
 REGISTRY_KEY = "twins"
@@ -250,19 +251,10 @@ def resumen(registro: dict) -> dict:
 
 
 def guardar_disco(registro: dict, ruta: str) -> None:
-    """Persiste el registro de gemelos en JSON (recargar no los borra)."""
-    import json as _json
-
-    with open(ruta, "w", encoding="utf-8") as fh:
-        _json.dump(registro, fh, ensure_ascii=False, indent=1)
+    """Persiste el registro de gemelos en JSON (atómico, delegado a hangar)."""
+    HGR.atomic_save_json(ruta, registro)
 
 
 def cargar_disco(ruta: str) -> dict:
-    """Lee el registro persistido; si no existe, devuelve uno vacío."""
-    import json as _json
-    import os as _os
-
-    if not _os.path.exists(ruta):
-        return {}
-    with open(ruta, encoding="utf-8") as fh:
-        return dict(_json.load(fh))
+    """Lee el registro; si no existe o está corrupto, devuelve uno vacío."""
+    return HGR.load_json_dict(ruta)

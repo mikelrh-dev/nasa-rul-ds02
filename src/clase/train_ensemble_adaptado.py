@@ -8,7 +8,7 @@ honesto: `construir_raw_adaptado` mapea los parquet a un dict raw
 
 Diferencias con B (declaradas, son la puerta de adopción):
 - imputación con medianas SOLO de fit-units (B no imputa: HDF5 limpio);
-- `dataset='DS02-adaptada'` en el manifest; bundle en `track_clase/models/`
+- `dataset='DS02-adaptada'` en el manifest; bundle en `src/clase/models/`
   (nunca `models/`); SIN re-freeze (requiere otra autorización).
 
 Puerta D11 (pre-registrada): se adopta C solo si
@@ -30,13 +30,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 if os.path.join(_ROOT, "src") not in sys.path:
     sys.path.insert(0, os.path.join(_ROOT, "src"))
 
-from track_clase.dataset_clase import OP_COLS, SENSOR_COLS, imputar_ffill  # noqa: E402
+from src.clase.dataset_clase import OP_COLS, SENSOR_COLS, imputar_ffill  # noqa: E402
 from ds02_rul.ensemble import HybridStackingEnsemble  # noqa: E402
 from ds02_rul.conformal import fit_conformal  # noqa: E402
 from ds02_rul.metrics import evaluate_predictions, macro_rmse  # noqa: E402
@@ -56,7 +56,7 @@ SEED = 42
 EPOCHS = 22
 EPOCHS_OOF = 15
 B_HIST = {"rmse": 4.251, "mae": 3.183, "r2": 0.9482, "nasa": 2305.1, "n": 6196}
-OUT_DIR = os.path.join(_ROOT, "track_clase", "models")
+OUT_DIR = os.path.join(_ROOT, "src.clase", "models")
 
 
 def construir_raw_adaptado() -> dict:
@@ -97,7 +97,7 @@ def construir_raw_adaptado() -> dict:
 
 
 def entrenar(seed: int = SEED, epochs: int = EPOCHS, verbose: bool = True) -> dict:
-    """Entrena el bundle C completo (seed 42) y lo versiona en `track_clase/models/`."""
+    """Entrena el bundle C completo (seed 42) y lo versiona en `src/clase/models/`."""
     t00 = time.time()
     raw = construir_raw_adaptado()
 
