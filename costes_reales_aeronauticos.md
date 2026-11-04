@@ -76,6 +76,8 @@ Datos extraídos de fuentes oficiales/empresariales para justificar una calculad
 | Lease rate mensual V2500-A5 | ~80.000 | USD/mes | IBA | Media |
 | Impacto GTF (RTX) | 6–7 B | USD | Oliver Wyman / KPMG 2026 | Media |
 
+**Aclaración AOG (para la defensa):** 10.000–15.000 USD/h es por hora (Boeing, citado de forma secundaria, tabla §1); 240.000–360.000 USD/día solo vale como hipotético de 24 h continuas (10.000–15.000 × 24), no es una tarifa diaria ni el coste de un AOG de 1 h. Contexto de mantenimiento: IATA MCX Executive Report FY2024, ya citado en §1 (1.522 USD/FH, 3.758 USD/FC, 5,05 M USD/aeronave/año, credibilidad Alta), es el coste de mantenimiento medio de la industria, distinto del coste de un AOG.
+
 ## 2. Gasto de mantenimiento por aerolínea (FY2023)
 
 | Aerolínea | Concepto | Valor | Moneda | Fuente | Credibilidad |

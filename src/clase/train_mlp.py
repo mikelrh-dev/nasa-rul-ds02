@@ -38,7 +38,7 @@ BASE_KW = dict(activation="relu", learning_rate_init=1e-3, max_iter=300,
 EXPS = {
     "base": (dict(hidden_layer_sizes=(128, 64), alpha=1e-3), "MLP medio: RUL no lineal por régimen, 2 capas bastan sin memorizar."),
     "E1_capacidad": (dict(hidden_layer_sizes=(256, 128, 64), alpha=1e-3), "Más capacidad capta interacción régimen-degradación hasta overfit."),
-    "E2_reg_lr": (dict(hidden_layer_sizes=(128, 64), alpha=1e-2), "Más regularización frena memorización de 93 feats ruidosas."),
+    "E2_reg_lr": (dict(hidden_layer_sizes=(128, 64), alpha=1e-2), "Más regularización frena memorización de 22 feats transformadas (19 num + fase_vuelo) ruidosas."),
     "E3_batch": (dict(hidden_layer_sizes=(128, 64), alpha=1e-3, batch_size=1024), "Batch grande estabiliza gradiente en ventanas correladas."),
 }
 
@@ -124,7 +124,7 @@ def persistir_e2(destino: str = E2_MODEL_PATH, verbose: bool = True):
     """Entrena SOLO E2_reg_lr sobre todo el train y guarda el Pipeline completo.
 
     No toca `models/mejor_modelo_clase.joblib` (XGB verificado, steps[1]
-    XGBRegressor) ni el bundle B (`models/ensemble.joblib`).
+    XGBRegressor) ni ningun otro artefacto desplegado.
     """
     X_tr = pd.read_parquet("data/processed/X_train.parquet")
     y_tr = pd.read_parquet("data/processed/y_train.parquet").values.ravel().astype(float)

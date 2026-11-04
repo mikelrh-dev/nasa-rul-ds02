@@ -1,10 +1,16 @@
 """Precompute the telemetry cache the Streamlit DSS reads at render time.
 
-    python scripts/build_ui_cache.py
+    python scripts/build_ui_cache.py                 # base imputada (por defecto)
+    python scripts/build_ui_cache.py --base limpia   # HDF5 sin imputar (histórico)
 
 One offline pass over the frozen bundle (`models/ensemble.joblib` +
-`models/bilstm_ds02.keras`) and the DS02 test split. Writes three small files
-under `app/cache/`:
+`models/bilstm_ds02.keras`) and the DS02 test split. **La fuente por defecto es
+la base adaptada** (`data/processed/*_con_nulos.parquet` imputados con ffill y
+medianas de fit-units), que es con la que se entrenó el bundle desplegado: si se
+construyera desde el HDF5 limpio, la app mostraría métricas de otra población de
+datos que las que firma el manifiesto.
+
+Writes three small files under `app/cache/`:
 
 * `ds02_windows.parquet` — one row per scored window: unit, cycle, window start,
   ground truth, point estimate and the conformal band.
@@ -41,8 +47,37 @@ from ds02_rul.persistence import load_ensemble, sha256_of  # noqa: E402
 DEFAULT_OUT = os.path.join("app", "cache")
 ENSEMBLE = os.path.join("models", "ensemble.joblib")
 MANIFEST = os.path.join("models", "ds02_manifest.json")
+PARQUET_TRAIN = os.path.join("data", "processed", "train_con_nulos.parquet")
+PARQUET_TEST = os.path.join("data", "processed", "test_con_nulos.parquet")
 
 BIN_EDGES = (0.0, 25.0, 50.0, 75.0)
+
+
+def _raw_adaptada() -> dict:
+    """Dict raw desde la base imputada (misma forma que devuelve `load_ds02`)."""
+    if ROOT not in sys.path:
+        sys.path.insert(0, ROOT)
+    from src.clase.train_ensemble_adaptado import construir_raw_adaptado
+
+    return construir_raw_adaptado()
+
+
+def _fuente(raw: dict, base: str, stride: int, window: int, step: int,
+            op_names: list, sensor_names: list) -> dict:
+    """Bloque `source` del manifiesto: de dónde salieron exactamente las ventanas."""
+    comun = {"stride": stride, "window": window, "step": step,
+             "op_names": op_names, "sensor_names": sensor_names}
+    if base == "adaptada":
+        return {
+            "base": "adaptada (MAR T30 + ffill causal, medianas de fit-units)",
+            "parquet_train": PARQUET_TRAIN,
+            "parquet_train_sha256": sha256_of(PARQUET_TRAIN),
+            "parquet_test": PARQUET_TEST,
+            "parquet_test_sha256": sha256_of(PARQUET_TEST),
+            **comun,
+        }
+    return {"base": "limpia (HDF5 sin imputar)", "h5": raw["path"],
+            "h5_sha256": sha256_of(raw["path"]), **comun}
 
 
 def _unit_truth(A, y, unit: float, start_index: np.ndarray, window: int) -> np.ndarray:
@@ -84,8 +119,14 @@ def _density_reference(raw: dict) -> float:
     return float(np.mean(densities))
 
 
-def build(out_dir: str = DEFAULT_OUT, stride: int = 100, step: int = 2) -> dict:
-    raw = load_ds02(stride=stride)
+def build(out_dir: str = DEFAULT_OUT, stride: int = 100, step: int = 2,
+          base: str = "adaptada") -> dict:
+    if base == "adaptada":
+        raw = _raw_adaptada()
+    elif base == "limpia":
+        raw = load_ds02(stride=stride)
+    else:
+        raise ValueError(f"base desconocida: {base!r} (usa 'adaptada' o 'limpia')")
     ensemble = load_ensemble(ENSEMBLE)
     window = int(ensemble.window_size)
     units = [float(u) for u in np.unique(raw["A_test"][:, 0])]
@@ -166,15 +207,7 @@ def build(out_dir: str = DEFAULT_OUT, stride: int = 100, step: int = 2) -> dict:
         "format_version": 1,
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "dataset": "DS02",
-        "source": {
-            "h5": raw["path"],
-            "h5_sha256": sha256_of(raw["path"]),
-            "stride": stride,
-            "window": window,
-            "step": step,
-            "op_names": op_names,
-            "sensor_names": sensor_names,
-        },
+        "source": _fuente(raw, base, stride, window, step, op_names, sensor_names),
         "artifact": {
             "ensemble": ENSEMBLE,
             "ensemble_sha256": sha256_of(ENSEMBLE),
@@ -233,9 +266,11 @@ def main() -> int:
     ap.add_argument("--out", default=DEFAULT_OUT, help="cache directory (default app/cache)")
     ap.add_argument("--stride", type=int, default=100, help="HDF5 row stride (default 100)")
     ap.add_argument("--step", type=int, default=2, help="window stride (default 2)")
+    ap.add_argument("--base", choices=("adaptada", "limpia"), default="adaptada",
+                    help="datos de origen: base imputada (default) o HDF5 limpio")
     args = ap.parse_args()
 
-    result = build(out_dir=args.out, stride=args.stride, step=args.step)
+    result = build(out_dir=args.out, stride=args.stride, step=args.step, base=args.base)
     print(f"windows : {result['windows']}")
     print(f"rows    : {result['rows']}")
     print(f"prov    : {result['provenance']}")

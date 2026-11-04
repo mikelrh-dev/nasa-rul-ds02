@@ -63,6 +63,8 @@ copiaSeguridadv*/
 copiacuadernos/
 *.bak
 notebooks/ds02_ensemble/artifacts/
+# cadena de estado de los cuadernos de clase (la regenera el 04)
+notebooks/artifacts_c/
 
 # root duplicates of DS02 bundle — canonical lives in models/
 /ensemble.joblib
@@ -95,7 +97,10 @@ app/registros_flota.json.bak
 # the deliverable: regenerable exercise folders and their data
 notebooks/ds02_ensemble/RequisitosClase/Ejemplos/
 
-# class track generated data and results
+# class track generated data and results — regenerable, never commit:
+# data/processed/ is rebuilt by src/clase/dataset_clase.py and the notebooks;
+# resultados/ (CSV/PNG) is rebuilt by src/clase/train_*.py, shap_*.py and the
+# notebooks. Both are build output, like notebooksMD/*.md from the .ipynb files.
 data/
 resultados/
 track_clase/models/

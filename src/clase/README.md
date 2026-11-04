@@ -2,7 +2,7 @@
 
 > **Español** | [English](../../README.en.md)
 
-Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir de telemetría y propone APTO / INSPECCIÓN / HANGAR. **El mejor MLP de clase (E2, elegido por validación) logra RMSE 7.72 en test (val 7.34; uds 11/14/15); el híbrido en producción (BiLSTM + LightGBM + stacking) está en 4.25.**
+Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir de telemetría y propone APTO / INSPECCIÓN / HANGAR. **El mejor MLP de clase (E2, elegido por validación) logra RMSE 7.72 en test (val 7.34; uds 11/14/15); el híbrido desplegado (BiLSTM + LightGBM + stacking sobre la base con nulos tratados) está en 4.338 (media multiseed 4.322+-0.064; NB05: 4.330+-0.053).**
 
 ![App del track de clase](../resultados/app_clase.png)
 
@@ -119,11 +119,11 @@ flowchart LR
 
 **Modelo elegido (clase): MLP E2 (val 7.34; test 7.72 en lectura única).** No es el más rápido (XGB entrena en 7 s frente a 33 s) y se elige igualmente: RMSE manda porque un fallo gordo (motor parado) cuesta órdenes de magnitud más que segundos de CPU; a igualdad de RMSE se preferiría el más simple.
 
-**Modelo de producción (bundle B):** híbrido BiLSTM + LightGBM + stacking + EMA, RMSE 4.25 (test uds 11/14/15). El híbrido es el "extra no visto en clase" del criterio SAA 6. No se menciona como "bundle B" en la defensa: se denomina "umbral preestablecido de calidad industrial (RMSE < 4.25)".
+**Modelo desplegado (bundle C):** híbrido BiLSTM + LightGBM + stacking + EMA sobre la base adaptada (MAR T30 + ffill con medianas de fit-units), RMSE 4.338 / NASA 2336.2 (test uds 11/14/15), media multiseed 4.322+-0.064. El híbrido es el "extra no visto en clase" del criterio SAA 6. El manifiesto declara la variante de datos, la partición de motores y las huellas SHA: el despliegue se audita desde el artefacto.
 
-**Test (una lectura, solo el elegido):** MLP E2 RMSE 7.72 · MAE 5.81 · R² 0.83. Híbrido RMSE 4.25 · MAE 3.18 · R² 0.948.
+**Test (una lectura, solo el elegido):** MLP E2 RMSE 7.72 · MAE 5.81 · R² 0.83. Híbrido desplegado RMSE 4.338 · MAE 3.227 · R² 0.9461.
 
-**Experimento de robustez (3 vías):** B sobre datos con nulos (4.247) es indistinguible de B sobre datos limpios (4.251). No hace falta reentrenar: B sigue en producción. C (4.314) no supera la puerta D11. Evidencia: `resultados/comparativa_b_dropout.csv`, `src/clase/evaluar_b_en_adaptada.py`.
+**Estabilidad entre semillas:** 42, 7 y 123 dan RMSE 4.322+-0.064 y NASA 2342.3+-43.4; la 42 es la del bundle desplegado, así que ese ± es la cota de ruido para leer cualquier diferencia. Evidencia: `resultados/bundle_c_multiseed.csv`, `resultados/comparativa_bundle_c.csv`.
 
 ![Real vs predicho](../resultados/mlp_real_vs_pred.png)
 
@@ -136,24 +136,26 @@ flowchart LR
 
 ## Tests
 
-30 tests de clase (`tests/test_clase_*.py`) + tests de la app (`tests/test_live_eval.py`). Cobertura: dataset, pipeline, clásicos, MLP, SHAP, tablas, ventanas, bundle C, robustez (suite completa en la verificación final).
+30 tests de clase (`tests/test_clase_*.py`) + tests de la app (`tests/test_live_eval.py`). Cobertura: dataset, pipeline, clásicos, MLP, SHAP, tablas, ventanas, bundle C, agregación multiseed (suite completa en la verificación final).
 
 ## Estructura del track
 
 ```text
 src/clase/            dataset_clase.py, pipeline_clase.py, train_clasicos.py, train_mlp.py, README.md
-                        shap_clase.py, tabla_final.py, ventanas_adaptadas.py, evaluar_b_en_adaptada.py
+                        shap_clase.py, tabla_final.py, ventanas_adaptadas.py, train_ensemble_adaptado.py,
+                        evaluar_c_multisemilla.py, puente_c.py
 data/raw|processed/     HDF5 fuera de git; train_con_nulos + imputados + X/y + auditoria_nulos.json
 notebooks/              01_eda_y_contexto.ipynb, 02_modelos_clasicos_y_mlp.ipynb, 03_feature_engineering_secuencial.ipynb,
                         04_arquitectura_bilstm_oof.ipynb, 05_meta_ensemble_y_conformal.ipynb,
                         06_evaluacion_produccion_comparativa.ipynb (todos con outputs; corresponden al `notebooks/` pedido en la spec del reto)
-models/                 mejor_modelo_clase.joblib (Pipeline completo; el híbrido congelado no se toca)
+models/                 bundle desplegado (C): ensemble.joblib, bilstm_ds02.keras, scaler.joblib,
+                        ds02_manifest.json (+ mejor_modelo_clase.joblib, el elegido de clase)
 n8n/                    flujo.json (placeholder MIA 3)
 resultados/             eda_*.png, comparativa.csv, mlp_*.png/csv, importancia_*.png/csv, shap_*.png/csv
 src/reglas.py           re-export de src.mia.reglas (6 reglas + seguridad)
 src/n8n.py              stub (levanta NotImplementedError hasta el change n8n)
 app/ui_shap.py          SHAP en la app de producción (TreeExplainer, global + waterfall)
-app/dashboard_ds02.py   app de producción: evalúa el modelo desplegado (bundle B) en test, predice casos nuevos
+app/dashboard_ds02.py   app de producción: evalúa el modelo desplegado (bundle C) en test, predice casos nuevos
                         con decisión de reglas y muestra la p (RUL) junto a la decisión (PIA-5; los modelos de clase
                         se evalúan en notebooks + test de lectura única reportado arriba)
 ```
@@ -164,7 +166,8 @@ app/dashboard_ds02.py   app de producción: evalúa el modelo desplegado (bundle
 python -m src.clase.train_clasicos     # 5 modelos + comparativa.csv + joblib (~2 min)
 python -m src.clase.train_mlp           # MLP base+3 + importancia (~8 min con validación OOF)
 python -m src.clase.shap_clase          # SHAP TreeExplainer + PNG/CSV
-streamlit run app/dashboard_ds02.py        # app de producción (bundle B + SHAP)
+python -m src.clase.evaluar_c_multisemilla  # seeds 42/7/123 -> resultados/comparativa_c_multisemilla.csv
+streamlit run app/dashboard_ds02.py        # app de producción (bundle C + SHAP)
 python -m pytest tests/test_clase_*.py tests/test_live_eval.py -q
 ```
 

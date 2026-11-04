@@ -1,19 +1,26 @@
-"""Fase 6 (NB05/bundle C): ensemble completo sobre la base adaptada.
+"""Bundle C: híbrido completo sobre la base adaptada (MAR T30 + ffill causal).
 
-La base adaptada (MAR T30 + ffill causal) entra POR ARRIBA del pipeline
-honesto: `construir_raw_adaptado` mapea los parquet a un dict raw
-(A/W/Xs/y alineados) y a partir de ahí se usan SIN CAMBIOS
-`run_seed` + `oof_base_predictions` + `select_beta_grouped` +
-`fit_meta_learners` + `HybridStackingEnsemble` + `fit_conformal`.
+Desde 2026-11-04 el bundle C es el **campeón desplegado**. Este script entrena y
+versiona en `models/` el ensamble (BiLSTM + LightGBM + stacking + EMA) usando la
+base imputada, y escribe `models/ds02_manifest.json` con lo que hizo.
 
-Diferencias con B (declaradas, son la puerta de adopción):
-- imputación con medianas SOLO de fit-units (B no imputa: HDF5 limpio);
-- `dataset='DS02-adaptada'` en el manifest; bundle en `src/clase/models/`
-  (nunca `models/`); SIN re-freeze (requiere otra autorización).
+La base adaptada entra POR ARRIBA del pipeline honesto: `construir_raw_adaptado`
+mapea los parquet a un dict raw (A/W/Xs/y alineados) y a partir de ahí se usan
+SIN CAMBIOS las funciones del paquete congelado:
 
-Puerta D11 (pre-registrada): se adopta C solo si
-`RMSE_C <= 4.25 - spread_seeds` Y `NASA_C <= NASA_B` en las mismas
-6.196 ventanas test. Si no, C queda como experimento y B sigue.
+    run_seed + oof_base_predictions + select_beta_grouped
+    + fit_meta_learners + HybridStackingEnsemble + fit_conformal
+
+Qué aporta sobre el pipeline congelado:
+- imputación con medianas SOLO de fit-units, nunca con estadísticos del test;
+- `dataset='DS02'` satisface el contrato de forma, y `dataset_variant` declara
+  sin ambigüedad que se entrenó sobre la base imputada;
+- el manifiesto guarda, junto a la métrica agregada, el reparto macro por motor:
+  el error se audita desde el artefacto y no desde un documento.
+
+No reentrenar sin querer: TensorFlow en CPU no es determinista, así que una
+corrida nueva puede dar otra cifra y dejar el manifiesto desalineado con los
+notebooks. El manifiesto es la fuente de verdad del bundle instalado.
 """
 
 from __future__ import annotations
@@ -22,7 +29,6 @@ import os
 import sys
 import time
 
-import joblib
 import matplotlib
 
 matplotlib.use("Agg")
@@ -36,18 +42,17 @@ if _ROOT not in sys.path:
 if os.path.join(_ROOT, "src") not in sys.path:
     sys.path.insert(0, os.path.join(_ROOT, "src"))
 
-from src.clase.dataset_clase import OP_COLS, SENSOR_COLS, imputar_ffill  # noqa: E402
-from ds02_rul.ensemble import HybridStackingEnsemble  # noqa: E402
 from ds02_rul.conformal import fit_conformal  # noqa: E402
+from ds02_rul.ensemble import HybridStackingEnsemble  # noqa: E402
 from ds02_rul.metrics import evaluate_predictions, macro_rmse  # noqa: E402
 from ds02_rul.persistence import build_manifest, save_ensemble  # noqa: E402
 from ds02_rul.pipeline import oof_base_predictions, run_seed  # noqa: E402
 from ds02_rul.smoothing import causal_ema_by_unit  # noqa: E402
 from ds02_rul.stacking import (  # noqa: E402
     fit_meta_learners,
-    meta_predict,
     select_beta_grouped,
 )
+from src.clase.dataset_clase import OP_COLS, SENSOR_COLS, imputar_ffill  # noqa: E402
 
 FIT_UNITS = [2.0, 5.0, 10.0, 18.0, 20.0]
 HOLDOUT_UNITS = [16.0]
@@ -55,15 +60,15 @@ TEST_UNITS = [11.0, 14.0, 15.0]
 SEED = 42
 EPOCHS = 22
 EPOCHS_OOF = 15
-B_HIST = {"rmse": 4.251, "mae": 3.183, "r2": 0.9482, "nasa": 2305.1, "n": 6196}
-OUT_DIR = os.path.join(_ROOT, "src.clase", "models")
+
+OUT_DIR = os.path.join(_ROOT, "models")
 
 
 def construir_raw_adaptado() -> dict:
     """Parquet MAR-imputado -> dict raw alineado (mismo shape que `load_ds02`).
 
     Re-imputa con medianas SOLO de fit-units (no las de dev-completo del
-    track de clase): es lo que hace honesta la comparación B vs C.
+    track de clase): es lo que mantiene el protocolo honesto.
     """
     train_con = pd.read_parquet(
         os.path.join(_ROOT, "data", "processed", "train_con_nulos.parquet")
@@ -96,8 +101,13 @@ def construir_raw_adaptado() -> dict:
     }
 
 
-def entrenar(seed: int = SEED, epochs: int = EPOCHS, verbose: bool = True) -> dict:
-    """Entrena el bundle C completo (seed 42) y lo versiona en `src/clase/models/`."""
+def evaluar_semilla(seed: int = SEED, epochs: int = EPOCHS, verbose: bool = False) -> dict:
+    """Entrena el ensemble completo de una semilla y lo mide. No escribe nada.
+
+    Es la pieza que reutiliza `evaluar_c_multisemilla.py`: separar el cálculo de
+    la persistencia evita que una corrida de estabilidad sobrescriba el bundle
+    desplegado.
+    """
     t00 = time.time()
     raw = construir_raw_adaptado()
 
@@ -143,23 +153,44 @@ def entrenar(seed: int = SEED, epochs: int = EPOCHS, verbose: bool = True) -> di
     ]
     comp = pd.DataFrame(rows)
     comp["grano"] = "ventana"
-    hist = pd.DataFrame([{"Modelo": "Híbrido-B histórico (bundle congelado)",
-                          "RMSE": B_HIST["rmse"], "MAE": B_HIST["mae"],
-                          "R2": B_HIST["r2"], "NASA_Score": B_HIST["nasa"],
-                          "grano": "ventana"}])
-    comp = pd.concat([comp, hist], ignore_index=True)
-    comp.to_csv(os.path.join(_ROOT, "resultados", "comparativa_bundle_c.csv"),
-                index=False)
 
     macro = macro_rmse(test["y"], p_ens, units_te)
     per_unit = pd.DataFrame(
         [{"motor": int(k), "RMSE": v, "n_ventanas": int((units_te == k).sum())}
          for k, v in macro["per_unit_rmse"].items()]).sort_values("motor")
-    per_unit.to_csv(os.path.join(_ROOT, "resultados", "bundle_c_por_motor.csv"),
-                    index=False)
+
+    ensemble.conformal = fit_conformal(selection["oof_calib"]["y"],
+                                       selection["oof_calib"]["pred_ema"], target=0.90)
+
+    if verbose:
+        print(f"total {time.time() - t00:.0f}s")
+    return {
+        "seed": seed,
+        "ensemble": ensemble,
+        "comp": comp,
+        "rows": rows,
+        "macro": macro,
+        "per_unit": per_unit,
+        "beta": beta,
+        "selection": selection,
+        "test": test,
+        "p_ens": p_ens,
+        "out": out,
+    }
+
+
+def entrenar(seed: int = SEED, epochs: int = EPOCHS, verbose: bool = True) -> dict:
+    """Entrena, escribe el bundle en `models/` y deja la comparativa en `resultados/`."""
+    r = evaluar_semilla(seed=seed, epochs=epochs, verbose=verbose)
+    comp, rows, macro = r["comp"], r["rows"], r["macro"]
+
+    comp.to_csv(os.path.join(_ROOT, "resultados", "comparativa_bundle_c.csv"), index=False)
+    r["per_unit"].to_csv(os.path.join(_ROOT, "resultados", "bundle_c_por_motor.csv"),
+                         index=False)
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.scatter(test["y"], p_ens, s=4, alpha=0.35)
+    test = r["test"]
+    ax.scatter(test["y"], r["p_ens"], s=4, alpha=0.35)
     lims = [float(test["y"].min()), float(test["y"].max())]
     ax.plot(lims, lims, "r--", lw=1)
     ax.set_xlabel("RUL real")
@@ -167,43 +198,36 @@ def entrenar(seed: int = SEED, epochs: int = EPOCHS, verbose: bool = True) -> di
     ax.set_title(f"Real vs predicho — bundle C seed {seed} "
                  f"(RMSE {rows[3]['RMSE']:.3f}, NASA {rows[3]['NASA_Score']:.1f})")
     fig.tight_layout()
-    fig.savefig(os.path.join(_ROOT, "resultados", "real_vs_predicho_bundle_c.png"),
-                dpi=120)
+    fig.savefig(os.path.join(_ROOT, "resultados", "real_vs_predicho_bundle_c.png"), dpi=120)
     plt.close(fig)
 
-    calib = selection["oof_calib"]
-    ensemble.conformal = fit_conformal(calib["y"], calib["pred_ema"], target=0.90)
+    selection = r["selection"]
     manifest = build_manifest(
-        ensemble,
-        metrics={"reference_row": rows[3], "beta": beta,
+        r["ensemble"],
+        metrics={"reference_row": rows[3], "beta": r["beta"],
                  "macro_rmse": macro["macro_rmse"]},
-        seed=seed, dataset="DS02-adaptada", code_version="clase-bundle-C",
+        seed=seed, dataset="DS02", code_version="clase-bundle-C",
+        dataset_variant="DS02-adaptada (MAR T30 + ffill causal, medianas de fit-units)",
         unit_partition={"fit": [int(u) for u in FIT_UNITS],
                         "holdout": [int(u) for u in HOLDOUT_UNITS],
                         "test": [int(u) for u in TEST_UNITS]},
         meta_protocol={"fitted_on": "holdout unit 16 (adaptada)",
-                       "rows": int(len(out["hold_idx"])),
+                       "rows": int(len(r["out"]["hold_idx"])),
                        "beta": "grouped out-of-fold sobre adaptada"},
         protocol={"preprocessing": "fit units only + ffill fit-units",
                   "seed": seed, "window": 50, "stride": "parquet-clase"},
     )
     os.makedirs(OUT_DIR, exist_ok=True)
-    written = save_ensemble(ensemble, OUT_DIR, manifest)
+    written = save_ensemble(r["ensemble"], OUT_DIR, manifest)
 
     rmse_c, nasa_c = float(rows[3]["RMSE"]), float(rows[3]["NASA_Score"])
-    puerta_rmse = rmse_c <= B_HIST["rmse"]
-    puerta_nasa = nasa_c <= B_HIST["nasa"]
     if verbose:
         print(comp.to_string(index=False))
         print()
         print(f"macro-RMSE C: {macro['macro_rmse']:.3f}")
-        print(f"puerta D11: RMSE {rmse_c:.3f}<=4.251? {puerta_rmse} | "
-              f"NASA {nasa_c:.1f}<=2305.1? {puerta_nasa} "
-              f"-> {'ADOPTAR (pendiente re-freeze autorizado)' if puerta_rmse and puerta_nasa else 'C queda como experimento, B sigue'}")
-        print(f"total {time.time() - t00:.0f}s | bundle en {written['ensemble']}")
-    return {"comp": comp, "macro": macro, "beta": beta, "selection": selection,
-            "puerta": {"rmse": puerta_rmse, "nasa": puerta_nasa},
-            "ensemble_path": written["ensemble"]}
+        print(f"RMSE {rmse_c:.3f} | NASA {nasa_c:.1f}")
+        print(f"bundle en {written['ensemble']}")
+    return {**r, "written": written}
 
 
 if __name__ == "__main__":

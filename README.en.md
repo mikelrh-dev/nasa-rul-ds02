@@ -3,11 +3,11 @@
 > **English** | [Español](README.md)
 
 > **Entrega de clase (Reto 1 SAA + PIA + MIA):** el track académico vive en
-> `track_clase/` (código), `notebooks/01–05` (relato), `data/processed/`
+> `src/clase/` (código), `notebooks/01–06` (relato), `data/processed/`
 > (dataset con nulos MAR + `fase_vuelo`) y `resultados/` (métricas y figuras).
-> Punto de entrada: [`track_clase/README.md`](track_clase/README.md) (6 apartados),
-> app de producción: `streamlit run app/dashboard_ds02.py` (bundle B + SHAP).
-> Lo de abajo es el sistema en producción (bundle B congelado, RMSE 4.251).
+> Punto de entrada: [`src/clase/README.md`](src/clase/README.md) (6 apartados),
+> app desplegada: `streamlit run app/dashboard_ds02.py` (bundle C + SHAP).
+> Lo de abajo es el sistema desplegado (bundle C congelado, RMSE 4.338).
 
 Predicting remaining useful life on the N-CMAPSS DS02 turbofan dataset, packaged
 so that it **loads, serves and is honest about what it measures**.
@@ -52,24 +52,23 @@ Same models, same protocol. The additions are two metrics, not extra accuracy.
 | BiLSTM triple pooling (standalone) | 6.337 ± 0.811 | 4.872 ± 0.756 | 0.8837 ± 0.0305 | 4509.9 ± 1051.1 |
 | **Hybrid stacking + causal EMA5** | **4.344 ± 0.075** | **3.209 ± 0.058** | **0.9459 ± 0.0019** | **2338.2 ± 49.1** |
 
-### Vigente — bundle B (2026-10-26, lo que sirve `models/` + `app/cache/`)
+### Current — bundle C (deployed and frozen: what `models/` + `app/cache/` serve)
 
 | Model | RMSE | MAE | R² | NASA score |
 | --- | --- | --- | --- | --- |
-| LightGBM quantile 0.35 (standalone) | 7.098 ± 0.034 | 5.572 ± 0.034 | 0.8557 ± 0.0014 | 5772.5 ± 50.1 |
-| BiLSTM triple pooling (standalone) | 6.218 ± 0.541 | 4.820 ± 0.477 | 0.8887 ± 0.0191 | 4397.8 ± 550.9 |
-| **Hybrid stacking + causal EMA5** | **4.340 ± 0.101** | **3.235 ± 0.054** | **0.9460 ± 0.0025** | **2347.7 ± 49.4** |
-| Hybrid, reference row on disk | 4.251 | 3.183 | 0.9482 | 2305.1 |
+| **Hybrid stacking + causal EMA5 (imputed base, deployed)** | **4.338** | **3.227** | **0.9461** | **2336.2** |
 
-The 4.301 → 4.344 → 4.352 differences are TensorFlow CPU non-determinism between
-runs, not a change in the model: the base models and the `beta` protocol are
-untouched. The spread between runs (±0.05) is the resolution at which any future
-change has to be judged, and it is why every claim in this repository is quoted
-with its seed spread.
+Deployed (bundle C): RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2 (seed 42,
+imputed base MAR T30 + ffill); multiseed mean **4.322+-0.064 RMSE / 2342.3+-43.4
+NASA** over [42, 7, 123], which is the band any future change has to beat.
 
-**Macro-RMSE, which the weighted figure hides.** Bundle B per engine: 11 → 3.7874,
-14 → 7.9974, 15 → 2.7451 (historical runs: 3.762 / 8.319 / 2.736). Unweighted mean
-**4.8433**, against a window-weighted **4.2515**. The gap of +0.6
+TensorFlow on CPU is not bit-for-bit deterministic between runs, so prose figures
+and printed tables can differ by ±0.1. The authoritative numbers are the ones
+written in `models/ds02_manifest.json`.
+
+**Macro-RMSE, which the weighted figure hides.** Deployed bundle per engine:
+11 → 3.6328, 14 → 8.5761, 15 → 2.8371. Unweighted mean **5.0153**, against a
+window-weighted **4.3382**. The gap of +0.6
 is the cost of engine 14 having both the worst error and the fewest windows (760 of
 6 196, yet 43.7 % of the squared error). The fleet average is kinder than what a
 randomly chosen engine suffers.
@@ -141,7 +140,8 @@ Four conclusions, all measured:
    not aggregating two noisy learners, it was reading a counter.
 3. Removing the clock from the stacking layer — while keeping it in both base
    models, where it is a legitimate input — is the fix, and it is the
-   configuration shipped in bundle B: **RMSE 4.251** (mean 4.340 ± 0.101) against
+   configuration the shipped bundle uses (RMSE 4.338;
+   multiseed 4.322+-0.064) against
    the previous 5.523 ± 0.001, with the meta-learner splitting its weight between the two
    branches instead of betting everything on one counter.
 4. Removing it from *every* component instead (5.568) is a different experiment:
@@ -172,19 +172,20 @@ three folds selected `beta = 0` — i.e. that fold saw no value in the meta-lear
 
 ---
 
-## Robustness experiment (3-way)
+## Seed stability (C)
 
-To decide whether the production model should be B (clean) or C (with nulls), B was evaluated on data with imputed nulls:
+| Model | RMSE | NASA score | Seeds |
+|---|---|---|---|
+| C-mean | **4.322+-0.064** | **2342.3+-43.4** | 42, 7, 123 |
 
-| Model | RMSE | MAE | R² | NASA | Scenario |
-|---|---|---|---|---|---|
-| B-under-dropout | **4.247** | 3.165 | 0.9483 | 2290.0 | B (clean) + data with imputed nulls |
-| B-clean (frozen) | 4.251 | 3.183 | 0.9482 | 2305.1 | B (clean) + clean data |
-| C-mean (3 seeds) | 4.314 | — | — | 2339.1 | C (retrained) + data with nulls |
+Seed 42 is the shipped bundle (`models/ds02_manifest.json`); seeds 7 and 123 are
+retrained under the same protocol by `src/clase/evaluar_c_multisemilla.py`. The ± is
+the noise floor every difference should be read against: two means closer than that
+± are a tie.
 
-**Conclusion:** B on data with nulls (4.247) is indistinguishable from B on clean data (4.251). The ffill repairs the isolated MAR T30 gaps, so B is **insensitive to this regime**. No need to retrain: B stays in production. C (4.314) does not pass gate D11.
+**Evidence:** `resultados/bundle_c_multiseed.csv`, `resultados/comparativa_bundle_c.csv`,
+`src/clase/evaluar_c_multisemilla.py`, `notebooks/06_evaluacion_produccion_comparativa.ipynb`.
 
-**Evidence:** `resultados/comparativa_b_dropout.csv`, `track_clase/evaluar_b_en_adaptada.py`, `tests/test_clase_b_robusto.py`, `notebooks/05_ensemble_adaptado.ipynb`.
 
 ---
 
@@ -275,8 +276,8 @@ nothing written under `models/`.
 | `R7_APTO` | decision | 1 | `L_inf >= 30` → `APTO` |
 
 **The toggle is off by default.** Off is the cached reading, the one that
-reproduces `models/ds02_manifest.json` (RMSE 4.251 / MAE 3.183 / R² 0.9482 /
-NASA 2305.1 over the 6 196 windows). On shows the corrected point and the
+reproduces `models/ds02_manifest.json` (RMSE 4.338 / MAE 3.227 / R² 0.9461 /
+NASA 2336.2 over the 6 196 windows). On shows the corrected point and the
 recalibrated band; the raw values stay in `pred_enviada`, `lower_enviada` and
 `upper_enviada`, so both readings remain available.
 

@@ -190,7 +190,7 @@ def assert_ds02_artifact(ensemble) -> None:
     if n_features != EXPECTED_N_FEATURES:
         raise ValueError(
             f"refusing to save: scaler expects {n_features} channels, DS02 requires "
-            f"{EXPECTED_N_FEATURES}. An FD001 fallback would have 16."
+            f"{EXPECTED_N_FEATURES}. A wrong-paradigm artifact would have 16."
         )
     if int(ensemble.n_op) != EXPECTED_N_OP:
         raise ValueError(

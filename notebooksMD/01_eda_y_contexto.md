@@ -38,6 +38,7 @@ Nulos MAR ~1.8% SOLO en T30 en crucero alto (alt>27k y Mach>0.68, seed 7, dropou
 | ffill causal | Rellenar cada hueco con el ultimo valor *anterior* del mismo motor. Nunca mira al futuro: sin fuga. |
 | Fuga (leakage) | Usar en entreno informacion que en produccion no tendrias (p. ej. medianas del test, o filas futuras). Invalida el experimento. |
 | OneHot | Convertir `fase_vuelo` en 3 columnas 0/1 (Ascenso/Crucero/Descenso) para que el modelo la pueda usar. |
+| Ridge | Regresión lineal con castigo alpha. Aquí lo usamos 3 veces con rol distinto: en 01 limpia sensores (fisica), en 02 predice RUL por fila (baseline), en 04/05 mezcla dos predicciones del bundle C. Fijate en el sufijo. |
 | Split por motor | Entrenar con unos motores y probar con otros distintos (11/14/15). Si mezclas filas del mismo motor en ambos lados, el modelo "recuerda" en vez de generalizar. |
 
 > Como leer este notebook: cada figura trae su QUÉ VEO (lo literal) y su CONCLUSIÓN (qué decisión de modelado sale de ahí). Si solo tienes 5 minutos, lee los títulos + conclusiones.
@@ -73,29 +74,37 @@ print('RUL train media', round(train['RUL'].mean(), 2), '| test media', round(te
 
 ## Tabla de campos + calidad
 
-| campo | qué significa | tipo | %nulos antes (MAR T30) | %nulos después |
-|---|---|---|---|---|
-| unit | motor (id DS02) | numérica (grupo, no predictor) | 0% | 0% — nunca se inyecta |
-| cycle | ciclo de vuelo (despegue-aterrizaje) | numérica (tiempo) | 0% | 0% |
-| alt, Mach, TRA, T2 | régimen de vuelo | numéricas | 0% | 0% — la fase deriva de aquí |
-| T24 | temp. salida LPC (°R) | numérica | 0% | 0% |
-| T30 | temp. salida HPC (°R) — sonda con dropout | numérica | ~1.8% MAR (crucero alto) | 0% tras ffill+mediana |
-| T48 | temp. salida HPT (°R) | numérica | 0% | 0% |
-| T50 | temp. salida LPT (°R) | numérica | 0% | 0% |
-| P15 | presión sangrado (psia) | numérica | 0% | 0% |
-| P2 | presión entrada fan (psia) | numérica | 0% | 0% |
-| P21 | presión salida LPC (psia) | numérica | 0% | 0% |
-| P24 | presión salida HPC (psia) | numérica | 0% | 0% |
-| Ps30 | presión estática HPC (psia) | numérica | 0% | 0% |
-| P40 | presión total HPT (psia) | numérica | 0% | 0% |
-| P50 | presión total LPT (psia) | numérica | 0% | 0% |
-| Nf | rpm del fan | numérica | 0% | 0% |
-| Nc | rpm del núcleo | numérica | 0% | 0% |
-| Wf | caudal combustible (pps) | numérica | 0% | 0% |
-| fase_vuelo | Ascenso/Crucero/Descenso (nueva) | categórica | 0% (derivada) | 0% |
-| RUL | **objetivo**: ciclos restantes | numérica | 0% | 0% — nunca se inyecta |
+| campo | qué significa | tipo | %nulos antes (MAR T30) | %nulos después | descarte |
+|---|---|---|---|---|---|
+| unit | motor (id DS02) | numérica (grupo, no predictor) | 0% | 0% — nunca se inyecta | grupo |
+| cycle | ciclo de vuelo (despegue-aterrizaje) | numérica (tiempo) | 0% | 0% | se mantiene |
+| alt | altitud (ft) | numérica (régimen) | 0% | 0% | se mantiene |
+| Mach | número Mach | numérica (régimen) | 0% | 0% | se mantiene |
+| TRA | ángulo de palanca de potencia (throttle resolver angle) | numérica (régimen) | 0% | 0% | se mantiene |
+| T2 | temp. entrada fan (°R) | numérica (régimen) | 0% | 0% | se mantiene |
+| T24 | temp. salida LPC (°R) | numérica | 0% | 0% | se mantiene |
+| T30 | temp. salida HPC (°R) — sonda con dropout | numérica | ~1.8% MAR (crucero alto) | 0% tras ffill+mediana | se mantiene |
+| T48 | temp. salida HPT (°R) | numérica | 0% | 0% | se mantiene |
+| T50 | temp. salida LPT (°R) | numérica | 0% | 0% | se mantiene |
+| P15 | presión sangrado (psia) | numérica | 0% | 0% | se mantiene |
+| P2 | presión entrada fan (psia) | numérica | 0% | 0% | se mantiene |
+| P21 | presión salida LPC (psia) | numérica | 0% | 0% | se mantiene |
+| P24 | presión salida HPC (psia) | numérica | 0% | 0% | se mantiene |
+| Ps30 | presión estática HPC (psia) | numérica | 0% | 0% | se mantiene |
+| P40 | presión total HPT (psia) | numérica | 0% | 0% | se mantiene |
+| P50 | presión total LPT (psia) | numérica | 0% | 0% | se mantiene |
+| Nf | rpm del fan | numérica | 0% | 0% | se mantiene |
+| Nc | rpm del núcleo | numérica | 0% | 0% | se mantiene |
+| Wf | caudal combustible (pps) | numérica | 0% | 0% | se mantiene |
+| RUL | **objetivo**: ciclos restantes | numérica | 0% | 0% — nunca se inyecta | objetivo |
+| split_origen | origen del split (train/test) | categórica (trazabilidad) | 0% | 0% | trazabilidad |
+| fase_vuelo | Ascenso/Crucero/Descenso (nueva, derivada de alt/Mach) | categórica | 0% (derivada) | 0% | se mantiene |
 
-**Descartes:** nada se descarta como columna; `split_origen` solo trazabilidad. `unit` no entra como predictor numérico (se usa como grupo en GroupKFold). Duplicados e imposibles se chequean abajo.
+**Descartes:** ninguna columna se elimina; la columna `descarte` dice su destino: `unit`→grupo (no entra como predictor numérico, se usa como grupo en GroupKFold), `RUL`→objetivo, `split_origen`→trazabilidad, el resto se mantiene. Duplicados e imposibles se chequean abajo.
+
+
+**Que vemos (tabla de campos, nulos antes/despues).** Solo T30 trae nulos (~1,8 % MAR en crucero alto); el resto 0 % antes y 0 % despues. Despues de ffill + mediana todo queda en 0 %: la imputacion no deja huecos, y el 1,8 % inicial es el tamano del problema resuelto, no un defecto del dataset. `unit` y `RUL` nunca se imputan: son grupo y objetivo.
+
 
 
 ```python
@@ -124,7 +133,10 @@ print(train.groupby('fase_vuelo')['RUL'].mean().round(2).to_string())
     Descenso    37.11
     
 
-## Fig.1 — Barras: reparto de fase_vuelo (train vs test)
+**Que vemos (RUL media 37.33 train frente a 31.3 test; por fase 37.05 / 37.89 / 37.11).** La media de test es casi 6 ciclos menor porque el motor 11 pesa mas de la mitad (6.635 de 12.538 filas, RUL media 29.0): manda el 11. La media por fase apenas se mueve (Ascenso 37.05, Crucero 37.89, Descenso 37.11), asi que la fase sola no predice: hay que medir degradacion, no calendario.
+
+
+## Fig.1 — Barras: reparto de fase_vuelo (train)
 *Cómo leer: Lee primero la altura de Crucero: ahí vive el MAR de T30.*
 
 
@@ -151,7 +163,7 @@ display(Image('resultados/eda_barras_fase.png'))
 
 
     
-![png](01_eda_y_contexto_files/01_eda_y_contexto_8_1.png)
+![png](01_eda_y_contexto_files/01_eda_y_contexto_10_1.png)
     
 
 
@@ -184,23 +196,19 @@ display(Image('resultados/eda_box_t48_fase.png'))
 
     QUÉ VEO: RUL asimétrica con cola larga (motores jóvenes) y masa en RUL baja.
     CONCLUSIÓN: regresión con RMSE+MAE+R²; MAE protege de la cola, RMSE penaliza fallos gordos.
-    
-
     QUÉ VEO: T48 separada por fase (régimen manda en el sensor crudo).
-
-    
     CONCLUSIÓN: sin desacoplar régimen, el modelo aprendería pilotaje, no degradación (como ADR-002).
     
 
 
     
-![png](01_eda_y_contexto_files/01_eda_y_contexto_10_3.png)
+![png](01_eda_y_contexto_files/01_eda_y_contexto_12_1.png)
     
 
 
 
     
-![png](01_eda_y_contexto_files/01_eda_y_contexto_10_4.png)
+![png](01_eda_y_contexto_files/01_eda_y_contexto_12_2.png)
     
 
 
@@ -231,7 +239,7 @@ display(Image('resultados/eda_scatter_alt_mach.png'))
 
 
     
-![png](01_eda_y_contexto_files/01_eda_y_contexto_12_1.png)
+![png](01_eda_y_contexto_files/01_eda_y_contexto_14_1.png)
     
 
 
@@ -272,7 +280,7 @@ display(Image('resultados/eda_heatmap_corr.png'))
 
 
     
-![png](01_eda_y_contexto_files/01_eda_y_contexto_14_1.png)
+![png](01_eda_y_contexto_files/01_eda_y_contexto_16_1.png)
     
 
 
@@ -285,7 +293,7 @@ display(Image('resultados/eda_heatmap_corr.png'))
 
 > TIP (fuga): las medianas de imputacion se calculan SOLO con train y se aplican a test. Si las calcularas con todo el dataset, el test "contaminaria" el entreno y el RMSE mentiria a la baja. Lo mismo con `fase_vuelo`: solo usa alt/Mach (régimen), nunca sensores ni RUL.
 
-**Procedencia de los datos:** `data/raw/DS02*.hdf5` (original NASA, intacto) → `track_clase/dataset_clase.py` (inyecta MAR + imputa + fase) → `data/processed/train|test.parquet` (lo que carga este notebook). La auditoría vive en `data/processed/auditoria_nulos.json`.
+**Procedencia de los datos:** `data/raw/DS02*.hdf5` (original NASA, intacto) → `src/clase/dataset_clase.py` (inyecta MAR + imputa + fase) → `data/processed/train|test.parquet` (lo que carga este notebook). La auditoría vive en `data/processed/auditoria_nulos.json`.
 
 
 ## Las dos ligas (léeme antes de seguir)
@@ -295,9 +303,12 @@ Piensa en dos juegos distintos con los mismos motores:
 | Liga | Qué es una fila | Train | Test | Modelos |
 |---|---|---|---|---|
 | **Fila** | 1 ciclo de vuelo | 52.635 filas | 12.538 filas | 02 (clásicos) y 03 (MLP) |
-| **Ventana** | 50 lecturas que terminan en un ciclo | 17.450 ventanas | 6.196 ventanas | 04 (LGBM) y 05 (híbrido B/C) |
+| **Ventana** | 50 lecturas que terminan en un ciclo | 17.450 ventanas | 6.196 ventanas | 04 (LGBM) y 05 (híbrido C) |
 
 **Regla de oro:** no se comparan entre ligas. Cada liga elige a su campeón. Al final (05) los ponemos lado a lado, sin mezclar.
+
+
+**Como leer (antes de seguir: definiciones en una linea).** RMSE: raiz del error cuadratico medio, en ciclos; 4.338 en C significa fallo tipico de unos 4 ciclos. MAE: error absoluto medio, cuanto se equivoca de media (3.227 en C). R2: parte de la varianza de la RUL explicada; 0.9461 en C es explicar casi todo. NASA Score: coste asimetrico sobre las 6.196 ventanas de test, pasarse de RUL cuesta mas que quedarse corto (2336.2 en C). Macro: cada motor pesa 1/3 aunque tenga pocas ventanas; 5.0153 frente a 4.338 global. Grano: fila = 1 ciclo (02/03), ventana = 50 lecturas (04/05); nunca se comparan mezclas.
 
 
 
@@ -326,7 +337,7 @@ Ecuación: si `alt > 27000 y Mach > 0.68`, cada fila tiene 10% de perder T30 (se
 
 ```python
 # Nulos MAR recalculados en vivo (sin fiarse del CSV)
-from track_clase.dataset_clase import elegibles_mar
+from src.clase.dataset_clase import elegibles_mar
 import json, pandas as pd
 dfc = pd.read_parquet('data/processed/train_con_nulos.parquet')
 nulos = int(dfc['T30'].isna().sum())
@@ -354,7 +365,7 @@ Así no hay fuga: el test se rellena con números del train.
 
 ```python
 # Imputación en vivo (misma función que usan 02-05)
-from track_clase.dataset_clase import imputar_ffill, SENSOR_COLS
+from src.clase.dataset_clase import imputar_ffill, SENSOR_COLS
 import pandas as pd
 FIT = [2.0, 5.0, 10.0, 18.0, 20.0]
 df_tr = pd.read_parquet('data/processed/train_con_nulos.parquet')
@@ -376,6 +387,8 @@ Idea física: **¿el motor se calienta porque se rompe o porque el avión sube a
 
 Sin esto, el modelo aprendería pilotaje, no salud.
 
+**Ojo, no confundir:** Esto NO es el Ridge clasico de 02 ni el ridge_meta de 05. Este limpia sensores antes de modelar; no predice RUL. `fase_vuelo` es una etiqueta discreta (Ascenso/Crucero/Descenso desde alt/Mach) para OneHot en fila; el residualizer es una resta continua por sensor para ventana. Coexisten por eso.
+
 
 
 ```python
@@ -394,6 +407,45 @@ print("OK: prep ajustado solo en fit-units")
     OK: prep ajustado solo en fit-units
     
 
+## Fig.6 — T48 residualizado por fase (prueba de que el preprocesado quita regimen)
+*Cómo leer: compara con Fig.3. Si el recuadro se achica, el Ridge fisico hizo su trabajo.*
+
+**QUÉ VEO:** las 3 cajas ya no se separan tanto como en Fig.3. **CONCLUSIÓN:** el residuo deja de llevar pilotaje; queda degradación para 04/05.
+
+
+
+```python
+# Fig.6: T48 residualizado por fase (mismo fit de la celda anterior: prep)
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+from IPython.display import Image, display
+_j = SENSOR_COLS.index('T48')
+_Ws = prep['scaler_w'].transform(W_fit)
+_res = prep['residualizer'].transform(_Ws, Xs_fit)[:, _j]
+_fase = imp.loc[imp['unit'].isin(FIT), 'fase_vuelo'].to_numpy()
+fig, ax = plt.subplots(figsize=(6, 4))
+ax.boxplot([_res[_fase == f] for f in ['Ascenso', 'Crucero', 'Descenso']], tick_labels=['Ascenso', 'Crucero', 'Descenso'])
+ax.set_title('T48 residualizado por fase (fit-units, estandarizado)')
+ax.set_ylabel('residuo T48 (std)')
+fig.tight_layout(); fig.savefig('resultados/eda_t48_resid_fase.png', dpi=120); plt.close(fig)
+print('QUÉ VEO: las cajas se solapan mucho mas que en Fig.3.')
+print('CONCLUSIÓN: el Ridge fisico quita regimen; el residuo ya no aprende pilotaje.')
+display(Image('resultados/eda_t48_resid_fase.png'))
+
+```
+
+    QUÉ VEO: las cajas se solapan mucho mas que en Fig.3.
+    CONCLUSIÓN: el Ridge fisico quita regimen; el residuo ya no aprende pilotaje.
+    
+
+
+    
+![png](01_eda_y_contexto_files/01_eda_y_contexto_28_1.png)
+    
+
+
 ## Ventanas: de filas a películas de 50
 
 Una ventana = 50 lecturas seguidas → objetivo = RUL del último ciclo. De cada ventana salen dos vistas: **secuencia (50,19)** para la red y **resumen tabular (93)** para el árbol.
@@ -404,7 +456,7 @@ Una ventana = 50 lecturas seguidas → objetivo = RUL del último ciclo. De cada
 
 ```python
 # Ventanas honestas en vivo (mismo contrato que 04/05)
-from track_clase.ventanas_adaptadas import ventanas_adaptadas
+from src.clase.ventanas_adaptadas import ventanas_adaptadas
 v = ventanas_adaptadas()
 print("dev X_seq", v['dev']['X_seq'].shape, "| dev X_tab", v['dev']['X_tab'].shape)
 print("test X_seq", v['test']['X_seq'].shape, "| test X_tab", v['test']['X_tab'].shape)

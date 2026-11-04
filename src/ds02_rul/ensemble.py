@@ -43,7 +43,7 @@ class HybridStackingEnsemble:
         Regime scaler. Persisted for provenance; the inference path derives the
         regime block from the global `scaler`, which is numerically identical.
     n_op : int
-        Number of operational channels (4 on DS02, 2 on the FD001 fallback).
+        Number of operational channels (4 on DS02).
     """
 
     def __init__(

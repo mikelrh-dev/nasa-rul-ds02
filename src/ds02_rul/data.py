@@ -1,10 +1,8 @@
 """N-CMAPSS DS02 ingestion.
 
-The previous loader silently fell back to the C-MAPSS FD001 text files when the
-HDF5 was missing, then trained and saved an FD001 model to the same
-`ensemble.joblib` path with the same `paradigm` string. A 16-feature FD001 model
-could therefore replace an 18-feature DS02 one unnoticed. The fallback is gone:
-if the HDF5 is not resolvable this raises, and says what it looked for.
+If the HDF5 is not resolvable this raises and says what it looked for. No other
+dataset is substituted: a silent fallback could train a different-paradigm model
+and overwrite the DS02 artifact at the same path.
 """
 from __future__ import annotations
 
@@ -13,7 +11,6 @@ import os
 
 import h5py
 import numpy as np
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +20,6 @@ DS02_CANDIDATE_PATHS = (
     "N-CMAPSS_DS02-006.h5",
     "archive/N-CMAPSS_DS02-006.h5",
     "../archive/CCMaps/N-CMAPSS_DS02-006.h5",
-)
-
-FD001_CANDIDATE_PATHS = (
-    "archive/CMaps/train_FD001.txt",
-    "train_FD001.txt",
-    "archive/train_FD001.txt",
-    "../archive/CMaps/train_FD001.txt",
 )
 
 DEV_KEYS = ("A_dev", "W_dev", "X_s_dev", "Y_dev")
@@ -45,8 +35,8 @@ def resolve_ds02(path: str | None = None) -> str:
     raise FileNotFoundError(
         "N-CMAPSS DS02 HDF5 not found. Looked for:\n  "
         + "\n  ".join(str(c) for c in candidates)
-        + "\nRefusing to fall back to C-MAPSS FD001: that would train a "
-        "16-feature model and overwrite the 18-feature DS02 artifact."
+        + "\nNo fallback is attempted: substituting another dataset "
+        "could overwrite the DS02 artifact with a different-paradigm model."
     )
 
 
@@ -54,8 +44,8 @@ def load_ds02(path: str | None = None, stride: int = 100) -> dict:
     """Load and downsample the DS02 dev and test splits.
 
     Every array is indexed `[::stride]` so unit, cycle, `W`, `Xs` and RUL stay
-    row-aligned. No 125-cycle clamp is applied: that clamp belongs to the FD001
-    loader only, and importing it here would silently truncate DS02 targets.
+    row-aligned. No 125-cycle clamp is applied: it would silently truncate DS02
+    targets.
     """
     resolved = resolve_ds02(path)
     with h5py.File(resolved, "r") as fh:
@@ -112,24 +102,3 @@ def load_ds02(path: str | None = None, stride: int = 100) -> dict:
         "Xs_test": data["X_s_test"],
         "y_test": data["Y_test"].ravel(),
     }
-
-
-def load_fd001_reference(root: str = "archive/CMaps") -> dict:
-    """Load the C-MAPSS FD001 text files as a *separate, explicit* dataset.
-
-    Exposed for the FD001 pipeline only. It is never invoked by the DS02 path
-    and never written to the DS02 artifact location.
-    """
-    cols = ["engine_id", "cycle", "setting1", "setting2", "setting3"] + [f"s{i}" for i in range(1, 22)]
-    train = pd.read_csv(f"{root}/train_FD001.txt", sep=r"\s+", header=None, names=cols)
-    test = pd.read_csv(f"{root}/test_FD001.txt", sep=r"\s+", header=None, names=cols)
-    rul = pd.read_csv(f"{root}/RUL_FD001.txt", sep=r"\s+", header=None, names=["RUL"])
-
-    train["RUL"] = (
-        train.groupby("engine_id")["cycle"].transform("max") - train["cycle"]
-    ).clip(upper=125)
-    rul_map = dict(zip(range(1, len(rul) + 1), rul["RUL"].values))
-    true_max = test.groupby("engine_id")["cycle"].transform("max") + test["engine_id"].map(rul_map)
-    test["RUL"] = (true_max - test["cycle"]).clip(upper=125)
-
-    return {"train": train, "test": test, "rul": rul, "n_sensors": 21}

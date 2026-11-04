@@ -94,8 +94,10 @@ def _active_registry_path():
         st.session_state["_registry_path_resuelta"] = True
         st.session_state["_registry_path"] = None
         return None
-    if fuente != "query_params":
-        st.warning(f"sin session_id en query_params; se usa {fuente} ({candidato})")
+    # Fallback válido (session_state/script ctx/default): silencioso a propósito.
+    # Es diagnóstico interno, no aviso de usuario: un warning en grande aquí
+    # domina la primera pantalla y rompe la lectura de "Primera lectura".
+    # Solo se pinta si el id es inválido (rama anterior).
     st.session_state["_registry_path_resuelta"] = True
     st.session_state["_registry_path"] = ruta
     st.session_state["session_id"] = candidato
@@ -103,6 +105,7 @@ def _active_registry_path():
 
 
 def _cargar_registros() -> None:
+    """Carga el registro de la sesión (twins/hangar/altas) desde disco."""
     if not st.session_state.get("_registros_cargados"):
         disco: dict = HGR.empty_registry()
         ruta = _active_registry_path()
@@ -125,6 +128,7 @@ def _cargar_registros() -> None:
 
 
 def _guardar_registros() -> None:
+    """Guarda el registro de la sesión (twins/hangar/altas) en disco."""
     ruta = _active_registry_path()
     if ruta is None:
         return
@@ -192,10 +196,21 @@ def _mostrar_toast_pendiente() -> None:
 
     `st.toast` no empuja el contenido hacia abajo como un `st.success` en bloque,
     y se puede pedir desde cualquier handler sin reordenar la página.
+
+    Se consume a nivel de módulo, antes de los tabs/fragmentos, no dentro de
+    un fragmento: un fragmento solo se re-ejecuta con sus propios widgets, así
+    que un `pop` dentro de él no corre en cada pasada completa (y un `get`
+    sin consumir repite el toast en cada rerun del fragmento). Todos los
+    handlers que piden estos avisos terminan en `st.rerun()` completo, así
+    que la pasada siguiente los pinta una sola vez aquí.
     """
     mensaje = st.session_state.pop("_toast_pendiente", None)
     if mensaje:
         st.toast(mensaje, icon=":material/info:")
+    for _clave in ("live_flash", "twin_flash"):
+        _aviso = st.session_state.pop(_clave, None)
+        if _aviso:
+            st.toast(_aviso, icon=":material/check_circle:")
 
 
 def _log(mensaje: str) -> None:
@@ -308,6 +323,7 @@ def chart_layout(**overrides) -> dict:
 
 
 def style_axes(fig, x_title: str | None = None, y_title: str | None = None):
+    """Applies the shared themed axes style to a figure."""
     fig.update_xaxes(
         showgrid=True, gridcolor=GRID, gridwidth=1, zeroline=False,
         linecolor=GRID, tickfont=dict(color=MUTED), title_font=dict(color=MUTED),
@@ -1176,12 +1192,10 @@ with tab_auditoria:
 with tab_casos:
     @st.fragment
     def _tab_casos() -> None:
-        _flash_live = st.session_state.pop("live_flash", None)
-        if _flash_live:
-            st.toast(_flash_live, icon=":material/check_circle:")
-        _flash_twin_live = st.session_state.get("twin_flash")
-        if _flash_twin_live:
-            st.toast(_flash_twin_live, icon=":material/check_circle:")
+        """Sala «Casos nuevos»: incorporar motores en lote y registrarlos."""
+        # Los avisos `live_flash`/`twin_flash` se consumen a nivel de módulo
+        # en `_mostrar_toast_pendiente()` (antes de los tabs): aquí solo se
+        # lee `session_state` para el resto, sin mutarlo dentro del fragmento.
 
         # -------------------- sala 4: incorporar (individual en el sidebar, lote aquí)
         with st.container(border=True):
@@ -1250,6 +1264,7 @@ with tab_casos:
                         _barra = st.progress(0.0, text="Puntuando 0 de …")
 
                         def _progreso(i, n, mat):
+                            """Actualiza la barra de progreso al puntuar el lote."""
                             _barra.progress(i / n, text=f"Puntuando {i} de {n} · {mat}")
 
                         try:
@@ -1316,6 +1331,7 @@ with tab_casos:
                     _barra_g = st.progress(0.0, text="Registrando 0 de …")
 
                     def _progreso_g(i, n, mat):
+                        """Actualiza la barra de progreso al registrar los gemelos."""
                         _barra_g.progress(i / n, text=f"Registrando {i} de {n} · {mat}")
 
                     try:
@@ -1337,13 +1353,13 @@ with tab_casos:
                         )
                         st.rerun()
 
-        # El caso crítico apunta al mismo ciclo que el paso 3 del modo historia: ambos
-        # salen de la caché (`estado_historia` elige el primer ciclo en HANGAR del motor
-        # de mayor RMSE), así que si la caché cambia, los dos cambian con ella. Ningún
-        # ciclo ni ningún límite está esparcido aquí.
-        _paso_hangar = A.estado_historia(windows, umbrales)[2]
-        _u_hangar = int(_paso_hangar["unidad"])
-        _c_hangar = int(_paso_hangar["ciclo"])
+        # El caso crítico usa el ciclo del estado demo (29): es el primer ciclo
+        # cuyo tramo en vivo (ultima ventana) cae en HANGAR con el bundle C
+        # (L_inf 21.4 en vivo). El paso 3 del modo historia (25) es la primera
+        # derivación por peor ventana de la flota: otra agregación, no el tramo.
+        _demo_crit = A.estado_demo()
+        _u_hangar = int(_demo_crit["unidad"])
+        _c_hangar = int(_demo_crit["ciclo"])
         # Los tramos viven en `ui_inference.demo_presets`: son datos y hay un test que
         # los fija. Cada nombre promete un estado y el tramo tiene que darlo a
         # cualquier largo (`DEMO_ROWS`). Antes eran 50 filas (una ventana): el EMA
@@ -1589,6 +1605,7 @@ with tab_casos:
         # sitio donde arreglar el mismo contrato.
 
         def _on_preset_change():
+            """Actualiza el motor demo al cambiar el preset de ejemplo."""
             _nuevo = st.session_state.get("live_demo_preset")
             if _nuevo in DEMO_PRESETS:
                 st.session_state["live_engine_id"] = DEMO_PRESETS[_nuevo][3]

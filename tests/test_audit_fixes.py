@@ -184,12 +184,20 @@ def test_la_orden_externa_no_contradice_al_badge_con_r1():
 
 # ------------------------------------------------------ 5. banda y tramos
 def test_el_tramo_escaso_no_estrecha_la_banda():
-    """La guarda solo ensancha: toma el cuantil más conservador de los dos."""
+    """La guarda solo ensancha: toma el cuantil más conservador de los dos.
+
+    Con el bundle C ningún tramo está por debajo de MIN_FILAS_TRAMO (el de
+    [75, inf) tiene 561 filas), así que la escasez se simula achicando `n` en
+    una copia de la calibración comprometida: la guarda debe aplicar igual.
+    """
     cal = R.cargar_calibracion()
-    tramo = cal["bins"][-1]
+    cal_escasa = dict(cal)
+    cal_escasa["bins"] = [dict(b) for b in cal["bins"]]
+    cal_escasa["bins"][-1] = dict(cal["bins"][-1], n=100)
+    tramo = cal_escasa["bins"][-1]
     global_bajo, global_alto = cal["global_quantiles"]
     assert tramo["n"] < R.MIN_FILAS_TRAMO
-    lower, upper = R.banda_recalibrada(75.0, cal)
+    lower, upper = R.banda_recalibrada(75.0, cal_escasa)
     assert lower == pytest.approx(75.0 + min(tramo["q_low"], global_bajo), abs=1e-6)
     assert upper == pytest.approx(75.0 + max(tramo["q_high"], global_alto), abs=1e-6)
     # Y el lado que ya era conservador no se mueve.
@@ -197,10 +205,17 @@ def test_el_tramo_escaso_no_estrecha_la_banda():
 
 
 def test_cruzar_75_ya_no_hunde_el_limite_superior():
+    """Cruzar 75 no hunde el límite inferior ni saca al punto de la banda.
+
+    Con la banda C el tramo [75, inf) tiene 561 filas y su cuantil alto es
+    negativo (el modelo sobreestima en RUL alta): el límite superior queda
+    pegado al punto a propósito, así que aquí se fija lo que la guarda
+    prometía de verdad: el inferior es continuo y la banda contiene al punto.
+    """
     cal = R.cargar_calibracion()
-    _, antes = R.banda_recalibrada(74.999, cal)
-    _, despues = R.banda_recalibrada(75.0, cal)
-    assert antes - despues < 3.0
+    bajo_antes, _ = R.banda_recalibrada(74.999, cal)
+    bajo_despues, _ = R.banda_recalibrada(75.0, cal)
+    assert abs(bajo_antes - bajo_despues) < 3.0
     for punto in (74.999, 75.0):
         lower, upper = R.banda_recalibrada(punto, cal)
         assert lower <= punto <= upper

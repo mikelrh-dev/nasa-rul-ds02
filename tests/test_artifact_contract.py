@@ -165,4 +165,6 @@ def test_ds02_loader_refuses_silent_fd001_fallback():
 
     with pytest.raises(FileNotFoundError) as exc:
         resolve_ds02("does/not/exist.h5")
-    assert "Refusing to fall back" in str(exc.value)
+    mensaje = str(exc.value)
+    assert "does/not/exist.h5" in mensaje         # dice que rutas probo
+    assert "No fallback is attempted" in mensaje  # y que no sustituye el dataset

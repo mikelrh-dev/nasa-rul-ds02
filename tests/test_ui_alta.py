@@ -58,14 +58,14 @@ def test_una_aeronave_de_alta_entra_en_la_flota():
         {
             "matricula": "EC-MKR",
             "unidad": 11,
-            "ciclo": 22,
+            "ciclo": 23,  # C: U11 L_inf<25 desde el 23 (antes 22 con B)
             "unit_id": A.unidad_alta(0),
         }
     ]
     frame = A.frame_con_altas(
         windows, windows, altas, False, {"apto": 30.0, "hangar": 25.0}
     )
-    snapshot = L.fleet_snapshot(frame, 22, 30.0, 25.0)
+    snapshot = L.fleet_snapshot(frame, 23, 30.0, 25.0)
     assert int(A.unidad_alta(0)) in set(snapshot["unit"])
     fila = snapshot[snapshot["unit"] == int(A.unidad_alta(0))].iloc[0]
     assert fila["state"] == L.AOG
@@ -81,9 +81,10 @@ def test_el_modo_historia_se_deriva_de_la_cache():
     # Paso 1: el hangar esta mañana, en el primer ciclo puntuado.
     assert (pasos[0]["unidad"], pasos[0]["ciclo"]) == (11, 1)
     # Paso 2: la primera inspección del motor problemático (el de mayor RMSE).
-    assert (pasos[1]["unidad"], pasos[1]["ciclo"]) == (14, 9)
+    # C: primera INSPECCION de U14 en el ciclo 7 (B: 9), primer HANGAR en 25 (B: 29).
+    assert (pasos[1]["unidad"], pasos[1]["ciclo"]) == (14, 7)
     # Paso 3: su primera derivación a hangar.
-    assert (pasos[2]["unidad"], pasos[2]["ciclo"]) == (14, 29)
+    assert (pasos[2]["unidad"], pasos[2]["ciclo"]) == (14, 25)
     # Paso 4: los mismos umbrales aflojados en 5.
     assert pasos[3]["umbrales"] == {"apto": 35.0, "hangar": 20.0}
 
@@ -119,5 +120,5 @@ def test_el_paso_critico_cae_en_hangar_y_el_primero_no():
         return "HANGAR"
 
     assert estado(11, 1, pasos[0]["umbrales"]) == "APTO"
-    assert estado(14, 8, pasos[1]["umbrales"]) == "APTO"
-    assert estado(14, 29, pasos[2]["umbrales"]) == "HANGAR"
+    assert estado(14, 6, pasos[1]["umbrales"]) == "APTO"  # C: ciclo previo a la INSPECCION (7)
+    assert estado(14, 25, pasos[2]["umbrales"]) == "HANGAR"

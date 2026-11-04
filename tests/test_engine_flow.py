@@ -194,7 +194,7 @@ def test_la_ventana_que_decide_es_la_de_menor_limite_inferior():
     puntuado y luego escribe `len(frame) - 1`, que es la posición de la última
     fila guardada. Con un alta de la caché (`step=2`) el último ciclo tiene 44
     ventanas, así que los dos números discrepan: la U11 hasta el ciclo 22 guarda
-    1219 filas y la ventana que decide está en la posición 1177, no en la 1218.
+    1219 filas y la ventana que decide está en la posición 1175 (C), no en la 1218.
     El panel cita ese número como «la ventana que decide».
     """
     crudo = L.get_windows()
@@ -217,10 +217,10 @@ def test_la_ventana_que_decide_es_la_de_menor_limite_inferior():
     assert int(ultimo) == 22
     assert int((serie["cycle"] == ultimo).sum()) == 44
     # `start_row // step` es la posición dentro de la serie guardada.
-    assert int(decidida["start_row"]) // 2 == 1177
+    assert int(decidida["start_row"]) // 2 == 1175  # C (B: 1177)
 
     reportada = int(T.vista_resultado(gemelo)["windows"].iloc[0]["window"])
-    assert reportada == decidida.name == 1177
+    assert reportada == decidida.name == 1175
     assert reportada != len(serie) - 1, "la última fila no es la que decide"
 
 

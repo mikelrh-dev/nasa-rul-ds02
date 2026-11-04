@@ -17,9 +17,9 @@
         0.0,
         25.0
       ],
-      "n": 5291,
-      "q_low": -4.1928,
-      "q_high": 7.1817,
+      "n": 5125,
+      "q_low": -4.3621,
+      "q_high": 8.5517,
       "source": "bin"
     },
     {
@@ -28,9 +28,9 @@
         25.0,
         50.0
       ],
-      "n": 5283,
-      "q_low": -10.7393,
-      "q_high": 16.6639,
+      "n": 6094,
+      "q_low": -9.0949,
+      "q_high": 17.9479,
       "source": "bin"
     },
     {
@@ -39,9 +39,9 @@
         50.0,
         75.0
       ],
-      "n": 3922,
-      "q_low": -21.6779,
-      "q_high": 19.7588,
+      "n": 3135,
+      "q_low": -24.5658,
+      "q_high": 22.9754,
       "source": "bin"
     },
     {
@@ -50,19 +50,19 @@
         75.0,
         null
       ],
-      "n": 419,
-      "q_low": -21.2133,
-      "q_high": -15.3651,
+      "n": 561,
+      "q_low": -24.7372,
+      "q_high": -17.4504,
       "source": "bin"
     }
   ],
   "global_quantiles": [
-    -19.1707,
-    17.1004
+    -21.2129,
+    19.7804
   ],
   "n_calibration": 14915,
   "procedencia": {
-    "metodo": "split-conformal sobre el punto corregido por R2b (PAVA causal)",
+    "metodo": "split-conformal sobre el punto corregido por R2b (PAVA causal) - bundle C",
     "filas_calibracion": 14915,
     "unidades_calibracion": [
       2,
@@ -72,8 +72,8 @@
       20
     ],
     "excluida": "unidad 16 (el meta enviado se ajusta en ella: sus filas serian in-sample)",
-    "instrumento": "select_beta_grouped(oof, span=5, use_cycle_feature=False)['oof_calib']",
-    "cache_origen": "_p1_oof_cache.npz",
+    "instrumento": "select_beta_grouped(oof, span=5, use_cycle_feature=False)[oof_calib] de notebooks/artifacts_c/nb2_selection.joblib (bundle C sobre adaptada, step_train=1), reducido a rejilla step-3 por unidad (cada 3a ventana en orden de ciclo) y EMA5 recomputado sobre pred_meta con beta=1.0",
+    "cache_origen": "notebooks/artifacts_c/nb2_selection.joblib (oof_calib 52341 filas step-1 -> 14915 puras step-3)",
     "regla_correccion": "R2b ajuste isotonico causal (PAVA en linea: extremo del ajuste monotono del prefijo, por unidad y ordenado por ciclo)"
   }
 }

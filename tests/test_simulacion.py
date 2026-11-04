@@ -57,7 +57,7 @@ def test_avanzar_mueve_toda_la_flota_menos_los_retenidos():
 
 @needs_cache
 def test_un_motor_que_cruza_el_umbral_queda_retenido():
-    """U14 cruza a hangar en el ciclo 29: desde ahi no debe avanzar."""
+    """U14 cruza a hangar en el ciclo 25 (C; B: 29): desde ahi no debe avanzar."""
     frame = _frame()
     # Antes del cruce, no esta retenido.
     assert 14 not in S.retenidos(frame, 10, UMBRALES)
@@ -73,10 +73,10 @@ def test_ciclos_hasta_fallo_coincide_con_la_cache():
     frame = _frame()
     faltan = S.ciclos_hasta_fallo(frame, 1, UMBRALES)
 
-    # U14 entra en hangar en el ciclo 29 segun la cache.
-    assert faltan[14] == 28, faltan[14]
-    # U11 entra en hangar en el ciclo 22.
-    assert faltan[11] == 20, faltan[11]
+    # U14 entra en hangar en el ciclo 25 segun la cache C (B: 29).
+    assert faltan[14] == 24, faltan[14]
+    # U11 entra en hangar en el ciclo 23 (B: 22).
+    assert faltan[11] == 22, faltan[11]
     # Todos los motores tienen un numero: la cache cubre toda su vida.
     assert set(faltan) == {11, 14, 15}
 
