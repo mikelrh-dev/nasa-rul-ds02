@@ -112,7 +112,7 @@ UNIT_LABELS = {
 
 
 # --------------------------------------------------------------------- readers
-@st.cache_data(show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_windows() -> pd.DataFrame:
     """One row per scored window, straight from the cache (no model load)."""
     frame = pd.read_parquet(WINDOWS_PATH)
@@ -121,7 +121,7 @@ def get_windows() -> pd.DataFrame:
     return frame
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_rows() -> pd.DataFrame:
     """One row per downsampled telemetry row, with the real DS02 channel names."""
     frame = pd.read_parquet(ROWS_PATH)
@@ -130,7 +130,7 @@ def get_rows() -> pd.DataFrame:
     return frame
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_provenance() -> dict:
     """Provenance de `app/cache/cache_manifest.json`: dataset, ventana y hashes.
 
@@ -141,7 +141,7 @@ def get_provenance() -> dict:
         return json.load(fh)
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_manifest() -> dict:
     """The frozen artifact contract, read for display only."""
     with open(MANIFEST_PATH, encoding="utf-8") as fh:
@@ -153,8 +153,39 @@ def cache_available() -> bool:
 
     La app lo consulta al arrancar para mostrar un mensaje útil en vez de
     romper si la caché no se generó (`scripts/build_ui_cache.py`).
+
+    Verificación: cuando el manifest registra hashes (source.h5_sha256 y
+    counts.windows_sha256/rows_sha256), los compara con los ficheros en
+    disco; si difieren, la caché está corrupta o sustituida y devuelve
+    False. Manifests antiguos sin hashes siguen valiendo con la sola
+    existencia de ficheros (compatibilidad hacia atrás).
     """
-    return all(os.path.exists(p) for p in (WINDOWS_PATH, ROWS_PATH, PROVENANCE_PATH))
+    if not all(os.path.exists(p) for p in (WINDOWS_PATH, ROWS_PATH, PROVENANCE_PATH)):
+        return False
+    try:
+        with open(PROVENANCE_PATH, encoding="utf-8") as fh:
+            provenance = json.load(fh)
+    except (OSError, ValueError):
+        return False
+    counts = provenance.get("counts") or {}
+    # Orden estable ya garantizado al construir; aquí solo se firma contenido.
+    for path, key in ((WINDOWS_PATH, "windows_sha256"), (ROWS_PATH, "rows_sha256")):
+        esperado = counts.get(key)
+        if not esperado:
+            continue
+        try:
+            actual = _sha256_cached(path, int(os.path.getsize(path)), int(os.stat(path).st_mtime_ns))
+        except OSError:
+            return False
+        # _sha256_cached es un cache_data: en tests sin runtime de Streamlit
+        # devuelve la función envuelta; asegurar comparación robusta.
+        try:
+            actual_str = str(actual).strip()
+        except Exception:
+            return False
+        if actual_str != str(esperado).strip():
+            return False
+    return True
 
 
 # ------------------------------------------------------- cache / artifact seal

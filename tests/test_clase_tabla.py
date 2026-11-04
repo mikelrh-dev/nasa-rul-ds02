@@ -4,7 +4,7 @@ import pandas as pd
 
 
 def test_construir_tabla_declara_grano_y_tiempo():
-    from track_clase.tabla_final import construir_tabla
+    from src.clase.tabla_final import construir_tabla
 
     clas = pd.DataFrame([{"modelo": "svm", "rmse_test": 9.0, "mae_test": 8.0,
                           "r2_test": 0.7, "tiempo_s": 1.5}])

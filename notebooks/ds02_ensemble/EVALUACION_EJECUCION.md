@@ -70,6 +70,8 @@ Este es el chequeo que importa: los tres cuadernos no son autosuficientes; NB02 
 
 ## 3. Coherencia de cifras frente al artefacto congelado (publicado)
 
+> **Banner — bundle A obsoleto, bundle B vigente:** las cifras 4.289 / sha `0acd795b…` citadas en esta sección son del bundle A (histórico/pre-B) y no son vigentes. Vigente: bundle B (ref 4.251; media 4.340 ± 0.101). No se cambian las métricas B en este diff.
+
 El artefacto congelado es `models/ds02_manifest.json` (actualmente == `HEAD:models/ds02_manifest.json`, sha `051e0af40613e09ff87aeccacb1209e8b1fe10b99800c73277b0c79dc301a65332`), y `app/cache/cache_manifest.json` cita su sha exactamente (`ensemble_sha256 0acd795b0906389d46b7dc433249438e15b3ee899b1a5bc2cbd8624a6fe6d502`, `manifest_sha256 051e0af4...`). `git status models/ app/cache/` está limpio.
 
 **Cifra publicada (HEAD/manifiesto + cache + README + informes):**

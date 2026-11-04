@@ -18,7 +18,7 @@ import ast
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 
 import joblib
 import matplotlib
@@ -30,7 +30,7 @@ import pandas as pd
 import shap
 from xgboost import XGBRegressor
 
-from track_clase.pipeline_clase import FEATURE_COLS, make_pre
+from src.clase.pipeline_clase import FEATURE_COLS, make_pre
 
 N_FILAS = 200
 SEED = 7
@@ -57,7 +57,7 @@ def ejecutar_shap(
     verbose: bool = True,
 ) -> pd.DataFrame:
     """Entrena XGB (mejores params de comparativa.csv), TreeExplainer, guarda PNG+CSV."""
-    from track_clase.train_clasicos import grupos_validacion
+    from src.clase.train_clasicos import grupos_validacion
     Xtr = pd.read_parquet("data/processed/X_train.parquet")
     ytr = pd.read_parquet("data/processed/y_train.parquet").values.ravel()
     va = grupos_validacion(Xtr["unit"].to_numpy())
@@ -94,7 +94,7 @@ def ejecutar_shap(
     fig.savefig(png, dpi=120)
     plt.close(fig)
     joblib.dump({"nombres": nombres, "top": top, "fuente": "validacion-fold0",
-                 "unidades": unidades_va}, "track_clase/models/shap_xgb.joblib")
+                 "unidades": unidades_va}, "src/clase/models/shap_xgb.joblib")
     if verbose:
         print(top.to_string(index=False))
         print(f"guardado: {png} + {csv}")

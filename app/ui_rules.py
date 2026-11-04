@@ -57,7 +57,7 @@ def corregir_ventanas(windows: pd.DataFrame) -> pd.DataFrame:
         # Orden lexicografico por (ciclo, start_index): asi el ajuste es causal.
         orden = np.lexsort((sub["start_index"].to_numpy(), sub["cycle"].to_numpy()))
         serie = sub["pred"].to_numpy(dtype=np.float64)[orden]
-        posiciones = sub.index.to_numpy()[orden]
+        posiciones = np.flatnonzero(mascara)[orden]
         puntos[posiciones] = R.pava_causal_no_creciente(serie)
 
     frame["pred"] = puntos

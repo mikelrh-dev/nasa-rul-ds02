@@ -21,9 +21,9 @@ import os
 import numpy as np
 import pandas as pd
 
-from modelo import COLUMNAS, predecir  # noqa: F401  (se reexporta para el notebook)
+from src.mia.modelo import COLUMNAS, predecir  # noqa: F401  (se reexporta para el notebook)
 
-RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ROWS_PATH = os.path.join(RAIZ, "app", "cache", "ds02_rows.parquet")
 WINDOWS_PATH = os.path.join(RAIZ, "app", "cache", "ds02_windows.parquet")
 UMBRAL_APTO = 30.0
@@ -144,8 +144,8 @@ def probar_casos(reglas_correccion: list, reglas_decision: list,
 
 
 def main() -> None:
-    from motor import motor, resumen
-    from reglas import REGLAS_CORRECCION, REGLAS_DECISION
+    from src.mia.motor import motor, resumen
+    from src.mia.reglas import REGLAS_CORRECCION, REGLAS_DECISION
 
     print(f"Hay {len(REGLAS_CORRECCION) + len(REGLAS_DECISION)} reglas en mia/reglas.py")
     for caso in probar_casos(REGLAS_CORRECCION, REGLAS_DECISION, predecir, motor):

@@ -1,5 +1,8 @@
 # Evaluación general del modelo predictivo — DS02 hybrid stacking
 
+> **Banner — bundle A obsoleto, bundle B vigente:** este informe 2026-10-21 describe el bundle A (histórico/pre-B, 4.289 / sha `0acd795b…`) y ya no es vigente como referencia de producción. Vigente: bundle B (ref 4.251; media 4.340 ± 0.101). Las métricas B no se cambian en este diff; las cifras de abajo se conservan como histórico.
+
+
 **Fecha:** 2026-10-21
 **Sujeto:** el bundle que se envía (`models/ensemble.joblib` + `bilstm_ds02.keras`)
 **Pregunta:** ¿cómo de bueno es prediciendo, con todas las métricas disponibles?

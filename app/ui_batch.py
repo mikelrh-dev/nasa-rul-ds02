@@ -27,6 +27,12 @@ import twin as T
 # Se aplica con un aviso visible.
 MAX_MOTORES_LOTE = 25
 
+# P1 hardening de subidas: antes de `read_csv` se valida el tamaño (bytes) y
+# luego se acota la lectura con `nrows=MAX_FILAS+1`. `MAX_FILAS` es el mismo
+# tope de `ui_inference` (un solo validador, un solo tope).
+MAX_FILAS = getattr(INF, "MAX_FILAS", 5000)
+MAX_BYTES_CSV = 5 * 1024 * 1024  # 5 MiB: holgado para 5.000 filas x 19 cols.
+
 # Las columnas del triaje. Son lo que se muestra y lo que se exporta: ni una
 # más. `rmse` y `mae` no están porque el usuario trae los datos y no hay verdad.
 COLUMNAS_TRIAJE = ["matricula", "ciclo", "pred", "lower", "upper", "estado", "regla"]
@@ -37,13 +43,66 @@ def excede_limite(n: int) -> bool:
     return int(n) > MAX_MOTORES_LOTE
 
 
+def _check_bytes(n_bytes: int, origen: str) -> None:
+    """Rechaza el CSV si su tamaño en bytes supera `MAX_BYTES_CSV`."""
+    if int(n_bytes) > MAX_BYTES_CSV:
+        raise ValueError(
+            f"El CSV «{origen}» pesa {int(n_bytes):,} bytes y el máximo es "
+            f"{MAX_BYTES_CSV:,} bytes. Recorta el histórico o usa un muestreo "
+            "declarado antes de subirlo."
+        )
+
+
+def _check_filas(n_filas: int, origen: str) -> None:
+    """Rechaza la tabla si supera `MAX_FILAS` (detectado con nrows=MAX_FILAS+1)."""
+    if int(n_filas) > MAX_FILAS:
+        raise ValueError(
+            f"El CSV «{origen}» tiene más de {MAX_FILAS:,} filas. Recorta el "
+            "histórico o usa un muestreo declarado: por encima de ese tamaño "
+            "la puntuación deja de ser interactiva."
+        )
+
+
+def _size_bytes(archivo) -> int | None:
+    """Best-effort byte size of an uploaded file-like object without reading it."""
+    size = getattr(archivo, "size", None)
+    if isinstance(size, (int, float)):
+        return int(size)
+    try:
+        buffer = archivo.getbuffer()  # Streamlit UploadedFile
+        return int(buffer.nbytes)
+    except Exception:  # noqa: BLE001 - best effort, falls through to nrows check
+        pass
+    try:
+        value = archivo.getvalue()
+        return int(len(value))
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        stream = getattr(archivo, "file", None) or archivo
+        pos = stream.tell()
+        stream.seek(0, 2)
+        size_int = int(stream.tell())
+        stream.seek(pos)
+        return size_int
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
 def bloques_de_csv(texto: str) -> list[dict]:
     """CSV con columna `unit_id` que separa bloques: cada bloque es un motor.
 
     La columna `unit_id` no viaja a la puntuación (no forma parte del contrato);
     solo dice qué filas son de cada motor.
+
+    P1: valida el tamaño en bytes antes de parsear y acota la lectura con
+    `nrows=MAX_FILAS+1`; además limita los motores por lote a
+    `MAX_MOTORES_LOTE` antes de devolver ningún bloque.
     """
-    crudo = pd.read_csv(io.StringIO(texto))
+    _check_bytes(len(str(texto).encode("utf-8")), "CSV por bloques")
+    crudo = pd.read_csv(io.StringIO(texto), nrows=MAX_FILAS + 1)
+    _check_filas(len(crudo), "CSV por bloques")
     if "unit_id" not in crudo.columns:
         raise ValueError(
             "El CSV por bloques necesita una columna `unit_id` que diga qué filas "
@@ -56,15 +115,35 @@ def bloques_de_csv(texto: str) -> list[dict]:
             "matricula": str(unit_id).strip().upper(),
             "fuente": "CSV por bloques",
         })
+    if len(bloques) > MAX_MOTORES_LOTE:
+        raise ValueError(
+            f"El CSV por bloques trae {len(bloques)} motores y el máximo por "
+            f"lote es {MAX_MOTORES_LOTE}. Divide el lote en varios envíos."
+        )
     return bloques
 
 
 def bloques_de_archivos(archivos) -> list[dict]:
-    """Varios CSV subidos a la vez: cada archivo es un motor."""
+    """Varios CSV subidos a la vez: cada archivo es un motor.
+
+    P1: rechaza el lote antes de parsear todo si hay más de
+    `MAX_MOTORES_LOTE` archivos; por archivo valida el tamaño en bytes
+    antes de `read_csv` y acota la lectura con `nrows=MAX_FILAS+1`.
+    """
+    archivos = list(archivos or [])
+    if len(archivos) > MAX_MOTORES_LOTE:
+        raise ValueError(
+            f"El lote trae {len(archivos)} archivos y el máximo por lote es "
+            f"{MAX_MOTORES_LOTE}. Divide el lote en varios envíos."
+        )
     bloques = []
     for archivo in archivos:
-        tabla = pd.read_csv(archivo)
         nombre = getattr(archivo, "name", None) or "csv"
+        n_bytes = _size_bytes(archivo)
+        if n_bytes is not None:
+            _check_bytes(n_bytes, str(nombre))
+        tabla = pd.read_csv(archivo, nrows=MAX_FILAS + 1)
+        _check_filas(len(tabla), str(nombre))
         matricula = os.path.splitext(os.path.basename(str(nombre)))[0]
         bloques.append({
             "tabla": tabla,

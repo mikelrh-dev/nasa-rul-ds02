@@ -7,7 +7,7 @@ Tres cosas han de sostenerse:
    banda sigue conteniéndolo;
 3. el tablero sigue renderizando con la corrección activada, arranca con el
    interruptor apagado y no describe la corrección como monotonicidad estricta;
-4. la pasada de decisión la firma `mia.motor` (R1/R7/R8/R9), no una
+4. la pasada de decisión la firma src.mia.motor (R1/R7/R8/R9), no una
    reclasificación paralela, y el SHA-256 completo se muestra en la UI.
 
 Run:  python -m pytest tests -q
@@ -26,11 +26,11 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(ROOT, "app")
 sys.path.insert(0, APP)
-sys.path.insert(0, os.path.join(ROOT, "mia"))
+sys.path.insert(0, ROOT)
 
 import ui_data_loader as L  # noqa: E402
 import ui_rules as UR  # noqa: E402
-import reglas as R  # noqa: E402
+from src.mia import reglas as R  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),
@@ -201,7 +201,7 @@ def test_el_interruptor_arranca_apagado():
 
 # ------------------------------------------------- pasada A en la interfaz
 def test_la_pasada_a_viene_del_motor_de_reglas():
-    """R7/R8/R9 y la prioridad de R1 se resuelven en `mia.motor`."""
+    """R7/R8/R9 y la prioridad de R1 se resuelven en src.mia.motor."""
     frame = pd.DataFrame({
         "unit": [11, 11, 14],
         "cycle": [1, 2, 1],

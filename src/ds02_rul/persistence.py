@@ -7,6 +7,11 @@ Two invariants this module enforces:
   bytecode;
 * every artifact is accompanied by a manifest that records what produced it, so
   a DS02 bundle can never be silently replaced by a differently-shaped one.
+* **never deserialize before verifying**: `load_ensemble` / `load_bilstm`
+  compute the SHA-256 of the file and compare it against the manifest
+  (`models/ds02_manifest.json` and `app/cache/cache_manifest.json`) *before*
+  any `joblib.load` / `keras.models.load_model`. On mismatch they raise
+  `RuntimeError` without touching the pickle. No `eval`/`exec` is used.
 """
 from __future__ import annotations
 
@@ -25,6 +30,13 @@ MANIFEST_FILE = "ds02_manifest.json"
 EXPECTED_N_FEATURES = 18
 EXPECTED_N_OP = 4
 
+# Repo root: src/ds02_rul/persistence.py -> repo root is three levels up.
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_MANIFEST_CANDIDATES_DS02 = [
+    os.path.join(REPO_ROOT, "models", MANIFEST_FILE),
+    os.path.join(REPO_ROOT, "app", "cache", "cache_manifest.json"),
+]
+
 
 def sha256_of(path: str) -> str:
     digest = hashlib.sha256()
@@ -32,6 +44,87 @@ def sha256_of(path: str) -> str:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _expected_hashes(path: str, key: str) -> tuple[list[str], list[str]]:
+    """Collect expected SHA-256 values for `key` from repo/sibling manifests.
+
+    Returns (hashes, manifest_paths_found). No deserialization happens here:
+    manifests are plain JSON, read with `json.load` only.
+    """
+    candidates: list[str] = []
+    sibling = os.path.join(os.path.dirname(os.path.abspath(path)), MANIFEST_FILE)
+    candidates.append(sibling)
+    candidates.extend(_MANIFEST_CANDIDATES_DS02)
+    # cache_manifest.json may sit next to the artifact too (app/cache layout).
+    sibling_cache = os.path.join(os.path.dirname(os.path.abspath(path)), "cache_manifest.json")
+    candidates.append(sibling_cache)
+
+    hashes: list[str] = []
+    found: list[str] = []
+    seen: set[str] = set()
+    for manifest_path in candidates:
+        if not os.path.exists(manifest_path) or manifest_path in seen:
+            continue
+        seen.add(manifest_path)
+        try:
+            with open(manifest_path, encoding="utf-8") as fh:
+                manifest = json.load(fh)
+        except (OSError, ValueError) as exc:
+            raise RuntimeError(f"refusing to load {path!r}: cannot read manifest {manifest_path!r}: {exc}") from exc
+        found.append(manifest_path)
+        # ds02_manifest.json stores `artifacts.<key>_sha256`; cache_manifest.json
+        # stores `artifact.<key>_sha256`. Accept both layouts.
+        for container in (manifest.get("artifacts") or {}, manifest.get("artifact") or {}):
+            value = container.get(key)
+            if isinstance(value, str) and value:
+                hashes.append(value.strip())
+    return hashes, found
+
+
+def verify_artifact_sha256(path: str, key: str) -> str:
+    """Verify `path` against the manifest BEFORE any deserialization.
+
+    Raises `RuntimeError` (without deserializing) when no manifest is found or
+    when the computed hash does not match *every* expected hash recorded.
+    Returns the verified digest.
+    """
+    hashes, found = _expected_hashes(path, key)
+    if not found:
+        raise RuntimeError(
+            f"refusing to load {path!r}: no manifest found to verify sha256 against "
+            f"(looked for {MANIFEST_FILE} and cache_manifest.json in the repo and "
+            f"next to the artifact). Refusing to deserialize unverified pickle."
+        )
+    if not hashes:
+        raise RuntimeError(
+            f"refusing to load {path!r}: manifest(s) {found} record no `{key}` sha256. "
+            "Refusing to deserialize unverified pickle."
+        )
+    actual = sha256_of(path)
+    mismatched = [h for h in hashes if h.lower() != actual.lower()]
+    if mismatched:
+        raise RuntimeError(
+            f"refusing to deserialize {path!r}: sha256 mismatch "
+            f"(actual={actual}, expected={hashes}). Artifact was not loaded. "
+            f"Verified against manifests: {found}."
+        )
+    return actual
+
+
+def resolve_within_repo(path: str, base: str | None = None) -> str:
+    """Allowlist: `path` must resolve inside the repo (or `base`).
+
+    Used for externally configured artifact paths (e.g. `DS02_ARTIFACT`) so an
+    environment variable cannot point the loader at an arbitrary host file.
+    """
+    root = os.path.abspath(base or REPO_ROOT)
+    candidate = os.path.abspath(path if os.path.isabs(path) else os.path.join(root, path))
+    if os.path.commonpath([root]) != os.path.commonpath([root, candidate]):
+        raise RuntimeError(
+            f"artifact path {path!r} resolves outside the repository root {root!r}; refusing to load."
+        )
+    return candidate
 
 
 def build_manifest(ensemble, metrics: dict, seed: int, dataset: str = "DS02", **extra) -> dict:
@@ -183,11 +276,25 @@ def load_bilstm(path: str = BILSTM_FILE):
             f"BiLSTM artifact not found at {path!r}. Save it with "
             "ds02_rul.persistence.save_ensemble (writes bilstm_ds02.keras)."
         )
+    # SHA-256 verified BEFORE any deserialization: refuse tampered graphs.
+    verify_artifact_sha256(path, "bilstm_sha256")
     return keras.models.load_model(path, compile=False)
 
 
 def load_ensemble(path: str = ENSEMBLE_FILE):
-    """Load a bundle and re-attach its native Keras graph."""
+    """Load a bundle and re-attach its native Keras graph.
+
+    Security (P1): the SHA-256 of `path` is verified against
+    `models/ds02_manifest.json` and `app/cache/cache_manifest.json`
+    (plus a sibling manifest next to the artifact) **before** `joblib.load`.
+    On mismatch `RuntimeError` is raised and the pickle is never
+    deserialized. No `eval`/`exec` is used. This check is what
+    `app/ui_inference.get_ensemble` and `app/api.py` rely on — they both
+    go through this function.
+    """
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"ensemble artifact not found at {path!r}")
+    verify_artifact_sha256(path, "ensemble_sha256")
     ensemble = joblib.load(path)
     if getattr(ensemble, "bilstm_model", None) is None and getattr(ensemble, "bilstm_path", None):
         candidate = ensemble.bilstm_path

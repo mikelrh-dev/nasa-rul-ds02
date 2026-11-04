@@ -125,6 +125,9 @@ def build(out_dir: str = DEFAULT_OUT, stride: int = 100, step: int = 2) -> dict:
     )
     channels["unit"] = channels["unit"].astype(np.int32)
     channels["cycle"] = channels["cycle"].astype(np.int32)
+    # Orden estable por (unit, cycle): la caché en disco es determinista y
+    # coincide con el orden que la UI y los tests asumen.
+    channels = channels.sort_values(["unit", "cycle"], kind="stable").reset_index(drop=True)
 
     y_true = windows["y_true"].to_numpy()
     pred = windows["pred"].to_numpy()
@@ -165,6 +168,7 @@ def build(out_dir: str = DEFAULT_OUT, stride: int = 100, step: int = 2) -> dict:
         "dataset": "DS02",
         "source": {
             "h5": raw["path"],
+            "h5_sha256": sha256_of(raw["path"]),
             "stride": stride,
             "window": window,
             "step": step,
@@ -207,6 +211,11 @@ def build(out_dir: str = DEFAULT_OUT, stride: int = 100, step: int = 2) -> dict:
 
     windows.to_parquet(windows_path, index=False)
     channels.to_parquet(rows_path, index=False)
+    # Hashes de contenido de la caché, calculados al build y firmados en el
+    # manifest: la UI los verifica en cache_available y los usa para firmar
+    # documentos (PDF), no los conteos.
+    provenance["counts"]["windows_sha256"] = sha256_of(windows_path)
+    provenance["counts"]["rows_sha256"] = sha256_of(rows_path)
     with open(prov_path, "w", encoding="utf-8") as fh:
         json.dump(provenance, fh, indent=2)
 

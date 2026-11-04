@@ -12,8 +12,8 @@ import numpy as np
 
 
 def test_grid_adaptado_identico_al_de_c():
-    from track_clase.evaluar_b_en_adaptada import ventanas_bajo_dropout
-    from track_clase.ventanas_adaptadas import ventanas_adaptadas
+    from src.clase.evaluar_b_en_adaptada import ventanas_bajo_dropout
+    from src.clase.ventanas_adaptadas import ventanas_adaptadas
     w = ventanas_bajo_dropout()
     ref = ventanas_adaptadas()["test"]
     assert len(w["meta"]) == len(ref["meta"]) == 6196
@@ -24,7 +24,7 @@ def test_grid_adaptado_identico_al_de_c():
 
 def test_imputacion_produccion_sin_fuga_y_sin_nulos():
     import pandas as pd
-    from track_clase.evaluar_b_en_adaptada import imputar_como_produccion, medianas_produccion
+    from src.clase.evaluar_b_en_adaptada import imputar_como_produccion, medianas_produccion
     med = medianas_produccion()
     con = pd.read_parquet("data/processed/test_con_nulos.parquet")
     assert int(con["T30"].isna().sum()) > 0

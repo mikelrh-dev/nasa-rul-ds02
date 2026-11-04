@@ -5,8 +5,8 @@ no duplicar). Este módulo existe porque la rúbrica pide `src/reglas.py`
 con 6+ reglas, prioridad, decisión y seguridad.
 """
 
-from mia.motor import motor, resumen  # noqa: F401
-from mia.reglas import (  # noqa: F401
+from src.mia.motor import motor, resumen  # noqa: F401
+from src.mia.reglas import (  # noqa: F401
     APTO,
     CALIBRACION_PATH,
     HANGAR,

@@ -16,7 +16,15 @@ def test_hash_cached_with_cache_data():
     src = read_dash()
     assert "@st.cache_data" in src
     assert "_sha256_cached" in src
-    assert "def _sha256_cached" in src
+    # PR1/PR2 (dashboard-split-monolito): dueño único `ui_data_loader`
+    # (re-export en `ui_modulos`); el dashboard ya no define
+    # `def _sha256_cached`, lo re-exporta para compat.
+    owners = ""
+    for fn in ("ui_data_loader.py", os.path.join("ui_modulos", "__init__.py")):
+        path = os.path.join(APP, fn)
+        if os.path.exists(path):
+            owners += open(path, encoding="utf-8").read()
+    assert "def _sha256_cached" in owners
 
 
 def test_pdf_cached_with_cache_data():
@@ -28,7 +36,16 @@ def test_pdf_cached_with_cache_data():
 
 def test_tabs_fragmented():
     src = read_dash()
-    assert src.count("@st.fragment") >= 6, src.count("@st.fragment")
+    # PR2 (dashboard-split-monolito): `_sandbox_estres` vive en
+    # `ui_modulos/_sandbox_estres.py`; el conteo incluye los módulos
+    # extraídos, no solo el dashboard.
+    blob = src
+    mod_dir = os.path.join(APP, "ui_modulos")
+    if os.path.isdir(mod_dir):
+        for fn in os.listdir(mod_dir):
+            if fn.endswith(".py"):
+                blob += open(os.path.join(mod_dir, fn), encoding="utf-8").read()
+    assert blob.count("@st.fragment") >= 6, blob.count("@st.fragment")
     # each tab has a fragment-defined function
     for name in ("_tab_flota", "_tab_motor", "_tab_auditoria", "_tab_casos"):
         assert f"def {name}" in src, name
@@ -99,8 +116,17 @@ def test_banner_aligned_no_pruebahangar():
 
 def test_pdf_generated_on_demand():
     src = read_dash()
+    # PR5 (dashboard-split-monolito): el informe vive en
+    # `ui_modulos/_tab_auditoria.py`; la búsqueda incluye los módulos
+    # extraídos, no solo el dashboard.
+    blob = src
+    mod_dir = os.path.join(APP, "ui_modulos")
+    if os.path.isdir(mod_dir):
+        for fn in os.listdir(mod_dir):
+            if fn.endswith(".py"):
+                blob += open(os.path.join(mod_dir, fn), encoding="utf-8").read()
     # generate button pattern: PDF builder only invoked behind a flag/button
-    assert "_pdf_generado" in src or "btn_gen_pdf" in src or "Generar informe" in src
+    assert "_pdf_generado" in blob or "btn_gen_pdf" in blob or "Generar informe" in blob
     # the unconditional call pattern `except Exception as exc:  # pragma: no cover` block
     # that built PDF on every render must be replaced
-    assert "btn_gen_pdf" in src
+    assert "btn_gen_pdf" in blob

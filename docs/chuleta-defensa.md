@@ -1,0 +1,54 @@
+# Chuleta de defensa — Reto 1 DS02 (léeme la noche antes)
+
+## Apertura (30 segundos, memorízala)
+
+> "Predigo la vida útil restante de motores DS02 y la convierto en decisión — APTO, INSPECCIÓN o HANGAR — con reglas de negocio. El mejor modelo de clase es el MLP E2 (RMSE 7,72 en test); la producción usa el híbrido (4,25). Y lo importante: el modelo se elige por validación, el test solo confirma."
+
+## El arco (si te pierdes, vuelve aquí)
+
+1. **Honestidad**: GroupKFold por motor; el test ni se mira hasta el final.
+2. **La validación manda**: E1 memoriza train (5,23) y pierde en val (7,48) → fuera. Gana E2 (val 7,34).
+3. **Una sola lectura**: test una vez (7,72). SHAP en validación fold-0, nunca en test.
+
+## Dónde vive qué (notebook → .py)
+
+| Me preguntan por… | Digo (notebook) | Abro (.py) |
+|---|---|---|
+| Nulos + `fase_vuelo` | NB01, celdas 5–7 | `src/clase/dataset_clase.py` |
+| 5 clásicos, gana XGB | NB02, celdas 4–6 | `src/clase/train_clasicos.py` (`ESPEC`, `ORDEN_SIMPLE`) |
+| MLP base/E1/E2/E3 | NB02, celdas 15–20 | `src/clase/train_mlp.py` (`EXPS`, `ORDEN_MLP`) |
+| SHAP + permutación | NB02, celdas 23–28 | `src/clase/shap_clase.py` (`top_shap`) |
+| Pipeline sin fuga | NB02, celda 4 | `src/clase/pipeline_clase.py` (`make_pipeline`) |
+| Reglas R1/R9/R8/R7 | App demo + NB06 | `src/mia/motor.py`, `src/mia/reglas.py` |
+| RMSE/MAE qué significan | README + NB02 | `src/utils.py` (`evaluate_predictions`) |
+
+## Cifras (solo 6, el resto está en los CSVs)
+
+- Clásicos val: **XGB 8,22** < Ridge 8,28 < SVM 8,29 (test solo XGB: 11,03).
+- MLP val: **E2 7,34** < base 7,36 < E3 7,36 < E1 7,48 (test E2: 7,72).
+- E1 = overfit de libro: train 5,23 (el mejor) → val 7,48 (el peor).
+- Producción: híbrido **4,251** (bundle B). Clase no compite con producción: la entiende.
+- Negocio: un AOG ≈ 10.000–15.000 USD/h (rango Boeing; ver `costes_reales_aeronauticos.md` §1); el equivalente 240.000–360.000 USD/día vale solo como hipotético de 24 h continuas. Evitar un AOG paga el sistema. RMSE manda porque un motor parado cuesta más que segundos de CPU.
+- SHAP + permutación (en validación): **cycle ≫ T50 > Nc**.
+
+## Los 5 guiones (30 s cada uno)
+
+1. **¿Por qué validación y no test?** → "El test es una lectura con suerte. E1 lo demuestra: mejor en train, peor en val. Elegir por test sería autoengaño."
+2. **¿Qué hace `make_pipeline`?** → "Un preprocesado único (StandardScaler + OneHot, fit solo en train) que usan los 5 clásicos y el MLP. Sin él habría fuga."
+3. **¿SHAP por qué en validación?** → "SHAP describe al modelo, y el modelo se eligió con validación. Explicar el test sería espiar el examen."
+4. **¿7,72 qué significa?** → "Unos 8 ciclos de error medio por motor. RMSE castiga los fallos gordos, que son los caros."
+5. **¿El `src/` en tres carpetas?** → "`utils/reglas/n8n` la fachada del reto, `clase/` los experimentos, `mia/` las reglas, `ds02_rul/` la librería de producción. Cada notebook dice en su primera celda de dónde importa."
+
+## Trucos de supervivencia
+
+- **No sabes el detalle** → navega: *"te lo enseño: NB02 celda 15, vive en `src/clase/train_mlp.py`"*. Abrir el fichero y leer el docstring puntúa como 10 de la pregunta individual.
+- **Duda de número** → no inventes: *"está en `resultados/comparativa.csv`, fila XGB, columna rmse_val: 8,22"*.
+- **Demo app** → `streamlit run app/streamlit_app.py`: métricas del elegido + caso nuevo con decisión (la p=RUL sale junto a la decisión).
+- **MLflow / n8n real** → si preguntan: "quedan fuera de este change a propósito; el contrato está diseñado (`src/n8n.py`, `resultados/`), la integración va en el siguiente". No los vendas como hechos.
+
+## Noche antes (checklist)
+
+- [ ] Abrir la app una vez y puntuar un caso (que no sea la primera vez en vivo).
+- [ ] Recitar la apertura + el arco en voz alta, una vez, con cronómetro.
+- [ ] Tener a mano: esta chuleta, `resultados/comparativa.csv`, `resultados/mlp_comparativa.csv`.
+- [ ] `models/ds02_manifest.json` abre y trae 4.251 (prueba de que lo defendido es lo de disco).

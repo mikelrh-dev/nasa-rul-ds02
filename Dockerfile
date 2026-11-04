@@ -20,9 +20,6 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY src/ ./src/
 COPY app/ ./app/
 COPY scripts/ ./scripts/
-# mia/ is imported at module load by app/ui_rules.py, so the dashboard
-# entrypoint cannot start without it even though the build itself succeeds.
-COPY mia/ ./mia/
 RUN pip install -e .
 
 # Only the artifacts, not the 2.3 GB dataset.
@@ -36,3 +33,9 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -fsS http://localhost:8000/health || exit 1
 
 CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8000"]
+# NOTE (P1): binding 0.0.0.0 here is only safe behind a TLS-terminating reverse
+# proxy (nginx/Caddy/load balancer) that adds TLS and ideally authentication
+# (DS02_API_KEY). Never expose this container to the public internet with
+# plain HTTP. For a standalone local run, override with --host 127.0.0.1,
+# e.g. `docker run -p 127.0.0.1:8000:8000 ...` and bind loopback, or
+# `uvicorn app.api:app --host 127.0.0.1 --port 8000`.

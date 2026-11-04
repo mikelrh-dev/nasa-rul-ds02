@@ -1,5 +1,8 @@
 # P0 + P1 — el sesgo de vida alta no es densidad: es el prior de vida del motor 16
 
+> **Banner — bundle A obsoleto, bundle B vigente:** este informe 2026-10-21 describe el bundle A (histórico/pre-B, 4.289 / sha `0acd795b…`) y ya no es vigente como referencia de producción. Vigente: bundle B (ref 4.251; media 4.340 ± 0.101). Las métricas B no se cambian en este diff; las cifras de abajo se conservan como histórico.
+
+
 Fecha: 2026-10-21. Estado: **P1 no pasa el gate en `dev` y no se consolida**. No se
 leyó test, no se regeneraron artefactos y el notebook no se volvió a ejecutar, porque
 nada de lo que se envía cambió.

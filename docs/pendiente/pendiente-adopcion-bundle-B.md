@@ -39,7 +39,7 @@ cp /tmp/ds02_backup_pre_refactor/models/* models/
 cp /tmp/ds02_backup_pre_refactor/cache/* app/cache/
 ```
 
-## 5. Decisión pendiente del usuario
+## 5. Decisión — ADOPTADO 2026-10-31 (acta cerrada)
 
-- [ ] Revisar notebooks reejecutados.
-- [ ] Elegir A (rollback) o B (adaptar 4 tests + papelada y commitear).
+- [x] Revisar notebooks reejecutados.
+- [x] Elegir B (adaptar 4 tests + papelada). **ADOPTADO 2026-10-31**: bundle B en producción (ref 4.251; media 4.340 ± 0.101). Acta cerrada: sin rollback (opción A descartada). Bundle A (4.289 / sha `0acd795b…`) queda como histórico/pre-B, no vigente. No commitear ni pushear hasta orden explícita (según cabecera RESUELTO).

@@ -1,5 +1,8 @@
 # Matriz de confusión del artefacto enviado, leído como alarma de mantenimiento
 
+> **Banner — bundle A obsoleto, bundle B vigente:** este informe 2026-10-21 describe el bundle A (histórico/pre-B, 4.289 / sha `0acd795b…`) y ya no es vigente como referencia de producción. Vigente: bundle B (ref 4.251; media 4.340 ± 0.101). Las métricas B no se cambian en este diff; las cifras de abajo se conservan como histórico.
+
+
 **Fecha:** 2026-10-21
 **Instrumento:** `scripts/probe_alarm_confusion.py`
 **Sujeto:** el bundle que se envía (`models/ensemble.joblib`), semilla primaria, test

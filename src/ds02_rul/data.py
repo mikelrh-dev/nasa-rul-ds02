@@ -8,11 +8,14 @@ if the HDF5 is not resolvable this raises, and says what it looked for.
 """
 from __future__ import annotations
 
+import logging
 import os
 
 import h5py
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 DS02_CANDIDATE_PATHS = (
     "data/raw/N-CMAPSS_DS02-006.h5",
@@ -62,6 +65,38 @@ def load_ds02(path: str | None = None, stride: int = 100) -> dict:
         data = {k: fh[k][::stride] for k in DEV_KEYS + TEST_KEYS}
         op_names = [v.decode() if isinstance(v, bytes) else str(v) for v in fh["W_var"]]
         sensor_names = [v.decode() if isinstance(v, bytes) else str(v) for v in fh["X_s_var"]]
+
+    # -- Ingestion asserts (shapes alineadas, finito, ciclos no decrecientes) --
+    def _check_split(name: str, A: np.ndarray, W: np.ndarray, Xs: np.ndarray, Y: np.ndarray) -> None:
+        n = len(A)
+        assert len(W) == n and len(Xs) == n and len(Y) == n, (
+            f"{name}: shapes no alineados A={A.shape} W={W.shape} Xs={Xs.shape} Y={Y.shape}"
+        )
+        assert A.ndim == 2 and A.shape[1] >= 2, f"{name}: A debe ser (n, >=2), got {A.shape}"
+        assert len(op_names) == W.shape[1], f"{name}: op_names={len(op_names)} vs W ncols={W.shape[1]}"
+        assert len(sensor_names) == Xs.shape[1], (
+            f"{name}: sensor_names={len(sensor_names)} vs Xs ncols={Xs.shape[1]}"
+        )
+        # isfinite global: ningún NaN/inf en la telemetría ni en A/Y
+        for label, arr in (("A", A), ("W", W), ("Xs", Xs), ("Y", Y)):
+            arr_f = np.asarray(arr, dtype=np.float64)
+            n_nan = int(np.isnan(arr_f).sum())
+            n_inf = int(np.isinf(arr_f).sum())
+            if n_nan or n_inf:
+                logger.warning("%s: %s tiene nulos=%d inf=%d (de %d)", name, label, n_nan, n_inf, arr_f.size)
+            assert np.isfinite(arr_f).all(), (
+                f"{name}: {label} contiene no-finitos (nan={n_nan}, inf={n_inf}); ingesta DS02 exige datos finitos"
+            )
+        logger.info("%s: n=%d nulos=0 (A/W/Xs/Y alineados)", name, n)
+        # cycle no decreciente por unidad (A[:,0]=unit, A[:,1]=cycle)
+        for unit in np.unique(A[:, 0]):
+            cycles = A[A[:, 0] == unit, 1]
+            assert np.all(np.diff(cycles) >= 0), (
+                f"{name}: cycle decreciente para unit={float(unit)}; el ciclo debe ser no decreciente por unidad"
+            )
+
+    _check_split("train", np.asarray(data["A_dev"]), np.asarray(data["W_dev"]), np.asarray(data["X_s_dev"]), np.asarray(data["Y_dev"]))  # type: ignore[arg-type]
+    _check_split("test", np.asarray(data["A_test"]), np.asarray(data["W_test"]), np.asarray(data["X_s_test"]), np.asarray(data["Y_test"]))  # type: ignore[arg-type]
 
     return {
         "path": resolved,

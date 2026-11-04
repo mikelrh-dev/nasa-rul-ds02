@@ -17,7 +17,7 @@ import sys
 
 import numpy as np
 
-RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ARTEFACTO = os.path.join(RAIZ, "models", "ensemble.joblib")
 SRC = os.path.join(RAIZ, "src")
 

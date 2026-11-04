@@ -25,11 +25,11 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GroupKFold, cross_val_predict
 from sklearn.neural_network import MLPRegressor
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-from track_clase.pipeline_clase import make_pipeline  # noqa: E402
+from src.clase.pipeline_clase import make_pipeline  # noqa: E402
 
 RANDOM_STATE = 42
 BASE_KW = dict(activation="relu", learning_rate_init=1e-3, max_iter=300,
@@ -45,6 +45,9 @@ EXPS = {
 
 ORDEN_MLP = {"base": 0, "E2_reg_lr": 1, "E3_batch": 2, "E1_capacidad": 3}
 CV_MLP = GroupKFold(n_splits=3)
+# E2 = elegido por rmse_val (7.3404) y rmse_test 7.72 en resultados/mlp_comparativa.csv.
+# Se persiste aparte para SHAP SAA-9 de 7 a 10; NO pisa mejor_modelo_clase.joblib (XGB).
+E2_MODEL_PATH = "models/mejor_modelo_clase_E2.joblib"
 
 
 def _m_train(y_tr, p_tr) -> dict:
@@ -109,7 +112,29 @@ def entrenar_mlp(verbose: bool = True) -> pd.DataFrame:
     comp.to_csv("resultados/mlp_comparativa.csv", index=False)
     if verbose:
         print("mejor (por rmse_val):", mejor)
+    # E2 persistido siempre (Pipeline completo), aunque no sea el 'mejor' numérico:
+    # es el modelo explicado en SAA-9 de 7 a 10. Ruta aparte del XGB.
+    joblib.dump(pipes["E2_reg_lr"], E2_MODEL_PATH)
+    if verbose:
+        print("guardado E2:", E2_MODEL_PATH)
     return comp
+
+
+def persistir_e2(destino: str = E2_MODEL_PATH, verbose: bool = True):
+    """Entrena SOLO E2_reg_lr sobre todo el train y guarda el Pipeline completo.
+
+    No toca `models/mejor_modelo_clase.joblib` (XGB verificado, steps[1]
+    XGBRegressor) ni el bundle B (`models/ensemble.joblib`).
+    """
+    X_tr = pd.read_parquet("data/processed/X_train.parquet")
+    y_tr = pd.read_parquet("data/processed/y_train.parquet").values.ravel().astype(float)
+    kw, _ = EXPS["E2_reg_lr"]
+    pipe = make_pipeline(MLPRegressor(**{**BASE_KW, **kw}))
+    pipe.fit(X_tr, y_tr)
+    joblib.dump(pipe, destino)
+    if verbose:
+        print("guardado E2:", destino)
+    return pipe
 
 
 def importancia_mejor_clasico(n_filas: int = 200, seed: int = 7) -> pd.DataFrame:
@@ -118,7 +143,7 @@ def importancia_mejor_clasico(n_filas: int = 200, seed: int = 7) -> pd.DataFrame
     200 filas de VALIDACIÓN (fold-0, nunca test — v5), 5 repeticiones,
     scoring RMSE. No causal: describe el modelo, no el motor.
     """
-    from track_clase.train_clasicos import grupos_validacion
+    from src.clase.train_clasicos import grupos_validacion
     pipe = joblib.load("models/mejor_modelo_clase.joblib")
     X_tr = pd.read_parquet("data/processed/X_train.parquet").reset_index(drop=True)
     y_tr = pd.read_parquet("data/processed/y_train.parquet").reset_index(drop=True).values.ravel().astype(float)

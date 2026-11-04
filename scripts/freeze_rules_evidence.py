@@ -47,9 +47,9 @@ import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_CACHE = os.path.join(ROOT, "_p1_oof_cache.npz")
-CALIBRACION = os.path.join(ROOT, "mia", "calibracion_banda.json")
+CALIBRACION = os.path.join(ROOT, "src", "mia", "calibracion_banda.json")
 SRC = os.path.join(ROOT, "src")
-MIA = os.path.join(ROOT, "mia")
+MIA = os.path.join(SRC, "mia")
 
 REQUIRED_KEYS = ("units", "cycles", "y", "p_lstm", "p_lgb")
 PURE_UNITS = (2.0, 5.0, 10.0, 18.0, 20.0)

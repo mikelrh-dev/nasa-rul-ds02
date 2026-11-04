@@ -17,7 +17,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from track_clase.dataset_clase import SENSOR_COLS
+from src.clase.dataset_clase import SENSOR_COLS
 
 NUM_COLS = ["cycle", "alt", "Mach", "TRA", "T2"] + list(SENSOR_COLS)
 CAT_COLS = ["fase_vuelo"]

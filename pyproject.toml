@@ -14,6 +14,11 @@ dependencies = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.pyright]
+extraPaths = [".", "src"]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+
 [tool.pytest.ini_options]
 # `scripts/` holds four FD001-era scripts whose names match pytest's default
 # globs (recalcular_test.py, test_fixed_pipeline.py, ...). They are executable

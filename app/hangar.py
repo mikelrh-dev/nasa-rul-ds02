@@ -15,6 +15,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import json as _json
+import os as _os
+import re as _re
+import shutil as _shutil
+import threading as _threading
+
 EN_SERVICIO = "EN_SERVICIO"
 INSPECCION = "INSPECCION_PROGRAMADA"
 AOG = "AOG_DERIVADO"
@@ -162,20 +168,148 @@ def resumen(registros: dict) -> dict:
     }
 
 
-def guardar_disco(registros: dict, ruta: str) -> None:
-    """Persiste los registros de hangar en JSON (recargar no los borra)."""
-    import json as _json
+_SESSION_ID_RE = _re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+_REGISTRY_LOCK = _threading.Lock()
+_REGISTRY_KEYS = ("twins", "hangar", "altas")
 
-    with open(ruta, "w", encoding="utf-8") as fh:
-        _json.dump(registros, fh, ensure_ascii=False, indent=1)
+
+def empty_registry() -> dict:
+    """Registro vacío con la forma que espera el tablero."""
+    return {k: {} for k in _REGISTRY_KEYS}
+
+
+def validate_session_id(session_id) -> str:
+    """Id seguro para fichero (`^[A-Za-z0-9_-]{1,64}$`); si no, ValueError."""
+    texto = str(session_id or "")
+    if not _SESSION_ID_RE.match(texto):
+        raise ValueError(f"session_id inválido: {texto!r}")
+    return texto
+
+
+def session_registry_path(session_id) -> str:
+    """Ruta del registro de una sesión, derivada solo del id validado."""
+    sid = validate_session_id(session_id)
+    base = _os.path.dirname(_os.path.abspath(__file__))
+    return _os.path.join(base, "registros_sesiones", f"registros_flota_{sid}.json")
+
+
+def validate_registry_schema(data) -> dict:
+    """Exige un mapeo con `twins`/`hangar`/`altas`; intacto si es válido."""
+    if not isinstance(data, dict):
+        raise ValueError("el registro debe ser un mapeo con twins/hangar/altas")
+    for clave in _REGISTRY_KEYS:
+        if clave not in data:
+            raise ValueError(f"al registro le falta la colección {clave!r}")
+        if not isinstance(data[clave], (dict, list)):
+            raise ValueError(f"la colección {clave!r} debe ser dict o lista")
+    return data
+
+
+def atomic_save_json(path: str, data) -> None:
+    """Escribe `{path}.tmp`, fsync y renombra atómico; con lock compartido."""
+    tmp = f"{path}.tmp"
+    with _REGISTRY_LOCK:
+        _os.makedirs(_os.path.dirname(_os.path.abspath(path)), exist_ok=True)
+        try:
+            with open(tmp, "w", encoding="utf-8") as fh:
+                _json.dump(data, fh, ensure_ascii=False, indent=1)
+                fh.flush()
+                _os.fsync(fh.fileno())
+            _os.replace(tmp, path)
+        finally:
+            if _os.path.exists(tmp):
+                _os.remove(tmp)
+
+
+def save_session_registry(path: str, data: dict) -> None:
+    """Valida primero; si el esquema falla, el fichero no se toca."""
+    validate_registry_schema(data)
+    atomic_save_json(path, data)
+
+
+def load_json_dict(path: str, backup_path: str | None = None) -> dict:
+    """Lee un dict JSON; ausente o corrupto cae a backup o a `{}`."""
+    if not _os.path.exists(path):
+        return {}
+    try:
+        with open(path, encoding="utf-8") as fh:
+            valor = _json.load(fh)
+        return dict(valor) if isinstance(valor, dict) else {}
+    except (OSError, ValueError):
+        backup = backup_path or f"{path}.bak"
+        if backup and _os.path.exists(backup):
+            try:
+                with open(backup, encoding="utf-8") as fh:
+                    valor = _json.load(fh)
+                return dict(valor) if isinstance(valor, dict) else {}
+            except (OSError, ValueError):
+                pass
+        return {}
+
+
+def load_session_registry_with_status(
+    path: str, backup_path: str | None = None
+) -> tuple[dict, str | None]:
+    """Carga el registro; corrupto/schema cae a backup o a vacío con aviso."""
+    if not _os.path.exists(path):
+        return empty_registry(), None
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = _json.load(fh)
+        validate_registry_schema(data)
+        return data, None
+    except (OSError, ValueError) as exc:
+        backup = backup_path or f"{path}.bak"
+        if backup and _os.path.exists(backup):
+            try:
+                with open(backup, encoding="utf-8") as fh:
+                    data = _json.load(fh)
+                validate_registry_schema(data)
+                return data, f"registro corrupto ({exc}); recuperado del backup"
+            except (OSError, ValueError):
+                pass
+        return empty_registry(), f"registro corrupto ({exc}); se empieza vacío"
+
+
+def load_session_registry(path: str, backup_path: str | None = None) -> dict:
+    """Carga el registro con fallback a backup; nunca rompe el tablero."""
+    data, _aviso = load_session_registry_with_status(path, backup_path)
+    return data
+
+
+def migrate_legacy_registry(
+    legacy_path: str, session_path: str, bak_path: str | None = None
+) -> dict:
+    """Copia (nunca mueve) el legacy a la sesión; .bak + count-check, aborta sin parcial."""
+    bak = bak_path or f"{legacy_path}.bak"
+    if not _os.path.exists(legacy_path):
+        vacio = empty_registry()
+        atomic_save_json(session_path, vacio)
+        return {k: 0 for k in _REGISTRY_KEYS}
+    _shutil.copy2(legacy_path, bak)
+    with open(legacy_path, encoding="utf-8") as fh:
+        data = _json.load(fh)
+    validate_registry_schema(data)
+    antes = {k: len(data[k]) for k in _REGISTRY_KEYS}
+    atomic_save_json(session_path, data)
+    with open(session_path, encoding="utf-8") as fh:
+        despues_data = validate_registry_schema(_json.load(fh))
+    despues = {k: len(despues_data[k]) for k in _REGISTRY_KEYS}
+    if despues != antes:
+        if _os.path.exists(session_path):
+            _os.remove(session_path)
+        raise ValueError(
+            f"migración abortada: conteo {despues} != legacy {antes}; "
+            "sin datos parciales, legacy restorable desde el .bak"
+        )
+    return despues
+
+
+def guardar_disco(registros: dict, ruta: str) -> None:
+    """Persiste los registros de hangar en JSON (atómico, con lock)."""
+    atomic_save_json(ruta, registros)
 
 
 def cargar_disco(ruta: str) -> dict:
-    """Lee los registros persistidos; si no existen, devuelve un dict vacío."""
-    import json as _json
-    import os as _os
-
-    if not _os.path.exists(ruta):
-        return {}
-    with open(ruta, encoding="utf-8") as fh:
-        return dict(_json.load(fh))
+    """Lee los registros; ausente o corrupto cae a backup o a `{}`."""
+    return load_json_dict(ruta)

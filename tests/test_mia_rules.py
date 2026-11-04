@@ -1,9 +1,9 @@
-"""Tests del paquete `mia/`: motor de reglas, corrección y decisión.
+"""Tests del paquete src/mia/`: motor de reglas, corrección y decisión.
 
 Se comprueban cuatro cosas:
 
 1. la forma del motor (tuplas de cinco y retorno `decision`/`usadas`/`porque`);
-2. que los casos de `mia/casos.py` salen todos en BIEN;
+2. que los casos de src/mia/casos.py` salen todos en BIEN;
 3. que la corrección es causal, isotónica en el prefijo y no rompe el invariante de la banda;
 4. que la calibración congelada es la que dice ser (14 915 filas, sin unidad 16).
 
@@ -19,12 +19,12 @@ import numpy as np
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MIA = os.path.join(ROOT, "mia")
-sys.path.insert(0, MIA)
+sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.join(ROOT, "src", "mia"))
 
-import reglas as R  # noqa: E402
-from casos import CASOS, ficha_invalida, hay_cache, probar_casos  # noqa: E402
-from motor import motor  # noqa: E402
+from src.mia import reglas as R  # noqa: E402
+from src.mia.casos import CASOS, ficha_invalida, hay_cache, probar_casos  # noqa: E402
+from src.mia.motor import motor  # noqa: E402
 
 needs_cache = pytest.mark.skipif(not hay_cache(), reason="app/cache missing")
 needs_oof = pytest.mark.skipif(

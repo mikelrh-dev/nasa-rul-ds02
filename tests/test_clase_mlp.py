@@ -26,7 +26,7 @@ def test_mlp_test_solo_lectura_final_del_elegido():
 
 
 def test_mlp_elegido_por_validacion():
-    from track_clase.train_mlp import ORDEN_MLP
+    from src.clase.train_mlp import ORDEN_MLP
     comp = pd.read_csv("resultados/mlp_comparativa.csv")
     clave = {m: (float(comp.loc[comp["experimento"] == m, "rmse_val"].iloc[0]),
                   ORDEN_MLP[m]) for m in comp["experimento"]}

@@ -3,7 +3,7 @@
 import pandas as pd
 from sklearn.linear_model import Ridge
 
-from track_clase.pipeline_clase import CAT_COLS, FEATURE_COLS, NUM_COLS, make_pipeline, predict_caso_nuevo
+from src.clase.pipeline_clase import CAT_COLS, FEATURE_COLS, NUM_COLS, make_pipeline, predict_caso_nuevo
 
 
 def test_mismo_pre_para_todos_y_columnas():

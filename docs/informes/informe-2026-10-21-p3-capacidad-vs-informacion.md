@@ -1,5 +1,8 @@
 # P3 — ¿capacidad del modelo o información ausente? (`dev` para decidir; lecturas descriptivas de test en §4.ter y §4.quater)
 
+> **Banner — bundle A obsoleto, bundle B vigente:** este informe 2026-10-21 describe el bundle A (histórico/pre-B, 4.289 / sha `0acd795b…`) y ya no es vigente como referencia de producción. Vigente: bundle B (ref 4.251; media 4.340 ± 0.101). Las métricas B no se cambian en este diff; las cifras de abajo se conservan como histórico.
+
+
 Fecha: 2026-10-21. Pregunta: el sesgo de vida alta, ¿se arregla con otra clase de
 modelo (XGBoost, más capacidad) o falta información en las features?
 

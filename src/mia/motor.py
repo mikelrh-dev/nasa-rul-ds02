@@ -19,15 +19,28 @@ MAX_VUELTAS = 32
 
 def motor(caso: dict, reglas_correccion: list, reglas_decision: list,
           ver: bool = False) -> dict:
-    """Aplica la pasada B y luego la pasada A sobre la ficha del caso."""
+    """Aplica la pasada B y luego la pasada A sobre la ficha del caso.
+
+    Una condición que no encuentra su clave (KeyError, p. ej. una ficha con
+    solo `rul_punto` y sin `limite_inferior`/`umbrales`) cuenta como no
+    cumplida, no como error: la pasada sigue y, si al final nadie decidió,
+    la decisión es `SIN_DECISION` en vez de `None` silencioso.
+    """
+
     usadas: list[str] = []
     porque: list[str] = []
+
+    def se_cumple(regla) -> bool:
+        try:
+            return bool(regla[1](caso))
+        except KeyError:
+            return False
 
     for pasada, reglas in (("B", reglas_correccion), ("A", reglas_decision)):
         restantes = list(reglas)
         vuelta = 0
         while restantes and vuelta < MAX_VUELTAS:
-            candidatas = [r for r in restantes if r[1](caso)]
+            candidatas = [r for r in restantes if se_cumple(r)]
             if not candidatas:
                 break
             regla = max(candidatas, key=lambda r: r[3])
@@ -43,8 +56,12 @@ def motor(caso: dict, reglas_correccion: list, reglas_decision: list,
                 print(f"Pasada {pasada} · vuelta {vuelta}: se cumplen {nombres} "
                       f"-> se aplica {regla[0]} -> apunta {efecto}")
 
+    decision = caso.get("decision")
+    if decision is None:
+        decision = "SIN_DECISION"
+        caso["decision"] = decision
     return {
-        "decision": caso.get("decision"),
+        "decision": decision,
         "usadas": usadas,
         "porque": porque,
     }

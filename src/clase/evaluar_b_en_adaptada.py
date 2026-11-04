@@ -26,13 +26,13 @@ import sys
 import numpy as np
 import pandas as pd
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 if os.path.join(_ROOT, "src") not in sys.path:
     sys.path.insert(0, os.path.join(_ROOT, "src"))
 
-from track_clase.dataset_clase import OP_COLS, SENSOR_COLS  # noqa: E402
+from src.clase.dataset_clase import OP_COLS, SENSOR_COLS  # noqa: E402
 from ds02_rul.features import build_windows  # noqa: E402
 from ds02_rul.metrics import evaluate_predictions, macro_rmse  # noqa: E402
 

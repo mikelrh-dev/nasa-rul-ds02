@@ -35,7 +35,7 @@ needs_oof = pytest.mark.skipif(
     reason="_p1_oof_cache.npz missing",
 )
 
-CALIBRACION = os.path.join(ROOT, "mia", "calibracion_banda.json")
+CALIBRACION = os.path.join(ROOT, "src", "mia", "calibracion_banda.json")
 
 
 def _sha256(path: str) -> str:
