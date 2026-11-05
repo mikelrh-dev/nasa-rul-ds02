@@ -112,7 +112,7 @@ def ejecutar_shap(
     joblib.dump({"nombres": nombres, "top": top, "fuente": "validacion-fold0",
                  "unidades": unidades_va,
                  "aditividad_max_error": error_adit},
-                "src/clase/models/shap_xgb.joblib")
+                "src/clase/models/shap_xgb_top.joblib")
     if verbose:
         print(top.to_string(index=False))
         print(f"guardado: {png} + {csv} (aditividad_max_error={error_adit:.2e})")

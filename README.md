@@ -109,7 +109,8 @@ El híbrido de clase **es** el modelo desplegado: mismo `run_seed`, mismo contra
 
 | Modelo | RMSE | NASA score | Semillas |
 |---|---|---|---|
-| C-media | **4.322+-0.064** | **2342.3+-43.4** | 42, 7, 123 |
+| C-media (NB06, grano ventana test 6196) | **4.322+-0.064** | **2342.3+-43.4** | 42, 7, 123 |
+| C-media (NB05, protocolo OOF) | 4.330+-0.053 | — | 42, 7, 123 |
 
 La semilla 42 es la del bundle desplegado (`models/ds02_manifest.json`); 7 y 123 se
 reentrenan con el mismo protocolo en `src/clase/evaluar_c_multisemilla.py`. El ± es

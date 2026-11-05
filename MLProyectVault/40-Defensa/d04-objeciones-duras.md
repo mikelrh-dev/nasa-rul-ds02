@@ -14,7 +14,7 @@ tags:
 
 ## 1. «Beta 1.0 significa que el BiLSTM sobra»
 
-No. Beta 1.0 elige el meta completo en esta partición, pero un fold pide 0. El meta sin el campeón no existe: necesita sus predicciones. Y el campeón solo da 6.22; el híbrido da 4.34 ([[e00-cifras-autoritativas]]).
+No. Beta 1.0 elige el meta completo en esta partición, pero un fold pide 0. El meta sin el campeón no existe: necesita sus predicciones. Y la mejor rama sola da 5.65; el híbrido da 4.34 en disco ([[e00-cifras-autoritativas]]).
 
 ## 2. «Banda 100 % con 26 ciclos es inútil»
 
@@ -30,23 +30,23 @@ Es el horizonte real con stride 100. La ventana no pretende ver la vida entera: 
 
 ## 5. «El BiLSTM varía medio punto entre semillas»
 
-Sí: ±0.54 por no-determinismo de TensorFlow en CPU. Por eso cito media y dispersión, no una corrida. El orden se mantiene en las tres: el híbrido siempre gana ([[c14-ruido-y-reproducibilidad]]).
+Sí: ±0.1 en el híbrido final por no-determinismo de TensorFlow en CPU (±0.5 en el BiLSTM suelto de la base original). Por eso cito media y dispersión, no una corrida. El orden se mantiene en las tres: el híbrido siempre gana ([[c14-ruido-y-reproducibilidad]], [[c20-multisemilla-y-ruido]]).
 
-## 6. «LightGBM 7.10 no aporta nada»
+## 6. «LightGBM 7.07 no aporta nada»
 
-Solo no, pero combinado sí: el salto de 6.22 a 4.34 viene de errores complementarios, no de magia. Blending fijo daba 8.09 y 7.18 y se rechazó; stacking aprendido sí supera ([[s10-stacking-hibrido]]).
+Sola no, pero combinada sí: el salto de 5.65 a 4.34 viene de errores complementarios, no de magia. Blending fijo daba 8.09 y 7.18 y se rechazó; stacking aprendido sí supera ([[s10-stacking-hibrido]]).
 
 ## 7. «Esto no decide nada, solo predice»
 
 La RUL sola no decide: decide `L_inf` con 30 y 25. Lead time 9/23/17 en media y saturación en 60.6. La decisión vive en [[s13-capa-de-reglas-y-decision]], no en el RMSE.
 
-## 8. «Macro 4.84 contra 4.25: ¿cuál es la verdad?»
+## 8. «Macro 5.02 contra 4.34: ¿cuál es la verdad?»
 
-Ambas: 4.25 pondera por ventana y esconde al motor 14; 4.84 pesa cada motor igual. El 14 da 8.02 con 760 filas. Enseño las dos para no halagar la flota ([[c04-metricas-y-baseline]]).
+Ambas: 4.34 pondera por ventana y esconde al motor 14; 5.02 pesa cada motor igual (bundle C). El 14 da 8.58 con 760 filas. Enseño las dos para no halagar la flota ([[c04-metricas-y-baseline]]).
 
 ## 9. «¿Por qué no reentrenar en producción?»
 
-Porque movería ±0.1 sin mejorar y rompería la trazabilidad. Defiendo lo de disco con hashes 7acba335 y d0c5ed7f y reload idéntico ([[s12-persistencia-y-contrato]]).
+Porque movería ±0.1 sin mejorar y rompería la trazabilidad. Defiendo lo de disco con hashes d6c70142 y bf9620a7 y reload idéntico ([[s12-persistencia-y-contrato]]).
 
 ## 10. «¿Y la deriva de distribución?»
 

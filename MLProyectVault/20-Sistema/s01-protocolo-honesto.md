@@ -57,9 +57,9 @@ ADR-001 rechaza el blending lineal por la misma razón estructural: promediar co
 
 ## Qué medimos
 
-El bundle vigente da ≈4.34 ± 0.10 en RMSE y fila de referencia 4.251 ([[e00-cifras-autoritativas]]). La diferencia entre validación y test es de décimas, no de unidades: esa es la firma de un protocolo sano ([[c03-fuga-de-informacion]]).
+El bundle vigente (C) da ≈4.3 en RMSE con fila de referencia 4.338 ([[e00-cifras-autoritativas]]). La diferencia entre validación y test es de décimas, no de unidades: esa es la firma de un protocolo sano ([[c03-fuga-de-informacion]]).
 
-El macro-RMSE es 4.8433 frente al ponderado de ≈4.25 ([[c04-metricas-y-baseline]]). El test esconde al motor 14 si se pondera por ventana.
+El macro-RMSE es 5.02 frente al ponderado de ≈4.3 ([[c04-metricas-y-baseline]]). El test esconde al motor 14 si se pondera por ventana.
 
 ## El límite
 

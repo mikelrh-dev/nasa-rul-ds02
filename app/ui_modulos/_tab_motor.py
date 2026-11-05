@@ -91,10 +91,16 @@ def _tab_motor(snapshot=None, unit=None, etiqueta_unidad=None, registro=None,
         # None is their legitimate value there too (e.g. a unit without
         # metrics), so filling is a no-op in that state, not a behavior
         # change.
-        try:
-            import dashboard_ds02 as _dash  # type: ignore
-        except ImportError:  # pragma: no cover - import-style fallback
-            from app import dashboard_ds02 as _dash  # type: ignore
+        import sys as _sys
+        _dash = _sys.modules.get("dashboard_ds02") or _sys.modules.get("app.dashboard_ds02")
+        _main = _sys.modules.get("__main__")
+        if _dash is None and _main is not None and hasattr(_main, "snapshot"):
+            _dash = _main
+        if _dash is None:
+            try:
+                import dashboard_ds02 as _dash  # type: ignore
+            except ImportError:  # pragma: no cover - import-style fallback
+                from app import dashboard_ds02 as _dash  # type: ignore
         if snapshot is None:
             snapshot = _dash.snapshot
         if unit is None:

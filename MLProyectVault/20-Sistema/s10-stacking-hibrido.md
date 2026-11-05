@@ -56,9 +56,9 @@ ADR-006 añade EMA causal después: sin ella el híbrido oscila entre ventanas v
 
 ## Qué medimos
 
-Híbrido + EMA5: ≈4.34 ± 0.10, MAE ≈3.24 ± 0.05, R² ≈0.9460, NASA ≈2347.7 ± 49.4, fila de disco 4.251 / 3.183 / 0.9482 / 2305.1 ([[e00-cifras-autoritativas]]).
+Híbrido-C + EMA5: media 4.322 ± 0.064, MAE ≈3.23, R² ≈0.946, NASA ≈2342, fila de disco 4.338 / 3.227 / 0.9461 / 2336.2 ([[e00-cifras-autoritativas]]).
 
-Frente a bases: LightGBM ≈7.10 y BiLSTM ≈6.22. El salto de ≈1.88 sobre el campeón es el argumento del ensamble ([[c09-ensembles]]).
+Frente a bases C: LGBM adaptada 7.067 y BiLSTM-C 5.654. El salto de ≈1.3 sobre la mejor rama es el argumento del ensamble ([[c09-ensembles]]).
 
 ## El límite
 

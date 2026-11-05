@@ -25,8 +25,8 @@ El guardado vive en `src/ds02_rul/persistence.py:108` y la carga en `src/ds02_ru
 
 | Archivo | Huella | Dónde se verifica |
 |---|---|---|
-| `ensemble.joblib` | `7acba335…`, 470 446 bytes | `src/ds02_rul/persistence.py:29` |
-| `bilstm_ds02.keras` | `d0c5ed7f…`, 1 935 382 bytes | `src/ds02_rul/persistence.py:170` |
+| `ensemble.joblib` | `d6c70142…`, 469 620 bytes | `src/ds02_rul/persistence.py:29` |
+| `bilstm_ds02.keras` | `bf9620a7…`, 1 935 767 bytes | `src/ds02_rul/persistence.py:170` |
 | `ds02_manifest.json` | Métricas, formas y protocolo | `src/ds02_rul/persistence.py:37` |
 | Guarda de forma | Aborta si el bundle no es DS02 | `src/ds02_rul/persistence.py:94` |
 
@@ -42,7 +42,7 @@ La guarda `assert_ds02_artifact` existe porque un bundle de FD001 cargado como D
 
 ## Qué medimos
 
-Fila de referencia en disco: 4.251 / 3.183 / 0.9482 / 2305.1 ([[e00-cifras-autoritativas]]). Es la corrida que reproduce `scripts/predict_ds02.py`, no la media de tres semillas.
+Fila de referencia en disco (bundle C): 4.338 / 3.227 / 0.9461 / 2336.2 ([[e00-cifras-autoritativas]]). Es la corrida que reproduce el servicio, no la media de tres semillas.
 
 Verificación en 30 segundos con el manifiesto y comparación contra `notebooks/ds02_ensemble/EVALUACION_EJECUCION.md`. Si difieren, se actualiza solo `e00`.
 
@@ -54,7 +54,7 @@ Verificación en 30 segundos con el manifiesto y comparación contra `notebooks/
 ## Di esto en el tribunal
 
 > [!quote]
-> «Lo que defiendo es lo que hay en disco: ensemble con hash 7acba335 y BiLSTM con d0c5ed7f, más manifiesto con métricas y protocolo. La fila de disco da 4.251 y la recarga pasa por guarda de forma.»
+> «Lo que defiendo es lo que hay en disco: ensemble con hash d6c70142 y BiLSTM con bf9620a7, más manifiesto con métricas y protocolo. La fila de disco da 4.338 y la recarga pasa por guarda de forma.»
 
 ## Flashcards
 
@@ -62,7 +62,7 @@ Verificación en 30 segundos con el manifiesto y comparación contra `notebooks/
 > `ensemble.joblib`, `bilstm_ds02.keras`, `scaler.joblib` y `ds02_manifest.json`.
 
 > [!question]- ¿Qué hashes tienen?
-> Ensemble `7acba335…` y BiLSTM `d0c5ed7f…`.
+> Ensemble `d6c70142…` y BiLSTM `bf9620a7…` (bundle C; los del B, en la lista negra de [[e00-cifras-autoritativas]]).
 
 > [!question]- ¿Qué hace assert_ds02_artifact?
 > Aborta si el bundle no tiene la forma DS02 que declara.
@@ -74,7 +74,7 @@ Verificación en 30 segundos con el manifiesto y comparación contra `notebooks/
 > Lo que se evalúa es lo que hay en disco: `.keras` nativo, `joblib` y manifiesto con hashes.
 
 > [!question]- ¿Cómo la contarías en el tribunal?
-> «Lo que defiendo es lo que hay en disco: ensemble con hash 7acba335 y BiLSTM con d0c5ed7f, más manifiesto con métricas y protocolo. La fila de disco da 4.251 y la recarga pasa por guarda de forma.»
+> «Lo que defiendo es lo que hay en disco: ensemble con hash d6c70142 y BiLSTM con bf9620a7, más manifiesto con métricas y protocolo. La fila de disco da 4.338 y la recarga pasa por guarda de forma.»
 
 > [!question]- ¿Qué archivo respalda esta nota?
 `src/ds02_rul/persistence.py:108`

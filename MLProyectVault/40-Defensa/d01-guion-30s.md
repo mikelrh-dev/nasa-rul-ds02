@@ -14,7 +14,7 @@ tags:
 
 ## La frase colgadero
 
-> «Predigo vida útil restante en DS02 con un híbrido de BiLSTM y LightGBM que da 4.25 en disco y decide sobre el borde inferior de la banda.»
+> «Predigo vida útil restante en DS02 con un híbrido de BiLSTM y LightGBM (bundle C) que da 4.34 en disco y decide sobre el borde inferior de la banda.»
 
 Decila mirando al tribunal, sin pantalla. Si se quedan con una sola frase, que sea esta.
 
@@ -27,7 +27,7 @@ Decila mirando al tribunal, sin pantalla. Si se quedan con una sola frase, que s
 «Combino una red que lee la película de 50 pasos con un árbol que lee resúmenes, más meta pequeño y suavizado por motor.»
 
 **10–18 s — Cuánto doy.**
-«Híbrido más EMA da 4.34 de media y 4.25 en disco, frente a 6.22 del BiLSTM y 7.10 del LightGBM.» ([[e00-cifras-autoritativas]])
+«Híbrido-C más EMA da 4.32 de media y 4.34 en disco, frente a 5.65 del BiLSTM y 7.07 de la LGBM adaptada.» ([[e00-cifras-autoritativas]])
 
 **18–25 s — Por qué creerme.**
 «Reparto por motor, preproceso solo con ajuste, beta fuera de fold y banda con 17 450 residuales no vistos.» ([[s01-protocolo-honesto]])
@@ -48,18 +48,18 @@ Decir «ventanas de 50 ciclos» en vez de 0,44 ciclos ([[c02-ventanas-y-horizont
 ## Di esto en el tribunal
 
 > [!quote]
-> «Si solo me dan treinta segundos: híbrido de BiLSTM y LightGBM, 4.25 en disco, reparto por motor y decisión sobre el borde inferior.»
+> «Si solo me dan treinta segundos: híbrido-C de BiLSTM y LightGBM, 4.34 en disco, reparto por motor y decisión sobre el borde inferior.»
 
 ## Flashcards
 
 > [!question]- ¿Cuál es tu frase colgadero?
-> Híbrido de BiLSTM y LightGBM que da 4.25 en disco y decide sobre el borde inferior.
+> Híbrido-C de BiLSTM y LightGBM que da 4.34 en disco y decide sobre el borde inferior.
 
 > [!question]- ¿Qué cinco paradas lleva el guion?
 > Problema, método, cifra, prueba y decisión.
 
 > [!question]- ¿Qué cifra dices y cuál es su fuente?
-> 4.25 en disco, con media 4.34; fuente [[e00-cifras-autoritativas]].
+> 4.34 en disco, con media 4.32; fuente [[e00-cifras-autoritativas]].
 
 > [!question]- ¿Qué no dices nunca en 30 s?
 > Cifras viejas, detalles de pooling o el IQR de beta.
@@ -68,7 +68,7 @@ Decir «ventanas de 50 ciclos» en vez de 0,44 ciclos ([[c02-ventanas-y-horizont
 > Decís esto primero y el tribunal ya sabe qué defendés, cuánto das y por qué creerte.
 
 > [!question]- ¿Cómo la contarías en el tribunal?
-> «Si solo me dan treinta segundos: híbrido de BiLSTM y LightGBM, 4.25 en disco, reparto por motor y decisión sobre el borde inferior.»
+> «Si solo me dan treinta segundos: híbrido-C de BiLSTM y LightGBM, 4.34 en disco, reparto por motor y decisión sobre el borde inferior.»
 
 > [!question]- ¿A qué nota vas si fallas esta idea?
 [[e00-cifras-autoritativas]]

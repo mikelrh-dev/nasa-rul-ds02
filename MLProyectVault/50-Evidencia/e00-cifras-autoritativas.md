@@ -28,7 +28,27 @@ tags:
 | Qué cifras no decir nunca | Lista negra |
 | Cómo re-verificar en 30 s | Cómo verificar |
 
-## Bundle B — lo que sirve `models/` y `app/cache/`
+## Bundle C — el desplegado (autoritativo desde 2026-11)
+
+El bundle en disco es **C** (`code_version: clase-bundle-C` en el manifiesto): híbrido BiLSTM + LightGBM + stacking + EMA5 sobre la **base adaptada** (MAR T30 + ffill causal con medianas de fit-units). Test: unidades 11 / 14 / 15, 6 196 ventanas. Semillas `[42, 7, 123]`.
+
+| Modelo | RMSE | MAE | R² | NASA score |
+|---|---|---|---|---|
+| LGBM adaptada (solo) | 7.067 | — | — | — |
+| BiLSTM-C (solo) | 5.654 | — | — | — |
+| BiLSTM-C + EMA5 | 5.618 | — | — | — |
+| **Híbrido-C + EMA5, fila oficial (semilla 42, en disco)** | **4.338** | **3.227** | **0.9461** | **2336.2** |
+| **Híbrido-C + EMA5, media multiseed NB06 (grano ventana test)** | **4.322 ± 0.064** | — | — | **2342.3 ± 43.4** |
+| Híbrido-C, media NB05 (protocolo OOF) | 4.330 ± 0.053 | — | — | — |
+| MLP E2 de clase (grano fila, 22 feats) | 7.72 test (val 7.34) | 5.81 | 0.83 | — |
+
+**Por qué hay tres filas del híbrido-C.** La de `4.338` es la corrida de la semilla 42, cuyo artefacto está en disco (`models/ds02_manifest.json → metrics.reference_row`): es la que reproduce el servicio. Las de `4.322 ± 0.064` (NB06, ventanas de test) y `4.330 ± 0.053` (NB05, protocolo OOF) son medias de tres semillas: miden la estabilidad, no el artefacto. Si difieren en centésimas, es ruido TensorFlow en CPU ([[c14-ruido-y-reproducibilidad]]), no contradicción.
+
+**Macro-RMSE del bundle C:** 5.0153 (motor 11: 3.6328 · 14: 8.5761 · 15: 2.8371). El motor 14 sigue siendo el que más sufre con menos ventanas.
+
+**La cascada se lee en orden:** 7.067 (LGBM) → 5.654 (BiLSTM) → 5.618 (+EMA5) → 4.338 (híbrido). Ninguna etapa sobra.
+
+## Bundle B — lo que sirvió antes (histórico, ya no desplegado)
 
 Test: unidades 11 / 14 / 15, 6 196 ventanas. Media ± desviación sobre semillas `[42, 7, 123]`.
 
@@ -95,8 +115,10 @@ Es **cota conservadora, no intervalo de decisión**: se calibró con modelos de 
 
 | Archivo | SHA-256 | Bytes |
 |---|---|---|
-| `models/ensemble.joblib` | `7acba335…` | 470 446 |
-| `models/bilstm_ds02.keras` | `d0c5ed7f…` | 1 935 382 |
+| `models/ensemble.joblib` | `d6c70142…` | 469 620 |
+| `models/bilstm_ds02.keras` | `bf9620a7…` | 1 935 767 |
+
+(Los hashes `7acba335…` / `d0c5ed7f…` eran del bundle B: ver lista negra.)
 
 ## Capa de reglas (`mia/`)
 
@@ -120,12 +142,14 @@ Estas aparecen en material viejo del repo y del vault anterior. Son de corridas 
 | Cifra | Qué era | Por qué no se usa |
 |---|---|---|
 | `4.352`, `4.344`, `4.301` | corridas históricas del híbrido | no determinismo de TensorFlow y revisiones previas |
-| `4.289` | fila de test de una revisión anterior | reemplazada por `4.251` |
+| `4.289` | fila de test de una revisión anterior | reemplazada por `4.251` (y luego por `4.338` del bundle C) |
+| `4.340 ± 0.101`, `4.251`, `5772.5`, `4397.8` | bundle B completo | reemplazados por el bundle C (fila `4.338`, media `4.322 ± 0.064`) |
+| `4.301 ± 0.068` | media de una revisión intermedia | reemplazada por `4.322 ± 0.064` (NB06) |
 | `4.9026` | macro-RMSE anterior | reemplazada por `4.8433` |
 | `051e0af4`, `0acd795b` | hashes de artefactos viejos | no son los que están en disco |
 | `6.233`, `6.347`, `4.278` | BiLSTM/híbrido de otras corridas | ruido de ejecución, no resultado del bundle |
 
-Si alguien del tribunal cita una de estas, la respuesta correcta es: *"esa cifra es de una corrida anterior; el artefacto en disco da 4.251"*.
+Si alguien del tribunal cita una de estas, la respuesta correcta es: *"esa cifra es del bundle B o de una corrida anterior; el artefacto en disco (bundle C) da 4.338"*.
 
 ## Cómo verificar (30 segundos)
 

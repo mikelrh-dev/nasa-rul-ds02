@@ -119,7 +119,7 @@ flowchart LR
 
 **Modelo elegido (clase): MLP E2 (val 7.34; test 7.72 en lectura única).** No es el más rápido (XGB entrena en 7 s frente a 33 s) y se elige igualmente: RMSE manda porque un fallo gordo (motor parado) cuesta órdenes de magnitud más que segundos de CPU; a igualdad de RMSE se preferiría el más simple.
 
-**Modelo desplegado (bundle C):** híbrido BiLSTM + LightGBM + stacking + EMA sobre la base adaptada (MAR T30 + ffill con medianas de fit-units), RMSE 4.338 / NASA 2336.2 (test uds 11/14/15), media multiseed 4.322+-0.064. El híbrido es el "extra no visto en clase" del criterio SAA 6. El manifiesto declara la variante de datos, la partición de motores y las huellas SHA: el despliegue se audita desde el artefacto.
+**Modelo desplegado (bundle C):** híbrido BiLSTM + LightGBM + stacking + EMA sobre la base adaptada (MAR T30 + ffill con medianas de fit-units), RMSE 4.338 / NASA 2336.2 (test uds 11/14/15), media multiseed 4.322+-0.064 en NB06 (grano ventana test 6196; NB05 protocolo OOF da 4.330+-0.053). El híbrido es el "extra no visto en clase" del criterio SAA 6. El manifiesto declara la variante de datos, la partición de motores y las huellas SHA: el despliegue se audita desde el artefacto.
 
 **Test (una lectura, solo el elegido):** MLP E2 RMSE 7.72 · MAE 5.81 · R² 0.83. Híbrido desplegado RMSE 4.338 · MAE 3.227 · R² 0.9461.
 
@@ -176,4 +176,4 @@ python -m pytest tests/test_clase_*.py tests/test_live_eval.py -q
 
 ## Autoría
 
-Track de clase sobre N-CMAPSS DS02 · rama `clase-experimental` · change openspec `2026-11-02-clase-track` · Curso IA y Big Data 2026-27
+Track de clase sobre N-CMAPSS DS02 · rama `clase-modelo-c` · change openspec `2026-11-02-clase-track` · Curso IA y Big Data 2026-27

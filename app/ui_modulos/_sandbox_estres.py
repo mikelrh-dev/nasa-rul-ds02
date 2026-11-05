@@ -51,10 +51,16 @@ def _sandbox_estres(windows=None, telemetry=None, units=None, cache_sha=None,
         # Lazy, inside the fragment, to avoid a circular top-level import:
         # the dashboard imports this module, so this module must not import
         # the dashboard at import time.
-        try:
-            import dashboard_ds02 as _dash  # type: ignore
-        except ImportError:  # pragma: no cover - import-style fallback
-            from app import dashboard_ds02 as _dash  # type: ignore
+        import sys as _sys
+        _dash = _sys.modules.get("dashboard_ds02") or _sys.modules.get("app.dashboard_ds02")
+        _main = _sys.modules.get("__main__")
+        if _dash is None and _main is not None and hasattr(_main, "windows"):
+            _dash = _main
+        if _dash is None:
+            try:
+                import dashboard_ds02 as _dash  # type: ignore
+            except ImportError:  # pragma: no cover - import-style fallback
+                from app import dashboard_ds02 as _dash  # type: ignore
         if windows is None:
             windows = _dash.windows
         if telemetry is None:

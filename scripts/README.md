@@ -1,19 +1,14 @@
-# scripts/ — vigente vs legacy
+# scripts/ — qué es vigente y qué es legado
 
-## Vigente (se usa)
+Vigente DS02 (bundle C, clase-track):
+- `build_ui_cache.py` — construye `app/cache/` desde `models/` (fuente para la app sin TF).
+- `freeze_rules_evidence.py` — gate de la capa de reglas (RULES-06, ADR-009).
+- `verify_gate.py` — gate full `pytest tests/` (260/16/7 baseline A6, ver verify-report).
+- `evaluate_model_quality.py`, `p0/p1_*` — sondas de medición (no reentrenan bundle).
+- `anclar_raiz_pylance.py` — helper editor (no afecta a runtime).
+- `predict_ds02.py` — CLI DS02.
 
-- `build_ui_cache.py` — genera `app/cache/` (ventanas demo + provenance). Por defecto
-  `--base adaptada` (base imputada, la del bundle desplegado); `--base limpia` reconstruye
-  desde el HDF5 (comportamiento histórico).
-- `freeze_rules_evidence.py` — evidencia congelada de reglas (gate de tests).
-- `predict_ds02.py` — inferencia CLI sobre el bundle.
-- `anclar_raiz_pylance.py` — escribe un `.pth` con la raiz del repo en el venv:
-  arregla el subrayado de Pylance en `src.*` cuando abres VS Code en una carpeta
-  padre. Solo local (`.venv/` no se versiona); el repo ya trae la config buena.
+Legado FD001 (no tocar para DS02, solo referencia):
+- `v3_*.py`, `predict.py`, `verify_blend.py`, `repackage_artifact.py`.
 
-## Legacy (no tocar, solo historia)
-
-- `finalize_v2.py`, `finalize_v3.py`, `inspect_v2_v3.py`, `execute_baseline_cells.py`, `extract_legacy_artifact.py` — era FD001/v2-v3.
-- `ablate_meta_cycle.py`, `p0_density_control.py`, `p1_*.py` — experimentos de un solo uso ya registrados.
-- `ajustar_notebook.py`, `add_v3_notebook.py`, `dump_cells.py`, `inspect_cells.py`, `build_and_run_notebook.py` — utilidades de edición de notebooks.
-- `*.npy`, `nb_exec_v4*.log` — restos de ejecuciones (ignorados por git).
+Generación vieja de notebooks de clase movida a `archive/scripts-clase-vieja/`.

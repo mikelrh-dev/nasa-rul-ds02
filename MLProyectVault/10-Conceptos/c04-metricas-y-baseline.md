@@ -47,7 +47,7 @@ Tres propiedades que hay que decir juntas:
 
 El macro-RMSE responde a otra pregunta: qué sufre un motor elegido al azar. Es el promedio de los RMSE por motor, cada uno pesando lo mismo, sin importar cuántas ventanas aporte (`src/ds02_rul/metrics.py:21`). El RMSE ponderado, en cambio, deja que el motor con más ventanas domine.
 
-En el bundle vigente la diferencia no es cosmética: el ponderado da ≈4.25 y el macro 4.8433, con 3.7874 / 7.9974 / 2.7451 por motor ([[e00-cifras-autoritativas]]). El motor 14 es el peor y el que menos ventanas aporta —760 de 6 196—, así que el promedio de flota lo disimula.
+En el bundle vigente (C) la diferencia no es cosmética: el ponderado da ≈4.34 y el macro 5.0153, con 3.6328 / 8.5761 / 2.8371 por motor ([[e00-cifras-autoritativas]]). El motor 14 es el peor y el que menos ventanas aporta —760 de 6 196—, así que el promedio de flota lo disimula.
 
 El baseline cierra el círculo. Es una constante: la media del objetivo en las filas de ajuste.
 
@@ -83,7 +83,7 @@ Su RMSE es 20.022. Existe por dos razones: demuestra que el pipeline no está ro
 ## Di esto en el tribunal
 
 > [!quote]
-> «Informo cuatro métricas porque cada una responde a una pregunta distinta. El NASA score es una suma de exponenciales asimétricas: sobreestimar cuesta con pendiente 1/10 y subestimar con 1/13, así que la misma equivocación no se cobra igual en las dos direcciones. Y además del RMSE ponderado informo el macro-RMSE, que es el que dice la verdad incómoda: 4,84 frente a 4,25, porque el motor con peor error es también el que menos ventanas aporta.»
+> «Informo cuatro métricas porque cada una responde a una pregunta distinta. El NASA score es una suma de exponenciales asimétricas: sobreestimar cuesta con pendiente 1/10 y subestimar con 1/13, así que la misma equivocación no se cobra igual en las dos direcciones. Y además del RMSE ponderado informo el macro-RMSE, que es el que dice la verdad incómoda: 5,02 frente a 4,34, porque el motor con peor error es también el que menos ventanas aporta.»
 
 ## Flashcards
 

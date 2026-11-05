@@ -34,7 +34,11 @@ def test_shap_por_defecto_usa_validacion():
     from src.clase import shap_clase as SC
     SC.ejecutar_shap(n_filas=30, png="resultados/_t.png",
                      csv="resultados/_t.csv", verbose=False)
-    d = joblib.load("src/clase/models/shap_xgb.joblib")
+    import os as _os
+    _p = "src/clase/models/shap_xgb_top.joblib"
+    if not _os.path.exists(_p):
+        _p = "src/clase/models/shap_xgb.joblib"  # legado
+    d = joblib.load(_p)
     assert d.get("fuente", "").startswith("validacion"), d.get("fuente")
     assert not set(d.get("unidades", [])) & {11.0, 14.0, 15.0}
     import os

@@ -10,7 +10,7 @@ tags:
 # API de src_ds02_rul — mapa regenerable
 
 > [!abstract] En una frase
-> Todo lo que los cuadernos importan vive en `src/ds02_rul/` con firma y línea conocidas.
+> Todo lo que los cuadernos importan vive en `src/ds02_rul/` y `src/clase/` con firma y línea conocidas.
 
 ## Contrato
 
@@ -46,9 +46,27 @@ Inventario generado por AST desde `src/ds02_rul/` (firmas y líneas reales).
 
 Regla de lectura: `data` ingiere, `features` transforma, `model` y `pipeline` entrenan bases, `stacking` combina, `ensemble` sirve, `conformal` acota, `metrics` puntúa, `persistence` congela.
 
+## Inventario de `src/clase/` — el track tabular
+
+| Módulo | Función o pieza clave | Línea |
+|---|---|---|
+| `dataset_clase.py` | `SENSOR_COLS` (14 sensores) | `src/clase/dataset_clase.py:31` |
+| `pipeline_clase.py` | `NUM_COLS` / `CAT_COLS` / `FEATURE_COLS` | `src/clase/pipeline_clase.py:22` |
+| `pipeline_clase.py` | `predict_caso_nuevo` | `src/clase/pipeline_clase.py:43` |
+| `train_clasicos.py` | 5 clásicos + GroupKFold | `src/clase/train_clasicos.py` |
+| `train_mlp.py` | MLP + GridSearch (E1/E2/E3) | `src/clase/train_mlp.py` |
+| `train_ensemble_adaptado.py` | `construir_raw_adaptado` (EPOCHS 22) | `src/clase/train_ensemble_adaptado.py:67` |
+| `train_lgbm_adaptada.py` | LGBM cuantil sobre base adaptada | `src/clase/train_lgbm_adaptada.py` |
+| `evaluar_c_multisemilla.py` | protocolo [42, 7, 123] | `src/clase/evaluar_c_multisemilla.py` |
+| `tabla_final.py` | `COLUMNAS` con `grano` | `src/clase/tabla_final.py:18` |
+| `shap_clase.py` / `shap_clase_e2.py` | diccionario top SHAP | `src/clase/shap_clase.py` |
+| `puente_c.py` / `ventanas_adaptadas.py` | puente + ventanas de 50 | `src/clase/puente_c.py` |
+
+Regla de lectura del track clase: `dataset` ingiere, `pipeline_clase` transforma, `train_*` compiten con GroupKFold, `evaluar_c_multisemilla` repite, `tabla_final` ordena por grano, `shap` explica.
+
 ## La decisión que hay detrás
 
-Separar `src/` de cuadernos permite que NB01–NB03 sean finos: importan, no definen. El código serio vive testeado en `src/` y los cuadernos solo orquestan.
+Separar `src/` de cuadernos permite que NB01–NB06 sean finos: importan, no definen. El código serio vive testeado en `src/` y los cuadernos solo orquestan.
 
 Se rechazó definir modelos dentro del cuaderno: no se reutiliza, no se testea y no se sirve. Lo que se sirve es `src`, no celdas.
 
