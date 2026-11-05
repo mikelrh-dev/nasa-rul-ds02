@@ -1,0 +1,35 @@
+# CI minimo (DEP-CI-01): instala dependencias pineadas y ejecuta la
+# suite de tests sin reentrenar modelos ni ejecutar notebooks/DeepSHAP.
+# Los tests leen los artefactos ya congelados (models/, app/cache/).
+name: CI
+
+on:
+  push:
+    branches: [main, "clase-*"]
+  pull_request:
+
+env:
+  PYTHONHASHSEED: "42"
+  CI: "true"
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -e . --no-deps
+
+      - name: Run tests (no retraining)
+        env:
+          PYTHONHASHSEED: "42"
+        run: python -m pytest tests -q
