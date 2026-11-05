@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "generated_at": "2026-11-04T12:12:42+00:00",
+  "generated_at": "2026-11-05T10:05:21+00:00",
   "dataset": "DS02",
   "source": {
     "base": "adaptada (MAR T30 + ffill causal, medianas de fit-units)",
@@ -38,7 +38,7 @@
     "ensemble": "models\\ensemble.joblib",
     "ensemble_sha256": "d6c701429eed8623a9d900d922aca1922427d08ff8b4ec00604b8116c1a952dd",
     "manifest": "models\\ds02_manifest.json",
-    "manifest_sha256": "cae963205db9530d97f01d554b6733be101f1f8f79361dabe24bc9a04693b6b9",
+    "manifest_sha256": "bdff6ff12454cd53a780e677ded504d153864142b283a0f1f988c3140fd64f9c",
     "paradigm": "Hybrid Stacking (BiLSTM triple-pooling + LGBM residualizado + RidgeCV/LGBM meta + EMA5)",
     "beta": 1.0,
     "ema_span": 5,

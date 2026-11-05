@@ -148,6 +148,56 @@ def get_manifest() -> dict:
         return json.load(fh)
 
 
+def verify_cache_manifest(provenance_path: str | None = None,
+                          manifest_path: str | None = None) -> dict:
+    """Valida que `app/cache/cache_manifest.json` no esté stale (CACHE-DRIFT-01).
+
+    Compara `artifact.manifest_sha256` registrado en el provenance con el
+    SHA-256 real de `models/ds02_manifest.json` en disco. Si falta el campo,
+    si el digest no coincide o si el manifest no se puede leer, eleva
+    `RuntimeError` con el par registrado/leído: una caché con el sello roto
+    no se reutiliza en silencio. Devuelve el provenance validado.
+    """
+    prov_path = PROVENANCE_PATH if provenance_path is None else provenance_path
+    man_path = MANIFEST_PATH if manifest_path is None else manifest_path
+
+    try:
+        with open(prov_path, encoding="utf-8") as fh:
+            provenance = json.load(fh)
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(
+            f"cache manifest unreadable at {prov_path!r}: {exc}. "
+            "Refusing to reuse the cache."
+        ) from exc
+
+    esperado = str(((provenance or {}).get("artifact") or {}).get("manifest_sha256") or "").strip()
+    if not esperado:
+        raise RuntimeError(
+            f"cache manifest at {prov_path!r} records no artifact.manifest_sha256. "
+            "Regenerate it with scripts/build_ui_cache.py --base adaptada."
+        )
+
+    try:
+        man_stat = os.stat(man_path)
+    except OSError as exc:
+        raise RuntimeError(
+            f"cannot verify cache manifest: {man_path!r} unreadable: {exc}"
+        ) from exc
+    leido = _sha256_cached(man_path, int(man_stat.st_size), int(man_stat.st_mtime_ns))
+    if leido is None:
+        raise RuntimeError(
+            f"cannot verify cache manifest: {man_path!r} unreadable."
+        )
+    leido = str(leido).strip()
+    if leido != esperado:
+        raise RuntimeError(
+            f"cache manifest stale: manifest_sha256 recorded={esperado} but "
+            f"{man_path!r} on disk has sha256={leido}. "
+            "Regenerate the cache with scripts/build_ui_cache.py --base adaptada."
+        )
+    return provenance
+
+
 def cache_available() -> bool:
     """True si existen los tres ficheros de caché (ventanas, filas, provenance).
 
@@ -166,6 +216,11 @@ def cache_available() -> bool:
         with open(PROVENANCE_PATH, encoding="utf-8") as fh:
             provenance = json.load(fh)
     except (OSError, ValueError):
+        return False
+    # CACHE-DRIFT-01: un manifest_sha256 stale cierra la puerta sin reutilizar.
+    try:
+        verify_cache_manifest()
+    except RuntimeError:
         return False
     counts = provenance.get("counts") or {}
     # Orden estable ya garantizado al construir; aquí solo se firma contenido.

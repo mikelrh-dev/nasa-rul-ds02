@@ -48,6 +48,30 @@ CV_MLP = GroupKFold(n_splits=3)
 # E2 = elegido por rmse_val (7.3404) y rmse_test 7.72 en resultados/mlp_comparativa.csv.
 # Se persiste aparte para SHAP SAA-9 de 7 a 10; NO pisa mejor_modelo_clase.joblib (XGB).
 E2_MODEL_PATH = "models/mejor_modelo_clase_E2.joblib"
+# XGB de clase (mejor clásico): también guardado por SEC-JOBLIB-01.
+CLASE_MODEL_PATH = "models/mejor_modelo_clase.joblib"
+
+
+def _registrar_checksum_e2() -> None:
+    """Refresca `clase_e2_sha256` en `models/ds02_manifest.json` (SEC-JOBLIB-01).
+
+    Tras persistir E2, el digest registrado quedaría obsoleto y el guard
+    rechazaría la carga válida. Idempotente; conserva CRLF/indent-2.
+    """
+    import json
+
+    from src.ds02_rul.persistence import sha256_of
+
+    destino = os.path.join(_ROOT, E2_MODEL_PATH)
+    manifest_path = os.path.join(_ROOT, "models", "ds02_manifest.json")
+    if not os.path.exists(destino) or not os.path.exists(manifest_path):
+        return
+    with open(manifest_path, encoding="utf-8") as fh:
+        manifest = json.load(fh)
+    manifest.setdefault("artifacts", {})["clase_e2_sha256"] = sha256_of(destino)
+    texto = json.dumps(manifest, indent=2, ensure_ascii=False)
+    with open(manifest_path, "wb") as fh:
+        fh.write(texto.replace("\n", "\r\n").encode("utf-8"))
 
 
 def _m_train(y_tr, p_tr) -> dict:
@@ -115,6 +139,7 @@ def entrenar_mlp(verbose: bool = True) -> pd.DataFrame:
     # E2 persistido siempre (Pipeline completo), aunque no sea el 'mejor' numérico:
     # es el modelo explicado en SAA-9 de 7 a 10. Ruta aparte del XGB.
     joblib.dump(pipes["E2_reg_lr"], E2_MODEL_PATH)
+    _registrar_checksum_e2()
     if verbose:
         print("guardado E2:", E2_MODEL_PATH)
     return comp
@@ -132,6 +157,7 @@ def persistir_e2(destino: str = E2_MODEL_PATH, verbose: bool = True):
     pipe = make_pipeline(MLPRegressor(**{**BASE_KW, **kw}))
     pipe.fit(X_tr, y_tr)
     joblib.dump(pipe, destino)
+    _registrar_checksum_e2()
     if verbose:
         print("guardado E2:", destino)
     return pipe
@@ -144,7 +170,11 @@ def importancia_mejor_clasico(n_filas: int = 200, seed: int = 7) -> pd.DataFrame
     scoring RMSE. No causal: describe el modelo, no el motor.
     """
     from src.clase.train_clasicos import grupos_validacion
-    pipe = joblib.load("models/mejor_modelo_clase.joblib")
+    # SEC-JOBLIB-01: checksum verificado ANTES de deserializar.
+    from src.ds02_rul.persistence import verify_artifact_sha256
+
+    verify_artifact_sha256(CLASE_MODEL_PATH, "clase_xgb_sha256")
+    pipe = joblib.load(CLASE_MODEL_PATH)
     X_tr = pd.read_parquet("data/processed/X_train.parquet").reset_index(drop=True)
     y_tr = pd.read_parquet("data/processed/y_train.parquet").reset_index(drop=True).values.ravel().astype(float)
     va = grupos_validacion(X_tr["unit"].to_numpy())

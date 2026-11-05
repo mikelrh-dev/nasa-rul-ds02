@@ -120,7 +120,7 @@
   ],
   "metrics": {
     "reference_row": {
-      "Modelo": "H\u00edbrido-C (beta=1.00) + EMA5",
+      "Modelo": "Híbrido-C (beta=1.00) + EMA5",
       "RMSE": 4.338,
       "MAE": 3.227,
       "R2": 0.9461,
@@ -144,7 +144,10 @@
     "ensemble_sha256": "d6c701429eed8623a9d900d922aca1922427d08ff8b4ec00604b8116c1a952dd",
     "bilstm_sha256": "bf9620a7de3bf9f8efa65c1993a96d8a95b903dc6fde72c772aa316f4c042219",
     "bilstm_bytes": 1935767,
-    "ensemble_bytes": 469620
+    "ensemble_bytes": 469620,
+    "clase_xgb_sha256": "5aab4d2a050163c9d9db0d0d3f769c198fe2e47a1bf2959fb355ca6f4652615f",
+    "clase_e2_sha256": "3bebe67e8750f174737228bd5de9b13758b4889607b415840152b5b7a33aa376",
+    "v3_bundle_sha256": "47d809beaeb28d69810e73c75afb5ac8d7845b2120f05a2909dbc9179b401f3c"
   },
   "dataset_variant": "DS02-adaptada (MAR T30 + ffill causal, medianas de fit-units)",
   "macro_rmse": {
