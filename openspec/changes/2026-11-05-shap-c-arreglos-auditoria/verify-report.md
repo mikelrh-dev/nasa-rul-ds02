@@ -9,7 +9,7 @@
 - Primera corrida: `5 failed, 309 passed, 1 skipped` — fallos en `test_audit_fixes` (1), `test_mia_rules` (1), `test_rules_gate` (3), todos de reglas/freeze.
 - Causa raíz (verificada por el padre, no regresión): el `_p1_oof_cache.npz` generado con `.venv` (3.12) des-skippea esos 5 tests, que fallan por drift venv vs intérprete histórico de notebooks (system 3.10, caveat en `openspec/config.yaml`). Sin el fichero: subset `3 passed, 5 skipped`.
 - Decisión: fichero generado aparcado en scratch (no queda en el repo); freeze queda exit 3 en clon limpio / exit 5 documentado con OOF de venv (`freeze-evidence.md`). No se re-congela `calibracion_banda.json`.
-- Segunda corrida: **GATE PASSED**. Recolección: 315 tests = **309 passed + 6 skipped + 0 failed** (skips: 5-6 por `_p1_oof_cache` ausente + 1 CSV multisemilla).
+- Segunda corrida: **GATE PASSED**. Conteo corregido por Juez 2 (re-ejecución completa propia): 315 tests = **308 passed + 7 skipped + 0 failed** (6× `_p1_oof_cache` ausente + 1× CSV multisemilla ausente en árbol limpio; el 309+6 inicial contaba CSV presente en la corrida del padre). El PASS es creíble; la cifra congelada correcta es 308+7. Exit 5 de freeze NO re-verificado (solo documentado); CI nunca ejercita freeze (skips).
 
 ## Invariantes (Fase 8.3)
 
@@ -26,5 +26,5 @@
 
 ## Pendiente
 
-- **8.2 Dos jueces independientes** (siguiente paso del orquestador).
+- **8.2 Dos jueces independientes: HECHO** — Juez 1: todo confirmado, puede cerrarse. Juez 2: PASS confirmado (308+7, exit 0), conteo 309+6 refutado y corregido arriba; exit 5 no re-verificado; CI sin freeze.
 - **Archive** tras jueces: merge a `openspec/specs/` + mover change a `openspec/changes/archive/`.
