@@ -34,3 +34,7 @@ El instrumento se regeneró dentro de `.venv` (TF 2.21.0 / LightGBM 4.7.0 / skle
 ## Próximo paso propuesto (fuera de esta unidad)
 
 Decidir con el padre: (a) re-freezar `mia/calibracion_banda.json` tras revisión de los nuevos bins/cifras, o (b) regenerar el OOF con el intérprete histórico y re-verificar. Hasta entonces el gate sigue en exit 5 explícito.
+
+## Decision padre 2026-11-05 (verify)
+
+Generar `_p1_oof_cache.npz` con `.venv` (3.12) des-skippea 5 tests de reglas que FALLAN por drift venv vs interprete historico de notebooks (system 3.10, ver openspec/config.yaml caveat). Sin el fichero: 3 passed + 5 skipped y GATE PASSED. Con el fichero: 5 failed. Decision: NO se deja el fichero generado en el repo (queda en scratch); freeze queda exit 3 en clon limpio y exit 5 documentado con OOF de venv. No se re-congela calibracion_banda.json (fuera de alcance, cambiaria las reglas).
