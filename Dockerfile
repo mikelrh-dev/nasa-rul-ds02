@@ -39,3 +39,8 @@ CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8000"]
 # plain HTTP. For a standalone local run, override with --host 127.0.0.1,
 # e.g. `docker run -p 127.0.0.1:8000:8000 ...` and bind loopback, or
 # `uvicorn app.api:app --host 127.0.0.1 --port 8000`.
+# SEC-DOCK-ST-01: docker-compose.yml publishes this port as
+# 127.0.0.1:8000:8000 (loopback on the host) while the container itself
+# keeps binding 0.0.0.0 internally so port mapping keeps working. Do not
+# publish 0.0.0.0:8000; any external exposure must go through the
+# TLS-terminating proxy described above.

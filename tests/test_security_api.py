@@ -1,0 +1,110 @@
+"""Security contract for the DS02 API (SEC-API-01).
+
+Locked behavior:
+- ``/health`` is public: 200 without credentials, even when ``DS02_API_KEY``
+  is configured.
+- Protected endpoints reject a wrong/missing API key with 401.
+- API keys must be compared with :func:`hmac.compare_digest`.
+- The fixed-window rate limiter also applies to authenticated writes
+  (``POST /predict``): the 11th authenticated write inside a minute is 429.
+"""
+
+from __future__ import annotations
+
+import os
+
+import numpy as np
+import pytest
+from fastapi.testclient import TestClient
+
+import app.api as api
+
+_SECRET = "test-secret-key"
+
+
+class _FakeLgbStandalone:
+    n_features_in_ = 7
+
+
+class _FakeEnsemble:
+    paradigm = "fake-test"
+    window_size = 50
+    beta = 0.05
+    ema_span = 10
+    n_op = 6
+    lgb_standalone = _FakeLgbStandalone()
+
+    def predict(self, X, cycles, uni):
+        return np.array([123.0])
+
+
+@pytest.fixture()
+def client(monkeypatch):
+    """TestClient without lifespan; fake ensemble + empty rate limiter."""
+    fake = _FakeEnsemble()
+    monkeypatch.setitem(api.STATE, "ensemble", fake)
+    monkeypatch.setattr(api, "_rate_hits", {})
+    # Lifespan never runs for a bare TestClient, so _raw() must not hit disk.
+    monkeypatch.setattr(
+        api,
+        "_raw",
+        lambda: {
+            "W_test": np.zeros((1, 50, 19)),
+            "Xs_test": np.zeros((1, 50, 19)),
+            "A_test": np.array([[11.0, 100.0]]),
+        },
+    )
+    monkeypatch.setattr(
+        api,
+        "windows_for_unit",
+        lambda *a, **k: (
+            np.zeros((1, 50, 19)),
+            np.array([100.0]),
+            np.array([11.0]),
+            None,
+        ),
+    )
+    return TestClient(api.app, raise_server_exceptions=False)
+
+
+def test_health_is_public_without_auth(client, monkeypatch):
+    """`/health` returns 200 without credentials even when a key is set."""
+    monkeypatch.setattr(api, "_API_KEY", _SECRET)
+    resp = client.get("/health")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["status"] == "ok"
+
+
+def test_wrong_api_key_is_rejected_with_401(client, monkeypatch):
+    """A wrong API key on a write endpoint is 401 (never 200/429)."""
+    monkeypatch.setattr(api, "_API_KEY", _SECRET)
+    resp = client.post(
+        "/predict",
+        json={"unit": 11, "window": 0},
+        headers={"X-API-Key": "wrong-key"},
+    )
+    assert resp.status_code == 401, resp.text
+
+
+def test_rate_limit_applies_even_with_valid_api_key(client, monkeypatch):
+    """Authenticated writes are also rate-limited: 11th write is 429."""
+    monkeypatch.setattr(api, "_API_KEY", _SECRET)
+    payload = {"unit": 11, "window": 0}
+    headers = {"X-API-Key": _SECRET}
+    first = client.post("/predict", json=payload, headers=headers)
+    assert first.status_code == 200, first.text
+    statuses = [
+        client.post("/predict", json=payload, headers=headers).status_code
+        for _ in range(api._RATE_LIMIT_PER_MIN)
+    ]
+    assert 429 in statuses, statuses
+    assert statuses[-1] == 429
+
+
+def test_api_key_comparison_uses_compare_digest():
+    """`_protect` must compare keys with hmac.compare_digest, not `!=`."""
+    src_path = os.path.join(os.path.dirname(os.path.dirname(api.__file__)), "app", "api.py")
+    with open(src_path, encoding="utf-8") as fh:
+        src = fh.read()
+    assert "compare_digest" in src, "hmac.compare_digest not used for API key check"
+    assert "import hmac" in src, "hmac module not imported in app/api.py"

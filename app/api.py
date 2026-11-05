@@ -14,8 +14,10 @@ P1 hardening:
   (`ENVIRONMENT=production` or `prod`).
 - CORS is localhost-only; security headers are set on every response.
 - `/predict` and `/units` require an API key when `DS02_API_KEY` is set
-  (`X-API-Key` header via `Depends`); when no API key is configured a
-  fixed-window rate limit of 10 requests/minute per client IP applies.
+  (`X-API-Key` header via `Depends`, compared with `hmac.compare_digest`).
+  A fixed-window rate limit of 10 requests/minute per client IP applies
+  with or without an API key, so authenticated writes are throttled too.
+- `/health` stays public (200 without credentials) as a liveness contract.
 - `PredictRequest` validates `unit`/`window` with `ge`/`le` and rejects
   NaN/Inf via an explicit validator (pydantic allows them by default).
 
@@ -26,6 +28,7 @@ For local/standalone use bind `127.0.0.1` (see `Dockerfile` note).
 """
 from __future__ import annotations
 
+import hmac
 import math
 import os
 import sys
@@ -84,11 +87,16 @@ def _check_rate_limit(request: Request) -> None:
 
 
 def _protect(request: Request, x_api_key: str | None = None) -> None:
-    """API-key auth when configured, else in-memory rate limiting."""
+    """API-key auth when configured, plus in-memory rate limiting always.
+
+    The key is compared with `hmac.compare_digest` (constant-time).
+    The 10/min per-IP limiter runs after successful auth with or
+    without a configured key, so authenticated writes (POST /predict)
+    are throttled the same as unauthenticated ones.
+    """
     if _API_KEY is not None:
-        if not x_api_key or x_api_key != _API_KEY:
+        if not x_api_key or not hmac.compare_digest(x_api_key, _API_KEY):
             raise HTTPException(status_code=401, detail="invalid or missing API key")
-        return
     _check_rate_limit(request)
 
 
@@ -98,8 +106,9 @@ def require_api_key(
 ) -> None:
     """`Depends` guard for `/predict` and `/units`.
 
-    If `DS02_API_KEY` is set, requires a matching `X-API-Key` header;
-    otherwise falls back to the 10/min per-IP rate limit.
+    If `DS02_API_KEY` is set, requires a matching `X-API-Key` header
+    (compared with `hmac.compare_digest`). The 10/min per-IP rate
+    limit applies in every case, with or without a key.
     """
     _protect(request, x_api_key)
 

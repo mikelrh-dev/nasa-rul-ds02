@@ -28,10 +28,13 @@ Their errors are different enough that a learned meta-learner can exploit the di
 | LightGBM standalone (quantile 0.35, 93 feat) | 7.087 | 5.584 | 0.8562 | 5768.4 |
 | BiLSTM 2-layer (triple pooling) | 5.693 | 4.449 | 0.9072 | 3822.2 |
 | BiLSTM 2-layer + causal EMA (span 5) | 5.597 | 4.331 | 0.9103 | 3716.8 |
-| **Hybrid stacking (beta = 1.00, EMA 5)** | **4.301 ± 0.068** | **3.181 ± 0.021** | **0.9470 ± 0.0017** | **2315.6 ± 20.0** |
-| Hybrid, revision 2026-10-21 (same model, re-run) | 4.344 ± 0.075 | 3.209 ± 0.058 | 0.9459 ± 0.0019 | 2338.2 ± 49.1 |
-| Hybrid, artifact currently on disk (bundle B, 2026-10-26) | 4.251 | 3.183 | 0.9482 | 2305.1 |
-| Hybrid, macro-RMSE per engine (bundle B) | 4.8433 (11:3.7874, 14:7.9974, 15:2.7451) | — | — | — |
+| Hybrid stacking (beta = 1.00, EMA 5) | **4.301 ± 0.068** | **3.181 ± 0.021** | **0.9470 ± 0.0017** | **2315.6 ± 20.0** |
+| Hybrid, revision 2026-10-21 (same model, re-run) — multisemilla histórico | 4.344 ± 0.075 | 3.209 ± 0.058 | 0.9459 ± 0.0019 | 2338.2 ± 49.1 |
+| Hybrid, bundle B (2026-10-26) — histórico/archivado (`archive/models_b/`) | 4.251 | 3.183 | 0.9482 | 2305.1 |
+| Hybrid, macro-RMSE per engine (bundle B, histórico/archivado) | 4.8433 (11:3.7874, 14:7.9974, 15:2.7451) | — | — | — |
+| **Hybrid, bundle C vigente (manifest `ds02_manifest.json`, seed 42)** | **4.338** | **3.227** | **0.9461** | **2336.2** |
+
+> **Vigente: bundle C 4.338** — el manifest manda. La multisemilla anterior es histórica (histórico). Bundle B archivado en `archive/models_b/`. NASA score: suma (SUM, no media) sin clamp en DS02 (NASA suma sin clamp, §3.9).
 
 The architectural core of the solution is a **physical separation of degradation from flight regime**: the 14 sensors are residualised against a degree-2 Ridge model of the 4 operational-condition channels before either model sees them, so that LightGBM reads degradation rather than pilot manoeuvre. That single change moved the standalone tabular branch from RMSE 13.349 to 7.087.
 
@@ -640,7 +643,7 @@ the width is verifiable without opening the bundle.
 Two gaps that were not defects in the model but in how it was reported. Both are
 closed in the 2026-10-21 revision.
 
-> **Banner — bundle A obsoleto, bundle B vigente:** las cifras de esta sección (§6.13, window-weighted 4.313 / macro 4.939) son del bundle A (histórico/pre-B) y no son vigentes. Vigente: bundle B (ref 4.251; media 4.340 ± 0.101). Métricas B no modificadas.
+> **Banner — bundles A/B histórico/archivado, bundle C vigente:** las cifras de esta sección (§6.13, window-weighted 4.313 / macro 4.939) son del bundle A (histórico/pre-B) y no son vigentes. Vigente: bundle C (ref 4.338; manifest `ds02_manifest.json` manda). Bundle B archivado en `archive/models_b/`; la multisemilla anterior queda como histórico. Métricas B no modificadas.
 
 **The headline RMSE was window-weighted.** Engine 14 has the worst error (RMSE
 8.32) and the fewest windows (760 of 6 196), so it contributes 43.7 % of the
