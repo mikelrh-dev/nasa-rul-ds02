@@ -73,6 +73,6 @@ Chain strategy: pending
 
 ## Phase 8: Gate + Judges
 
-- [ ] 8.1 Full gate: suite green, `models/`+NB01-06 byte-identical. Dep: 7.2 · Accept: pytest green (pre-existing failures reported), no retrain · Verify: `python -m pytest tests -q && git status --porcelain -- models/`
+- [x] 8.1 Full gate: suite green, `models/`+NB01-06 byte-identical. Dep: 7.2 · Accept: pytest green (pre-existing failures reported), no retrain · Verify: `python -m pytest tests -q && git status --porcelain -- models/`
 - [ ] 8.2 Two independent judges re-execute scope, classify claims confirmed/refuted/not-verifiable. Dep: 8.1 · Accept: judge report filed, no refuted claim merges · Verify: `python -m pytest tests -q`
 - **Checkpoint 8 (final):** SHAP-C per branch additive, P0 fixes verified, bundle C intact.
