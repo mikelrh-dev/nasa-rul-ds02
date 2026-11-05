@@ -128,6 +128,7 @@ selection = select_beta_grouped(oof['units'], oof['cycles'], oof['y'],
                                 oof['pred_lstm'], oof['pred_lgb'],
                                 span=5, use_cycle_feature=False)
 beta = float(selection['beta'])
+print(f"OOF: n_ventanas={len(oof["y"])} | beta={beta:.2f} | span=5")
 
 ```
 
@@ -331,6 +332,7 @@ test se aleja mucho del 90 %, la banda miente aunque el RMSE sea bueno.
 from ds02_rul.conformal import fit_conformal
 calib = selection['oof_calib']
 banda = fit_conformal(calib['y'], calib['pred_ema'], target=0.90)
+print(f"conformal 90%: n_calib={len(calib["y"])} | cobertura_objetivo=0.90")
 
 ```
 
@@ -346,6 +348,7 @@ banda = fit_conformal(calib['y'], calib['pred_ema'], target=0.90)
 ```python
 res = np.asarray(p_ens).ravel() - np.asarray(test['y']).ravel()
 yt = np.asarray(test['y']).ravel()
+print(f"residuales: n={len(res)} | RMSE={float((res**2).mean()**0.5):.4f}")
 
 ```
 
@@ -553,7 +556,7 @@ fila está en el manifiesto. Las semillas 7 y 123 se entrenan en la celda
 siguiente con el mismo protocolo y el mismo `beta = 1.00`. El consolidado lo deja
 `python -m src.clase.evaluar_c_multisemilla`.
 
-**Nota de autoridad multisemilla (unica, vale para 05 y 06).** El manifiesto manda para la fila oficial (4.338, seed 42 desplegada); las tres semillas solo miden variabilidad. El valor citado antes queda sustituido por los calculados: en el 05, 4.330+-0.053 (semillas 42/7/123: 4.338 / 4.274 / 4.379) y en el 06, 4.322+-0.064 (4.338 / 4.376 / 4.252). Sin reentrenar: solo se corrige la cita.
+**Nota de autoridad multisemilla (unica, vale para 05 y 06).** El manifiesto manda para la fila oficial (4.338, seed 42 desplegada); las tres semillas solo miden variabilidad. El 4.347 +- 0.012 citado antes queda sustituido por los calculados: en el 05, 4.330 +- 0.053 (semillas 42/7/123: 4.338 / 4.274 / 4.379) y en el 06, 4.322 +- 0.064 (4.338 / 4.376 / 4.252). Sin reentrenar: solo se corrige la cita.
 
 
 
@@ -656,7 +659,9 @@ print(tab[['modelo','grano','rmse_test','mae_test','r2_test',
            'nasa_test','tiempo_s']].to_string(index=False))
 print()
 for grano in ('fila','ventana'):
-    sub = tab[tab['grano']==grano].sort_values('rmse_test')
+    sub = tab[tab['grano']==grano]
+    criterio = "rmse_val" if sub["rmse_val"].notna().any() else "rmse_test"
+    sub = sub.sort_values(criterio, na_position="last")
     print('campeon %s: %s (RMSE %.4f)' % (grano, sub.iloc[0]['modelo'],
           sub.iloc[0]['rmse_test']))
 print()

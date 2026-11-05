@@ -39,9 +39,9 @@ Fuente: [[visuals/d02-recorrido-5min.mmd]]
 
 ## 1:40–2:40 — Dos bases distintas
 
-«LightGBM lee 93 resúmenes y predice el cuantil 0,35: da 7.10 solo.» ([[s05-lightgbm-cuantilico]])
+«LightGBM lee 93 resúmenes y predice el cuantil 0,35 sobre la base adaptada: da 7.07 solo.» ([[s18-lgbm-adaptada]])
 
-«BiLSTM lee la película de 50 pasos en dos direcciones con triple pooling: da 6.22 con dispersión medio punto entre semillas.» ([[s06-bilstm-triple-pooling]])
+«BiLSTM lee la película de 50 pasos en dos direcciones con triple pooling: da 5.65 solo.» ([[s06-bilstm-triple-pooling]])
 
 «Ablacioné el contador de ciclos: aporta pero no es un reloj. Solo con reloj da 14.33.» ([[s08-ablacion-cyc-norm]])
 
@@ -49,7 +49,7 @@ Fuente: [[visuals/d02-recorrido-5min.mmd]]
 
 «Combino con meta pequeño en la 16 y shrinkage beta 1.0 elegido fuera de fold con mediana 1.0. Dos folds piden 1.0 y uno pide 0: hay disenso y lo enseño.» ([[s09-oof-y-beta]])
 
-«El híbrido más EMA5 da 4.34 de media y 4.25 en disco. Casi dos puntos mejor que el campeón.» ([[s10-stacking-hibrido]])
+«El híbrido-C más EMA5 da 4.32 de media y 4.34 en disco. Más de un punto mejor que su mejor rama.» ([[s20-ensemble-adaptado-y-bundle-c]])
 
 ## 3:30–4:20 — Banda como cota
 
@@ -61,12 +61,12 @@ Fuente: [[visuals/d02-recorrido-5min.mmd]]
 
 «Decido sobre el borde inferior: 30 o más APTO, 25 a 30 inspección, menos de 25 hangar. La corrección isotónica solo sube 1.33 como máximo.» ([[s13-capa-de-reglas-y-decision]])
 
-«Cierro con lo que hay en disco: hashes 7acba335 y d0c5ed7f, reload idéntico.» ([[s12-persistencia-y-contrato]])
+«Cierro con lo que hay en disco: hashes d6c70142 y bf9620a7, reload idéntico.» ([[s12-persistencia-y-contrato]])
 
 ## Di esto en el tribunal
 
 > [!quote]
-> «En cinco minutos: problema asimétrico, reparto por motor, dos bases distintas, beta honesto, banda como cota y decisión sobre el borde. 4.25 en disco con protocolo que puedes auditar.»
+> «En cinco minutos: problema asimétrico, reparto por motor, dos bases distintas, beta honesto, banda como cota y decisión sobre el borde. 4.34 en disco con protocolo que puedes auditar.»
 
 ## Flashcards
 
@@ -74,7 +74,7 @@ Fuente: [[visuals/d02-recorrido-5min.mmd]]
 > Problema asimétrico, baseline 20.02 y reparto por motor.
 
 > [!question]- ¿Qué dices en el minuto 2–3?
-> Bases 7.10 y 6.22, ablación del ciclo y beta 1.0 fuera de fold.
+> Bases 7.07 y 5.65, ablación del ciclo y beta 1.0 fuera de fold.
 
 > [!question]- ¿Qué dices al cerrar?
 > Banda como cota y decisión sobre L_inf con 30 y 25.

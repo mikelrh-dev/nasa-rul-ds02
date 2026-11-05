@@ -33,7 +33,7 @@ El grafo vive en `src/ds02_rul/model.py:19` y el entrenamiento en `src/ds02_rul/
 
 Parámetros totales: 154 253 (`models/ds02_manifest.json`). La clase de pooling registra `get_config` para que el `.keras` recargue sin código fantasma (`src/ds02_rul/pooling.py:25`).
 
-Solo da ≈6.22 ± 0.54 en RMSE: mejor que LightGBM pero con más varianza entre semillas ([[e00-cifras-autoritativas]]). Es el campeón del ensamble: `beta=0` reproduce exactamente esta rama ([[s10-stacking-hibrido]]).
+Solo da ≈5.7–6.2 en RMSE según base y semilla (5.654 en la base adaptada C; ≈6.22 ± 0.54 en la original, [[e00-cifras-autoritativas]]). Es el campeón del ensamble: `beta=0` reproduce exactamente esta rama ([[s10-stacking-hibrido]]).
 
 ## La decisión que hay detrás
 
@@ -55,7 +55,7 @@ La dispersión ±0.54 es resolución del cómputo en CPU, no error de medida ([[
 ## Di esto en el tribunal
 
 > [!quote]
-> «El BiLSTM lee 50 pasos en dos direcciones con triple pooling y 154 mil parámetros. Solo da 6.22 con dispersión de medio punto entre semillas. Es el campeón: si beta es cero, el híbrido es él.»
+> «El BiLSTM lee 50 pasos en dos direcciones con triple pooling y 154 mil parámetros. Solo da ≈6 con dispersión de medio punto entre semillas en la base original. Es el campeón: si beta es cero, el híbrido es él.»
 
 ## Flashcards
 
@@ -69,13 +69,13 @@ La dispersión ±0.54 es resolución del cómputo en CPU, no error de medida ([[
 > Para serializar el `.keras` sin un Lambda que impida recargar.
 
 > [!question]- ¿Cuánto da solo y con qué dispersión?
-> RMSE ≈6.22 ± 0.54 entre las tres semillas.
+> RMSE ≈6.2 ± 0.5 entre las tres semillas (base original; 5.65 en la adaptada).
 
 > [!question]- ¿Qué afirma esta nota en una frase?
 > El campeón lee la película de 50 pasos en dos direcciones y resume con tres lecturas a la vez.
 
 > [!question]- ¿Cómo la contarías en el tribunal?
-> «El BiLSTM lee 50 pasos en dos direcciones con triple pooling y 154 mil parámetros. Solo da 6.22 con dispersión de medio punto entre semillas. Es el campeón: si beta es cero, el híbrido es él.»
+> «El BiLSTM lee 50 pasos en dos direcciones con triple pooling y 154 mil parámetros. Solo da ≈6 con dispersión de medio punto entre semillas en la base original. Es el campeón: si beta es cero, el híbrido es él.»
 
 ## Conexiones
 

@@ -37,7 +37,7 @@ La caché evita recalcular ventanas y predicciones ya vistas. Si la caché y el 
 
 ## La decisión que hay detrás
 
-Se sirve el bundle exacto de disco en vez de reentrenar en el despliegue: el 4.251 defendido es el que sirve. Reentrenar en producción movería los decimales en ±0.1 sin mejorar nada ([[c14-ruido-y-reproducibilidad]]).
+Se sirve el bundle exacto de disco en vez de reentrenar en el despliegue: el 4.338 defendido (bundle C) es el que sirve. Reentrenar en producción movería los decimales en ±0.1 sin mejorar nada ([[c14-ruido-y-reproducibilidad]]).
 
 Se rechazó exponer solo el punto sin banda: la decisión opera sobre `L_inf` ([[s13-capa-de-reglas-y-decision]]). Una API sin intervalo invita a decidir sobre la media.
 
@@ -51,6 +51,8 @@ El lead time por motor (9 / 23 / 17 en media) es lo que la pantalla traduce a pl
 
 > [!warning] Lo que el despliegue no promete
 > La app no detecta cambio de distribución: si llega un régimen no visto, predice igual sin avisar. No hay monitor de deriva. Esa es la próxima frontera, no una prestación actual.
+>
+> **Pendientes declarados (rúbrica).** n8n (MIA-3, 35%: HANGAR → Postgres+Calendar+correo, INSPECCIÓN → Sheets, APTO → log) y MLflow (PIA-4, 20%: tracking de experimentos) van en el change siguiente, no en este. Si el tribunal los pide: están excluidos por alcance con diseño previsto, no olvidados. El negocio que sí cubre este change: [[c22-cuanto-vale-acertar]].
 
 ## Di esto en el tribunal
 

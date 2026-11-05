@@ -40,7 +40,7 @@ Se rechazó eliminarlo del todo: el BiLSTM lo necesita como ancla temporal dentr
 
 ## Qué medimos
 
-La tabla de arriba es salida de esa ejecución, no resultado del bundle. El resultado vigente sigue siendo ≈4.34 ± 0.10 con fila 4.251 ([[e00-cifras-autoritativas]]).
+La tabla de arriba es salida de esa ejecución, no resultado del bundle. El resultado vigente sigue siendo ≈4.3 con fila 4.338 (bundle C, [[e00-cifras-autoritativas]]).
 
 La lección es metodológica: medir, no afirmar. La ablación existe para que nadie diga «el ciclo no aporta» ni «el ciclo lo hace todo» sin números.
 

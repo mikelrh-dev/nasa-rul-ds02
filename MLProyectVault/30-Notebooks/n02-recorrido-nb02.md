@@ -3,80 +3,59 @@ tipo: notebook
 status: sin-estudiar
 tags:
   - nb02
-  - ablacion
-  - ensamble
+  - clasicos
+  - mlp
+  - shap
 ---
 
-# NB02 — Decisión, ablación y ensamble
+# NB02 — 5 clásicos + MLP
 
 > [!abstract] En una frase
-> Este cuaderno decide: mide el contador de ciclos, elige beta fuera de fold y combina con banda.
+> Seis modelos pelean en grano fila con el mismo pipeline y GroupKFold por motor; gana el MLP E2 por validación y SHAP cuenta qué miró el árbol.
 
 ## Antes de empezar
 
-Requiere los artefactos de NB01: `[LOAD NB1 OK] dev (17450, 50, 19)` y BiLSTM recargado. Sin ese puente no hay nada que ablacionar ni combinar.
-
-Tarda lo más pesado del proyecto: el OOF ronda 270–600 s según máquina porque reentrena por fold. La celda final deja `beta = 1.0` y `p_ens (6196,)`.
+38 celdas. Requiere la base de [[s15-dataset-de-clase]] y el pipeline de [[s16-pipeline-de-clase]]. Cubre rúbrica SAA 6/8 (comparativa) y SAA 7/9 (MLP + importancia). GridSearch con GroupKFold: tarda minutos en CPU.
 
 ## Recorrido celda a celda
 
-| Celda | Qué entra | Qué hace | Qué sale | Por qué está ahí |
-|---|---|---|---|---|
-| 3 | Artefactos NB01 | Recarga dev, test y BiLSTM | `[LOAD NB1 OK]` con formas intactas | Verifica la cadena de estado |
-| 5 | `cyc_norm` on/off | Ablación del contador | BiLSTM 6.006 con y 5.784 sin en esa ejecución | Mide el atajo del reloj |
-| 7 | Ventanas dev | OOF agrupado por motor | Folds `[[2,10],[5,18],[20,16]]`, ~270 s | Predicciones que ningún modelo vio |
-| 8 | OOF y grid | Elige `beta` | `beta_hat = 1.00`, IQR 0.5 | Shrinkage honesto |
-| 9 | Protocolo legado | Diagnóstico del fallo viejo | RMSE 6.347 vs 9.335, cociente 0.68 | Enseña la fuga para no repetirla |
-| 10 | Unidad 16 | Ajusta meta RidgeCV + LGBM | 2 535 ventanas, RUL 0–62, coefs `[0.14, 0.77]` | Meta pequeño en holdout puro |
-| 11 | Test 11/14/15 | Tabla titular | Híbrido 4.276 con NASA 2322.4 en esa ejecución | El número que se defiende |
-| 13 | Banda OOF | Calibra por tramo | 17 450 ventanas, objetivo 90 % | Cota antes de decidir |
-| 14 | Test + banda | Mide cobertura | 100 % con ~25.9 de ancho en esa ejecución | Conservadora y medida |
-| 15 | Todo NB02 | Guarda estado | `[NB2 OK] beta = 1.0` | Puente hacia NB03 |
+| Bloque | Qué entra | Qué hace | Qué sale |
+|---|---|---|---|
+| 5 clásicos + GridSearch | pipeline + base | Ridge (baseline), KNN, RF, XGB + LightGBM, CV por motor | tabla con baseline primero + regla de empate |
+| Real vs predicho (clásico) | test 11/14/15, 1 lectura | scatter del mejor clásico | XGB val 8.22, dónde falla |
+| Análisis por motor | test desagregado | el global puede esconder un motor | el 14, como siempre |
+| MLP base + E1/E2/E3 | mismo pipe | capacidad vs regularización vs batch | E2 (val 7.34) < base (7.36) < E3 |
+| Real vs predicho (MLP) | test, 1 lectura | scatter del E2 | test 7.72, MAE 5.81, R² 0.83 |
+| Importancia mejor clásico | modelo ajustado | qué variables pesan | ranking tabular |
+| SHAP XGB | TreeExplainer exacto, 200 filas val | doble lectura global+local | `shap_xgb_top.joblib` |
+| Cierre | comparativa | MLP E2 campeón de fila por validación | test leído una sola vez |
 
-Las cifras de las celdas 11–14 son salida de esa ejecución. El bundle vigente es ≈4.34 ± 0.10 con fila 4.251 ([[e00-cifras-autoritativas]]).
+Las cifras oficiales: E2 train 5.71 / val 7.34 / test 7.72 ([[e00-cifras-autoritativas]]).
 
 ## Las 5 celdas que importan
 
-1. Celda 5: la ablación que impide mitificar el ciclo.
-2. Celda 7: el OOF que separa motores enteros.
-3. Celda 8: `beta_hat = 1.00` con su dispersión.
-4. Celda 10: el meta ajustado solo en la 16.
-5. Celda 11: la tabla donde el híbrido gana al campeón.
-
-## Salidas que hay que saber leer
-
-`beta_hat = 1.00` con `{min: 0.0, max: 1.0, iqr: 0.5}` significa mayoría con un disidente: dos folds piden meta completo y uno pide campeón ([[s09-oof-y-beta]]).
-
-`banda 100.0 / 25.92 / 0.0 / 0.0` significa cobertura total con 25.9 de ancho y cero filas fuera. Ancha y honesta, no precisa y falsa.
+1. Tabla con baseline primero: sin suelo no hay carrera.
+2. Regla de empate: escrita, no opinada.
+3. Por motor: el global esconde al 14.
+4. E2 por validación: la elección es previa al test.
+5. SHAP: la explicabilidad del que no ganó también cuenta.
 
 ## Qué NO hace este cuaderno
 
-No prueba multisemilla ni diagnostica por motor fino: eso es NB03. No persiste el bundle final en `models/`: eso también es NB03.
+No toca ventanas ni secuencias (eso es NB04), no ablaciona `cyc_norm` (eso es NB03), no multisemilla (eso es NB05). NB02 corona al campeón de fila.
 
-## Si falla algo
+## Conexiones
 
-Si el OOF tarda demasiado, baja `epochs` a 15 como en `oof_base_predictions`: es diagnóstico, no final. Si la banda colapsa a 3.4 de ancho, recalibraste en la 16: vuelve a 17 450 ([[s11-banda-conformal]]).
+- Grano fila: [[c15-grano-fila-vs-ventana]] · GroupKFold: [[c16-groupkfold-por-motor]] · sistema: [[s17-clasicos-y-mlp]] · SHAP: [[c21-shap-e-ia-debil]] · tabla: [[s19-tabla-final-y-grano]]
+- Sigue en [[n03-recorrido-nb03]] (features secuenciales).
 
 > [!quote] Di esto en el tribunal
-> «En el segundo cuaderno ablaciono el ciclo, calculo OOF por motor y elijo beta 1.0 fuera de fold. Combino con meta en la 16 y calibro banda con 17 450 residuales. El híbrido da 4.28 en esa ejecución.»
+> «En el segundo cuaderno compiten seis con las mismas reglas: mismo pipeline, validación por motor, baseline primero. Gana el MLP E2 por validación con 7.34 y el test se lee una vez: 7.72».
 
 ## Flashcards
 
-> [!question]- ¿Qué deja la celda 3?
-> `[LOAD NB1 OK]` con dev y test intactos más BiLSTM recargado.
+> [!question]- ¿Quién gana NB02 y cómo se decidió?
+> El MLP E2 ((128,64), alpha 0.01): gana en validación (7.34) con GroupKFold por motor; su test 7.72 se lee una sola vez, posterior a la elección.
 
-> [!question]- ¿Qué elige la celda 8?
-> `beta_hat = 1.00` con IQR 0.5 y un fold en 0.0.
-
-> [!question]- ¿Qué mide la celda 10?
-> Meta en 2 535 ventanas de la 16 con RUL 0 a 62.
-
-> [!question]- ¿Qué deja la celda final?
-> `[NB2 OK] beta = 1.0` y `p_ens (6196,)` para NB03.
-
-> [!question]- ¿Qué afirma esta nota en una frase?
-> Este cuaderno decide: mide el contador de ciclos, elige beta fuera de fold y combina con banda.
-
-> [!question]- ¿Cómo la contarías en el tribunal?
-> «En el segundo cuaderno ablaciono el ciclo, calculo OOF por motor y elijo beta 1.0 fuera de fold. Combino con meta en la 16 y calibro banda con 17 450 residuales. El híbrido da 4.28 en esa ejecución.»
-
+> [!question]- ¿Qué pinta SHAP en un cuaderno que corona un MLP?
+> Explica al mejor clásico (XGB): la explicabilidad no es premio del ganador, es requisito del sistema; el diccionario top queda en `shap_xgb_top.joblib`.

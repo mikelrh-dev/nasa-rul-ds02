@@ -28,8 +28,8 @@ Hay tres poblaciones distintas y conviene no mezclarlas:
 | Nivel | Qué se repite | Qué se reporta |
 |---|---|---|
 | Reejecución | mismo código, misma semilla, misma máquina | el híbrido se mueve ±0,05 RMSE (`README.md:55`) |
-| Semillas | protocolo completo con semillas 42, 7 y 123 | media ± desviación: `4.340 ± 0.101` ([[e00-cifras-autoritativas]]) |
-| Fila en disco | una corrida concreta, la que reproduce el artefacto | `4.251` |
+| Semillas | protocolo completo con semillas 42, 7 y 123 | media ± desviación: `4.322 ± 0.064` (bundle C, [[e00-cifras-autoritativas]]) |
+| Fila en disco | una corrida concreta, la que reproduce el artefacto | `4.338` |
 
 La resolución de trabajo es ±0,1 RMSE. No es una convención arbitraria: la desviación entre semillas del híbrido es 0,101 y la dispersión entre reejecuciones es de ±0,05. Cualquier afirmación más fina que eso no es verificable con este pipeline (`README.md:57`).
 
@@ -60,7 +60,7 @@ La misma lógica ordena las comparaciones. La ventaja del híbrido sobre el camp
 > | Situación | Veredicto |
 > |---|---|
 > | Una celda imprime un RMSE distinto del manifiesto | No es error: la celda es una salida de ejecución, el manifiesto es la fila en disco |
-> | La fila de referencia dice `4.251` y la media dice `4.340` | No es error: una corrida frente a la media de tres semillas |
+> | La fila de referencia dice `4.338` y la media dice `4.322` | No es error: una corrida frente a la media de tres semillas |
 > | Un fold elige `beta = 0` y el enviado es `1.0` | No es error: el enviado es la mediana de tres folds |
 > | Se cita la cifra de una revisión anterior como vigente | Error: no pertenece al bundle en disco |
 > | Se presenta una diferencia de 0,05 como mejora | Error: está por debajo de la resolución |

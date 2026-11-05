@@ -42,7 +42,7 @@ Se rechazó suavizar entre motores: mezclar series de degradaciones distintas cr
 
 ## Qué medimos
 
-El híbrido + EMA5 da ≈4.34 ± 0.10 con fila de disco 4.251 ([[e00-cifras-autoritativas]]). Sin EMA el diente de sierra entre ventanas vecinas infla el RMSE en décimas.
+El híbrido + EMA5 da ≈4.3 con fila de disco 4.338 (bundle C, [[e00-cifras-autoritativas]]). Sin EMA el diente de sierra entre ventanas vecinas infla el RMSE en décimas.
 
 La banda conformal se calibra sobre predicciones ya suavizadas: el ancho medio de 26.41 ciclos incluye este efecto ([[s11-banda-conformal]]).
 

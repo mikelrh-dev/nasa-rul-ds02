@@ -43,7 +43,7 @@ Se rechazó elegir `beta` contra el test: sería ajustar el despliegue. ADR-007 
 
 ## Qué medimos
 
-`beta` vigente 1.0, folds `[1.00, 1.00, 0.00]`, mediana 1.0, IQR 0.5 ([[e00-cifras-autoritativas]]). El híbrido con este `beta` da ≈4.34 ± 0.10 con fila 4.251.
+`beta` vigente 1.0, folds `[1.00, 1.00, 0.00]`, mediana 1.0, IQR 0.5 ([[e00-cifras-autoritativas]]). El híbrido con este `beta` da ≈4.3 con fila 4.338 (bundle C).
 
 Que `beta` sea 1.0 no significa que el campeón sobre: significa que, en esta partición, el meta aporta más que el ancla en dos de tres folds.
 

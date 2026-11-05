@@ -42,7 +42,7 @@ Se rechazó ajustar con dev completo «porque da mejor validación»: eso es exa
 
 ## Qué medimos
 
-No hay métrica propia de esta etapa, pero su efecto es medible: con fuga en el preproceso la validación sube de forma artificial. El número sano del pipeline es ≈4.34 ± 0.10 con fila de disco 4.251 ([[e00-cifras-autoritativas]]).
+No hay métrica propia de esta etapa, pero su efecto es medible: con fuga en el preproceso la validación sube de forma artificial. El número sano del pipeline es ≈4.3 con fila de disco 4.338 (bundle C, [[e00-cifras-autoritativas]]).
 
 El scaler deja 18 canales listos y la residualización deja 14 sensores limpios para ventanas y features ([[s04-ventanas-y-features]]).
 

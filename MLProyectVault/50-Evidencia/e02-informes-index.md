@@ -51,7 +51,7 @@ El índice vivo está en `docs/informes/README.md`. Si un informe y esta nota di
 > Que el meta en OOF da 39.9 vs 31.5 real y sube a 10.17.
 
 > [!question]- ¿Qué sostiene evaluacion-general?
-> El 4.34 con dispersión frente a 7.10 y 6.22.
+> El 4.32 con dispersión (bundle C) frente a 7.07 y 5.65.
 
 > [!question]- ¿Dónde está el índice vivo?
 > En `docs/informes/README.md`; esta nota lo resume.

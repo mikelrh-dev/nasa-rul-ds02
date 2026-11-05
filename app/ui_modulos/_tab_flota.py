@@ -72,6 +72,11 @@ try:
 except ImportError:  # pragma: no cover - import-style fallback
     from app import ui_rules as UR  # type: ignore[no-redef]
 
+try:
+    import ui_alta as A  # noqa: E402
+except ImportError:  # pragma: no cover
+    from app import ui_alta as A  # type: ignore[no-redef]
+
 # Design tokens: same hex values as `dashboard_ds02` (see its design-tokens
 # section). Kept as literals here so this module needs no dashboard import
 # for colors; chart/badge helpers are still dashboard-owned (passed in).
@@ -162,10 +167,16 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
         # the dashboard at import time. `correccion` is deliberately not in
         # the check: None is its legitimate "no correction" value, and the
         # dashboard's value is the same None in that state.
-        try:
-            import dashboard_ds02 as _dash  # type: ignore
-        except ImportError:  # pragma: no cover - import-style fallback
-            from app import dashboard_ds02 as _dash  # type: ignore
+        import sys as _sys
+        _dash = _sys.modules.get("dashboard_ds02") or _sys.modules.get("app.dashboard_ds02")
+        _main = _sys.modules.get("__main__")
+        if _dash is None and _main is not None and hasattr(_main, "frame"):
+            _dash = _main
+        if _dash is None:
+            try:
+                import dashboard_ds02 as _dash  # type: ignore
+            except ImportError:  # pragma: no cover - import-style fallback
+                from app import dashboard_ds02 as _dash  # type: ignore
         if frame is None:
             frame = _dash.frame
         if frame_cache is None:
@@ -458,6 +469,25 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
             + ("nunca en la vida registrada" if v is None else f"{v} ciclos")
             for u, v in sorted(_faltan.items()))
         st.caption(f"Ciclos hasta el umbral de hangar · {_faltan_txt}")
+
+    # -------------------- modo historia: la narrativa en cuatro pasos
+    if _vista_tribunal:
+        with st.container(border=True):
+            st.subheader("Modo historia · la narrativa en cuatro pasos", icon=":material/auto_stories:")
+            st.caption("Cuatro estados que cuentan la historia, derivados de la caché. Cada paso deja la app donde dice; el cuarto cambia la política para ver el efecto.")
+            _pasos_historia = A.estado_historia(windows, umbrales)
+            _cols_h = st.columns(len(_pasos_historia))
+            for _col, _paso in zip(_cols_h, _pasos_historia):
+                with _col:
+                    if st.button(f"{_paso['paso']}. {_paso['titulo']}", key=f"historia_{_paso['paso']}", icon=":material/play_circle:"):
+                        st.session_state["_escenario_pendiente"] = (int(_paso["unidad"]), int(_paso["ciclo"]))
+                        st.session_state["_umbrales_pendientes"] = (_paso["umbrales"]["apto"], _paso["umbrales"]["hangar"])
+                        _log_sesion = st.session_state.get("_sesion_log") or []
+                        _log_sesion.append({"at": pd.Timestamp.now(tz="UTC").isoformat(), "que": f"Modo historia, paso {_paso['paso']}: {_paso['titulo']}."})
+                        st.session_state["_sesion_log"] = _log_sesion
+                        st.session_state["_toast_pendiente"] = (f"Paso {_paso['paso']}: {_paso['titulo']}. {_paso['cuenta']}")
+                        st.rerun()
+                    st.caption(_paso["cuenta"])
 
     # -------------------- registro de sesión
     # Plegado: es un log de auditoría de la sesión, no algo que se mire en directo.

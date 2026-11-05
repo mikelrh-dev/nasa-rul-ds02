@@ -14,10 +14,10 @@ tags:
 
 ## Qué muestras en pantalla (orden)
 
-1. `models/ds02_manifest.json`: referencia 4.251 y macro 4.8433. Prueba que lo defendido es lo de disco.
-2. NB01 celda 6: ventanas `(17450, 50, 19)` y `(6196, 50, 19)`. Prueba el terreno.
-3. NB02 celda 11: tabla titular con híbrido 4.276 en esa ejecución. Prueba que combina.
-4. NB03 celda 16: `[RELOAD OK] 60.40 vs 58.00`. Prueba que servir es recargar.
+1. `models/ds02_manifest.json`: referencia 4.338 y macro 5.0153 (bundle C). Prueba que lo defendido es lo de disco.
+2. NB01 figuras: reparto de fase y T48 por fase. Prueba el terreno mirado.
+3. NB06 cascada: 7.067 → 5.654 → 5.618 → 4.338. Prueba que cada etapa aporta.
+4. NB06 pesos del instalado vía `load_ensemble` (SHA): 28/72, beta 1.00. Prueba que servir es recargar.
 5. Estado por motor con `L_inf`: APTO, INSPECCIÓN o HANGAR. Prueba que decides.
 
 Cinco paradas, cinco minutos de apoyo a [[d02-guion-5min]]. Nada más: si abres más pestañas, pierdes al tribunal.
@@ -45,7 +45,7 @@ La demo se ensaya con cronómetro igual que el guion: cinco paradas, un minuto p
 ## Di esto en el tribunal
 
 > [!quote]
-> «Te enseño manifiesto, ventanas, tabla, reload y estado. Si algo no carga, te lo cuento igual: 4.25 en disco, beta 1.0 y banda 100 con 26.4.»
+> «Te enseño manifiesto, figuras, cascada, reload y estado. Si algo no carga, te lo cuento igual: 4.34 en disco, beta 1.0 y banda 100 con 26.4.»
 
 ## Flashcards
 
@@ -62,7 +62,7 @@ La demo se ensaya con cronómetro igual que el guion: cinco paradas, un minuto p
 > Enseñas en orden recarga, predicción y decisión, y si algo falla cuentas sin pantalla.
 
 > [!question]- ¿Cómo la contarías en el tribunal?
-> «Te enseño manifiesto, ventanas, tabla, reload y estado. Si algo no carga, te lo cuento igual: 4.25 en disco, beta 1.0 y banda 100 con 26.4.»
+> «Te enseño manifiesto, figuras, cascada, reload y estado. Si algo no carga, te lo cuento igual: 4.34 en disco, beta 1.0 y banda 100 con 26.4.»
 
 > [!question]- ¿Qué archivo respalda esta nota?
 `models/ds02_manifest.json`
