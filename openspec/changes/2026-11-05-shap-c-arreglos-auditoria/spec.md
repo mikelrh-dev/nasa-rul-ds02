@@ -9,7 +9,7 @@ The system MUST DeepSHAP the bundle-C BiLSTM on `(50,19)` with bundle preprocess
 #### Scenario: Aditividad
 - GIVEN one `(50,19)` window
 - WHEN DeepSHAP runs
-- THEN `base+sum(shap)` matches within `1e-5`
+- THEN `base+sum(shap)` matches within `1e-2` (DeepSHAP approximation, error declared in metadata; TreeSHAP/Permutation branches keep `1e-5`)
 
 ### Requirement: SHAPC-LGBM-01
 The system MUST TreeSHAP the bundle-C LightGBM (93 features) with branch additivity.
