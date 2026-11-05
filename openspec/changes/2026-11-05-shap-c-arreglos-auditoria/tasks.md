@@ -67,8 +67,8 @@ Chain strategy: pending
 
 ## Phase 7: Builder+Notebook (SHAPC-NB-01)
 
-- [ ] 7.1 Builder nbformat notebook (never hand-edited). Files: `scripts/build_07_shap_c_notebook.py` (new) · Size: M · Dep: 6.4 · Accept: build produces notebook, NB01-06 untouched · Verify: `python scripts/build_07_shap_c_notebook.py`
-- [ ] 7.2 Generate thin notebook `notebooks/07_shap_c_bundle_c.ipynb`, no causal text. Files: `notebooks/07_shap_c_bundle_c.ipynb` (generated) · Size: S · Dep: 7.1 · Accept: runs, shapes pass, no causal claim · Verify: `python -m pytest tests/test_shap_c.py -q`
+- [x] 7.1 Builder nbformat notebook (never hand-edited). Files: `scripts/build_07_shap_c_notebook.py` (new) · Size: M · Dep: 6.4 · Accept: build produces notebook, NB01-06 untouched · Verify: `python scripts/build_07_shap_c_notebook.py`
+- [x] 7.2 Generate thin notebook `notebooks/07_shap_c_bundle_c.ipynb`, no causal text. Files: `notebooks/07_shap_c_bundle_c.ipynb` (generated) · Size: S · Dep: 7.1 · Accept: runs, shapes pass, no causal claim · Verify: `python -m pytest tests/test_shap_c.py -q`
 - **Checkpoint 7:** Notebook built via builder only. Verify: `git status --porcelain -- notebooks/01* notebooks/02* notebooks/03* notebooks/04* notebooks/05* notebooks/06*`
 
 ## Phase 8: Gate + Judges
