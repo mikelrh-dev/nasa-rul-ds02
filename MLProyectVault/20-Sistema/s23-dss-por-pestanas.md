@@ -47,7 +47,7 @@ Cuatro pasos con datos vivos (no un tour de botones): cada `historia_N` fija esc
 
 ## Conexiones
 
-- Despliegue: [[s14-app-y-despliegue]] · reglas: [[s13-capa-de-reglas-y-decision]] · SHAP: [[s22-shap-y-app-de-clase]] · persistencia: [[s12-persistencia-y-contrato]]
+- Despliegue: [[s14-app-y-despliegue]] · reglas: [[s13-capa-de-reglas-y-decision]] · SHAP: [[s22-shap-y-app-de-clase]] · persistencia: [[s12-persistencia-y-contrato]] · validez: [[c23-validez-y-plausibilidad-ui]] · ciclo operativo: [[c24-gemelo-hangar-flota]] · seguridad: [[c25-seguridad-api-y-contrato]] · límites: [[c26-deriva-y-limites]]
 - Demo: [[d06-demo-y-plan-b]]
 
 ## Di esto en el tribunal

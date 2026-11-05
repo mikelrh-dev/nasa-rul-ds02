@@ -35,6 +35,8 @@ El flujo es el mismo que en train: crudo → scaler y ridges congelados → secu
 
 La caché evita recalcular ventanas y predicciones ya vistas. Si la caché y el bundle discrepan, manda el bundle: la caché se invalida, el manifiesto no.
 
+Frontera producción (detalle en conceptos): validez dura vs aviso blando [[c23-validez-y-plausibilidad-ui]], ciclo gemelo→flota→hangar por sesión [[c24-gemelo-hangar-flota]], API con llave + rate-limit + SHA [[c25-seguridad-api-y-contrato]], límites no prometidos [[c26-deriva-y-limites]].
+
 ## La decisión que hay detrás
 
 Se sirve el bundle exacto de disco en vez de reentrenar en el despliegue: el 4.338 defendido (bundle C) es el que sirve. Reentrenar en producción movería los decimales en ±0.1 sin mejorar nada ([[c14-ruido-y-reproducibilidad]]).

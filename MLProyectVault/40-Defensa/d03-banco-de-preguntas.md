@@ -7,10 +7,10 @@ tags:
   - respuestas
 ---
 
-# Banco de preguntas — 56 con respuesta corta
+# Banco de preguntas — 61 con respuesta corta
 
 > [!abstract] En una frase
-> Si respondes estas 56 sin leer, el tribunal no te saca del mapa.
+> Si respondes estas 61 sin leer, el tribunal no te saca del mapa.
 
 ## Cómo usar este banco
 
@@ -74,6 +74,11 @@ Respondés en voz alta: respuesta corta, por qué funciona y seguimiento probabl
 | 54 | ¿Por qué IA débil? | Solo RUL de DS02; fuerte no existe aquí | Barata, rápida, auditable: la estrechez es la virtud [[c21-shap-e-ia-debil]] |
 | 55 | ¿Qué aprendizaje usas? | Supervisado de regresión | Etiqueta RUL; sin ella no hay error ni elección [[c21-shap-e-ia-debil]] |
 | 56 | ¿Dónde está el pipeline? | `pipeline_clase.py:22`, un ColumnTransformer | Incluye preproceso y predice caso nuevo [[s16-pipeline-de-clase]] |
+| 57 | ¿Qué rechaza la UI y qué solo avisa? | Rechaza impuntuable, avisa raro puntuable | `validate_table` vs plausibilidad [[c23-validez-y-plausibilidad-ui]] |
+| 58 | ¿Quién decide y quién registra? | Reglas deciden, gemelo firma, hangar mueve | Por sesión, sin reescribir historia [[c24-gemelo-hangar-flota]] |
+| 59 | ¿Y si manipulan el bundle? | No carga: SHA + guarda de forma | 401 sin llave, rate-limit con abuso [[c25-seguridad-api-y-contrato]] |
+| 60 | ¿Cuál es tu no-promesa? | Sin deriva, U14 frágil, ventana 0.44 | Macro 5.02 vs micro 4.34 [[c26-deriva-y-limites]] |
+| 61 | ¿Qué pestañas tiene el DSS? | Flota/motor/casos/auditoría + sandbox | Casos = batch+vivo [[s23-dss-por-pestanas]] |
 
 ## Di esto en el tribunal
 
