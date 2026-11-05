@@ -47,7 +47,7 @@ Tres reglas sostienen el protocolo:
 2. **Holdout es de una sola unidad.** La unidad 16 es holdout puro: ahí se ajusta el meta y nada más. Su rango de RUL llega solo hasta 62 ciclos (`models/ds02_manifest.json`).
 3. **La regla del empate protege el test.** Si dos configuraciones empatan en validación, se elige la más simple antes de mirar el test. Así se evita ajustar el despliegue.
 
-El baseline honesto es una constante: la media del objetivo en ajuste (`scripts/ablate_meta_cycle.py:132`). Su RMSE es ≈20.02 ([[e00-cifras-autoritativas]]). Existe para demostrar que el pipeline no está roto y para convertir «≈4.25» en una frase con sentido.
+El baseline honesto es una constante: la media del objetivo en ajuste (`scripts/ablate_meta_cycle.py:132`). Su RMSE es ≈20.02 ([[e00-cifras-autoritativas]]). Existe para demostrar que el pipeline no está roto y para convertir «4.338» en una frase con sentido.
 
 ## La decisión que hay detrás
 
@@ -69,7 +69,7 @@ El macro-RMSE es 5.02 frente al ponderado de ≈4.3 ([[c04-metricas-y-baseline]]
 ## Di esto en el tribunal
 
 > [!quote]
-> «El reparto es por motor, no por fila: cinco motores ajustan, la unidad 16 valida y las unidades 11, 14 y 15 solo se leen una vez al final. El baseline tonto da 20.02 y el híbrido da 4.25 en la fila de disco. Si la validación fuera mucho mejor que el test, sería fuga.»
+> «El reparto es por motor, no por fila: cinco motores ajustan, la unidad 16 valida y las unidades 11, 14 y 15 solo se leen una vez al final. El baseline tonto da 20.02 y el híbrido da 4.338 en la fila de disco. Si la validación fuera mucho mejor que el test, sería fuga.»
 
 ## Flashcards
 
@@ -83,13 +83,13 @@ El macro-RMSE es 5.02 frente al ponderado de ≈4.3 ([[c04-metricas-y-baseline]]
 > Si dos configuraciones empatan en validación, se elige la más simple sin mirar el test.
 
 > [!question]- ¿Cuánto da el baseline y por qué existe?
-> RMSE ≈20.02. Demuestra que el pipeline funciona y da escala al 4.25.
+> RMSE ≈20.02. Demuestra que el pipeline funciona y da escala al 4.338.
 
 > [!question]- ¿Qué afirma esta nota en una frase?
 > Ninguna fila de test ni de holdout toca el entrenamiento, y el test se lee una sola vez al final.
 
 > [!question]- ¿Cómo la contarías en el tribunal?
-> «El reparto es por motor, no por fila: cinco motores ajustan, la unidad 16 valida y las unidades 11, 14 y 15 solo se leen una vez al final. El baseline tonto da 20.02 y el híbrido da 4.25 en la fila de disco. Si la validación fuera mucho mejor que el test, sería fuga.»
+> «El reparto es por motor, no por fila: cinco motores ajustan, la unidad 16 valida y las unidades 11, 14 y 15 solo se leen una vez al final. El baseline tonto da 20.02 y el híbrido da 4.338 en la fila de disco. Si la validación fuera mucho mejor que el test, sería fuga.»
 
 ## Conexiones
 

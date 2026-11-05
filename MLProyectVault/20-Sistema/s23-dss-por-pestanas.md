@@ -26,8 +26,9 @@ tags:
 |---|---|---|
 | Flota + modo historia | `app/ui_modulos/_tab_flota.py:140` | snapshot, tarjetas de gemelos, 4 botones `historia_1..4` con pasos y umbrales |
 | Motor | `app/ui_modulos/_tab_motor.py:64` | curva, SHAP, deriva y badge de estado del motor elegido |
+| Casos nuevos | `app/ui_batch.py:192` + `app/ui_inference.py:455` + `app/ui_rules.py:152` | `puntuar_lote` + `score_table` + decisión en vivo: CSV/formulario a gemelo y veredicto |
 | Auditoría | `app/ui_modulos/_tab_auditoria.py:48` | per-unit, provenance, informe PDF con firma |
-| Estrés | `app/ui_modulos/_sandbox_estres.py:42` | sandbox de puntuación con caché propia |
+| Estrés (sandbox, no pestaña) | `app/ui_modulos/_sandbox_estres.py:42` | sandbox de puntuación con caché propia, dentro del dashboard |
 | Alta de motor | `app/ui_alta.py:92` | `estado_historia`: los 4 pasos con datos vivos |
 | Gemelo | `app/twin.py:60` | `make_twin` + `registrar`: del resultado al registro |
 | Flota (registro) | `app/flota.py:99` | `registrar_alta` de matrículas |
@@ -52,12 +53,12 @@ Cuatro pasos con datos vivos (no un tour de botones): cada `historia_N` fija esc
 ## Di esto en el tribunal
 
 > [!quote] Di esto en el tribunal
-> «El DSS son cuatro fragments con dueño y un dashboard que conserva los globales: la flota guía con el modo historia, el motor explica con SHAP, la auditoría firma el PDF y el estrés prueba sin romper nada».
+> «El DSS son cuatro pestañas (`dashboard_ds02.py:1107` flota/motor/casos/auditoría) más sandbox de estrés: la flota guía con el modo historia, el motor explica con SHAP, casos puntúa lo nuevo, la auditoría firma el PDF y el estrés prueba sin romper nada».
 
 ## Flashcards
 
 > [!question]- ¿Qué cubre cada pestaña del DSS?
-> Flota (`_tab_flota.py:140`): snapshot + modo historia. Motor (`_tab_motor.py:64`): curva, SHAP y estado. Auditoría (`_tab_auditoria.py:48`): traza y PDF. Estrés (`_sandbox_estres.py:42`): sandbox con caché.
+> Flota (`_tab_flota.py:140`): snapshot + modo historia. Motor (`_tab_motor.py:64`): curva, SHAP y estado. Casos (`ui_batch.py:192`/`ui_inference.py:455`): lote y vivo a gemelo. Auditoría (`_tab_auditoria.py:48`): traza y PDF. Estrés (`_sandbox_estres.py:42`): sandbox con caché, no pestaña.
 
 > [!question]- ¿Qué es el modo historia y quién lo protege?
 > Cuatro pasos guiados con datos vivos (`ui_alta.py:92`, botones `historia_1..4` en flota); lo protegen 20 tests de interacción que fallan antes que el taller.

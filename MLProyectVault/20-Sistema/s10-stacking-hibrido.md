@@ -31,15 +31,14 @@ El objeto vive en `src/ds02_rul/ensemble.py:23` con `beta` 1.0 y `ema_span` 5.
 | `_sequence` | Añade el canal de ciclo si el grafo lo espera | `src/ds02_rul/ensemble.py:180` |
 | `_tabular` | Reconstruye el resumen de 93 igual que en train | `src/ds02_rul/ensemble.py:193` |
 
-El meta combina `[p_lstm, p_lgb, cyc_norm]` con RidgeCV y LGBM somero promediados 50/50, ajustados en la unidad 16. Luego `p_raw = p_lstm + beta · (p_meta − p_lstm)` con `beta` 1.0, EMA causal y clip en cero.
+El meta combina `[p_lstm, p_lgb]` sin `cyc_norm` con RidgeCV y LGBM somero promediados 50/50, ajustados en la unidad 16. Luego `p_raw = p_lstm + beta · (p_meta − p_lstm)` con `beta` 1.0, EMA causal y clip en cero. Darle el reloj al meta le permitiría aprender un prior de vida en vez de reconciliar ramas (ablación `models/ablation_meta_cycle.json`, [[c19-ablacion-cyc-norm]]).
 
 El orden importa: primero se combina, luego se suaviza, luego se acota con la banda ([[s11-banda-conformal]]). Suavizar antes de combinar mezclaría errores de ramas distintas.
 
 ```mermaid
 flowchart LR
-    A[p_lstm] --> C[Meta Ridge+LGBM]
+    A[p_lstm] --> C[Meta Ridge+LGBM sin reloj]
     B[p_lgb] --> C
-    N[cyc_norm] --> C
     C --> D[p_meta]
     D --> E[beta 1.0]
     A --> E
@@ -68,7 +67,7 @@ Frente a bases C: LGBM adaptada 7.067 y BiLSTM-C 5.654. El salto de ≈1.3 sobre
 ## Di esto en el tribunal
 
 > [!quote]
-> «El híbrido combina BiLSTM y LightGBM con un meta pequeño ajustado en la 16 y un beta de 1.0 que contrae hacia el meta. Da 4.34 de media y 4.25 en disco, casi dos puntos mejor que el campeón solo.»
+> «El híbrido combina BiLSTM y LightGBM con un meta pequeño ajustado en la 16 y un beta de 1.0 que contrae hacia el meta. Da 4.322±0.064 de media y 4.338 en disco, más de un punto mejor que el campeón solo.»
 
 ## Flashcards
 
@@ -76,7 +75,7 @@ Frente a bases C: LGBM adaptada 7.067 y BiLSTM-C 5.654. El salto de ≈1.3 sobre
 > `predict` para el punto y `predict_interval` para punto más banda.
 
 > [!question]- ¿Qué entra al meta?
-> `[p_lstm, p_lgb, cyc_norm]` con RidgeCV y LGBM somero promediados.
+> `[p_lstm, p_lgb]` sin `cyc_norm` con RidgeCV y LGBM somero promediados.
 
 > [!question]- ¿Qué hace beta 1.0 en la fórmula?
 > `p = p_lstm + 1.0 · (p_meta − p_lstm)`: se queda con el meta completo.
@@ -88,7 +87,7 @@ Frente a bases C: LGBM adaptada 7.067 y BiLSTM-C 5.654. El salto de ≈1.3 sobre
 > Dos bases distintas, un meta pequeño en holdout y un shrinkage que impide que el meta rompa al campeón.
 
 > [!question]- ¿Cómo la contarías en el tribunal?
-> «El híbrido combina BiLSTM y LightGBM con un meta pequeño ajustado en la 16 y un beta de 1.0 que contrae hacia el meta. Da 4.34 de media y 4.25 en disco, casi dos puntos mejor que el campeón solo.»
+> «El híbrido combina BiLSTM y LightGBM con un meta pequeño ajustado en la 16 y un beta de 1.0 que contrae hacia el meta. Da 4.322±0.064 de media y 4.338 en disco, más de un punto mejor que el campeón solo.»
 
 ## Conexiones
 

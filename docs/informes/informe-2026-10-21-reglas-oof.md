@@ -1,6 +1,6 @@
 # Informe — Medidor de reglas de corrección (R2-R5) y coherencia de banda (R6)
 
-> **Banner — bundle A obsoleto, bundle B vigente:** este informe 2026-10-21 describe el bundle A (histórico/pre-B, 4.289 / sha `0acd795b…`) y ya no es vigente como referencia de producción. Vigente: bundle B (ref 4.251; media 4.340 ± 0.101). Las métricas B no se cambian en este diff; las cifras de abajo se conservan como histórico.
+> **Banner histórico — bundle A obsoleto:** este informe 2026-10-21 describe el bundle A (4.289 / sha `0acd795b…`). Vigente hoy: bundle C 4.338 (`models/ds02_manifest.json`, ver `MLProyectVault/50-Evidencia/e00-cifras-autoritativas.md`). Las cifras de abajo se conservan como histórico, no se recalculan.
 
 
 Proyecto: N-CMAPSS DS02, predicción de RUL (Hybrid Stacking BiLSTM + LightGBM cuantil + meta + EMA5)

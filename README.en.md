@@ -24,7 +24,7 @@ docker compose up --build      # http://localhost:8000/docs and http://localhost
 
 ## Results — test units 11 / 14 / 15, 6 196 windows, mean ± std over seeds [42, 7, 123]
 
-### Baseline v4.1.0 (historical — kept for comparison)
+### Baseline v4.1.0 (historical bundle B — kept for comparison, not current; current is bundle C 4.338 below)
 
 | Model | RMSE | MAE | R² | NASA score |
 | --- | --- | --- | --- | --- |
@@ -42,7 +42,7 @@ rather than an artefact: with the cycle counter removed from the meta-learner th
 stacking layer actually depends on the two base models, so it inherits their
 variance instead of reading a counter (see the ablation section below).
 
-### Revision 2026-10-21 (historical)
+### Revision 2026-10-21 (historical bundle B — not current)
 
 Same models, same protocol. The additions are two metrics, not extra accuracy.
 

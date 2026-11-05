@@ -195,7 +195,7 @@ Requiere Python 3.12. Desde la raiz del repo:
 python -m venv .venv
 .venv/Scripts/activate        # Windows;  POSIX: source .venv/bin/activate
 pip install -r requirements.txt
-pip install -e .              # expone clase/, ds02_rul/ y mia/ como paquetes
+pip install -e .              # expone clase/, ds02_rul/ y src/mia/ como paquetes
 ```
 
 `pip install -e .` no es opcional: notebooks y app importan `ds02_rul` y
@@ -249,7 +249,7 @@ resultados/             gráficas y CSVs (ignorado en git, regenerable)
 
 ## Documentación adicional
 
-- README en inglés: [README.md](README.md)
+- README en inglés: [README.en.md](README.en.md)
 - Track de clase: [src/clase/README.md](src/clase/README.md)
 - Rúbrica: `docClase/Reto1_SAA_PIA_MIA_2026-27_v4.pdf`
 - Planificación: `docs/pendiente/planificacion-clase-5notebooks.md`

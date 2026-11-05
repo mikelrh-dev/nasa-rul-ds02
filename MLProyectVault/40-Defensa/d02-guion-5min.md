@@ -49,7 +49,7 @@ Fuente: [[visuals/d02-recorrido-5min.mmd]]
 
 «Combino con meta pequeño en la 16 y shrinkage beta 1.0 elegido fuera de fold con mediana 1.0. Dos folds piden 1.0 y uno pide 0: hay disenso y lo enseño.» ([[s09-oof-y-beta]])
 
-«El híbrido-C más EMA5 da 4.32 de media y 4.34 en disco. Más de un punto mejor que su mejor rama.» ([[s20-ensemble-adaptado-y-bundle-c]])
+«El híbrido-C más EMA5 da 4.322±0.064 de media y 4.338 en disco. Más de un punto mejor que su mejor rama.» ([[s20-ensemble-adaptado-y-bundle-c]])
 
 ## 3:30–4:20 — Banda como cota
 
@@ -66,7 +66,7 @@ Fuente: [[visuals/d02-recorrido-5min.mmd]]
 ## Di esto en el tribunal
 
 > [!quote]
-> «En cinco minutos: problema asimétrico, reparto por motor, dos bases distintas, beta honesto, banda como cota y decisión sobre el borde. 4.34 en disco con protocolo que puedes auditar.»
+> «En cinco minutos: problema asimétrico, reparto por motor, dos bases distintas, beta honesto, banda como cota y decisión sobre el borde. 4.338 en disco con protocolo que puedes auditar.»
 
 ## Flashcards
 

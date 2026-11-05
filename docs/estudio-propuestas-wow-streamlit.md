@@ -17,8 +17,8 @@
 - App principal `app/dashboard_ds02.py` (~3.3k líneas): 4 pestañas (Flota, Motor, Casos nuevos, Auditoría), `chart_layout`/`style_axes`, tokens de diseño Python (`INK`, `MUTED`, `GRID`, `SURFACE`, `SKY`, `AMBER`, `GREEN`, `ROSE`).
 - Caché: `app/cache/ds02_windows.parquet` (6196 filas, 7 cols: unit, cycle, start_index, y_true, pred, lower, upper) para unidades 11/14/15; `app/cache/ds02_rows.parquet` (12538 filas, 20 cols: unit, cycle + 4 ops + 14 sensores).
 - `app/ui_data_loader.py`: `get_windows`, `get_rows`, `fleet_snapshot`, `work_order`, `work_order_csv`, `parte_disponibilidad`, `artifact_hash_check`, `first_alarm_cycle`, `unit_curve`, `CHANNEL_LABELS`/`CHANNEL_GROUPS`.
-- `mia/casos.py` (158 líneas): reglas y umbrales (30/25, alineados con defaults del loader).
-- `mia/modelo.py`: `COLUMNAS` (18 canales: 4 ops + 14 sensores).
+- `src/mia/casos.py` (158 líneas): reglas y umbrales (30/25, alineados con defaults del loader).
+- `src/mia/modelo.py`: `COLUMNAS` (18 canales: 4 ops + 14 sensores).
 - Tests: `tests/test_dss_ui.py` (31 passed en la corrida base) incluye guardas `test_no_css_is_injected_into_the_app` (líneas 369-372) y `test_theme_config_is_dark_and_parseable` (352-367); AppTest con timeout 120 s.
 - `.streamlit/config.toml` (53 líneas): theming nativo completo (colores, fuentes Inter/Space Grotesk/JetBrains Mono, radios, paletas de 10 colores).
 - Sin infraestructura pub/sub: `docker-compose.yml` solo `api` + `dashboard`; sin redis/kafka/ws en requirements ni imports.
@@ -40,7 +40,7 @@
 
 ### #2 Kanban operativo de flota (st.columns)
 
-- **Concepto:** 3 columnas [Vuelo Normal]|[Warning]|[Hangar AOG]; las tarjetas de motores (11, 14, 15) saltan de columna según el slider y las reglas de `mia/casos.py`.
+- **Concepto:** 3 columnas [Vuelo Normal]|[Warning]|[Hangar AOG]; las tarjetas de motores (11, 14, 15) saltan de columna según el slider y las reglas de `src/mia/casos.py`.
 - **Scores:** feas 8 / improve 9 / risk 2 (confirmados).
 - **Code refs:** `app/flota.py` (147 líneas, registro de motores), `mia/casos.py` (158 líneas, umbrales 30/25 alineados con defaults del loader), `app/dashboard_ds02.py` (muro de hangar, columnas), `app/ui_data_loader.py` (`classify`, labels).
 - **Test impact:** los tests de tarjetas del muro (conteo/claves) deben seguir verdes si el agrupamiento conserva botones. Recomendar tests nuevos de agrupamiento (read-only). No cambiar reglas de `mia`.
@@ -111,7 +111,7 @@
 - **Concepto:** botón [Desplegar AOG] que hace POST al webhook de n8n en el VPS; n8n enruta a Telegram; `st.code` muestra el JSON exacto enviado.
 - **Scores propuestos:** feas 8 / improve 10 / risk 4. **Ajustados:** feas 7 / improve 5 / risk 7.
 - **Contexto:** esto es exactamente el A5 (voz+Telegram) ya descartado en `docs/plans/plan-prioridad-y-riesgo-2026-10-24.md` ("DESCARTADO POR AHORA — necesita red y un token en el repo. Falla en directo si el aula no tiene internet").
-- **Code refs:** no hay `webhook`/`telegram`/`n8n`/`requests`/`httpx` en `app/`, `mia/`, `src/`, `tests/`. Único uso de `os.environ` es `DS02_ARTIFACT` en `app/api.py`. Punto de inserción natural: bloque de hangar en `app/dashboard_ds02.py` ~1890-2010 (candidatos AOG y registros abiertos). `st.code(..., language=None)` ya se usa para el hash de provenance (`dashboard_ds02.py:596`, `:2559`) — el patrón de "glass-box" JSON reutilizable.
+- **Code refs:** no hay envío externo activo (`webhook`/`telegram`) ni cliente HTTP en `app/`, `src/mia/`, `src/`, `tests/` (solo stub `src/n8n.py` + API local `app/api.py` `/health,/units,/predict`). Único uso de `os.environ` es `DS02_ARTIFACT` en `app/api.py`. Punto de inserción natural: bloque de hangar en `app/dashboard_ds02.py` ~1890-2010 (candidatos AOG y registros abiertos). `st.code(..., language=None)` ya se usa para el hash de provenance (`dashboard_ds02.py:596`, `:2559`) — el patrón de "glass-box" JSON reutilizable.
 - **Dependencias:** `requests==2.34.2` instalado pero solo transitivo (`Required-by: jupyterlab_server, streamlit, tensorflow`); NO está en `requirements.txt` ni `pyproject.toml`. `httpx==0.28.1` solo vía jupyterlab (dev). Docker tiene `curl` (healthcheck) pero no cliente outbound garantizado. Recomendación: si se implementa, usar `requests` y declararlo explícitamente, o `urllib` (stdlib, cero deps). Evitar `httpx` salvo que se añada a requirements + Dockerfile.
 - **Riesgo de red (wifi universitario):** POST saliente a VPS puede ser bloqueado por captive portal/proxy/WAF/DNS/puertos; sin fallback offline = fallo de demo. Handler síncrono: `requests.post` sin timeout corto congela toda la UI. Secreto (URL webhook / token) debe vivir en `.streamlit/secrets.toml` o env (ya gitignored), documentado para operadores. Endpoint VPS debe ser HTTPS.
 - **Test impact:** tests con AppTest sensibles a archivos de estado (`app/registros_flota.json` ya causó incidentes). Llamada de red real en handler haría tests lentos/flaky salvo que el cliente HTTP se abstraiga en una función única monkeypatcheable. No hay `responses`/`pytest-httpx`/`respx` en deps. Tests nuevos: forma del payload en `st.code`, path éxito (mock 200), path fallo (timeout/5xx → error de UI sin crash), modo dry-run.

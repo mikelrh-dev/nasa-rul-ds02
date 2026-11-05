@@ -1,6 +1,6 @@
 ---
 tipo: sistema
-status: sin-estudiar
+status: consolidado
 tags:
   - persistencia
   - manifiesto
@@ -36,7 +36,7 @@ El manifiesto fija semillas `[42, 7, 123]`, ventana 50, stride 100, steps 3 y 2,
 
 ## La decisión que hay detrás
 
-ADR-010 impone `.keras` nativo frente a `h5` y `joblib` frente a `pickle` suelto: el grafo recarga sin el código de entrenamiento y el resto viaja con versión fijada.
+El change `2026-10-20-ds02-honest-deployable` impone `.keras` nativo frente a `h5` y `joblib` frente a `pickle` suelto: el grafo recarga sin el código de entrenamiento y el resto viaja con versión fijada (ver `src/ds02_rul/persistence.py:108` y `src/ds02_rul/persistence.py:189`; ADR-010 es solo el rechazo del simulador n8n).
 
 La guarda `assert_ds02_artifact` existe porque un bundle de FD001 cargado como DS02 puntuaría sin avisar. Falla alto antes de publicar números.
 
@@ -44,7 +44,7 @@ La guarda `assert_ds02_artifact` existe porque un bundle de FD001 cargado como D
 
 Fila de referencia en disco (bundle C): 4.338 / 3.227 / 0.9461 / 2336.2 ([[e00-cifras-autoritativas]]). Es la corrida que reproduce el servicio, no la media de tres semillas.
 
-Verificación en 30 segundos con el manifiesto y comparación contra `notebooks/ds02_ensemble/EVALUACION_EJECUCION.md`. Si difieren, se actualiza solo `e00`.
+Verificación en 30 segundos con `models/ds02_manifest.json` y comparación contra [[e00-cifras-autoritativas]]. Si difieren, se actualiza solo `e00` (la ruta `notebooks/ds02_ensemble/EVALUACION_EJECUCION.md` es bundle B archivado).
 
 ## El límite
 

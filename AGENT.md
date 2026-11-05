@@ -7,7 +7,7 @@
 - (`models/v2_metrics.json` holds the older FD001 comparison: LightGBM 13.42 / XGBoost 26.16. Do not cite it for DS02.)
 
 ## Key facts
-- Shipped band: split-conformal in `models/ds02_manifest.json` (dev rows, 17450). R6 band: `mia/calibracion_banda.json` (14915 pure OOF rows, units 2/5/10/18/20, no unit 16). Different bands, different uses.
+- Shipped band: split-conformal in `models/ds02_manifest.json` (dev rows, 17450). R6 band: `src/mia/calibracion_banda.json` (14915 pure OOF rows, units 2/5/10/18/20, no unit 16). Different bands, different uses.
 - BiLSTM branch of oof_base_predictions is non-deterministic (p_lgb bit-identical, p_lstm max|diff| ~26 across seeded runs) → band not bit-reproducible.
 - Rule-layer measurements: INFORME_reglas_oof.md (repo root). Probe scripts in Hermes scratch dir.
 

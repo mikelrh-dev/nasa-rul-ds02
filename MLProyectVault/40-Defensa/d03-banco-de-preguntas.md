@@ -83,7 +83,7 @@ Respondés en voz alta: respuesta corta, por qué funciona y seguimiento probabl
 ## Flashcards
 
 > [!question]- ¿Cuánto da cada modelo?
-> LGBM adaptada 7.07, BiLSTM-C 5.65, híbrido-C 4.32 con disco 4.34.
+> LGBM adaptada 7.07, BiLSTM-C 5.654, híbrido-C 4.322±0.064 con disco 4.338 (bundle C, `models/ds02_manifest.json`).
 
 > [!question]- ¿Qué tres números de protocolo no fallan?
 > 44 982 filas de ajuste, beta 1.0, 17 450 de banda.

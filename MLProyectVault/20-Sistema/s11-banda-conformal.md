@@ -1,6 +1,6 @@
 ---
 tipo: sistema
-status: sin-estudiar
+status: consolidado
 tags:
   - conformal
   - banda
@@ -33,7 +33,7 @@ El ajuste vive en `src/ds02_rul/conformal.py:28` y la aplicación en `src/ds02_r
 
 Los bins son `[0, 25, 50, 75, ∞]` sobre RUL predicha, con `q_low` y `q_high` propios por tramo (`models/ds02_manifest.json`). La asimetría importa: el error no se distribuye igual arriba que abajo ([[c12-conformal-prediction]]).
 
-No confundir con la banda de reglas: 17 450 calibra esta banda; 14 915 calibra la de `mia/` ([[s13-capa-de-reglas-y-decision]]). Son dos bandas para dos usos.
+No confundir con la banda de reglas: 17 450 calibra esta banda; 14 915 calibra la de `src/mia/` ([[s13-capa-de-reglas-y-decision]]). Son dos bandas para dos usos.
 
 ```mermaid
 flowchart LR
@@ -46,7 +46,7 @@ Fuente: [[visuals/s11-banda-tramos.mmd]]
 
 ## La decisión que hay detrás
 
-ADR-009 elige split-conformal por tramos frente a cuantil global y frente a banda simétrica. El cuantil global subcubre colas largas; la simétrica miente donde el error es asimétrico.
+Se elige split-conformal por tramos frente a cuantil global y frente a banda simétrica (implementado en `src/ds02_rul/conformal.py:28`; ADR-009 es solo la corrección isotónica R2b, no esta banda). El cuantil global subcubre colas largas; la simétrica miente donde el error es asimétrico.
 
 Se midió recalibrar en la unidad 16 y se rechazó: colapsa a 3.35 de ancho con 31.4 % de cobertura. Estrecha y falsa: lo contrario de lo que se pide a una cota.
 

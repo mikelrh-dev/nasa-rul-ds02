@@ -78,7 +78,7 @@ flowchart TD
     tabfeat --> lgb["LightGBM quantile 0.35<br/>depth 4, leaves 15, 300 trees"]
     seqfeat --> bilstm["BiLSTM 2 x 64 bidirectional<br/>Huber delta 10, 384-dim pooled head"]
 
-    meta["Meta-learner on unit 16<br/>RidgeCV plus shallow LGBM<br/>inputs pred_lstm, pred_lgb, cyc_norm"]
+    meta["Meta-learner on unit 16<br/>RidgeCV plus shallow LGBM<br/>inputs pred_lstm, pred_lgb (bundle C: sin cyc_norm)"]
     beta["Beta shrinkage<br/>p_lstm plus beta times p_meta minus p_lstm<br/>beta = 1.00"]
     ema["Causal EMA span 5<br/>per unit, ordered by cycle"]
     clip["Clip at 0"]
@@ -176,12 +176,12 @@ That is confirmed independently by the persisted `ensemble.joblib`, whose fitted
 | `sensor_ridges` | 14 × `Ridge(alpha=1.0)`, 14 features each | One independent residual model per sensor |
 | `lgb_standalone.n_features_in_` | **93** | The tabular feature contract |
 | `lgb_standalone.objective / alpha` | `quantile` / `0.35` | The asymmetric objective (ADR-003) |
-| `ridge_meta.n_features_in_` / `lgb_meta.n_features_in_` | 3 / 3 | `[pred_lstm, pred_lgb, cyc_norm]` |
+| `ridge_meta.n_features_in_` / `lgb_meta.n_features_in_` | 2 / 2 bundle C (`models/ds02_manifest.json meta_features: 2`) | `[pred_lstm, pred_lgb]` sin `cyc_norm` (ablación `models/ablation_meta_cycle.json`; 3 feats era bundle B) |
 | `bilstm_model.input_shape` / params | `(None, 50, 19)` / **154 253** | The recurrent contract (ADR-004) |
 | `bilstm_model.layers` | `Input → BatchNorm → BiLSTM → Dropout → BiLSTM → Dropout → Lambda → GAP → GMP → Concat → Dropout → Dense → Dense` | The triple-pooling head, including the `Lambda` of §6.2 |
 | `window_size` / `beta` / `ema_span` | 50 / 1.0 / 5 | The recorded configuration |
 
-**Provenance hazard.** The FD001 fallback is silent. If the DS02 HDF5 is ever moved or renamed, `load_rul_dataset()` falls back to the C-MAPSS text files and the notebook trains and saves an **FD001** model to the **same** `ensemble.joblib` path, with the **same** `paradigm` metadata string
+**Provenance hazard (cerrado).** El fallback FD001 silencioso ya no existe: `src/ds02_rul/data.py:39-50` hace `raise FileNotFoundError` descriptivo. El texto abajo describe el riesgo histórico, no vigente. If the DS02 HDF5 is ever moved or renamed, `load_rul_dataset()` falls back to the C-MAPSS text files and the notebook trains and saves an **FD001** model to the **same** `ensemble.joblib` path, with the **same** `paradigm` metadata string
 (`"Hybrid Stacking (BiLSTM dual-pooling + LGBM residualizado + RidgeCV/LGBM meta + EMA5)"`).
 The two artefacts are distinguishable only by inspecting `n_features_in_` (18 vs 16) and `n_op` (4 vs 2) — nothing in the file name, the metadata or the console output says so. This is the concrete reason the provenance manifest of OpenSpec task 2.5 is a requirement and not a nicety.
 
@@ -265,7 +265,8 @@ The three pooling branches are complementary: `last_step` carries the current st
 ### 3.7 Stacking and beta shrinkage
 
 ```python
-Z_val = np.column_stack([pred_lstm_val, pred_lgb_val, cyc_val])      # cyc_val = cycle / 100
+# Bundle B histórico: Z_val = [pred_lstm, pred_lgb, cyc_norm] (3 feats). Bundle C vigente: Z = [pred_lstm, pred_lgb] (2 feats, sin cyc_norm).
+Z_val = np.column_stack([pred_lstm_val, pred_lgb_val])
 ridge_meta = RidgeCV(alphas=np.logspace(-2, 3, 20)).fit(Z_val, y_val)
 lgb_meta   = LGBMRegressor(max_depth=3, num_leaves=7, n_estimators=120,
                            learning_rate=0.03, min_child_samples=20,
