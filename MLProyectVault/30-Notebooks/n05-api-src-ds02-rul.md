@@ -46,6 +46,19 @@ Inventario generado por AST desde `src/ds02_rul/` (firmas y líneas reales).
 
 Regla de lectura: `data` ingiere, `features` transforma, `model` y `pipeline` entrenan bases, `stacking` combina, `ensemble` sirve, `conformal` acota, `metrics` puntúa, `persistence` congela.
 
+## Dónde se usa cada pieza (ver recorrido)
+
+| Pieza | Ver recorrido |
+|---|---|
+| `data/features` + base clase | [[n01-recorrido-nb01]] NB01 EDA |
+| `train_clasicos/train_mlp/shap_clase/tabla_final` | [[n02-recorrido-nb02]] NB02 fila |
+| `stacking.py:161` reloj + ablación | [[n03-recorrido-nb03]] NB03 |
+| `model/pipeline/stacking/ensemble/conformal` OOF+beta | [[n06-recorrido-nb04]] NB04 |
+| `train_lgbm_adaptada` + multisemilla | [[n07-recorrido-nb05]] NB05 |
+| `puente_c/run_seed/load_ensemble/tabla_final` bundle C | [[n08-recorrido-nb06]] NB06 |
+| `shap_c.py:216` por ramas | [[n09-recorrido-nb07]] NB07 |
+| Cadena artefactos NB01→NB06 | [[n04-cadena-de-estado]] |
+
 ## Inventario de `src/clase/` — el track tabular
 
 | Módulo | Función o pieza clave | Línea |

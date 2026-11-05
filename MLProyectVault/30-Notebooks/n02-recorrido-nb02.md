@@ -32,6 +32,16 @@ tags:
 
 Las cifras oficiales: E2 train 5.71 / val 7.34 / test 7.72 ([[e00-cifras-autoritativas]]).
 
+## Código que ejecuta cada bloque (.py:línea)
+
+| Bloque | .py que manda |
+|---|---|
+| 5 clásicos + GridSearch GroupKFold | `src/clase/train_clasicos.py:145` ordena por `rmse_val` |
+| MLP base/E1/E2/E3 | `src/clase/train_mlp.py:107` ordena por `rmse_val` |
+| SHAP XGB exacto + aditividad 1e-5 | `src/clase/shap_clase.py` `check_aditividad`, fondo 200 train / 200 val fold-0 |
+| Permutación XGB | `src/clase/train_mlp.py` 200 filas val fold-0, T30 6ª |
+| Tabla final por grano | `src/clase/tabla_final.py:18` `COLUMNAS` con `grano`, nunca ranking mixto |
+
 ## Las 5 celdas que importan
 
 1. Tabla con baseline primero: sin suelo no hay carrera.

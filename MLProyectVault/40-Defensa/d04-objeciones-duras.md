@@ -14,7 +14,7 @@ tags:
 
 ## 1. «Beta 1.0 significa que el BiLSTM sobra»
 
-No. Beta 1.0 elige el meta completo en esta partición, pero un fold pide 0. El meta sin el campeón no existe: necesita sus predicciones. Y la mejor rama sola da 5.65; el híbrido da 4.34 en disco ([[e00-cifras-autoritativas]]).
+No. Beta 1.0 elige el meta completo en esta partición, pero un fold pide 0. El meta sin el campeón no existe: necesita sus predicciones. Y la mejor rama sola da 5.654; el híbrido da 4.338 en disco ([[e00-cifras-autoritativas]]).
 
 ## 2. «Banda 100 % con 26 ciclos es inútil»
 
@@ -34,15 +34,15 @@ Sí: ±0.1 en el híbrido final por no-determinismo de TensorFlow en CPU (±0.5 
 
 ## 6. «LightGBM 7.07 no aporta nada»
 
-Sola no, pero combinada sí: el salto de 5.65 a 4.34 viene de errores complementarios, no de magia. Blending fijo daba 8.09 y 7.18 y se rechazó; stacking aprendido sí supera ([[s10-stacking-hibrido]]).
+Sola no, pero combinada sí: el salto de 5.654 a 4.338 viene de errores complementarios, no de magia. Blending fijo daba 8.09 y 7.18 y se rechazó; stacking aprendido sí supera ([[s10-stacking-hibrido]]).
 
 ## 7. «Esto no decide nada, solo predice»
 
 La RUL sola no decide: decide `L_inf` con 30 y 25. Lead time 9/23/17 en media y saturación en 60.6. La decisión vive en [[s13-capa-de-reglas-y-decision]], no en el RMSE.
 
-## 8. «Macro 5.02 contra 4.34: ¿cuál es la verdad?»
+## 8. «Macro 5.0153 contra 4.338: ¿cuál es la verdad?»
 
-Ambas: 4.34 pondera por ventana y esconde al motor 14; 5.02 pesa cada motor igual (bundle C). El 14 da 8.58 con 760 filas. Enseño las dos para no halagar la flota ([[c04-metricas-y-baseline]]).
+Ambas: 4.338 pondera por ventana y esconde al motor 14; 5.0153 pesa cada motor igual (bundle C). El 14 da 8.5761 con 760 filas. Enseño las dos para no halagar la flota ([[e00-cifras-autoritativas]], [[c26-deriva-y-limites]]).
 
 ## 9. «¿Por qué no reentrenar en producción?»
 

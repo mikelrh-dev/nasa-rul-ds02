@@ -32,6 +32,16 @@ tags:
 
 Las cifras de calidad viven en `src/clase/README.md` (tabla «Nulos antes / Nulos después»).
 
+## De dónde sale la base que mira (código)
+
+| Pieza | .py:línea | Qué aporta a NB01 |
+|---|---|---|
+| `SENSOR_COLS` 14 sensores | `src/clase/dataset_clase.py:31` | columnas que la tabla de campos audita |
+| `fase_vuelo` alt/Mach | `src/clase/dataset_clase.py` | Fig.1/Fig.4 la justifican antes de existir |
+| `NUM_COLS/CAT_COLS/FEATURE_COLS` | `src/clase/pipeline_clase.py:22` | prepro que NB02 usará sobre esta base |
+| `predict_caso_nuevo` | `src/clase/pipeline_clase.py:43` | caso nuevo nace de estos campos |
+| Consumidores | `src/clase/train_clasicos.py`, `src/clase/train_mlp.py` | NB01 no entrena; deja la base que ellos compiten |
+
 ## Las 5 celdas que importan
 
 1. IA débil: la declaración SAA 1 que el tribunal quiere oír primero.
