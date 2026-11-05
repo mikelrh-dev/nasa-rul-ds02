@@ -9,7 +9,7 @@ Explicar el bundle C (`models/`, manifest `4.338`, seed 42) por ramas —BiLSTM,
 | # | Decisión | Alternativas rechazadas | Por qué |
 |---|---|---|---|
 | D1 | Tres ramas separadas (Deep/Tree/Permutation) | SHAP sobre el ensemble completo | TreeExplainer no cubre stacking/EMA; por ramas cada explainer es válido y auditable |
-| D2 | BiLSTM: `DeepExplainer`, 19 canales de entrada (18 scaler + `cyc_norm`), fondo train fold-0 | Fondo con test [11,14,15]; GradientExplainer | Fondo solo train evita fuga; DeepSHAP cubre la red diferenciable |
+| D2 | BiLSTM: Permutation agrupado por canal (19 jugadores, exacto por telescopado), fondo train fold-0 | DeepExplainer (inviable: Keras3 While-LSTM + shap 0.54.1, error 3.06 >> 1e-2; GradientExplainer 3-11); fondo con test [11,14,15] | El agrupado agrega (50,19) a 19 canales de forma exacta y declarada en metadata; fondo solo train evita fuga |
 | D3 | LGBM: `TreeExplainer` interventional, 93 feats reutilizando `ensemble._tabular` | Re-derivar features a mano; kernel SHAP | Mismo preproceso que entrenamiento (aditividad); exacto en árbol y barato |
 | D4 | Meta: `PermutationExplainer` sobre `Z=[p_lstm,p_lgb]` (2D), sin `cyc_norm` | Incluir `cyc_norm` como 3ª columna | El meta no debe explicar por el contador de ciclos |
 | D5 | EMA fuera de SHAP-C | Explicar la salida con EMA | EMA suaviza entre motores; no es atribuible por SHAP |

@@ -47,8 +47,8 @@ Chain strategy: pending
 
 ## Phase 4: Deps/CI (DEP-CI-01)
 
-- [ ] 4.1 Pin `pyproject.toml` deps (TF, LightGBM, sklearn, shap, numpy, pandas, nbformat). Files: `pyproject.toml` · Size: S · Dep: 3.3 · Accept: pinned install succeeds on clean checkout · Verify: `python -m pip install -e . --dry-run`
-- [ ] 4.2 Create CI running `python -m pytest tests -q` (no retrain). Files: `.github/workflows/ci.yml` (new) · Size: S · Dep: 4.1 · Accept: CI executes pytest, reads `app/cache/` only · Verify: `cat .github/workflows/ci.yml`
+- [x] 4.1 Pin `pyproject.toml` deps (TF, LightGBM, sklearn, shap, numpy, pandas, nbformat). Files: `pyproject.toml` · Size: S · Dep: 3.3 · Accept: pinned install succeeds on clean checkout · Verify: `python -m pip install -e . --dry-run`
+- [x] 4.2 Create CI running `python -m pytest tests -q` (no retrain). Files: `.github/workflows/ci.yml` (new) · Size: S · Dep: 4.1 · Accept: CI executes pytest, reads `app/cache/` only · Verify: `cat .github/workflows/ci.yml`
 - **Checkpoint 4:** Pinned deps + CI defined. Verify: `python -m pytest tests -q`
 
 ## Phase 5: Guard joblib (SEC-JOBLIB-01)
@@ -59,10 +59,10 @@ Chain strategy: pending
 
 ## Phase 6: SHAP-C RED→GREEN (SHAPC-BILSTM/LGBM/META/DATA-01)
 
-- [ ] 6.1 RED: shapes `(50,19)`/`(93,)`/2D, additivity, no causal. Files: `tests/test_shap_c.py` (new) · Size: M · Dep: 5.2 · Accept: tests fail without `ejecutar_shap_c` · Verify: `python -m pytest tests/test_shap_c.py -q` (RED)
-- [ ] 6.2 GREEN BiLSTM DeepSHAP, 19 channels, train fold-0 background; error `<1e-2` in metadata. Files: `src/ds02_rul/shap_c.py` · Size: M · Dep: 6.1 · Accept: `base+sum≈model` within `1e-2`, EMA out · Verify: `python -m pytest tests/test_shap_c.py -q`
-- [ ] 6.3 GREEN LGBM TreeSHAP (reuse `ensemble._tabular`) + meta Permutation over the REAL meta width (verify `ridge_meta.n_features_in_` first: if 3, include `cycles/100` as documented third input; if 2, `Z=[p_lstm,p_lgb]`); `1e-5`. Files: `src/ds02_rul/shap_c.py` · Size: M · Dep: 6.2 · Accept: both within `1e-5`, meta width matches bundle · Verify: `python -m pytest tests/test_shap_c.py -q`
-- [ ] 6.4 NASA SUM no clamp (`>125` targets) + `metadata.json` (explainer, background, `aditividad_max_error`). Files: `src/ds02_rul/shap_c.py`, `resultados/shap_bundle_C/` · Size: S · Dep: 6.3 · Accept: SUM exponentials, bundle C read-only · Verify: `python -m pytest tests/test_shap_c.py -q`
+- [x] 6.1 RED: shapes `(50,19)`/`(93,)`/2D, additivity, no causal. Files: `tests/test_shap_c.py` (new) · Size: M · Dep: 5.2 · Accept: tests fail without `ejecutar_shap_c` · Verify: `python -m pytest tests/test_shap_c.py -q` (RED)
+- [x] 6.2 GREEN BiLSTM grouped Permutation (DeepExplainer infeasible, error 3.06; exact telescoping), 19 channels, train fold-0 background; error `<1e-2` in metadata. Files: `src/ds02_rul/shap_c.py` · Size: M · Dep: 6.1 · Accept: `base+sum≈model` within `1e-2`, EMA out · Verify: `python -m pytest tests/test_shap_c.py -q`
+- [x] 6.3 GREEN LGBM TreeSHAP (reuse `ensemble._tabular`) + meta Permutation over the REAL meta width (verify `ridge_meta.n_features_in_` first: if 3, include `cycles/100` as documented third input; if 2, `Z=[p_lstm,p_lgb]`); `1e-5`. Files: `src/ds02_rul/shap_c.py` · Size: M · Dep: 6.2 · Accept: both within `1e-5`, meta width matches bundle · Verify: `python -m pytest tests/test_shap_c.py -q`
+- [x] 6.4 NASA SUM no clamp (`>125` targets) + `metadata.json` (explainer, background, `aditividad_max_error`). Files: `src/ds02_rul/shap_c.py`, `resultados/shap_bundle_C/` · Size: S · Dep: 6.3 · Accept: SUM exponentials, bundle C read-only · Verify: `python -m pytest tests/test_shap_c.py -q`
 - **Checkpoint 6:** Additivity per branch green. Verify: `python -m pytest tests/test_shap_c.py -q`
 
 ## Phase 7: Builder+Notebook (SHAPC-NB-01)

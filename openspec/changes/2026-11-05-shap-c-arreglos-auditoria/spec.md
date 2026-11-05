@@ -5,11 +5,11 @@
 ## ADDED Requirements
 
 ### Requirement: SHAPC-BILSTM-01
-The system MUST DeepSHAP the bundle-C BiLSTM on `(50,19)` with bundle preprocessing; EMA out, no causal claim.
+The system MUST explain the bundle-C BiLSTM on `(50,19)` with grouped Permutation SHAP (19 channel players, exact by telescoping; DeepExplainer infeasible with Keras3 While-LSTM + shap 0.54.1, error 3.06 >> 1e-2) with bundle preprocessing; EMA out, no causal claim.
 #### Scenario: Aditividad
 - GIVEN one `(50,19)` window
-- WHEN DeepSHAP runs
-- THEN `base+sum(shap)` matches within `1e-2` (DeepSHAP approximation, error declared in metadata; TreeSHAP/Permutation branches keep `1e-5`)
+- WHEN grouped Permutation SHAP runs
+- THEN `base+sum(shap)` matches within `1e-2` (grouped permutation is exact by telescoping, observed 9.5e-07; error declared in metadata; TreeSHAP/Permutation branches keep `1e-5`)
 
 ### Requirement: SHAPC-LGBM-01
 The system MUST TreeSHAP the bundle-C LightGBM (93 features) with branch additivity.
