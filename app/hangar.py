@@ -1,6 +1,6 @@
 """Hangar lifecycle as a pure state machine.
 
-The rules engine (`mia/`) answers one question: *is this unit groundable?* This
+The rules engine (`src/mia/`) answers one question: *is this unit groundable?* This
 module answers the next one: *what happened to it afterwards?* Keeping them apart
 matters — the rule engine's figures are reproduced by the evidence gate, while the
 hangar is operational bookkeeping that no gate measures.

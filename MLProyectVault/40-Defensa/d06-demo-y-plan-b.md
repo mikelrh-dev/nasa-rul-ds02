@@ -1,6 +1,6 @@
 ---
 tipo: defensa
-status: sin-estudiar
+status: consolidado
 tags:
   - demo
   - plan-b
@@ -45,7 +45,7 @@ La demo se ensaya con cronómetro igual que el guion: cinco paradas, un minuto p
 ## Di esto en el tribunal
 
 > [!quote]
-> «Te enseño manifiesto, figuras, cascada, reload y estado. Si algo no carga, te lo cuento igual: 4.34 en disco, beta 1.0 y banda 100 con 26.4.»
+> «Te enseño manifiesto, figuras, cascada, reload y estado. Si algo no carga, te lo cuento igual: 4.338 en disco (bundle C), beta 1.0 y banda 100 con 26.4.»
 
 ## Flashcards
 
@@ -62,7 +62,7 @@ La demo se ensaya con cronómetro igual que el guion: cinco paradas, un minuto p
 > Enseñas en orden recarga, predicción y decisión, y si algo falla cuentas sin pantalla.
 
 > [!question]- ¿Cómo la contarías en el tribunal?
-> «Te enseño manifiesto, figuras, cascada, reload y estado. Si algo no carga, te lo cuento igual: 4.34 en disco, beta 1.0 y banda 100 con 26.4.»
+> «Te enseño manifiesto, figuras, cascada, reload y estado. Si algo no carga, te lo cuento igual: 4.338 en disco (bundle C), beta 1.0 y banda 100 con 26.4.»
 
 > [!question]- ¿Qué archivo respalda esta nota?
 `models/ds02_manifest.json`

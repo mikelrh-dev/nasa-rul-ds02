@@ -1,6 +1,6 @@
 ---
 tipo: sistema
-status: sin-estudiar
+status: consolidado
 tags:
   - app
   - despliegue

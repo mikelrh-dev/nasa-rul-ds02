@@ -1,4 +1,4 @@
-# Notebooks — secuencia unificada (reestructuración completada)
+# Notebooks — secuencia unificada (histórico 2026-11-03, ver bundle C vigente en `models/ds02_manifest.json` y `MLProyectVault/50-Evidencia/e00-cifras-autoritativas.md`)
 
 Reestructuración completada: la secuencia `notebooks/01_eda_y_contexto.ipynb` → `06_evaluacion_produccion_comparativa.ipynb` cuenta la historia completa del modelo (datos, clásicos, MLP, feature engineering, BiLSTM/OOF, meta-ensemble/conformal, evaluación/producción), integrando la parte de clase (nulos, fase_vuelo, clásicos, MLP, LGBM adaptada, ensemble adaptado, SHAP, robustez) sin abrir `notebooks/ds02_ensemble/`.
 
@@ -19,7 +19,7 @@ Reestructuración completada: la secuencia `notebooks/01_eda_y_contexto.ipynb` �
 - **Rutas:** descubrimiento robusto + `os.chdir(_ROOT)` (sin `../` relativo).
 - **Artefactos:** reutilizados en `notebooks/ds02_ensemble/artifacts/` (no se creó nueva carpeta).
 - **ds02_ensemble/:** no tocado (se mantiene intacto como referencia).
-- **models/:** no tocado (hashes congelados verificados: ensemble 7acba335, bilstm d0c5ed7f).
+- **models/:** no tocado en esa fecha (hashes bundle B: ensemble 7acba335, bilstm d0c5ed7f). Vigente bundle C: ensemble `d6c70142…`, bilstm `bf9620a7…` (`models/ds02_manifest.json`).
 - **Originales:** movidos a `notebooks/backup/` (01_eda, 02_modelos_A, 03_modelos_B, 04_lgbm_adaptada, 05_ensemble_adaptado).
 
 ## Discrepancia con el plan original

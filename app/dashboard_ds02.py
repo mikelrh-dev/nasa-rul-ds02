@@ -9,7 +9,7 @@ unit you bring. Everything is read from `app/cache/` (see
 never loaded, so no TensorFlow import is needed and the app runs from a laptop
 without the 2.3 GB HDF5.
 
-Both rule passes run through `mia/`: the correction pass (R2b + R6) behind the
+Both rule passes run through `src/mia/`: the correction pass (R2b + R6) behind the
 opt-in toggle, and the decision pass (R1, R9, R8, R7) on every render. The
 maintenance state is therefore the engine's answer, decided on the conformal
 LOWER bound and not on the point estimate. Thresholds are ADR-008's 30 / 25 and
@@ -592,7 +592,7 @@ if not threshold_aog < threshold_apto:
 aplicar_reglas = bool(st.session_state.get("aplicar_reglas", False))
 cycle = int(st.session_state.get("cycle", 1))
 banda_en_uso = (
-    "R6 recalibrada (mia/calibracion_banda.json, 14 915 filas OOF puras)"
+    "R6 recalibrada (src/mia/calibracion_banda.json, 14 915 filas OOF puras)"
     if aplicar_reglas else
     "artefacto (models/ds02_manifest.json, conformal del bundle)"
 )
@@ -752,7 +752,7 @@ with st.sidebar:
         )
 
 
-# La capa de reglas (mia/) es opcional y arranca apagada: con ella apagada la UI
+# La capa de reglas (src/mia/) es opcional y arranca apagada: con ella apagada la UI
 # muestra la lectura cruda de la caché, que es la que reproduce el contrato
 # congelado en models/ds02_manifest.json.
 umbrales = {"apto": float(threshold_apto), "hangar": float(threshold_aog)}
@@ -780,7 +780,7 @@ def _frame_cache_cached(
     cada render. No muta `windows` (`corregir`/`decidir` copian dentro).
     """
     base = UR.corregir_ventanas(windows) if aplicar else windows.copy()
-    # Pasada A del motor `mia/`: R1/R9/R8/R7 deciden sobre el límite inferior.
+    # Pasada A del motor `src/mia/`: R1/R9/R8/R7 deciden sobre el límite inferior.
     return UR.decidir_ventanas(base, {"apto": float(apto), "hangar": float(hangar)})
 
 

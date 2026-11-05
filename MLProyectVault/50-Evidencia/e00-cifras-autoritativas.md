@@ -89,7 +89,7 @@ La diferencia de `+0.6` es el costo de que el motor 14 tenga el peor error **y**
 Es **cota conservadora, no intervalo de decisión**: se calibró con modelos de fold más débiles que el desplegado. Recalibrarla en la unidad 16 colapsa a **3.35 ciclos de ancho con 31.4 % de cobertura** (41.4 % por debajo, 27.2 % por arriba), porque el meta-aprendiz se ajusta en esa unidad y ninguna fila suya supera los 62 ciclos. Se midió y se rechazó.
 
 > [!warning] No confundir 14 915 con 17 450
-> `17 450` = calibración de la banda conformal que se envía. `14 915` = filas OOF puras (unidades 2, 5, 10, 18, 20; unidad 16 excluida) sobre las que se calibró la banda de la **capa de reglas** (`mia/calibracion_banda.json`). Son dos bandas distintas para dos usos distintos.
+> `17 450` = calibración de la banda conformal que se envía. `14 915` = filas OOF puras (unidades 2, 5, 10, 18, 20; unidad 16 excluida) sobre las que se calibró la banda de la **capa de reglas** (`src/mia/calibracion_banda.json`). Son dos bandas distintas para dos usos distintos.
 
 ## Formas, conteos y protocolo
 
@@ -120,7 +120,7 @@ Es **cota conservadora, no intervalo de decisión**: se calibró con modelos de 
 
 (Los hashes `7acba335…` / `d0c5ed7f…` eran del bundle B: ver lista negra.)
 
-## Capa de reglas (`mia/`)
+## Capa de reglas (`src/mia/`)
 
 | Dato | Valor |
 |---|---|

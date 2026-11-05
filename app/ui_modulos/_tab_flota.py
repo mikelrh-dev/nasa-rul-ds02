@@ -415,7 +415,7 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
                 value=False,
                 key="aplicar_reglas",
                 help=(
-                    "Pasada B del motor de reglas (paquete mia/): R2b ajuste isotonico "
+                    "Pasada B del motor de reglas (paquete src/mia/): R2b ajuste isotonico "
                     "causal y R6 banda conformal recalibrada sobre el punto corregido. "
                     "Apagado, la UI muestra la lectura cruda de la caché, que es la que "
                     "reproduce el contrato congelado del artefacto."
@@ -525,7 +525,7 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
 
     if correccion:
         st.caption(
-            f"**Corrección de reglas activa** (pasada B del motor `mia/`): "
+            f"**Corrección de reglas activa** (pasada B del motor `src/mia/`): "
             f"{correccion['ventanas_corregidas']:,} de {correccion['ventanas']:,} "
             f"ventanas movidas ({correccion['porcentaje']} %) · "
             f"Δ punto medio {correccion['delta_medio_punto']:+.2f} ciclos · "

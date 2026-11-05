@@ -1,6 +1,6 @@
 ---
 tipo: sistema
-status: sin-estudiar
+status: consolidado
 tags:
   - reglas
   - decision
@@ -21,11 +21,11 @@ tags:
 
 ## Cómo está implementado
 
-La capa vive en `mia/` con calibración propia en `mia/calibracion_banda.json`.
+La capa vive en `src/mia/` con calibración propia en `src/mia/calibracion_banda.json`.
 
 | Pieza | Valor | Dónde |
 |---|---|---|
-| Calibración reglas | 14 915 filas OOF puras | `mia/calibracion_banda.json` |
+| Calibración reglas | 14 915 filas OOF puras | `src/mia/calibracion_banda.json` |
 | Cobertura OOF / test | 0.9012 / 1.0000 | [[e00-cifras-autoritativas]] |
 | R2b isotónica causal | 9.623 RMSE / 18 713.9 NASA | [[e00-cifras-autoritativas]] |
 | R2 monótona estricta | 10.737 / 21 053.0 | [[e00-cifras-autoritativas]] |

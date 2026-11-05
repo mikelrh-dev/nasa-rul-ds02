@@ -1,4 +1,4 @@
-# Auditoría read-only NASA DS02 — Datos + Mongo (2026-11-04)
+# Auditoría read-only NASA DS02 — Datos + Mongo (2026-11-04, histórica: B autoritativo entonces, hoy C 4.338 ver e00)
 
 **Repo:** `C:/Users/mikel/Desktop/Pruebas/nasa` — rama `clase-experimental`, HEAD `098a1bf`
 **Alcance:** Datos RAW + procesados + caches + MongoDB + tests/gate + docs/reproducibilidad. HDFS y Kafka aparcados por instrucción.

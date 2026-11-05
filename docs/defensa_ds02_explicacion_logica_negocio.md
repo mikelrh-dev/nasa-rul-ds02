@@ -121,7 +121,7 @@ En un proyecto real esto debería ir acompañado de un **modelo de costes** (cos
 
 | Afirmación | Verificación |
 |---|---|
-| 211 tests del paquete `mia/` + `hangar()`/`flota()` + reglas pasan | Ejecutados 2026-10-25: `211 passed in 196.76s` |
+| 211 tests del paquete `src/mia/` + `hangar()`/`flota()` + reglas pasan | Ejecutados 2026-10-25: `211 passed in 196.76s` |
 | Primera operación de `first_alarm_cycle(c, 25.0)` | Reproducida: `U11: 22/35/13`, `U14: 29/52/23`, `U15: 25/43/18` |
 | Saturación de la predicción puntual en ~60.6 y bin `[50,75)` −24.47 | Cites del ADR-008 y del `README.md`; consistente con la curva de U11 |
 | `L_inf(max) ≈ 36` y todos los motores empiezan en verde | Alta estimación teórica ~36.13; observada 35.7 / 33.0 / 35.8 |
@@ -141,6 +141,6 @@ En un proyecto real esto debería ir acompañado de un **modelo de costes** (cos
 - `docs/decisions/ADR-008-conformal-lower-bound-triage.md` — aceptado 2026-10-21; la regla 30/25.
 - `docs/decisions/ADR-009-r2b-is-an-isotonic-fit-not-a-monotonicity-rule.md` — la corrección isotónica causal.
 - `docs/informes/informe-2026-10-24-anticipacion-al-fallo.md` — cifra 13/23/18 y su cálculo.
-- `mia/reglas.py` — motor de reglas (pasada B: R2b/R6; pasada A: R1/R9/R8/R7).
+- `src/mia/reglas.py` — motor de reglas (pasada B: R2b/R6; pasada A: R1/R9/R8/R7).
 - `app/hangar.py` — cuenta de estado, no decisión.
-- `mmia/modelo.py` — capa de predicción del artefacto congelado.
+- `src/mia/modelo.py` — capa de predicción del artefacto congelado.

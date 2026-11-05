@@ -136,7 +136,7 @@ flowchart LR
 
 ## Tests
 
-30 tests de clase (`tests/test_clase_*.py`) + tests de la app (`tests/test_live_eval.py`). Cobertura: dataset, pipeline, clásicos, MLP, SHAP, tablas, ventanas, bundle C, agregación multiseed (suite completa en la verificación final).
+~35 tests (`tests/test_clase_*.py` + `tests/test_live_eval.py` + `test_clase_c_multisemilla/test_shap_c/test_dss/test_fleet/test_hangar/test_simulacion/test_twin`). Cobertura: dataset, pipeline, clásicos, MLP, SHAP, tablas, ventanas, bundle C, agregación multiseed (suite completa en la verificación final).
 
 ## Estructura del track
 

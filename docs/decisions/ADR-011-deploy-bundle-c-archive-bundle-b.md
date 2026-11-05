@@ -57,9 +57,10 @@ reference for the deployed bundle; bundle B is archived, not champion.
   deterministic; re-running the training can move the headline figure (4.229 and
   4.338 were both observed for the same code). Re-running to "get the good number"
   would be selecting a measurement, not measuring.
-- **Rules band still calibrated on B.** `mia/calibracion_banda.json` was fitted on
+- **Rules band still calibrated on B (estado en 2026-11-04).** `src/mia/calibracion_banda.json` was fitted on
   B's OOF rows; recalibrating it requires C OOF and is out of scope here. Declared
   as a known limitation.
+- **Addendum posterior:** `src/mia/calibracion_banda.json#procedencia` declara recalibración sobre bundle C adaptada (14 915 filas OOF puras step-3, R2b PAVA causal, `nb2_selection.joblib`). Si esa recalibración es vigente, sustituye al punto anterior; ver `MLProyectVault/50-Evidencia/e00-cifras-autoritativas.md`.
 - **Cache must be regenerated** (`python scripts/build_ui_cache.py`) before the app
   loads: `load_ensemble` checks the bundle hash against
   `app/cache/cache_manifest.json`, which still signs the previous ensemble.
