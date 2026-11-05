@@ -427,68 +427,87 @@ described as a bound rather than an interval.
 - THEN `conformal.n_calibration`, `conformal.target_coverage` and the per-bin quantiles are present
 
 ### Requirement: Artifact persistence and reload
+The capability SHALL persist canonical artifacts under `models/` only (`ensemble.joblib`, `scaler.joblib`, `bilstm_ds02.keras`, `ds02_manifest.json` with `manifest_sha256`); root copies are gitignored leftovers, never contract. Reload single-sample check: RUL **61.25** vs true **58.00**.
+(Previously: written twice, root and models/, without canonical models/ + manifest_sha256.)
 
-The capability SHALL persist two artifacts, each written twice — once at the repository root
-and once under `models/`:
+#### Scenario: Canónicos
+- GIVEN completed run
+- WHEN persistence ends
+- THEN four `models/` artifacts exist
 
-- `scaler.joblib`: the `StandardScaler` fit on the 18-dimensional `X_train_full`.
-- `ensemble.joblib`: a `HybridStackingEnsemble` holding the Keras `bilstm_model`, the
-  `lgb_standalone` estimator, `ridge_meta`, `lgb_meta`, the `residualizer`, `scaler`,
-  `scaler_w`, and the inference constants `n_op=4`, `window_size=50`, `beta=1.0`, `ema_span=5`.
+#### Scenario: Reload
+- GIVEN artifacts written
+- WHEN one window rescored
+- THEN RUL `61.25`, paradigm recovered
 
-After writing, the capability SHALL reload both artifacts and run a single-sample inference
-check through the reloaded object. The recorded check produces a predicted RUL of **61.25**
-against a true value of **58.00**.
-
-#### Scenario: Both artifacts land in both locations
-
-- GIVEN a completed run
-- WHEN persistence finishes
-- THEN `scaler.joblib`, `models/scaler.joblib`, `ensemble.joblib` and `models/ensemble.joblib`
-  all exist
-
-#### Scenario: Reload check passes
-
-- GIVEN the artifacts have been written
-- WHEN they are reloaded and one test window is scored
-- THEN inference succeeds and reports a predicted RUL of 61.25
-- AND the documented paradigm string is recovered from the reloaded object
-
-#### Scenario: Inference signature is stable
-
-- GIVEN a reloaded ensemble
-- WHEN it is queried
-- THEN the call is `predict(X_raw_windows, cycles, units)`
-- AND the returned array is clipped at zero
+#### Scenario: Firma
+- GIVEN reloaded ensemble
+- WHEN queried
+- THEN `predict(X,cycles,units)`, clipped zero
 
 ### Requirement: Recorded SOTA results
+The capability SHALL record units `[11,14,15]` metrics exactly; the hybrid MUST beat the BiLSTM on RMSE and NASA. Below is the historical reference; current contract is bundle C `4.338` (`R6=C`), multiseed historical. NASA is SUM, no `125` clamp.
 
-The capability SHALL record the measured test performance on units `[11, 14, 15]` exactly as
-produced by the reference run. The hybrid stacking ensemble SHALL be strictly better than the
-BiLSTM on **both** RMSE and NASA score; this is the acceptance condition for keeping the
-ensemble at all. MAE is **not** part of that condition and is currently worse than the
-smoothed BiLSTM's.
-
-| Model | RMSE | MAE | R² | NASA score |
+| Model | RMSE | MAE | R² | NASA |
 | --- | --- | --- | --- | --- |
-| LightGBM standalone (quantile 0.35, 93 features) | 7.087 | 5.584 | 0.8562 | 5768.4 |
-| BiLSTM 2-layer, triple pooling | 5.693 | 4.449 | 0.9072 | 3822.2 |
-| BiLSTM + causal EMA | 5.597 | 4.331 | 0.9103 | 3716.8 |
-| **Hybrid stacking (beta=1.00, EMA span=5)** | **5.522** | 4.795 | **0.9127** | **3435.1** |
+| LightGBM | 7.087 | 5.584 | 0.8562 | 5768.4 |
+| BiLSTM | 5.693 | 4.449 | 0.9072 | 3822.2 |
+| BiLSTM+EMA | 5.597 | 4.331 | 0.9103 | 3716.8 |
+| **Hybrid** | **5.522** | 4.795 | **0.9127** | **3435.1** |
 
-#### Scenario: Ensemble beats the champion on the acceptance metrics
+(Previously: single-seed table as current, without bundle-C 4.338 / historical status.)
 
-- GIVEN the recorded test rows
-- WHEN the hybrid row is compared with the smoothed BiLSTM row
-- THEN hybrid RMSE `5.522` < BiLSTM RMSE `5.597`
-- AND hybrid NASA score `3435.1` < BiLSTM NASA score `3716.8`
+#### Scenario: Hybrid gana
+- GIVEN recorded rows
+- WHEN hybrid vs BiLSTM
+- THEN `5.522`<`5.597`, `3435.1`<`3716.8`
 
-#### Scenario: The single-seed caveat is stated
+#### Scenario: Caveat
+- GIVEN any result published
+- WHEN disclosed
+- THEN seeds 42 (`5.447`), 7 (`6.564`) shown
 
-- GIVEN any reported DS02 result
-- WHEN it is published
-- THEN it is labelled as a single-seed result
-- AND the seed-variance evidence (seed 42: RMSE 5.447; seed 7: RMSE 6.564) is disclosed
+### Requirement: DOC-C-01
+The system MUST record manifest `4.338` current, ADR-011 `R6=C`, multiseed historical.
+#### Scenario: Vigente
+- GIVEN docs read
+- WHEN checked
+- THEN `4.338`, `R6=C`, historical noted
+
+### Requirement: CACHE-DRIFT-01
+The system MUST check `manifest_sha256`, freeze `_p1_oof_cache`, version drift evidence.
+#### Scenario: Drift
+- GIVEN stale `manifest_sha256`
+- WHEN cache validates
+- THEN loud failure, no reuse
+
+### Requirement: SEC-API-01
+The system MUST use `compare_digest`, open `/health`, rate-limit writes, bind `127.0.0.1`.
+#### Scenario: Health
+- GIVEN API on `127.0.0.1`
+- WHEN `/health` probed
+- THEN succeeds unauthenticated
+
+### Requirement: SEC-DOCK-ST-01
+The system MUST bind Docker/Streamlit only to `127.0.0.1`.
+#### Scenario: Bind
+- GIVEN services start
+- WHEN config inspected
+- THEN no `0.0.0.0` exists
+
+### Requirement: DEP-CI-01
+The system MUST pin `pyproject.toml` deps and run CI `python -m pytest tests -q`.
+#### Scenario: CI
+- GIVEN clean checkout
+- WHEN CI runs
+- THEN pinned install, pytest executes
+
+### Requirement: SEC-JOBLIB-01
+The system MUST guard `joblib.load` in `clase/`, `scripts/` against unverified payloads.
+#### Scenario: Bloqueo
+- GIVEN no valid checksum
+- WHEN load attempted
+- THEN refused pre-deserialization
 
 ## Known limitations
 
