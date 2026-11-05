@@ -7,11 +7,16 @@ No es una API web: es el módulo de inferencia que usaría un servicio.
 """
 import argparse
 import json
+import os
 import pathlib
+import sys
 
 import joblib
 import numpy as np
 import pandas as pd
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
+from ds02_rul.persistence import verify_artifact_sha256  # noqa: E402
 
 import v3_core as c
 
@@ -25,6 +30,8 @@ COSTE_INSPECCION = 1.0  # coste relativo de una inspección
 
 
 def _load():
+    # SEC-JOBLIB-01: checksum verificado ANTES de deserializar.
+    verify_artifact_sha256(str(BUNDLE), "v3_bundle_sha256")
     b = joblib.load(BUNDLE)
     b['policy'] = json.loads(POLICY.read_text(encoding='utf-8'))
     b['psi'] = json.loads(PSI_REF.read_text(encoding='utf-8'))

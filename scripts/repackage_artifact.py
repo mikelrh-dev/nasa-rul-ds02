@@ -49,9 +49,11 @@ def main() -> int:
 
     from ds02_rul import HybridStackingEnsemble, SensorResidualizer
     from ds02_rul.model import build_champion_bilstm
-    from ds02_rul.persistence import build_manifest, save_ensemble
+    from ds02_rul.persistence import build_manifest, save_ensemble, verify_artifact_sha256
 
     os.makedirs(LEGACY_DIR, exist_ok=True)
+    # SEC-JOBLIB-01: checksum verificado ANTES de deserializar.
+    verify_artifact_sha256(LEGACY, "ensemble_sha256")
     legacy = joblib.load(LEGACY)
     state = legacy.__dict__
     n_op = int(state["n_op"])

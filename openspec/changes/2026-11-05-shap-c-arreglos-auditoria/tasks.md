@@ -33,9 +33,9 @@ Chain strategy: pending
 
 ## Phase 2: Drift/Freeze (CACHE-DRIFT-01)
 
-- [ ] 2.1 RED: stale `manifest_sha256` test fails loud, no cache reuse. Files: `tests/test_cache_drift.py` (new) · Size: S · Dep: 1.2 · Accept: mismatched digest raises pre-reuse · Verify: `python -m pytest tests/test_cache_drift.py -q` (RED)
-- [ ] 2.2 GREEN: validate `manifest_sha256` on cache load. Files: cache loader (`scripts/build_ui_cache.py` or `app/cache/` consumer) · Size: S · Dep: 2.1 · Accept: stale digest → loud failure · Verify: `python -m pytest tests/test_cache_drift.py -q`
-- [ ] 2.3 Freeze `_p1_oof_cache` (resolve path via `scripts/p1_oof_cache.py`); version drift evidence. Files: freeze site + evidence file · Size: S · Dep: 2.2 · Accept: cache frozen, evidence versioned · Verify: `python -m pytest tests -q`
+- [x] 2.1 RED: stale `manifest_sha256` test fails loud, no cache reuse. Files: `tests/test_cache_drift.py` (new) · Size: S · Dep: 1.2 · Accept: mismatched digest raises pre-reuse · Verify: `python -m pytest tests/test_cache_drift.py -q` (RED)
+- [x] 2.2 GREEN: validate `manifest_sha256` on cache load. Files: cache loader (`scripts/build_ui_cache.py` or `app/cache/` consumer) · Size: S · Dep: 2.1 · Accept: stale digest → loud failure · Verify: `python -m pytest tests/test_cache_drift.py -q`
+- [x] 2.3 Freeze `_p1_oof_cache` (resolve path via `scripts/p1_oof_cache.py`); version drift evidence. Files: freeze site + evidence file · Size: S · Dep: 2.2 · Accept: cache frozen, evidence versioned · Verify: `python -m pytest tests -q`
 - **Checkpoint 2:** Drift detected, no silent reuse. Verify: `python -m pytest tests -q`
 
 ## Phase 3: Security (SEC-API-01, SEC-DOCK-ST-01)
@@ -53,8 +53,8 @@ Chain strategy: pending
 
 ## Phase 5: Guard joblib (SEC-JOBLIB-01)
 
-- [ ] 5.1 RED: unverified `joblib.load` refused pre-deserialization. Files: `tests/test_joblib_guard.py` (new) · Size: S · Dep: 4.2 · Accept: no-checksum load refused · Verify: `python -m pytest tests/test_joblib_guard.py -q` (RED)
-- [ ] 5.2 GREEN: create checksum sidecars/manifest for clase models first (so valid loads keep working), then route the 5 `joblib.load` sites (shap_clase, shap_clase_e2, train_mlp, predict, repackage) through `verify_artifact_sha256` before deserialization. Files: sidecar generator + 5 files above · Size: M · Dep: 5.1 · Accept: valid checksum loads, invalid refused, `test_clase_shap*` still green · Verify: `python -m pytest tests/test_joblib_guard.py tests/test_clase_shap.py tests/test_clase_shap_e2.py -q`
+- [x] 5.1 RED: unverified `joblib.load` refused pre-deserialization. Files: `tests/test_joblib_guard.py` (new) · Size: S · Dep: 4.2 · Accept: no-checksum load refused · Verify: `python -m pytest tests/test_joblib_guard.py -q` (RED)
+- [x] 5.2 GREEN: create checksum sidecars/manifest for clase models first (so valid loads keep working), then route the 5 `joblib.load` sites (shap_clase, shap_clase_e2, train_mlp, predict, repackage) through `verify_artifact_sha256` before deserialization. Files: sidecar generator + 5 files above · Size: M · Dep: 5.1 · Accept: valid checksum loads, invalid refused, `test_clase_shap*` still green · Verify: `python -m pytest tests/test_joblib_guard.py tests/test_clase_shap.py tests/test_clase_shap_e2.py -q`
 - **Checkpoint 5:** Guard green. Verify: `python -m pytest tests -q`
 
 ## Phase 6: SHAP-C RED→GREEN (SHAPC-BILSTM/LGBM/META/DATA-01)

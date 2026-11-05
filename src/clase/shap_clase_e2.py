@@ -99,6 +99,11 @@ def ejecutar_shap(
         from src.clase.train_mlp import persistir_e2
 
         persistir_e2(destino=modelo, verbose=verbose)
+    # SEC-JOBLIB-01: checksum verificado ANTES de deserializar (sin checksum
+    # válido, RuntimeError sin tocar el pickle).
+    from src.ds02_rul.persistence import verify_artifact_sha256
+
+    verify_artifact_sha256(modelo, "clase_e2_sha256")
     pipe = joblib.load(modelo)
     pre, reg = pipe.named_steps["pre"], pipe.named_steps["reg"]
     nombres = list(pre.get_feature_names_out())

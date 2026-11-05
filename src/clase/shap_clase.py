@@ -76,7 +76,12 @@ def ejecutar_shap(
     """Explica el XGB persistido (sin reentrenar) con TreeExplainer; guarda PNG+CSV."""
     from src.clase.train_clasicos import grupos_validacion
 
-    # Lazy a propósito: importar este módulo no carga el modelo.
+    # SEC-JOBLIB-01: checksum verificado ANTES de deserializar (sin checksum
+    # válido, RuntimeError sin tocar el pickle). Lazy a propósito: importar
+    # este módulo no carga el modelo.
+    from src.ds02_rul.persistence import verify_artifact_sha256
+
+    verify_artifact_sha256(MODEL_PATH, "clase_xgb_sha256")
     pipe = joblib.load(MODEL_PATH)
     pre = pipe.named_steps["pre"]
     reg = pipe.named_steps["reg"]
