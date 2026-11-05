@@ -6,8 +6,11 @@ services:
   api:
     build: .
     image: ds02-rul:4.1.0
+    # Loopback publish only (SEC-DOCK-ST-01): the container still binds
+    # 0.0.0.0 internally for port mapping, but the host port is reachable
+    # only from 127.0.0.1. Never publish 0.0.0.0:8000 with plain HTTP.
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - ./archive:/app/archive:ro
     environment:
@@ -22,8 +25,12 @@ services:
   dashboard:
     build: .
     image: ds02-rul:4.1.0
+    # Loopback publish only (SEC-DOCK-ST-01): the container still binds
+    # --server.address 0.0.0.0 internally for port mapping, but the host
+    # port is reachable only from 127.0.0.1. Never publish 0.0.0.0:8501
+    # with plain HTTP.
     ports:
-      - "8501:8501"
+      - "127.0.0.1:8501:8501"
     volumes:
       - ./archive:/app/archive:ro
     environment:

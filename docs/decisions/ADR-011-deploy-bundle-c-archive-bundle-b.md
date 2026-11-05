@@ -29,7 +29,9 @@ the decision was taken (verified 2026-11-04). Nothing is retrained by this ADR.
 
 ## Decision
 
-Deploy C and only C.
+Deploy C and only C. **R6=C (manifest 4.338 manda)** — the manifest
+(`models/ds02_manifest.json`, RMSE 4.338, seed 42) is the authoritative
+reference for the deployed bundle; bundle B is archived, not champion.
 
 1. `models/` holds the C bundle (`ensemble.joblib`, `bilstm_ds02.keras`,
    `scaler.joblib`, `ds02_manifest.json`). Its manifest declares

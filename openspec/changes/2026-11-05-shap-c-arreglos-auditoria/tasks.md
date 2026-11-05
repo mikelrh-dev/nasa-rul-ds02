@@ -27,8 +27,8 @@ Chain strategy: pending
 
 ## Phase 1: Docs P0 (DOC-C-01, MODIFIED SOTA)
 
-- [ ] 1.1 Record bundle C `4.338` as current in rul-spec; multiseed historical. Files: `docs/02_DS02_ensemble_RUL_spec.md` · Size: S · Dep: none · Accept: `4.338` current, multiseed historical, NASA SUM no clamp · Verify: `grep -n "4.338\|históric" docs/02_DS02_ensemble_RUL_spec.md`
-- [ ] 1.2 Set ADR-011 `R6=C` (deploy C, archive B). Files: `docs/decisions/ADR-011-deploy-bundle-c-archive-bundle-b.md` · Size: XS · Dep: 1.1 · Accept: `R6=C` stated, B archived · Verify: `grep -n "R6=C" docs/decisions/ADR-011*.md`
+- [x] 1.1 Record bundle C `4.338` as current in rul-spec; multiseed historical. Files: `docs/02_DS02_ensemble_RUL_spec.md` · Size: S · Dep: none · Accept: `4.338` current, multiseed historical, NASA SUM no clamp · Verify: `grep -n "4.338\|históric" docs/02_DS02_ensemble_RUL_spec.md`
+- [x] 1.2 Set ADR-011 `R6=C` (deploy C, archive B). Files: `docs/decisions/ADR-011-deploy-bundle-c-archive-bundle-b.md` · Size: XS · Dep: 1.1 · Accept: `R6=C` stated, B archived · Verify: `grep -n "R6=C" docs/decisions/ADR-011*.md`
 - **Checkpoint 1:** Docs read consistent; no `models/`/NB01-06 touched. Verify: `git status --porcelain -- models/ notebooks/`
 
 ## Phase 2: Drift/Freeze (CACHE-DRIFT-01)
@@ -40,9 +40,9 @@ Chain strategy: pending
 
 ## Phase 3: Security (SEC-API-01, SEC-DOCK-ST-01)
 
-- [ ] 3.1 RED: `/health` unauthenticated, `compare_digest` used, write rate-limit. Files: `tests/test_security_api.py` (new) · Size: S · Dep: 2.3 · Accept: tests fail pre-fix · Verify: `python -m pytest tests/test_security_api.py -q` (RED)
-- [ ] 3.2 GREEN: `compare_digest`, open `/health`, rate-limit writes in `app/api.py`. Files: `app/api.py` · Size: S · Dep: 3.1 · Accept: `/health` 200 unauthenticated; writes 429 over limit · Verify: `python -m pytest tests -q`
-- [ ] 3.3 Bind Docker/Streamlit to loopback at the host publish only: `docker-compose.yml` publishes `127.0.0.1:8000:8000` and `127.0.0.1:8501:8501`; keep `--host 0.0.0.0` inside the container (required for port mapping) and note TLS-proxy requirement. Files: `docker-compose.yml`, `Dockerfile` (note only), `app/streamlit_app.py` (docstring only) · Size: S · Dep: 3.2 · Accept: compose publishes loopback, container bind unchanged · Verify: `grep -n "127.0.0.1:8000\\|127.0.0.1:8501" docker-compose.yml`
+- [x] 3.1 RED: `/health` unauthenticated, `compare_digest` used, write rate-limit. Files: `tests/test_security_api.py` (new) · Size: S · Dep: 2.3 · Accept: tests fail pre-fix · Verify: `python -m pytest tests/test_security_api.py -q` (RED)
+- [x] 3.2 GREEN: `compare_digest`, open `/health`, rate-limit writes in `app/api.py`. Files: `app/api.py` · Size: S · Dep: 3.1 · Accept: `/health` 200 unauthenticated; writes 429 over limit · Verify: `python -m pytest tests -q`
+- [x] 3.3 Bind Docker/Streamlit to loopback at the host publish only: `docker-compose.yml` publishes `127.0.0.1:8000:8000` and `127.0.0.1:8501:8501`; keep `--host 0.0.0.0` inside the container (required for port mapping) and note TLS-proxy requirement. Files: `docker-compose.yml`, `Dockerfile` (note only), `app/streamlit_app.py` (docstring only) · Size: S · Dep: 3.2 · Accept: compose publishes loopback, container bind unchanged · Verify: `grep -n "127.0.0.1:8000\\|127.0.0.1:8501" docker-compose.yml`
 - **Checkpoint 3:** Security green, no `0.0.0.0`. Verify: `python -m pytest tests -q`
 
 ## Phase 4: Deps/CI (DEP-CI-01)
