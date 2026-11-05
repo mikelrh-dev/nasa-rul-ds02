@@ -25,6 +25,8 @@ rule, until no rule applies. It returns `{"decision", "usadas", "porque"}`.
 | `R8_INSPECCION` | A | 2 | valid data and `hangar <= limite_inferior < apto` | `INSPECCION` |
 | `R7_APTO` | A | 1 | valid data and `limite_inferior >= apto` | `APTO` |
 
+Correction rules (`R2b_ISOTONICO_CAUSAL`, `R6_BANDA`) do NOT count as decision rules. Decision rules are the Pass A rules; the class track (MIA-2) requires 6 or more decision rules with priority including `R1_SEGURIDAD` (see RULES-08).
+
 ---
 
 ## ADDED
@@ -336,3 +338,17 @@ remain the one that reproduces the frozen manifest.
 **Checks:** `tests/test_dss_ui.py::test_reading_the_ui_leaves_the_frozen_artifacts_untouched`,
 `tests/test_ui_rules.py::test_el_tablero_sigue_entregando_las_mismas_metricas_crudas`,
 `tests/test_artifact_contract.py::test_manifest_declares_ds02_shape`.
+
+### Requirement RULES-08: The class track provides 6 or more decision rules (MIA-2)
+
+The class track SHALL provide 6 or more decision rules with priority, including
+the safety rule `R1_SEGURIDAD`. The correction rules `R2b_ISOTONICO_CAUSAL` and
+`R6_BANDA` MAY remain but SHALL NOT count as decision rules.
+
+#### Scenario: Six decision rules include safety
+
+- GIVEN the class rule set
+- WHEN decision rules are counted
+- THEN the count is 6 or more with priority
+- AND `R1_SEGURIDAD` is one of them
+- AND `R2b_ISOTONICO_CAUSAL` and `R6_BANDA` are not counted

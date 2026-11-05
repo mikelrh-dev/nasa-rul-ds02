@@ -10,7 +10,7 @@
 
 ### Requirement: Dataset de clase con nulos auditados y categórica
 
-La capacidad SHALL producir `data/processed/{train_con_nulos,train,test,X_train,X_test,y_train,y_test}.parquet` desde filas downsampleadas con: inyección MAR SOLO en T30 cuando `alt>27_000 & Mach>0.68` (`tasa_elegible=0.10 ~= 2.1% global, seed=7`, mask guardada; el 30k/0.8 teórico no existe en DS02: Mach máx 0.74); auditoría con tasa global/en elegibles, 100% en crucero alto, rachas por unidad y conteo >3 seguidos (R1); imputación `groupby(unit).ffill()` tras ordenar por ciclo + `fillna(mediana_train)` (mediana SOLO de train, solo primer NaN); categórica `fase_vuelo` derivada SOLO de `alt`/`Mach` con umbrales publicados; split por `unit` (nunca aleatorio). Test de robustez AC 20-170 (degradación <5% RMSE, R1 si >3 ciclos) en Fase 2.
+La capacidad SHALL producir `data/processed/{train_con_nulos,train,test,X_train,X_test,y_train,y_test}.parquet` desde filas downsampleadas con: inyección MAR SOLO en T30 cuando `alt>27_000 & Mach>0.68` (`tasa_elegible=0.10 ~= 2.1% global, seed=7`, mask guardada; el 30k/0.8 teórico no existe en DS02: Mach máx 0.74); auditoría con tasa global/en elegibles, 100% en crucero alto, rachas por unidad y conteo >3 seguidos (R1); análisis de si los nulos son al azar o con patrón (MAR) antes de imputar; imputación `groupby(unit).ffill()` tras ordenar por ciclo + `fillna(mediana_train)` (mediana SOLO de train, solo primer NaN); categórica `fase_vuelo` derivada SOLO de `alt`/`Mach` con umbrales publicados y justificación de la variable nueva (`fase_vuelo`); split por `unit` (nunca aleatorio). Test de robustez AC 20-170 (degradación <5% RMSE, R1 si >3 ciclos) en Fase 2.
 
 #### Scenario: Imputación causal sin fuga
 - GIVEN ventanas ordenadas por ciclo con nulos inyectados
@@ -30,7 +30,7 @@ La capacidad SHALL producir `data/processed/{train_con_nulos,train,test,X_train,
 
 ### Requirement: Pipeline sklearn compartido
 
-`clase/pipeline_clase.py` SHALL exponer un `ColumnTransformer` (`StandardScaler` numéricas + `OneHot(handle_unknown=ignore)` para `fase_vuelo`) usado por LOS 5 clásicos y el MLP, y `predict_caso_nuevo(modelo, dict)` que puntúa 1 fila. El `mejor_modelo_clase.joblib` SHALL guardar el `Pipeline` completo.
+`src/clase/pipeline_clase.py` SHALL exponer un `ColumnTransformer` (`StandardScaler` numéricas + `OneHot(handle_unknown=ignore)` para `fase_vuelo`) usado por LOS 5 clásicos y el MLP, y `predict_caso_nuevo(modelo, dict)` que puntúa 1 fila. El `models/mejor_modelo.joblib` SHALL guardar el `Pipeline` completo.
 
 #### Scenario: Un solo preprocesado
 - GIVEN los 6 entrenamientos de clase
@@ -39,7 +39,7 @@ La capacidad SHALL producir `data/processed/{train_con_nulos,train,test,X_train,
 
 ### Requirement: Cinco clásicos con GridSearchCV y tiempos
 
-La capacidad SHALL entrenar Ridge, KNN, RF, XGBoost y SVR sobre `X_tab`, cada uno como `Pipeline(pre, reg)` con `GridSearchCV(cv=GroupKFold(3, groups=unit))` y grids mínimos publicados. SHALL registrar `resultados/comparativa.csv` (modelo, RMSE/MAE/R² train/val, tiempo_s) y citar el híbrido congelado como "extra no visto en clase".
+La capacidad SHALL entrenar Ridge, KNN, RF, XGBoost y SVR sobre `X_tab`, cada uno como `Pipeline(pre, reg)` con `GridSearchCV(cv=GroupKFold(3, groups=unit))` y grids mínimos publicados. En regresión los 5 de la rúbrica se adaptan a Ridge, KNN, RF, XGBoost y SVR con GridSearchCV y validación cruzada; SMOTE no aplica en regresión y SHALL documentarse como N/A. SHALL registrar `resultados/comparativa.csv` (modelo, RMSE/MAE/R² train/val, tiempo_s) y citar el híbrido congelado como "extra no visto en clase".
 
 ### Requirement: MLP base + 3 experimentos con hipótesis
 
@@ -55,9 +55,17 @@ La capacidad SHALL reportar MAE/RMSE/R² en train/val + gráfico real-vs-predich
 - THEN se usan filas de validación, nunca de test
 - AND se publica el top-k de variables en `resultados/shap_*.png/csv`
 
-### Requirement: README de clase y app fina sin MLflow/n8n
+### Requirement: README de clase, app fina y respuesta individual
 
-El README SHALL traer los 6 apartados obligatorios (título+frase, captura app arriba, negocio con dato+objetivo+quién+€, esquema Mermaid + IA débil/supervisado, datos+hallazgo+figs, resultados con tabla pandas+tiempos+elección+test+real-vs-predicho declarando "MLflow pendiente" —techo conocido v5: sin captura MLflow, SAA-9 formal 7 y PIA-4 0). `clase/app_clase.py` SHALL (PIA-5 7 pts v5) mostrar métricas de test con matriz de confusión —o gráfico real-vs-predicho en regresión— y predecir 1 caso nuevo con la decisión de `mia/motor`; y para el 10 SHALL mostrar la `p` del caso nuevo (probabilidad o valor predicho) junto a la decisión. En este change NO SHALL hacer `POST` a n8n (v5 ya no lo exige en PIA-5; el envío vive en el flujo MIA-3).
+El README SHALL traer los 6 apartados obligatorios (título+frase, captura app arriba, negocio con dato+objetivo+quién+€, esquema Mermaid + IA débil/supervisado con comparación razonada con una IA fuerte, datos+hallazgo+figs, resultados con tabla pandas+tiempos+elección+test+real-vs-predicho), apartados propios además de los 6 obligatorios, y captura MLflow en `resultados/`. `app/streamlit_app.py` SHALL mostrar métricas de test con matriz de confusión —o gráfico real-vs-predicho en regresión— y predecir 1 caso nuevo con la decisión de las reglas (`src/reglas.py`); SHALL mostrar la `p`/valor predicho del caso nuevo junto a la decisión de las reglas. Cada alumno SHALL entregar un artefacto individual de respuesta (documento o presentación) defendiendo su parte (SAA-10, PIA-6, MIA-4); los guiones de `docs/defensa/` son apoyo, no el artefacto.
+
+### Requirement: MLflow tracking de modelos y experimentos
+
+Todos los modelos y experimentos SHALL registrarse en MLflow con hiperparámetros y métricas (train/val/tiempo), con capturas en `resultados/`; `mlflow` SHALL estar en `requirements.txt`. `src/clase/train_*.py` SHALL importar `mlflow` y usar su tracking para registrar cada entrenamiento.
+
+### Requirement: n8n por webhook según decisión (MIA-3)
+
+`src/n8n.py` SHALL enviar la decisión por webhook a `n8n/flujo.json` y el flujo SHALL tener una rama por decisión con una acción distinta a las vistas en clase según la decisión (Sheets/Postgres/Calendar/correo). `n8n/flujo.json` SHALL contener el flujo real, no un placeholder.
 
 ### Requirement: Ventaneo honesto de la base adaptada (NB04)
 
@@ -71,7 +79,7 @@ La capacidad SHALL mapear el parquet MAR-imputado a W/Xs/y/units/cycles, re-impu
 
 ### Requirement: Bundle C versionado con puerta de adopción (NB05, pendiente)
 
-El ensemble reentrenado SHALL vivir en `clase/models/` con manifest y banda propios (nunca en `models/`), seed 42 primero (7/123 solo si queda cerca de 4.25). La adopción (re-freeze caché + banda + reglas + ADR) SHALL exigir `RMSE_C ≤ 4.25 − spread` Y `NASA_C ≤ NASA_B` en las mismas 6.196 ventanas; si no se cumple, C SHALL quedar como experimento y B SHALL seguir en producción. SIN re-freeze en este change.
+El ensemble reentrenado SHALL vivir en `src/clase/models/` con manifest y banda propios (nunca en `models/`), seed 42 primero (7/123 solo si queda cerca de 4.25). La adopción (re-freeze caché + banda + reglas + ADR) SHALL exigir `RMSE_C ≤ 4.25 − spread` Y `NASA_C ≤ NASA_B` en las mismas 6.196 ventanas; si no se cumple, C SHALL quedar como experimento y B SHALL seguir en producción. SIN re-freeze en este change.
 
 ## MODIFIED
 
