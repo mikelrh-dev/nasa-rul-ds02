@@ -62,13 +62,13 @@ Acceptance: 1.3 GREEN; APTO never claims `dispara`; 20 shows R9 winning.
 `app/ui_data_loader.py`: `def fmt_miles(n): return f"{int(n):,}".replace(",",".")`. Swap `f"{n:,}"` in `dashboard_ds02.py` (245,247,757,758,930,944,1750,1751,1756), `_tab_flota.py:532`, `_tab_auditoria.py:313`, `ui_batch.py:50,60`, `ui_inference.py:59,60,499,500`. Update `tests/test_live_eval.py:79-80` to dot.
 Acceptance: 1.4 GREEN; `grep -rn "{.*:,}" app/*.py app/ui_modulos/*.py` empty for counts; no metric change.
 
-### [ ] 3. Verify and archive prep
+### [x] 3. Verify and archive prep
 
-#### [ ] 3.1 Scopes then full gate
+#### [x] 3.1 Scopes then full gate
 Run `.venv/Scripts/python scripts/verify_gate.py --only tests/test_app_fixes2.py` then `.venv/Scripts/python scripts/verify_gate.py` (full). On pre-existing failure, stash and re-run on a clean tree to distinguish (record both exits).
 Acceptance: `GATE PASSED` on full suite (or a `GATE FAILED` proven pre-existing by the clean-tree re-run, with a named test).
 
-#### [ ] 3.2 No-forbidden-diff audit
+#### [x] 3.2 No-forbidden-diff audit
 `git status --short` + `git diff --stat` show only: openspec change, F1–F4 app files, new RED test + `test_app_fixes1.py`/`test_live_eval.py` pins. No notebooks, `models/`, joblibs, keras, `MLProyectVault/90-Archivo`, MLflow, n8n, individual answer.
 Acceptance: audit output pasted into `verify-report.md`.
 
