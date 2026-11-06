@@ -47,8 +47,8 @@ def _check_bytes(n_bytes: int, origen: str) -> None:
     """Rechaza el CSV si su tamaño en bytes supera `MAX_BYTES_CSV`."""
     if int(n_bytes) > MAX_BYTES_CSV:
         raise ValueError(
-            f"El CSV «{origen}» pesa {int(n_bytes):,} bytes y el máximo es "
-            f"{MAX_BYTES_CSV:,} bytes. Recorta el histórico o usa un muestreo "
+            f"El CSV «{origen}» pesa {L.fmt_miles(int(n_bytes))} bytes y el máximo es "
+            f"{L.fmt_miles(MAX_BYTES_CSV)} bytes. Recorta el histórico o usa un muestreo "
             "declarado antes de subirlo."
         )
 
@@ -57,7 +57,7 @@ def _check_filas(n_filas: int, origen: str) -> None:
     """Rechaza la tabla si supera `MAX_FILAS` (detectado con nrows=MAX_FILAS+1)."""
     if int(n_filas) > MAX_FILAS:
         raise ValueError(
-            f"El CSV «{origen}» tiene más de {MAX_FILAS:,} filas. Recorta el "
+            f"El CSV «{origen}» tiene más de {L.fmt_miles(MAX_FILAS)} filas. Recorta el "
             "histórico o usa un muestreo declarado: por encima de ese tamaño "
             "la puntuación deja de ser interactiva."
         )

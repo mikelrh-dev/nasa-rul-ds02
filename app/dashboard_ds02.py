@@ -242,9 +242,9 @@ def _preflight_panel(pf: dict) -> None:
                  icon=":material/rule:")
         return
     with st.container(horizontal=True):
-        st.metric("Filas", f"{pf['filas']:,}", border=True, delta_color="off",
+        st.metric("Filas", L.fmt_miles(pf['filas']), border=True, delta_color="off",
                   icon=":material/table_rows:")
-        st.metric("Ventanas", f"{pf['ventanas']:,}", border=True, delta_color="off",
+        st.metric("Ventanas", L.fmt_miles(pf['ventanas']), border=True, delta_color="off",
                   icon=":material/layers:")
         st.metric("Huella", pf["fingerprint"][:8], "SHA-256 de la tabla",
                   border=True, delta_color="off", icon=":material/fingerprint:")
@@ -754,8 +754,8 @@ with st.sidebar:
                 _guardar_registros()
                 st.rerun()
     st.caption(
-        f"Caché con {provenance['counts']['windows']:,} ventanas y "
-        f"{provenance['counts']['rows']:,} filas de telemetría · "
+        f"Caché con {L.fmt_miles(provenance['counts']['windows'])} ventanas y "
+        f"{L.fmt_miles(provenance['counts']['rows'])} filas de telemetría · "
         f"generada {provenance['generated_at'][:16].replace('T', ' ')}"
     )
 
@@ -833,7 +833,13 @@ def _tarjetas_gemelos() -> list[dict]:
     """
     tarjetas = []
     usadas = {f"muro_gemelo_{int(u)}" for u in unidades_vistas}
+    _matriculas_altas = {a["matricula"] for a in _altas()}
     for gemelo_id, gemelo in gemelos.items():
+        # El alta ya aparece en `tarjetas_cache` via `frame_con_altas`: no se
+        # duplica en el muro (sigue en Gemelos registrados). Sin este filtro,
+        # 1 Incorporar = 2 tarjetas (3->5).
+        if gemelo_id in _matriculas_altas:
+            continue
         curva = T.ciclo_a_ciclo(gemelo, umbrales)
         if curva.empty:
             continue
@@ -927,7 +933,7 @@ with head_right:
             icon=":material/lock:", color="gray",
         )
         st.badge(
-            f"{global_metrics['windows']:,} ventanas",
+            f"{L.fmt_miles(global_metrics['windows'])} ventanas",
             icon=":material/table_rows:", color="blue",
         )
         st.badge(
@@ -941,7 +947,7 @@ with st.container(border=True):
     hangar_en_muro = grounded + derivados_gemelos
     with st.container(horizontal=True):
         st.metric("Unidades monitorizadas", f"{global_metrics['units']}",
-                  f"{global_metrics['windows']:,} ventanas evaluadas",
+                  f"{L.fmt_miles(global_metrics['windows'])} ventanas evaluadas",
                   border=True, icon=":material/groups:", delta_color="off")
         st.metric("Unidades en hangar", f"{hangar_en_muro} / {_total_muro}",
                   f"en el ciclo {cycle}", border=True,
@@ -1747,13 +1753,13 @@ with tab_casos:
             state_windows = max(0, state_rows - INF.window_size() + 1)
             if state_rows > INF.UMBRAL_RECORTE_EDITOR:
                 st.warning(
-                    f"La rejilla va lenta con {state_rows:,} filas. Puedes recortar a las "
-                    f"primeras {INF.UMBRAL_RECORTE_EDITOR:,} para editar con fluidez: "
+                    f"La rejilla va lenta con {L.fmt_miles(state_rows)} filas. Puedes recortar a las "
+                    f"primeras {L.fmt_miles(INF.UMBRAL_RECORTE_EDITOR)} para editar con fluidez: "
                     "se puntuará lo visible y el recorte queda a la vista.",
                     icon=":material/speed:",
                 )
                 if st.button(
-                    f"Recortar a {INF.UMBRAL_RECORTE_EDITOR:,} primeras filas",
+                    f"Recortar a {L.fmt_miles(INF.UMBRAL_RECORTE_EDITOR)} primeras filas",
                     icon=":material/content_cut:", key="recortar_editor",
                 ):
                     cortada, _ = INF.limitar_filas(draft)

@@ -111,6 +111,14 @@ UNIT_LABELS = {
 }
 
 
+def fmt_miles(n: int | float) -> str:
+    """Entero con separador de miles español: `6196` → `6.196`.
+
+    `f"{n:,}"` usa coma sin locale; la UI en español debe usar punto.
+    """
+    return f"{int(n):,}".replace(",", ".")
+
+
 # --------------------------------------------------------------------- readers
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_windows() -> pd.DataFrame:

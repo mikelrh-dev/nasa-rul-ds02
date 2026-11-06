@@ -310,7 +310,7 @@ def _tab_auditoria(per_unit=None, provenance=None, chart_layout=None,
         with st.container(horizontal=True):
             st.metric(
                 "Ventanas en caché",
-                f"{provenance['counts']['windows']:,}",
+                L.fmt_miles(provenance['counts']['windows']),
                 f"generada {provenance['generated_at'][:10]}",
                 border=True, delta_color="off", icon=":material/dataset:")
         st.caption(
@@ -371,10 +371,15 @@ def _tab_auditoria(per_unit=None, provenance=None, chart_layout=None,
             f"**ventana** `{shape.get('bilstm_input_shape')}` · "
             f"**meta** `{shape.get('meta_features')} features`"
         )
+        decision_band = manifest.get("conformal_decision", {}) or {}
         st.markdown(
-            f"**banda** objetivo `{conformal.get('target_coverage')}` · "
+            f"**banda del artefacto** objetivo `{conformal.get('target_coverage')}` · "
             f"*{conformal.get('method')}* · calibración "
-            f"`{conformal.get('n_calibration')}` filas"
+            f"`{conformal.get('n_calibration')}` filas (incluye la unidad 16)"
+        )
+        st.markdown(
+            f"**banda R6 de la capa de reglas** `{decision_band.get('n_calibration')}` filas OOF "
+            f"puras (sin unidad 16; solo si `aplicar_reglas`) · fuente `{decision_band.get('source')}`"
         )
         st.markdown("**SHA-256 del ensemble**")
         st.code(provenance["artifact"]["ensemble_sha256"], language=None)

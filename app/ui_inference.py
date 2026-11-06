@@ -56,8 +56,8 @@ def limitar_filas(table: pd.DataFrame, max_filas: int = UMBRAL_RECORTE_EDITOR) -
 
 def _mensaje_limite(filas: int) -> str:
     return (
-        f"La tabla tiene {filas:,} filas y el máximo es {MAX_FILAS:,} "
-        f"(~{MAX_FILAS - window_size() + 1:,} ventanas). Recorta el histórico o "
+        f"La tabla tiene {L.fmt_miles(filas)} filas y el máximo es {L.fmt_miles(MAX_FILAS)} "
+        f"(~{L.fmt_miles(MAX_FILAS - window_size() + 1)} ventanas). Recorta el histórico o "
         "usa un muestreo declarado: por encima de ese tamaño la puntuación deja de "
         "ser interactiva."
     )
@@ -496,8 +496,8 @@ def score_table(table: pd.DataFrame, unit_id: float = LIVE_UNIT,
     point, lower, upper = ensemble.predict_interval(X, cyc_end, uni)
     if timeout_s is not None and time.monotonic() - _t0 > float(timeout_s):
         raise TimeoutError(
-            f"La puntuación de {len(frame):,} filas superó el presupuesto de "
-            f"{float(timeout_s):.0f} s (~{max(0, len(frame) - window_size() + 1):,} "
+            f"La puntuación de {L.fmt_miles(len(frame))} filas superó el presupuesto de "
+            f"{float(timeout_s):.0f} s (~{L.fmt_miles(max(0, len(frame) - window_size() + 1))} "
             f"ventanas). Recorta el histórico o usa un muestreo declarado."
         )
 
