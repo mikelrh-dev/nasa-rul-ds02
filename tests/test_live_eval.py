@@ -76,8 +76,8 @@ def test_a_table_over_the_row_cap_is_rejected_before_the_model():
     aviso = INF.preflight(larga)
     assert aviso["ok"] is False
     assert aviso["ventanas"] == 0
-    assert f"{INF.MAX_FILAS:,}" in aviso["error"]
-    assert f"{len(larga):,}" in aviso["error"]
+    assert L.fmt_miles(INF.MAX_FILAS) in aviso["error"]
+    assert L.fmt_miles(len(larga)) in aviso["error"]
 
     # El mismo tope protege la ruta de puntuación, antes de importar Keras.
     with pytest.raises(ValueError, match="máximo"):

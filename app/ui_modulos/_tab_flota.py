@@ -136,6 +136,15 @@ BADGE_ICON = {
 __all__ = ["_tab_flota"]
 
 
+def _rerun_app() -> None:
+    """Callback full-scope: este fragmento re-ejecuta con argumentos congelados
+    de `dashboard:1142-1156`, asi que un `st.rerun()` local dejaria banda y
+    triaje stale. `scope="app"` re-ejecuta el dashboard y recalcula banda.
+    No se quita el `@st.fragment` (romperia la paginacion del muro).
+    """
+    st.rerun(scope="app")
+
+
 @st.fragment
 def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
                unidades_vistas=None, tarjetas_cache=None, tarjetas_gemelos=None,
@@ -393,18 +402,21 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
                 "Preset de umbrales",
                 list(_PRESETS),
                 key="preset",
+                on_change=_rerun_app,
                 help="Rellena los dos umbrales de abajo. Después puedes ajustarlos a mano.",
             )
             with st.container(horizontal=True):
                 st.number_input(
                     "Apto si L_inf ≥ (ciclos)", min_value=1.0, max_value=100.0,
                     value=_preset_vals[0], step=1.0, key=f"th_apto_{preset}",
+                    on_change=_rerun_app,
                     help="Estado verde gobernado por el límite inferior conformal, no "
                          "por la predicción puntual.",
                 )
                 st.number_input(
                     "Hangar si L_inf < (ciclos)", min_value=0.0, max_value=99.0,
                     value=_preset_vals[1], step=1.0, key=f"th_aog_{preset}",
+                    on_change=_rerun_app,
                     help="Por debajo de este límite inferior la unidad se inmoviliza y "
                          "se emite orden de trabajo.",
                 )
@@ -414,6 +426,7 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
                 "Aplicar corrección de reglas",
                 value=False,
                 key="aplicar_reglas",
+                on_change=_rerun_app,
                 help=(
                     "Pasada B del motor de reglas (paquete src/mia/): R2b ajuste isotonico "
                     "causal y R6 banda conformal recalibrada sobre el punto corregido. "
@@ -529,7 +542,7 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
     if correccion:
         st.caption(
             f"**Corrección de reglas activa** (pasada B del motor `src/mia/`): "
-            f"{correccion['ventanas_corregidas']:,} de {correccion['ventanas']:,} "
+            f"{L.fmt_miles(correccion['ventanas_corregidas'])} de {L.fmt_miles(correccion['ventanas'])} "
             f"ventanas movidas ({correccion['porcentaje']} %) · "
             f"Δ punto medio {correccion['delta_medio_punto']:+.2f} ciclos · "
             f"Δ L_inf medio {correccion['delta_medio_l_inf']:+.2f}. "

@@ -49,8 +49,11 @@ def test_waterfall_builds_with_data(monkeypatch):
 
 
 def _wall(reg: dict) -> int:
-    # tarjetas_cache (3 base + altas) + tarjetas_gemelos (twins)
-    return 3 + len(reg.get(F.ALTAS_KEY) or {}) + len(reg.get("twins") or {})
+    # tarjetas_cache (3 base + altas) + tarjetas_gemelos sin duplicar altas:
+    # el gemelo cuya matricula esta en _altas() ya esta en la cache via frame.
+    altas = set((reg.get(F.ALTAS_KEY) or {}).keys())
+    twins = set((reg.get("twins") or {}).keys())
+    return 3 + len(altas) + len(twins - altas)
 
 
 def test_quitar_alta_removes_twin_and_hangar():
@@ -59,7 +62,7 @@ def test_quitar_alta_removes_twin_and_hangar():
         "twins": {"EC-MKR": {"id": "EC-MKR"}},
         "hangar": {"EC-MKR": {"unidad": "EC-MKR"}},
     }
-    assert _wall(registro) == 5
+    assert _wall(registro) == 4
     nuevo = F.quitar_alta(registro, "EC-MKR")
     assert "EC-MKR" not in (nuevo.get(F.ALTAS_KEY) or {})
     assert "EC-MKR" not in (nuevo.get("twins") or {})
@@ -101,7 +104,7 @@ def _set_preset(app, value: str):
 
 
 @needs_cache
-def test_incorporar_y_reset_muro_3_5_3():
+def test_incorporar_y_reset_muro_3_4_3():
     app = _app()
     app.run()
     assert not app.exception
@@ -111,7 +114,7 @@ def test_incorporar_y_reset_muro_3_5_3():
     twins = app.session_state.get("twins") or {}
     assert len(altas) == 1, altas
     assert len(twins) == 1, list(twins)
-    assert _wall({"altas": altas, "twins": twins}) == 5
+    assert _wall({"altas": altas, "twins": twins}) == 4
     matricula = next(iter(altas))
     assert _click(app, "Quitar", key="alta_quitar_btn")
     assert not app.exception
@@ -119,7 +122,7 @@ def test_incorporar_y_reset_muro_3_5_3():
     twins2 = app.session_state.get("twins") or {}
     hangar2 = app.session_state.get("hangar") or {}
     assert matricula not in altas2
-    assert matricula not in twins2, "Reset deja el gemelo: muro 5→4, no 3"
+    assert matricula not in twins2, "Reset deja el gemelo: muro 4->3, no 3"
     assert matricula not in hangar2
     assert _wall({"altas": altas2, "twins": twins2}) == 3
 

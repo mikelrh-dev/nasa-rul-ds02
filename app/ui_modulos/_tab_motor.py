@@ -47,6 +47,16 @@ try:
 except ImportError:  # pragma: no cover - import-style fallback
     from app import ui_rules as UR  # type: ignore[no-redef]
 
+try:
+    from src.mia import reglas as R_REGLAS  # noqa: E402
+except ImportError:  # pragma: no cover - import-style fallback
+    import os as _os
+    import sys as _sys
+    _ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    if _ROOT not in _sys.path:
+        _sys.path.insert(0, _ROOT)
+    from src.mia import reglas as R_REGLAS  # type: ignore[no-redef]
+
 # Design tokens: same hex values as `dashboard_ds02` (see its design-tokens
 # section). Kept as literals here so this module needs no dashboard import
 # for colors; chart/badge helpers are still dashboard-owned (passed in).
@@ -226,6 +236,11 @@ def _tab_motor(snapshot=None, unit=None, etiqueta_unidad=None, registro=None,
                           "pasada A · mia.motor", border=True, delta_color="off",
                           icon=":material/rule:")
             if pd.notna(_lo_g):
+                _r9 = R_REGLAS.si_R9_HANGAR({"limite_inferior": float(_lo_g), "alertas_datos": [], "umbrales": {"apto": float(umbrales["apto"]), "hangar": float(umbrales["hangar"])}})
+                if _r9:
+                    st.caption(f"R9 evaluada: Sí (L_inf {_lo_g:.1f} < {float(umbrales['hangar']):.0f}): dispara y gana")
+                else:
+                    st.caption(f"R9 evaluada: No (L_inf {_lo_g:.1f} >= {float(umbrales['hangar']):.0f}): evaluada, no dispara")
                 for linea in UR.traza_decision(_lo_g, umbrales)["porque"]:
                     st.caption(linea)
             _registro_g = registros.get(F.clave_de(float(unit), _registro()))
