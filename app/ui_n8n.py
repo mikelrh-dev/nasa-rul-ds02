@@ -14,21 +14,26 @@ DECISIONES_QUE_NOTIFICAN = ("HANGAR", "INSPECCION")
 
 def payload_desde_traza(en_vivo: dict, umbrales: dict | None = None,
                         artefacto_sha256: str = "",
-                        fingerprint: str = "") -> dict:
+                        fingerprint: str = "",
+                        unidad=None) -> dict:
     """Construye el payload n8n EXACTO desde la traza de `decision_en_vivo`.
 
     `en_vivo` es el dict `{"ventana", "alertas", "traza"}` de
     `ui_rules.decision_en_vivo`. `decision`, `usadas` y `porque` se leen de
     la traza tal cual; `motivo` se compone como en `decidir_ventanas`.
-    `idempotency_key` es el `fingerprint` del contrato.
+    `idempotency_key` es el `fingerprint` del contrato. La ventana en vivo
+    no trae columna `unit`: la unidad sale del parámetro `unidad` (el
+    contrato) o, si falta, de la propia ventana.
     """
     ventana = en_vivo["ventana"]
     traza = en_vivo["traza"]
     porque = [str(p) for p in traza["porque"]]
     umb = umbrales or UMBRALES_DEFECTO
+    if unidad is None:
+        unidad = ventana["unit"] if "unit" in ventana.index else 0.0
     return {
         "decision": str(traza["decision"]),
-        "unidad": float(ventana["unit"]),
+        "unidad": float(unidad),
         "ciclo": float(ventana["cycle"]),
         "rul_punto": float(ventana["pred"]),
         "limite_inferior": float(ventana["lower"]),
