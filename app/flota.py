@@ -127,11 +127,15 @@ def registrar_alta(registro: dict, matricula: str, unidad_cache: int,
 
 
 def quitar_alta(registro: dict, matricula: str) -> dict:
-    """Removes an alta. The id it held is not recycled."""
+    """Removes an alta, its twin and its hangar record. The id it held is not recycled."""
     clave = normalizar_matricula(matricula)
     altas = {k: v for k, v in (registro.get(ALTAS_KEY) or {}).items() if k != clave}
     nuevo = dict(registro)
     nuevo[ALTAS_KEY] = altas
+    if "twins" in registro:
+        nuevo["twins"] = {k: v for k, v in (registro.get("twins") or {}).items() if k != clave}
+    if "hangar" in registro:
+        nuevo["hangar"] = {k: v for k, v in (registro.get("hangar") or {}).items() if k != clave}
     return nuevo
 
 

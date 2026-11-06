@@ -579,6 +579,16 @@ _base_apto = float(provenance["defaults"]["threshold_airworthy"])
 _base_aog = float(provenance["defaults"]["threshold_aog"])
 _d_apto, _d_aog = _PRESETS.get(preset, _PRESETS["Normal"])
 _preset_vals = (max(1.0, _base_apto + _d_apto), max(0.0, _base_aog + _d_aog))
+# Sincroniza spinbuttons con el preset al cambiar: Streamlit ignora `value=`
+# si la clave ya existe y la historia deja valores persistentes (35/20).
+# Al cambiar se sobrescriben las claves del preset vigente con `_preset_vals`
+# para que Prudente→Normal restaure 30/25. Ediciones manuales del mismo
+# preset se descartan por diseño (D3).
+_prev_preset = st.session_state.get("_preset_prev")
+if _prev_preset is not None and _prev_preset != preset:
+    st.session_state[f"th_apto_{preset}"] = float(_preset_vals[0])
+    st.session_state[f"th_aog_{preset}"] = float(_preset_vals[1])
+st.session_state["_preset_prev"] = preset
 # El modo historia puede pedir otros umbrales: se dejan en `session_state` antes
 # de que el widget exista, igual que las demás escrituras diferidas.
 if st.session_state.get("_umbrales_pendientes"):
@@ -736,9 +746,11 @@ with st.sidebar:
                 help="Aeronave de alta a quitar de esta sesión. La flota de la caché no se toca.",
             )
             if st.button("Quitar", icon=":material/delete:", key="alta_quitar_btn"):
-                registro = {F.ALTAS_KEY: st.session_state.get(F.ALTAS_KEY) or {}}
+                registro = _registro()
                 registro = F.quitar_alta(registro, a_quitar)
                 st.session_state[F.ALTAS_KEY] = registro[F.ALTAS_KEY]
+                st.session_state["twins"] = registro.get("twins") or {}
+                st.session_state["hangar"] = registro.get("hangar") or {}
                 _guardar_registros()
                 st.rerun()
     st.caption(

@@ -37,6 +37,7 @@ if os.path.join(_ROOT, "src") not in sys.path:
 SEEDS = (42, 7, 123)
 MANIFEST = os.path.join(_ROOT, "models", "ds02_manifest.json")
 OUT_CSV = os.path.join(_ROOT, "resultados", "comparativa_c_multisemilla.csv")
+EVIDENCIA_CSV = os.path.join(_ROOT, "resultados", "bundle_c_multiseed.csv")
 
 
 def fila_desde_manifest() -> dict:
@@ -89,21 +90,54 @@ def agregar_semillas(filas: list[dict]) -> dict:
     }
 
 
+def filas_desde_evidencia() -> list[dict]:
+    """Reconstruye las tres filas desde la evidencia ya medida, sin entrenar.
+
+    La semilla 42 sale del manifiesto (es el bundle instalado) y las 7/123 de
+    `resultados/bundle_c_multiseed.csv`, la salida de una corrida anterior del
+    mismo protocolo. Existe para reparar la agregación y el CSV sin gastar
+    horas de CPU; para medir de nuevo, `--reentrenar`.
+    """
+    if not os.path.exists(EVIDENCIA_CSV):
+        raise SystemExit(
+            f"falta {os.path.relpath(EVIDENCIA_CSV, _ROOT)}: ejecuta sin "
+            "--desde-csv para entrenar las semillas 7 y 123")
+    filas = [fila_desde_manifest()]
+    prev = pd.read_csv(EVIDENCIA_CSV)
+    for _, r in prev.iterrows():
+        filas.append({
+            "seed": int(r["seed"]), "RMSE": float(r["RMSE"]), "MAE": float(r["MAE"]),
+            "R2": float(r["R2"]), "NASA_Score": float(r["NASA_Score"]),
+            "origen": os.path.basename(EVIDENCIA_CSV),
+        })
+    filas.sort(key=lambda f: SEEDS.index(f["seed"]) if f["seed"] in SEEDS else len(SEEDS))
+    return filas
+
+
 def main(argv: list[str] | None = None) -> int:
+    """Escribe la tabla multisemilla del bundle C y resume media ± desviación."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reentrenar-primaria", action="store_true",
                         help="reentrena también la semilla 42 (rompe la alineación con el manifiesto)")
+    parser.add_argument("--desde-csv", action="store_true",
+                        help="no entrena: reconstruye la tabla desde la evidencia ya medida")
     args = parser.parse_args(argv)
 
-    filas: list[dict] = []
-    for seed in SEEDS:
-        if seed == 42 and not args.reentrenar_primaria:
-            fila = fila_desde_manifest()
-            print(f"seed  42: {fila['RMSE']:.3f} / {fila['NASA_Score']:.1f} (del manifiesto)")
-        else:
-            fila = evaluar_seed(seed)
-            print(f"seed {seed:3d}: {fila['RMSE']:.3f} / {fila['NASA_Score']:.1f} (entrenada)")
-        filas.append(fila)
+    if args.desde_csv:
+        filas = filas_desde_evidencia()
+        for fila in filas:
+            print(f"seed {fila['seed']:3d}: {fila['RMSE']:.3f} / "
+                  f"{fila['NASA_Score']:.1f} ({fila['origen']})")
+    else:
+        filas = []
+        for seed in SEEDS:
+            if seed == 42 and not args.reentrenar_primaria:
+                fila = fila_desde_manifest()
+                print(f"seed  42: {fila['RMSE']:.3f} / {fila['NASA_Score']:.1f} (del manifiesto)")
+            else:
+                fila = evaluar_seed(seed)
+                print(f"seed {seed:3d}: {fila['RMSE']:.3f} / {fila['NASA_Score']:.1f} (entrenada)")
+            filas.append(fila)
 
     tabla = pd.DataFrame(filas)
     os.makedirs(os.path.dirname(OUT_CSV), exist_ok=True)

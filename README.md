@@ -9,9 +9,10 @@
 > app de producción: `streamlit run app/dashboard_ds02.py` (bundle C + SHAP).
 > Lo de abajo es el sistema desplegado (bundle C congelado, RMSE 4.338).
 
-![App del track de clase](resultados/app_clase.png)
+![RMSE por motor del bundle C](docs/assets/bundle_c_rmse_por_motor.png)
 
-*Captura real de la app Streamlit del track académico (métricas en test + caso nuevo con decisión de reglas).*
+*RMSE del bundle C desglosado por motor (test 11/14/15). La captura del dashboard se regenera con*
+*`streamlit run app/dashboard_ds02.py`: la anterior era de la app del track y mostraba cifras que ya no existen.*
 
 ## La necesidad de negocio
 
@@ -90,7 +91,9 @@ Mismos modelos, mismo protocolo. Las adiciones son dos métricas, no precisión 
 | --- | --- | --- | --- | --- |
 | **Hybrid stacking + EMA causal 5 (base imputada)** | **4.338** | **3.227** | **0.9461** | **2336.2** |
 
-Desplegado (bundle C): RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2 (semilla 42, base adaptada MAR T30 + ffill); media multissemilla 4.322+-0.064 (NASA 2342.3+-43.4) sobre [42, 7, 123].
+Desplegado (bundle C): RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2 (semilla 42, base adaptada MAR T30 + ffill); media multissemilla 4.368+-0.053 (NASA 2355.2+-24.6) sobre [42, 7, 123].
+**Macro-RMSE por motor (el número que esconde la media):** 5.0153 — U11 3.6328 ·
+U14 8.5761 · U15 2.8371. El error no está repartido: la unidad 14 concentra el fallo.
 
 
 ### Track de clase (modelos de la asignatura)
@@ -109,7 +112,7 @@ El híbrido de clase **es** el modelo desplegado: mismo `run_seed`, mismo contra
 
 | Modelo | RMSE | NASA score | Semillas |
 |---|---|---|---|
-| C-media (NB06, grano ventana test 6196) | **4.322+-0.064** | **2342.3+-43.4** | 42, 7, 123 |
+| C-media (NB06, grano ventana test 6196) | **4.368+-0.053** | **2355.2+-24.6** | 42, 7, 123 |
 | C-media (NB05, protocolo OOF) | 4.330+-0.053 | — | 42, 7, 123 |
 
 La semilla 42 es la del bundle desplegado (`models/ds02_manifest.json`); 7 y 123 se
@@ -117,7 +120,8 @@ reentrenan con el mismo protocolo en `src/clase/evaluar_c_multisemilla.py`. El �
 la cota de ruido con la que se leen las diferencias: dos medias separadas menos que
 ese ± son empate.
 
-**Evidencia:** `resultados/bundle_c_multiseed.csv`, `resultados/comparativa_bundle_c.csv`,
+**Evidencia:** `resultados/comparativa_c_multisemilla.csv` (la tabla de las tres semillas),
+`resultados/bundle_c_multiseed.csv`, `resultados/comparativa_bundle_c.csv`,
 `src/clase/evaluar_c_multisemilla.py`, `notebooks/06_evaluacion_produccion_comparativa.ipynb`.
 
 *Nota sobre casillas vacías: NASA solo se calcula en grano ventana (pipeline

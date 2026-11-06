@@ -59,7 +59,7 @@ Same models, same protocol. The additions are two metrics, not extra accuracy.
 | **Hybrid stacking + causal EMA5 (imputed base, deployed)** | **4.338** | **3.227** | **0.9461** | **2336.2** |
 
 Deployed (bundle C): RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2 (seed 42,
-imputed base MAR T30 + ffill); multiseed mean **4.322+-0.064 RMSE / 2342.3+-43.4
+imputed base MAR T30 + ffill); multiseed mean **4.368+-0.053 RMSE / 2355.2+-24.6
 NASA** over [42, 7, 123], which is the band any future change has to beat.
 
 TensorFlow on CPU is not bit-for-bit deterministic between runs, so prose figures
@@ -141,7 +141,7 @@ Four conclusions, all measured:
 3. Removing the clock from the stacking layer — while keeping it in both base
    models, where it is a legitimate input — is the fix, and it is the
    configuration the shipped bundle uses (RMSE 4.338;
-   multiseed 4.322+-0.064) against
+   multiseed 4.368+-0.053) against
    the previous 5.523 ± 0.001, with the meta-learner splitting its weight between the two
    branches instead of betting everything on one counter.
 4. Removing it from *every* component instead (5.568) is a different experiment:
@@ -176,7 +176,7 @@ three folds selected `beta = 0` — i.e. that fold saw no value in the meta-lear
 
 | Model | RMSE | NASA score | Seeds |
 |---|---|---|---|
-| C-mean | **4.322+-0.064** | **2342.3+-43.4** | 42, 7, 123 |
+| C-mean | **4.368+-0.053** | **2355.2+-24.6** | 42, 7, 123 |
 
 Seed 42 is the shipped bundle (`models/ds02_manifest.json`); seeds 7 and 123 are
 retrained under the same protocol by `src/clase/evaluar_c_multisemilla.py`. The ± is

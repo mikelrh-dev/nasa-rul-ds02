@@ -475,7 +475,10 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
         with st.container(border=True):
             st.subheader("Modo historia · la narrativa en cuatro pasos", icon=":material/auto_stories:")
             st.caption("Cuatro estados que cuentan la historia, derivados de la caché. Cada paso deja la app donde dice; el cuarto cambia la política para ver el efecto.")
-            _pasos_historia = A.estado_historia(windows, umbrales)
+            # Base del preset, no los umbrales en vigor: tras el paso 4 (35/20)
+            # los umbrales en vigor ya están contaminados y los pasos 1-3
+            # derivarían su base de ellos en vez de restaurar el preset.
+            _pasos_historia = A.estado_historia(windows, {"apto": float(_preset_vals[0]), "hangar": float(_preset_vals[1])})
             _cols_h = st.columns(len(_pasos_historia))
             for _col, _paso in zip(_cols_h, _pasos_historia):
                 with _col:
