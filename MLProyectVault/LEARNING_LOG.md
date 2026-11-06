@@ -18,7 +18,7 @@ Objetivo: entender los tres cuadernos, entender el proyecto y sus conceptos, y d
 
 | | |
 |---|---|
-| Notas activas | 64 (23 conceptos · 23 sistema · 8 notebooks · 7 defensa · 3 evidencia) — plan C + auditoría 2026-11-04 |
+| Notas activas | 71 (28 conceptos c00-c27 · 24 sistema s01-s24 · 9 notebooks n01-n09 · 7 defensa · 3 evidencia) — plan C + auditoría 2026-11-04 |
 | Consolidadas | 0 |
 | Sin estudiar | 44 |
 | Última reestructuración | 2026-11-01 (v2) |
@@ -67,7 +67,7 @@ Objetivo: entender los tres cuadernos, entender el proyecto y sus conceptos, y d
 - [[c01-que-es-rul]] · [[c02-ventanas-y-horizonte]] · [[c03-fuga-de-informacion]]
 - [[c04-metricas-y-baseline]] · [[c05-regresion-cuantilica]]
 - [[c06-bilstm-y-secuencias]] · [[c07-pooling-temporal]]
-- [[c08-residualizacion]] · [[c09-ensembles]] · [[c15-grano-fila-vs-ventana]] · [[c16-groupkfold-por-motor]] · [[c17-nulos-mar-e-imputacion-causal]] · [[c18-fase-vuelo-y-onehot]] · [[c19-ablacion-cyc-norm]] · [[c20-multisemilla-y-ruido]] · [[c21-shap-e-ia-debil]] · [[c22-cuanto-vale-acertar]]
+- [[c08-residualizacion]] · [[c09-ensembles]] · [[c15-grano-fila-vs-ventana]] · [[c16-groupkfold-por-motor]] · [[c17-nulos-mar-e-imputacion-causal]] · [[c18-fase-vuelo-y-onehot]] · [[c19-ablacion-cyc-norm]] · [[c20-multisemilla-y-ruido]] · [[c21-shap-e-ia-debil]] · [[c22-cuanto-vale-acertar]] · [[c23-validez-y-plausibilidad-ui]] · [[c24-gemelo-hangar-flota]] · [[c25-seguridad-api-y-contrato]] · [[c26-deriva-y-limites]] · [[c27-mlflow]]
 - [[c10-oof-y-validacion-agrupada]] · [[c11-shrinkage-beta]]
 - [[c12-conformal-prediction]] · [[c13-ema-causal]] · [[c14-ruido-y-reproducibilidad]]
 
@@ -75,13 +75,13 @@ Objetivo: entender los tres cuadernos, entender el proyecto y sus conceptos, y d
 
 - [[s01-protocolo-honesto]] · [[s02-datos-ds02-y-reparto]] · [[s03-preproceso-sin-fuga]] · [[s04-ventanas-y-features]]
 - [[s05-lightgbm-cuantilico]] · [[s06-bilstm-triple-pooling]] · [[s07-ema-por-motor]]
-- [[s08-ablacion-cyc-norm]] · [[s09-oof-y-beta]] · [[s10-stacking-hibrido]] · [[s11-banda-conformal]] · [[s15-dataset-de-clase]] · [[s16-pipeline-de-clase]] · [[s17-clasicos-y-mlp]] · [[s18-lgbm-adaptada]] · [[s19-tabla-final-y-grano]] · [[s20-ensemble-adaptado-y-bundle-c]] · [[s21-puente-c-y-multisemilla]] · [[s22-shap-y-app-de-clase]] · [[s23-dss-por-pestanas]]
+- [[s08-ablacion-cyc-norm]] · [[s09-oof-y-beta]] · [[s10-stacking-hibrido]] · [[s11-banda-conformal]] · [[s15-dataset-de-clase]] · [[s16-pipeline-de-clase]] · [[s17-clasicos-y-mlp]] · [[s18-lgbm-adaptada]] · [[s19-tabla-final-y-grano]] · [[s20-ensemble-adaptado-y-bundle-c]] · [[s21-puente-c-y-multisemilla]] · [[s22-shap-y-app-de-clase]] · [[s23-dss-por-pestanas]] · [[s24-n8n-mia3]]
 - [[s12-persistencia-y-contrato]] · [[s13-capa-de-reglas-y-decision]] · [[s14-app-y-despliegue]]
 
 ### 30-Notebooks — qué hace cada celda
 
 - [[n01-recorrido-nb01]] · [[n02-recorrido-nb02]] · [[n03-recorrido-nb03]]
-- [[n04-cadena-de-estado]] · [[n05-api-src-ds02-rul]] · [[n06-recorrido-nb04]] · [[n07-recorrido-nb05]] · [[n08-recorrido-nb06]]
+- [[n04-cadena-de-estado]] · [[n05-api-src-ds02-rul]] · [[n06-recorrido-nb04]] · [[n07-recorrido-nb05]] · [[n08-recorrido-nb06]] · [[n09-recorrido-nb07]]
 
 ### 40-Defensa — guion y performance
 
@@ -97,7 +97,7 @@ Objetivo: entender los tres cuadernos, entender el proyecto y sus conceptos, y d
 
 - **2026-11-04 — repaso de rúbrica v5 (autorizado).** Leída la rúbrica oficial (9 págs). Añadidos: SAA2/SMOTE en `c21`, 5 clásicos nombrados + métrica-negocio en `s17`, MIA-1 quién-usa en `c22`, banco 50→56 (Q51 n8n, Q52 MLflow, Q53 SMOTE, Q54 IA débil, Q55 aprendizaje, Q56 pipeline+caso nuevo), checklist 43/53→46/56. Cobertura: SAA 1-10, PIA 1-6, MIA 1-4 con material estudiable; pendientes n8n/MLflow con respuesta declarada.
 - **2026-11-04 — auditoría post-plan (autorizada).** Des-decimalizado el bundle B en 12 notas (regla «una cifra, una fuente» restaurada), hashes C en e00/s12/d02/d04/d05/d07, `s23` DSS por pestañas, `c22` negocio AOG + pendientes n8n/MLflow en `s14`, objeción 5 a ±0.1. Queda: 90-Archivo intacto; NB06 en ejecución 2.º plano.
-- **2026-11-04 — plan C ejecutado (alcance completo).** 18 notas nuevas (c15–c21, s15–s22, n06–n08) + 10 actualizadas (e00, n01–n05, d01–d03, d05–d07, d04). Bundle C autoritativo en e00 (fila 4.338, media 4.322±0.064). `visuals/n04-cadena-estado.mmd` a 6 eslabones. NB06 celdas 11/23/25 en ejecución 2.º plano (log `nb06_exec.log`). Sin commits.
+- **2026-11-04 — plan C ejecutado (alcance completo).** 18 notas nuevas (c15–c21, s15–s22, n06–n08) + 10 actualizadas (e00, n01–n05, d01–d03, d05–d07, d04). Bundle C autoritativo en e00 (fila 4.338, media 4.368±0.053). `visuals/n04-cadena-estado.mmd` a 6 eslabones. NB06 celdas 11/23/25 en ejecución 2.º plano (log `nb06_exec.log`). Sin commits.
 - **2026-11-01 — v2 (reestructuración).** El vault v1 tenía 120 notas, tres copias del mismo contenido y cifras desactualizadas en la propia nota que decía "el manifiesto manda". Se archivó completo en `90-Archivo/` (incluido el log v1: [[LEARNING_LOG-v1]] desde la raíz del archivo) y se reconstruyó por ejes: conceptos, sistema, notebooks, defensa, evidencia. Ninguna nota se borró.
 - **2026-10-26 — v1.** Bloque B0 de guion de defensa (10 notas + 3 anexos celda a celda) y variante "refactor novato".
 - **2026-10-23 — v1.** Cartografía del repo y 6 bloques B1–B7 (31 nodos, formato teoría + esquema).

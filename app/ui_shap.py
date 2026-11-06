@@ -1,4 +1,4 @@
-"""SHAP explainability for the frozen DS02 bundle (model B).
+"""SHAP explainability for the frozen DS02 bundle (bundle C, seed 42).
 
 Computes TreeExplainer attributions over the LightGBM tabular branch of the
 hybrid ensemble.  The 93 tabular features are derived from raw cached rows
@@ -255,10 +255,9 @@ def _shap_waterfall_fig_cached(
             measure=["relative"] * len(contribs),
             x=feats,
             y=contribs,
-            totals=[float(base)],
-            waterfallgap=0.25,
             hovertemplate="%{x}<br>contribución %{y:.2f}<extra></extra>",
-        )
+        ),
+        layout=dict(waterfallgap=0.25),
     )
     return fig
 

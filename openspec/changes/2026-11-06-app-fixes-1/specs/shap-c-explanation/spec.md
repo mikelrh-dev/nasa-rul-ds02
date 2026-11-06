@@ -7,7 +7,7 @@
 
 ### Requirement: SHAPC-WF-01
 
-The system MUST build the Plotly waterfall via `shap_waterfall_fig` without raising, passing `totals` as a scalar number (never a list) and carrying top-`max_display` contributions. The NASA score is a SUM of asymmetric exponentials with no 125-cycle clamp on DS02; this requirement changes no metric.
+The system MUST build the Plotly waterfall via `shap_waterfall_fig` without raising, omitting the `totals` kwarg (Plotly `totals` is a `Totals` styling object, not a number — neither list nor float validates) and carrying top-`max_display` contributions. The NASA score is a SUM of asymmetric exponentials with no 125-cycle clamp on DS02; this requirement changes no metric.
 
 #### Scenario: Waterfall builds with data
 
@@ -16,9 +16,9 @@ The system MUST build the Plotly waterfall via `shap_waterfall_fig` without rais
 - THEN no `ValueError` is raised
 - AND the figure carries one trace with non-empty `x`/`y`
 
-#### Scenario: Scalar totals
+#### Scenario: No totals kwarg
 
 - GIVEN the waterfall inputs `(sv, base, names)`
 - WHEN the `go.Waterfall` is constructed
-- THEN `totals` is `float(base)`
+- THEN no `totals` kwarg is passed
 - AND `measure` is `relative` for each contribution
