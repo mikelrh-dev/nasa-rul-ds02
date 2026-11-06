@@ -1,1 +1,202 @@
-{"pendiente": "MIA3 — flujo n8n real (webhook por decisión + acción distinta según decisión). Placeholder del change 2026-11-02-clase-track. No usar en la app hasta el change siguiente."}
+{
+  "name": "DS02 Decision MIA-3",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ds02/decision",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook_ds02",
+      "name": "Webhook ds02/decision",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [
+                  {"id": "c_apto", "leftValue": "={{ $json.decision }}", "rightValue": "APTO", "operator": {"type": "string", "operation": "equals"}}
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "APTO"
+            },
+            {
+              "conditions": {
+                "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [
+                  {"id": "c_inspeccion", "leftValue": "={{ $json.decision }}", "rightValue": "INSPECCION", "operator": {"type": "string", "operation": "equals"}}
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "INSPECCION"
+            },
+            {
+              "conditions": {
+                "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [
+                  {"id": "c_hangar", "leftValue": "={{ $json.decision }}", "rightValue": "HANGAR", "operator": {"type": "string", "operation": "equals"}}
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "HANGAR"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch_decision",
+      "name": "Switch por decision",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {"id": "a_log", "name": "log", "value": "={{ 'APTO unidad ' + $json.unidad + ' ciclo ' + $json.ciclo + ': sin accion' }}", "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "set_apto",
+      "name": "APTO Set log",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [680, 140]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "DS02 Decisiones", "mode": "name"},
+        "sheetName": {"__rl": true, "value": "Decisiones", "mode": "name"},
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "decision": "={{ $json.decision }}",
+            "unidad": "={{ $json.unidad }}",
+            "ciclo": "={{ $json.ciclo }}",
+            "rul_punto": "={{ $json.rul_punto }}",
+            "limite_inferior": "={{ $json.limite_inferior }}",
+            "motivo": "={{ $json.motivo }}",
+            "fingerprint": "={{ $json.fingerprint }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "sheets_inspeccion",
+      "name": "INSPECCION Google Sheets append",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "credentials": {
+        "googleSheetsOAuth2": {"id": "credencial-local-sheets", "name": "Google Sheets (instancia local)"}
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": {"__rl": true, "value": "ds02_decisiones", "mode": "name"},
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "decision": "={{ $json.decision }}",
+            "unidad": "={{ $json.unidad }}",
+            "ciclo": "={{ $json.ciclo }}",
+            "rul_punto": "={{ $json.rul_punto }}",
+            "limite_inferior": "={{ $json.limite_inferior }}",
+            "limite_superior": "={{ $json.limite_superior }}",
+            "motivo": "={{ $json.motivo }}",
+            "artefacto_sha256": "={{ $json.artefacto_sha256 }}",
+            "fingerprint": "={{ $json.fingerprint }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "postgres_hangar",
+      "name": "HANGAR Postgres insert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [680, 460],
+      "credentials": {
+        "postgres": {"id": "credencial-local-postgres", "name": "Postgres (instancia local)"}
+      }
+    },
+    {
+      "parameters": {
+        "calendarId": {"__rl": true, "value": "primary", "mode": "name"},
+        "operation": "create",
+        "options": {
+          "description": "={{ $json.motivo }}",
+          "summary": "={{ 'HANGAR DS02 unidad ' + $json.unidad + ' ciclo ' + $json.ciclo }}"
+        }
+      },
+      "id": "calendar_hangar",
+      "name": "HANGAR Google Calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.2,
+      "position": [900, 460],
+      "credentials": {
+        "googleCalendarOAuth2": {"id": "credencial-local-calendar", "name": "Google Calendar (instancia local)"}
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "operaciones@ejemplo.invalid",
+        "subject": "={{ 'HANGAR DS02 unidad ' + $json.unidad + ' ciclo ' + $json.ciclo }}",
+        "message": "={{ $json.motivo }}",
+        "options": {}
+      },
+      "id": "gmail_hangar",
+      "name": "HANGAR Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1120, 460],
+      "credentials": {
+        "gmailOAuth2": {"id": "credencial-local-gmail", "name": "Gmail (instancia local)"}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook ds02/decision": {
+      "main": [[{"node": "Switch por decision", "type": "main", "index": 0}]]
+    },
+    "Switch por decision": {
+      "main": [
+        [{"node": "APTO Set log", "type": "main", "index": 0}],
+        [{"node": "INSPECCION Google Sheets append", "type": "main", "index": 0}],
+        [{"node": "HANGAR Postgres insert", "type": "main", "index": 0}]
+      ]
+    },
+    "HANGAR Postgres insert": {
+      "main": [[{"node": "HANGAR Google Calendar", "type": "main", "index": 0}]]
+    },
+    "HANGAR Google Calendar": {
+      "main": [[{"node": "HANGAR Gmail", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "ds02-mia3-v1",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "instancia-local"
+  },
+  "pinData": {},
+  "tags": [{"name": "DS02 MIA-3"}]
+}

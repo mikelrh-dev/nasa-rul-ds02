@@ -44,6 +44,10 @@ import ui_rules as UR  # noqa: E402
 import flota as F  # noqa: E402
 import simulacion as S  # noqa: E402
 import ui_modulos as UM  # noqa: E402
+import ui_n8n as UN  # noqa: E402
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src import n8n as N8N  # noqa: E402
 
 # Estado de sesión en un solo sitio: gemelos y registros de hangar.
 # Se cargan de disco una sola vez: recargar la página ya no borra la flota.
@@ -1863,6 +1867,22 @@ with tab_casos:
             _decision = UR.decision_en_vivo(live, umbrales)
             alertas_live = _decision["alertas"]
             traza_live = _decision["traza"]
+            # MIA-3: notificacion n8n, punto de llamada unico. Solo si la
+            # decision no es SIN_DECISION, deduplicado por fingerprint en la
+            # sesion (cada rerun sin cambio de fingerprint no re-envia).
+            # Notifican HANGAR e INSPECCION; APTO solo deja log local sin
+            # POST; SIN_DECISION no hace nada.
+            _fp_n8n = str(live["contract"].get("fingerprint") or "")
+            _enviadas_n8n = set(st.session_state.get("n8n_enviadas") or set())
+            if UN.debe_notificar(traza_live["decision"], _fp_n8n, _enviadas_n8n):
+                _payload_n8n = UN.payload_desde_traza(
+                    _decision, umbrales,
+                    str(live["contract"].get("artefacto_sha256") or ""), _fp_n8n)
+                N8N.enviar_decision(traza_live["decision"], _payload_n8n)
+                _enviadas_n8n.add(_fp_n8n)
+                st.session_state["n8n_enviadas"] = _enviadas_n8n
+            elif traza_live["decision"] == "APTO":
+                _log(f"n8n: decision {traza_live['decision']} sin POST (log local).")
             live_state = (traza_live["decision"] if traza_live["decision"] in L.STATE_LABELS
                           else L.NO_DATA)
             tone = {
