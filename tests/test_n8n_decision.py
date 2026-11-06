@@ -77,6 +77,15 @@ def test_payload_umbrales_por_defecto():
     assert payload["umbrales"] == {"apto": 30.0, "hangar": 25.0}
 
 
+def test_payload_ventana_en_vivo_sin_columna_unit():
+    # Las ventanas de score_table no traen `unit`: la unidad viene del contrato.
+    en_vivo = _en_vivo()
+    en_vivo["ventana"] = en_vivo["ventana"].drop("unit")
+    payload = UN.payload_desde_traza(en_vivo, None, "abc", "fp4", unidad=-1.0)
+    assert payload["unidad"] == -1.0
+    assert payload["ciclo"] == 25
+
+
 # --------------------------------------------------------------- enviar
 class _Resp:
     status = 200

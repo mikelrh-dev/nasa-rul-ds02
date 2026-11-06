@@ -1877,7 +1877,8 @@ with tab_casos:
             if UN.debe_notificar(traza_live["decision"], _fp_n8n, _enviadas_n8n):
                 _payload_n8n = UN.payload_desde_traza(
                     _decision, umbrales,
-                    str(live["contract"].get("artefacto_sha256") or ""), _fp_n8n)
+                    str(live["contract"].get("artefacto_sha256") or ""), _fp_n8n,
+                    unidad=live["contract"].get("unidad_simulada"))
                 N8N.enviar_decision(traza_live["decision"], _payload_n8n)
                 _enviadas_n8n.add(_fp_n8n)
                 st.session_state["n8n_enviadas"] = _enviadas_n8n
