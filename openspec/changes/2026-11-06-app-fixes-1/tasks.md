@@ -70,11 +70,11 @@ Acceptance: `grep -rn "4\.347\|4\.322" README.md AGENT.md README.en.md docs/deci
 
 ### [ ] 4. Verify and archive prep
 
-#### [ ] 4.1 Scopes then full gate
+#### [x] 4.1 Scopes then full gate
 Run `.venv/Scripts/python scripts/verify_gate.py --only tests/test_app_fixes1.py` then `.venv/Scripts/python scripts/verify_gate.py` (full). On pre-existing failure, stash and re-run on a clean tree to distinguish (record both exits).
 Acceptance: `GATE PASSED` on full suite (or a `GATE FAILED` proven pre-existing by the clean-tree re-run, with a named test).
 
-#### [ ] 4.2 No-forbidden-diff audit
+#### [x] 4.2 No-forbidden-diff audit
 `git status --short` + `git diff --stat` show only: openspec change, `app/ui_shap.py`, `app/flota.py`, `app/dashboard_ds02.py`, new RED test, F4 docs. No notebooks, `models/`, joblibs, keras, `MLProyectVault/90-Archivo`, MLflow, n8n, individual answer.
 Acceptance: audit output pasted into `verify-report.md`.
 
