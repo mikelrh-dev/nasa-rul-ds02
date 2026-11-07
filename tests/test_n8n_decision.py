@@ -151,9 +151,9 @@ def test_sin_decision_nunca_notifica():
     assert UN.debe_notificar("SIN_DECISION", "fp9", set()) is False
 
 
-def test_apto_solo_log_local_sin_post():
-    # APTO no notifica por POST (solo log local en la app).
-    assert UN.debe_notificar("APTO", "fpA", set()) is False
+def test_apto_tambien_notifica():
+    # APTO también notifica: llega a la rama Set log de n8n.
+    assert UN.debe_notificar("APTO", "fpA", set()) is True
 
 
 def test_dashboard_llama_una_vez_tras_decision_en_vivo():

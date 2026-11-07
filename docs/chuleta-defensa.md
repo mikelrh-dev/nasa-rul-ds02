@@ -30,7 +30,7 @@
 - Producción: ensemble C **4,338** (macro-RMSE 5,02; U14 8,58 es el agujero). Banda R6 opcional
   recalibrada sobre **14.915** filas OOF puras (sin la unidad 16, que entrenó el meta); la lectura
   por defecto usa la banda del artefacto (17.450).
-- Multisemilla [42, 7, 123]: **4,368 ± 0,053** RMSE · 2355,2 ± 24,6 NASA.
+- Multisemilla [42, 7, 123]: **4,322 ± 0,064** RMSE · 2342,3 ± 43,4 NASA (NB06); NB05 4,330 ± 0,053 · 2343,2 ± 24,1.
 - Clase no compite con producción: la entiende; C es el que se despliega.
 - Negocio: un AOG ≈ 10.000–15.000 USD/h (rango Boeing; ver `costes_reales_aeronauticos.md` §1); el equivalente 240.000–360.000 USD/día vale solo como hipotético de 24 h continuas. Evitar un AOG paga el sistema. RMSE manda porque un motor parado cuesta más que segundos de CPU.
 - SHAP + permutación (en validación): **cycle ≫ T50 > Nc**.

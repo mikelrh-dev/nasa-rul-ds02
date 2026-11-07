@@ -1888,8 +1888,8 @@ with tab_casos:
             # MIA-3: notificacion n8n, punto de llamada unico. Solo si la
             # decision no es SIN_DECISION, deduplicado por fingerprint en la
             # sesion (cada rerun sin cambio de fingerprint no re-envia).
-            # Notifican HANGAR e INSPECCION; APTO solo deja log local sin
-            # POST; SIN_DECISION no hace nada.
+            # Notifican HANGAR, INSPECCION y APTO (APTO llega a Set log);
+            # SIN_DECISION no hace nada. Dedupe solo si el POST fue ok.
             _fp_n8n = str(live["contract"].get("fingerprint") or "")
             _enviadas_n8n = set(st.session_state.get("n8n_enviadas") or set())
             if UN.debe_notificar(traza_live["decision"], _fp_n8n, _enviadas_n8n):
@@ -1897,11 +1897,10 @@ with tab_casos:
                     _decision, umbrales,
                     str(live["contract"].get("artefacto_sha256") or ""), _fp_n8n,
                     unidad=live["contract"].get("unidad_simulada"))
-                N8N.enviar_decision(traza_live["decision"], _payload_n8n)
-                _enviadas_n8n.add(_fp_n8n)
-                st.session_state["n8n_enviadas"] = _enviadas_n8n
-            elif traza_live["decision"] == "APTO":
-                _log(f"n8n: decision {traza_live['decision']} sin POST (log local).")
+                _res_n8n = N8N.enviar_decision(traza_live["decision"], _payload_n8n)
+                if isinstance(_res_n8n, dict) and _res_n8n.get("ok") is True:
+                    _enviadas_n8n.add(_fp_n8n)
+                    st.session_state["n8n_enviadas"] = _enviadas_n8n
             live_state = (traza_live["decision"] if traza_live["decision"] in L.STATE_LABELS
                           else L.NO_DATA)
             tone = {

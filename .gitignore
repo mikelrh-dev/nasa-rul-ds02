@@ -93,6 +93,9 @@ app/registros_flota.json
 app/registros_sesiones/
 app/registros_flota.json.bak
 
+# respaldo que deja conftest al mover los registros de sesion
+app/registros_sesiones.hermes-respaldo/
+
 # class material (notebooks/ds02_ensemble/RequisitosClase/Ejemplos) — not part of
 # the deliverable: regenerable exercise folders and their data
 notebooks/ds02_ensemble/RequisitosClase/Ejemplos/
