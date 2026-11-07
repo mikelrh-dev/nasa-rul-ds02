@@ -147,31 +147,164 @@
     },
     {
       "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f_decision",
+              "name": "decision",
+              "type": "string",
+              "value": "={{ $json.body.decision || $json.decision }}"
+            },
+            {
+              "id": "f_unidad",
+              "name": "unidad",
+              "type": "number",
+              "value": "={{ $json.body.unidad ?? $json.unidad }}"
+            },
+            {
+              "id": "f_ciclo",
+              "name": "ciclo",
+              "type": "number",
+              "value": "={{ $json.body.ciclo ?? $json.ciclo }}"
+            },
+            {
+              "id": "f_rul",
+              "name": "rul_punto",
+              "type": "number",
+              "value": "={{ $json.body.rul_punto ?? $json.rul_punto }}"
+            },
+            {
+              "id": "f_inf",
+              "name": "limite_inferior",
+              "type": "number",
+              "value": "={{ $json.body.limite_inferior ?? $json.limite_inferior }}"
+            },
+            {
+              "id": "f_motivo",
+              "name": "motivo",
+              "type": "string",
+              "value": "={{ $json.body.motivo || $json.motivo }}"
+            },
+            {
+              "id": "f_fp",
+              "name": "fingerprint",
+              "type": "string",
+              "value": "={{ $json.body.fingerprint || $json.fingerprint }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set_inspeccion_flat",
+      "name": "Set INSPECCION flat",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        700,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "append",
         "documentId": {
           "__rl": true,
-          "value": "DS02 Decisiones",
-          "mode": "name"
+          "mode": "list",
+          "value": "1HDpoYm8NBhKvU0yOxLlBeLEPTmI2BcR30kSSfAN2mXc",
+          "cachedResultName": "DS02 Decisiones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HDpoYm8NBhKvU0yOxLlBeLEPTmI2BcR30kSSfAN2mXc/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
-          "value": "Decisiones",
-          "mode": "name"
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HDpoYm8NBhKvU0yOxLlBeLEPTmI2BcR30kSSfAN2mXc/edit#gid=0"
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED",
+          "useAppend": true
         },
         "columns": {
           "mappingMode": "defineBelow",
-          "value": {
-            "decision": "={{ $json.body.decision || $json.decision }}",
-            "unidad": "={{ $json.body.unidad ?? $json.unidad }}",
-            "ciclo": "={{ $json.body.ciclo ?? $json.ciclo }}",
-            "rul_punto": "={{ $json.body.rul_punto ?? $json.rul_punto }}",
-            "limite_inferior": "={{ $json.body.limite_inferior ?? $json.limite_inferior }}",
-            "motivo": "={{ $json.body.motivo || $json.motivo }}",
-            "fingerprint": "={{ $json.body.fingerprint || $json.fingerprint }}"
-          },
           "matchingColumns": [],
-          "schema": []
-        },
-        "options": {}
+          "schema": [
+            {
+              "id": "decision",
+              "displayName": "decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "unidad",
+              "displayName": "unidad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ciclo",
+              "displayName": "ciclo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "rul_punto",
+              "displayName": "rul_punto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "limite_inferior",
+              "displayName": "limite_inferior",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "motivo",
+              "displayName": "motivo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fingerprint",
+              "displayName": "fingerprint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "value": {
+            "decision": "={{ $json.decision }}",
+            "unidad": "={{ $json.unidad }}",
+            "ciclo": "={{ $json.ciclo }}",
+            "rul_punto": "={{ $json.rul_punto }}",
+            "limite_inferior": "={{ $json.limite_inferior }}",
+            "motivo": "={{ $json.motivo }}",
+            "fingerprint": "={{ $json.fingerprint }}"
+          }
+        }
       },
       "id": "sheets_inspeccion",
       "name": "INSPECCION Google Sheets append",
@@ -181,7 +314,8 @@
         880,
         320
       ],
-      "notes": "INSPECCION: anade la fila en Google Sheets para revision. Revisa la credencial de Sheets."
+      "notes": "INSPECCION: anade la fila en Google Sheets para revision. Revisa la credencial de Sheets.",
+      "onError": "stop"
     },
     {
       "parameters": {
@@ -215,38 +349,45 @@
       "typeVersion": 2.5,
       "position": [
         880,
-        500
+        512
       ],
       "notes": "HANGAR paso 1: inserta la orden en Postgres tabla ds02_decisiones. Revisa la credencial de Postgres."
     },
     {
       "parameters": {
-        "calendarId": {
-          "__rl": true,
-          "value": "primary",
-          "mode": "name"
+        "calendar": {
+          "__rl": {
+            "mode": "id",
+            "value": "primary"
+          },
+          "mode": "list",
+          "value": "primary"
         },
+        "additionalFields": {},
         "operation": "create",
-        "options": {
-          "description": "={{ $json.body.motivo || $json.motivo }}",
-          "summary": "={{ 'HANGAR DS02 unidad ' + ($json.body.unidad || $json.unidad) + ' ciclo ' + ($json.body.ciclo || $json.ciclo) }}"
-        }
+        "resource": "event",
+        "summary": "={{ 'HANGAR DS02 unidad ' + ($json.body.unidad || $json.unidad) + ' ciclo ' + ($json.body.ciclo || $json.ciclo) }}",
+        "end": "={{ $now.plus(1, 'hour') }}",
+        "start": "={{ $now }}"
       },
       "id": "calendar_hangar",
       "name": "HANGAR Google Calendar",
       "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1.2,
+      "typeVersion": 1.3,
       "position": [
-        1160,
-        500
+        1168,
+        512
       ],
       "notes": "HANGAR paso 2: crea el evento de hangar en Google Calendar. Revisa la credencial de Calendar."
     },
     {
       "parameters": {
-        "sendTo": "operaciones@ejemplo.invalid",
-        "subject": "={{ 'HANGAR DS02 unidad ' + ($json.body.unidad || $json.unidad) + ' ciclo ' + ($json.body.ciclo || $json.ciclo) }}",
-        "message": "={{ $json.body.motivo || $json.motivo }}",
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "alternativemarkleonard@gmail.com",
+        "subject": "=HANGAR DS02 · U{{ $('Webhook ds02/decision').first().json.body.unidad }} · ciclo {{ $('Webhook ds02/decision').first().json.body.ciclo }} · RUL {{ Math.round(($('Webhook ds02/decision').first().json.body.rul_punto ?? 0)*10)/10 }} · L_inf {{ Math.round(($('Webhook ds02/decision').first().json.body.limite_inferior ?? 0)*10)/10 }}",
+        "emailType": "html",
+        "message": "={{ (() => { const w = $('Webhook ds02/decision').first().json; const b = w.body || w || $json.body || $json; const u = (b.unidad ?? $json.unidad ?? '—'); const c = (b.ciclo ?? $json.ciclo ?? '—'); const rul = (b.rul_punto ?? $json.rul_punto ?? '—'); const linf = (b.limite_inferior ?? $json.limite_inferior ?? '—'); const lsup = (b.limite_superior ?? $json.limite_superior ?? '—'); const um = b.umbrales || {}; const umA = (um.apto ?? 30); const umH = (um.hangar ?? 25); const usadas = Array.isArray(b.usadas) ? b.usadas.join(', ') : (b.usadas || '—'); const porque = Array.isArray(b.porque) ? b.porque.join(' · ') : (b.porque || b.motivo || '—'); const motivo = b.motivo || porque; const alertas = Array.isArray(b.alertas_datos) && b.alertas_datos.length ? b.alertas_datos.join('; ') : 'Sin alertas de datos'; const fp = String(b.fingerprint || b.idempotency_key || '').slice(0,12); const sha = String(b.artefacto_sha256 || '').slice(0,12); const dec = b.decision || 'HANGAR'; const fmt = (v) => (typeof v === 'number' ? (Math.round(v*10)/10).toString() : String(v)); const plain = 'HANGAR DS02 - Gemelo digital\\nDecision: ' + dec + '\\nUnidad: U' + u + '\\nCiclo: ' + c + '\\nRUL punto: ' + fmt(rul) + ' ciclos\\nLimite inferior (L_inf): ' + fmt(linf) + '\\nLimite superior (L_sup): ' + fmt(lsup) + '\\nUmbrales: apto>=' + fmt(umA) + ' / hangar<' + fmt(umH) + '\\nReglas usadas: ' + usadas + '\\nMotivo: ' + motivo + '\\nAlertas de datos: ' + alertas + '\\nFingerprint: ' + fp + '...\\nArtefacto SHA-256: ' + sha + '...\\nGenerado por n8n ds02/decision (DS02 Decision MIA-3)'; const row = (k,v) => '<tr><td style=\"padding:8px 12px;background:#f1f5f9;color:#334155;font-weight:bold;border:1px solid #e2e8f0;width:42%\">'+k+'</td><td style=\"padding:8px 12px;color:#0f172a;border:1px solid #e2e8f0\">'+v+'</td></tr>'; return '<!DOCTYPE html><html><body style=\"margin:0;padding:0;background:#e2e8f0;font-family:Arial,Helvetica,sans-serif\"><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#e2e8f0;padding:20px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"640\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#ffffff;border-radius:10px;overflow:hidden;max-width:640px\"><tr><td style=\"background:#0b2a4a;color:#ffffff;padding:22px 24px\"><div style=\"font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#93c5fd\">DS02 · Gemelo digital</div><div style=\"font-size:24px;font-weight:bold;margin-top:6px\">Decisión HANGAR — derivación a taller</div><div style=\"font-size:14px;margin-top:8px;color:#dbeafe\">Unidad U'+u+' · Ciclo '+c+' · '+dec+'</div></td></tr><tr><td style=\"padding:20px 24px\"><p style=\"margin:0 0 14px;color:#334155;font-size:15px\">La unidad no vuela hasta revisión en hangar. Resumen de la decisión del gemelo DS02:</p><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:collapse;font-size:14px\">'+row('Unidad','U'+u+' (real, no -1)')+row('Ciclo',c)+row('RUL punto (ciclos)',fmt(rul))+row('Límite inferior L_inf',fmt(linf))+row('Límite superior L_sup',fmt(lsup))+row('Umbrales (apto / hangar)',fmt(umA)+' / '+fmt(umH))+row('Reglas usadas',usadas)+row('Motivo / porque',motivo)+row('Alertas de datos',alertas)+row('Fingerprint (corto)',fp+'…')+row('Artefacto SHA-256 (corto)',sha+'…')+'</table><p style=\"margin:16px 0 0;color:#475569;font-size:13px\">Acción: Postgres ds02_decisiones + Calendar + este aviso Gmail. Revisa el gemelo DS02 antes de liberar la aeronave.</p><hr style=\"border:none;border-top:1px solid #e2e8f0;margin:20px 0\"><p style=\"margin:0 0 8px;color:#334155;font-size:13px\"><strong>Versión en texto plano (respaldo):</strong></p><pre style=\"white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px;color:#334155;background:#f8fafc;padding:12px;border-radius:6px\">'+plain+'</pre></td></tr><tr><td style=\"background:#0b2a4a;color:#cbd5e1;padding:14px 24px;font-size:12px\">Generado automáticamente por n8n · flujo ds02/decision · DS02 Decision MIA-3 (hLlkHl3X33roWPEQ) · This email was sent automatically with n8n</td></tr></table></td></tr></table></body></html>'; })() }}",
         "options": {}
       },
       "id": "gmail_hangar",
@@ -255,9 +396,9 @@
       "typeVersion": 2.1,
       "position": [
         1440,
-        500
+        512
       ],
-      "notes": "HANGAR paso 3: avisa por correo a operaciones. Revisa la credencial de Gmail y el destinatario operaciones@ejemplo.invalid."
+      "notes": "HANGAR paso 3: plantilla profesional gemelo DS02 (HTML + texto plano respaldo). Fuente primaria: $('Webhook ds02/decision').first().json.body.* (unidad real, ciclo, RUL, L_inf/L_sup, umbrales 30/25, usadas, motivo, fingerprint/artefacto cortos). Footer n8n ds02/decision."
     },
     {
       "parameters": {
@@ -358,7 +499,7 @@
         ],
         [
           {
-            "node": "INSPECCION Google Sheets append",
+            "node": "Set INSPECCION flat",
             "type": "main",
             "index": 0
           }
@@ -393,16 +534,90 @@
           }
         ]
       ]
+    },
+    "Set INSPECCION flat": {
+      "main": [
+        [
+          {
+            "node": "INSPECCION Google Sheets append",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
-  "settings": {},
-  "versionId": "ds02-mia3-v1",
+  "active": true,
+  "settings": {
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "executionOrder": "v1"
+  },
+  "versionId": "ds02-mia3-v2",
   "meta": {
     "templateCredsSetupCompleted": false,
     "instanceId": "instancia-local"
   },
-  "pinData": {},
+  "pinData": {
+    "Webhook ds02/decision": [
+      {
+        "json": {
+          "body": {
+            "decision": "INSPECCION",
+            "unidad": 14,
+            "ciclo": 29,
+            "rul_punto": 33.1,
+            "limite_inferior": 27.5,
+            "limite_superior": 44.2,
+            "umbrales": {
+              "apto": 30.0,
+              "hangar": 25.0
+            },
+            "usadas": [
+              "R8_INSPECCION"
+            ],
+            "porque": [
+              "R8_INSPECCION: 25 <= L_inf < 30 (L_inf=27.5)"
+            ],
+            "motivo": "R8_INSPECCION: 25 <= L_inf < 30 (L_inf=27.5)",
+            "alertas_datos": [],
+            "artefacto_sha256": "d6c70142-demo",
+            "fingerprint": "fp-u14-c29-sheets",
+            "idempotency_key": "fp-u14-c29-sheets"
+          }
+        }
+      }
+    ],
+    "Set INSPECCION flat": [
+      {
+        "json": {
+          "decision": "INSPECCION",
+          "unidad": 14,
+          "ciclo": 29,
+          "rul_punto": 33.1,
+          "limite_inferior": 27.5,
+          "motivo": "R8_INSPECCION: 25 <= L_inf < 30 (L_inf=27.5)",
+          "fingerprint": "fp-u14-c29-sheets"
+        }
+      }
+    ],
+    "INSPECCION Google Sheets append": [
+      {
+        "json": {
+          "updatedCells": 7,
+          "updatedRows": 1,
+          "updatedColumns": 7,
+          "decision": "INSPECCION",
+          "unidad": 14,
+          "ciclo": 29,
+          "rul_punto": 33.1,
+          "limite_inferior": 27.5,
+          "motivo": "R8_INSPECCION: 25 <= L_inf < 30 (L_inf=27.5)",
+          "fingerprint": "fp-u14-c29-sheets"
+        }
+      }
+    ]
+  },
   "tags": [
     {
       "name": "DS02 MIA-3"

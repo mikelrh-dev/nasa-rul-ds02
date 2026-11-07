@@ -25,7 +25,7 @@ any PIA-rubric content:
 ## What changes
 
 1. Delete the `¿Cómo probar con un caso típico?` expander.
-2. Collapse `Cómo leer esta pantalla` to 4 lines (RUL, L_inf/Banda 90 %,
+2. Collapse `Cómo leer esta pantalla` to 4 lines (RUL, L_inf/"objetivo nominal 90 % · cobertura medida",
    Ciclo de vuelo/Ventana, Orden de trabajo).
 3. Move `Contrato de artefacto congelado` from the sidebar to Auditoría.
 4. Convert `Procedencia verificable` and `Contrato congelado vs. cálculo en

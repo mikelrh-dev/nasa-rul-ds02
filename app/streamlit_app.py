@@ -15,11 +15,10 @@ en `sys.modules` y el código de interfaz no corre — página en blanco, sin
 excepción. Por eso se saca `dashboard_ds02` de `sys.modules` antes de
 importarlo: cada pasada lo ejecuta de nuevo, como si fuera el script directo.
 
-Despliegue (SEC-DOCK-ST-01): docker-compose.yml publica el dashboard como
-127.0.0.1:8501:8501 (loopback en el host) mientras el contenedor sigue
-escuchando con --server.address 0.0.0.0 internamente para el port mapping.
-No publicar 0.0.0.0:8501 con HTTP plano; cualquier exposición externa debe
-pasar por un proxy inverso que termine TLS (ver nota en Dockerfile).
+Despliegue: el proyecto no lleva imagen de contenedor. En local:
+`streamlit run app/streamlit_app.py --server.address 127.0.0.1 --server.port 8501`.
+No publicar 0.0.0.0:8501 con HTTP plano; cualquier exposición externa debe pasar
+por un proxy inverso que termine TLS.
 """
 
 from __future__ import annotations

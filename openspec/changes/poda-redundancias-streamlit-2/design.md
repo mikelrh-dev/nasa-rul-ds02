@@ -18,7 +18,7 @@
 - Chart/grid counts in `test_every_chart_and_grid_has_an_accessible_name`
   (`>=6` charts, `>=7` grids). Verified green after edits.
 - `test_the_sidebar_explains_the_vocabulary_of_the_screen` still requires the
-  `Cómo leer esta pantalla` label and the terms RUL, L_inf, Banda 90 %,
+  `Cómo leer esta pantalla` label and the terms RUL, L_inf, "objetivo nominal 90 % · cobertura medida",
   HANGAR/AOG, Ciclo de vuelo, Ventana. The 4-line body keeps all of them.
 - Moved block keeps `manifest`/`provenance` references; both are in scope in
   Auditoría.

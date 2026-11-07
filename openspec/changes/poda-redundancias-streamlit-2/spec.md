@@ -13,8 +13,8 @@ Unit and cycle controls remain the entry point.
 ### Requirement: Compact screen glossary
 
 The sidebar `Cómo leer esta pantalla` expander SHALL contain at most 4 lines
-and SHALL still mention `RUL`, `L_inf`, `Banda 90 %`, `HANGAR/AOG`,
-`Ciclo de vuelo` and `Ventana`.
+and SHALL still mention `RUL`, `L_inf`, `objetivo nominal 90 %`, `cobertura
+medida`, `HANGAR/AOG`, `Ciclo de vuelo` and `Ventana`.
 
 ### Requirement: Artifact contract lives in Auditoría
 

@@ -420,7 +420,8 @@ def test_the_sidebar_explains_the_vocabulary_of_the_screen():
     labels = [expander.label for expander in app.expander]
     assert any("Cómo leer esta pantalla" in label for label in labels), labels
     text = "\n".join(m.value for m in app.markdown) + "\n".join(c.value for c in app.caption)
-    for term in ("RUL", "L_inf", "Banda 90 %", "HANGAR/AOG", "Ciclo de vuelo", "Ventana"):
+    for term in ("RUL", "L_inf", "objetivo nominal 90 %", "cobertura medida",
+                 "HANGAR/AOG", "Ciclo de vuelo", "Ventana"):
         assert term in text, term
 
 

@@ -762,7 +762,7 @@ with st.sidebar:
     with st.expander("Cómo leer esta pantalla", icon=":material/help:"):
         st.markdown(
             """- **RUL**: ciclos que le quedan al motor (estimación, no medida).
-- **L_inf / Banda 90 %**: cota inferior conformal; gobierna la decisión (APTO · INSPECCIÓN · HANGAR/AOG).
+- **L_inf / objetivo nominal 90 % · cobertura medida empíricamente**: cota inferior conformal; gobierna la decisión (APTO · INSPECCIÓN · HANGAR/AOG).
 - **Ciclo de vuelo / Ventana**: reloj simulado; 50 muestras remuestreadas (~0,4 ciclos) por ventana.
 - **Orden de trabajo**: JSON/CSV de las unidades bloqueadas con banda y acción."""
         )
@@ -1892,11 +1892,20 @@ with tab_casos:
             # SIN_DECISION no hace nada. Dedupe solo si el POST fue ok.
             _fp_n8n = str(live["contract"].get("fingerprint") or "")
             _enviadas_n8n = set(st.session_state.get("n8n_enviadas") or set())
+            # MIA-3: unidad real para n8n (no -1 de scoring en vivo).
+            # live_meta trae `unit` de la caché (ej. 14 en Critico U14 ciclo 29);
+            # unidad_simulada=-1 solo evita mezclar EMA y no es la unidad real.
+            _meta_n8n = st.session_state.get("live_meta") or {}
+            _unidad_real = (
+                _meta_n8n.get("unit")
+                if isinstance(_meta_n8n, dict) and _meta_n8n.get("unit") is not None
+                else live["contract"].get("unidad_simulada")
+            )
             if UN.debe_notificar(traza_live["decision"], _fp_n8n, _enviadas_n8n):
                 _payload_n8n = UN.payload_desde_traza(
                     _decision, umbrales,
                     str(live["contract"].get("artefacto_sha256") or ""), _fp_n8n,
-                    unidad=live["contract"].get("unidad_simulada"))
+                    unidad=_unidad_real)
                 _res_n8n = N8N.enviar_decision(traza_live["decision"], _payload_n8n)
                 if isinstance(_res_n8n, dict) and _res_n8n.get("ok") is True:
                     _enviadas_n8n.add(_fp_n8n)

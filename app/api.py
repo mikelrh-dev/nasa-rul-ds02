@@ -24,7 +24,7 @@ P1 hardening:
 Deployment note: never expose this service on `0.0.0.0` with plain HTTP.
 Bind `0.0.0.0` only behind a TLS-terminating reverse proxy (e.g. nginx,
 Caddy, or a cloud load balancer) that adds TLS and ideally authentication.
-For local/standalone use bind `127.0.0.1` (see `Dockerfile` note).
+For local/standalone use bind `127.0.0.1`; there is no container image by design.
 """
 from __future__ import annotations
 
