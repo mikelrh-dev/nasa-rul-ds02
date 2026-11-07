@@ -262,6 +262,7 @@ def select_beta_grouped(
         folds = grouped_folds(units, n_splits=3)
 
     def design(idx):
+        """Matriz de diseño del meta-learner para los índices indicados."""
         cols = [pred_lstm[idx], pred_lgb[idx]]
         if use_cycle_feature:
             cols.append(cycles[idx] / 100.0)

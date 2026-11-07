@@ -17,6 +17,7 @@ try:
     from IPython.display import display
 except ImportError:  # pragma: no cover
     def display(x):  # fallback fuera del notebook
+        """Muestra por consola cuando IPython no está disponible."""
         print(x)
 
 # --- utilidades de presentación: importaciones ---

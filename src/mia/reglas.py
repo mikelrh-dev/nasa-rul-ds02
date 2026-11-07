@@ -1,5 +1,5 @@
 """Reglas del motor (MIA). Dos pasadas: corrección (B) y decisión (A).
-Seis reglas en total: 6 = 2 corrección + 4 decisión.
+Ocho reglas en total: 2 de corrección + 6 de decisión (MIA-2 exige 6 o más).
 
 Cada regla es una tupla de cinco datos, siempre en este orden:
 
@@ -183,6 +183,7 @@ def si_R1_SEGURIDAD(caso: dict) -> bool:
 
 
 def efecto_R1_SEGURIDAD(caso: dict) -> dict:
+    """Anula la decisión y deja el motivo legible en la ficha."""
     motivo = "; ".join(str(a) for a in caso["alertas_datos"])
     return {
         "decision": SIN_DECISION,
@@ -191,10 +192,12 @@ def efecto_R1_SEGURIDAD(caso: dict) -> dict:
 
 
 def si_R7_APTO(caso: dict) -> bool:
+    """Datos y umbrales válidos y `L_inf` por encima del umbral de apto."""
     return _datos_validos(caso) and _umbrales_validos(caso) and caso["limite_inferior"] >= caso["umbrales"]["apto"]
 
 
 def si_R8_INSPECCION(caso: dict) -> bool:
+    """`L_inf` entre los dos umbrales: inspección programada."""
     if not _datos_validos(caso) or not _umbrales_validos(caso):
         return False
     u = caso["umbrales"]
@@ -202,7 +205,41 @@ def si_R8_INSPECCION(caso: dict) -> bool:
 
 
 def si_R9_HANGAR(caso: dict) -> bool:
+    """`L_inf` por debajo del umbral de hangar: la unidad no vuela."""
     return _datos_validos(caso) and _umbrales_validos(caso) and caso["limite_inferior"] < caso["umbrales"]["hangar"]
+
+
+def si_R10_DATOS_INSUFICIENTES(caso: dict) -> bool:
+    """Faltan el límite inferior o los umbrales: no hay nada que clasificar.
+
+    No es lo mismo que un dato imposible (R1): aquí los datos son sanos, pero
+    la ficha llega incompleta. Antes de esta regla el motor caía en
+    `SIN_DECISION` por defecto, sin decirlo en la traza.
+    """
+    if not _datos_validos(caso):
+        return False
+    u = caso.get("umbrales")
+    return (caso.get("limite_inferior") is None
+            or not isinstance(u, dict)
+            or u.get("apto") is None or u.get("hangar") is None)
+
+
+def si_R11_UMBRALES_INCOHERENTES(caso: dict) -> bool:
+    """Los umbrales vienen desordenados (`hangar >= apto`): error de configuración.
+
+    Con la escalera invertida cualquier clasificación sería arbitraria, así que
+    no se decide. `ui_data_loader.classify` lanza `ValueError` en la UI; una
+    regla no debe romper la pasada del motor.
+    """
+    if not _datos_validos(caso):
+        return False
+    u = caso.get("umbrales")
+    if not isinstance(u, dict) or u.get("apto") is None or u.get("hangar") is None:
+        return False
+    try:
+        return bool(u["hangar"] >= u["apto"])
+    except TypeError:
+        return False
 
 
 # ------------------------------------------------------------- las listas
@@ -217,6 +254,14 @@ REGLAS_CORRECCION = [
 REGLAS_DECISION = [
     ("R1_SEGURIDAD", si_R1_SEGURIDAD, efecto_R1_SEGURIDAD, 10,
      "con un dato imposible no se decide nada, tenga el riesgo que tenga"),
+    ("R10_DATOS_INSUFICIENTES", si_R10_DATOS_INSUFICIENTES,
+     {"decision": SIN_DECISION,
+      "motivo": "faltan limite inferior o umbrales: no se clasifica"}, 9,
+     "sin ficha completa no hay decision posible, y se dice en vez de callarlo"),
+    ("R11_UMBRALES_INCOHERENTES", si_R11_UMBRALES_INCOHERENTES,
+     {"decision": SIN_DECISION,
+      "motivo": "umbrales incoherentes (hangar >= apto): no se clasifica"}, 8,
+     "con la escalera de umbrales invertida cualquier decision seria arbitraria"),
     ("R9_HANGAR", si_R9_HANGAR, {"decision": HANGAR}, 3,
      "L_inf por debajo del umbral de hangar: la unidad no vuela"),
     ("R8_INSPECCION", si_R8_INSPECCION, {"decision": INSPECCION}, 2,

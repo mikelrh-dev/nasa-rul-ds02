@@ -271,6 +271,7 @@ def ejecutar_shap_c(
     assert tab_exp.shape == (len(ex_idx), 93)
 
     def batch_pred(A):
+        """Predicción BiLSTM por lotes para el fondo y las filas explicadas."""
         return np.asarray(bilstm_model.predict(A, verbose=0), dtype=float).ravel()
 
     # --- Rama BiLSTM: SHAP agrupado por canal (19 jugadores) ---
@@ -303,6 +304,7 @@ def ejecutar_shap_c(
     Z_exp = build_meta_Z(p_lstm_exp, p_lgb_exp, cyc[ex_idx], n_meta)
 
     def meta_pred(Zz):
+        """Media Ridge/LGBM sobre las predicciones de las dos ramas base."""
         Zz = np.asarray(Zz)
         return (0.5 * np.asarray(ensemble.ridge_meta.predict(Zz)).ravel()
                 + 0.5 * np.asarray(ensemble.lgb_meta.predict(Zz)).ravel())

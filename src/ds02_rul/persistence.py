@@ -39,6 +39,7 @@ _MANIFEST_CANDIDATES_DS02 = [
 
 
 def sha256_of(path: str) -> str:
+    """SHA-256 hexadecimal de un fichero, leído por bloques de 1 MiB."""
     digest = hashlib.sha256()
     with open(path, "rb") as fh:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
@@ -306,6 +307,7 @@ def load_ensemble(path: str = ENSEMBLE_FILE):
 
 
 def write_manifest(path: str, manifest: dict) -> None:
+    """Guarda un manifiesto JSON con indentación estable."""
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, indent=2)
 

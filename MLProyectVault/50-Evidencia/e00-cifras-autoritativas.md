@@ -19,7 +19,7 @@ tags:
 
 | Si buscas | Ve a |
 |---|---|
-| RMSE, MAE, R² y NASA por modelo | Bundle B |
+| RMSE, MAE, R² y NASA por modelo | Bundle C (vigente) / Bundle B (histórico) |
 | Macro-RMSE y el motor 14 | Macro-RMSE |
 | Cobertura y ancho de banda | Banda conformal |
 | Ventanas, filas, splits y formas | Formas, conteos y protocolo |
@@ -38,11 +38,13 @@ El bundle en disco es **C** (`code_version: clase-bundle-C` en el manifiesto): h
 | BiLSTM-C (solo) | 5.654 | — | — | — |
 | BiLSTM-C + EMA5 | 5.618 | — | — | — |
 | **Híbrido-C + EMA5, fila oficial (semilla 42, en disco)** | **4.338** | **3.227** | **0.9461** | **2336.2** |
-| **Híbrido-C + EMA5, media multiseed NB06 (grano ventana test)** | **4.322 ± 0.064** | — | — | **2342.3 ± 43.4** |
-| Híbrido-C, media NB05 (protocolo OOF) | 4.330 ± 0.053 | — | — | — |
+| Híbrido-C + EMA5, media NB05 (celdas 7-8) | 4.330 ± 0.053 | 3.232 ± 0.036 | 0.9463 | 2343.2 ± 24.1 |
+| Híbrido-C + EMA5, media NB06 (celdas 42-44) | 4.322 ± 0.064 | — | — | 2342.3 ± 43.4 |
 | MLP E2 de clase (grano fila, 22 feats) | 7.72 test (val 7.34) | 5.81 | 0.83 | — |
 
-**Por qué hay tres filas del híbrido-C.** La de `4.338` es la corrida de la semilla 42, cuyo artefacto está en disco (`models/ds02_manifest.json → metrics.reference_row`): es la que reproduce el servicio. Las de `4.322 ± 0.064` (NB06, ventanas de test) y `4.330 ± 0.053` (NB05, protocolo OOF) son medias de tres semillas: miden la estabilidad, no el artefacto. Si difieren en centésimas, es ruido TensorFlow en CPU ([[c14-ruido-y-reproducibilidad]]), no contradicción.
+**Por qué hay tres filas del híbrido-C.** La de `4.338` es la corrida de la semilla 42, cuyo artefacto está en disco (`models/ds02_manifest.json → metrics.reference_row`): es la que reproduce el servicio. Las de NB05 y NB06 son medias de tres semillas y miden la estabilidad, no el artefacto. Si difieren en centésimas, es ruido TensorFlow en CPU ([[c14-ruido-y-reproducibilidad]]), no contradicción.
+
+**Reconciliación multiseed (leer antes de citar una media).** NB05 (celdas 7-8, semillas 42/7/123 = 4.338 / 4.274 / 4.379) da **4.330 ± 0.053**; NB06 (celdas 42-44, 4.338 + CSV de semillas 7/123 = 4.376 / 4.252 impresos en el notebook) da **4.322 ± 0.064**. El CSV `resultados/bundle_c_multiseed.csv` que hay en disco contiene otros valores para 7 y 123 (4.429 / 4.336), que con la 42 dan **4.368**: no coincide con lo impreso en NB06, así que **hay que reconciliarlo** (regenerar el CSV con la celda multiseed de NB06 / `evaluar_c_multisemilla` y volver a calcular la media) antes de citar 4.368 como cerrada. ADR-011 citaba **4.347 ± 0.012**: queda sustituido por los calculados de NB05/NB06 según la nota de autoridad de las celdas 11 (NB05) y 41 (NB06). **Manda el manifiesto para la fila oficial (4.338, semilla 42 desplegada)**; las medias multiseed solo miden variabilidad y, hasta reconciliar el CSV, se citan como NB05 4.330 y NB06 4.322 con esta discrepancia declarada.
 
 **Macro-RMSE del bundle C:** 5.0153 (motor 11: 3.6328 · 14: 8.5761 · 15: 2.8371). El motor 14 sigue siendo el que más sufre con menos ventanas.
 
@@ -57,21 +59,34 @@ Test: unidades 11 / 14 / 15, 6 196 ventanas. Media ± desviación sobre semillas
 | LightGBM cuantil 0,35 (solo) | 7.098 ± 0.034 | 5.572 ± 0.034 | 0.8557 ± 0.0014 | 5772.5 ± 50.1 |
 | BiLSTM triple pooling (solo) | 6.218 ± 0.541 | 4.820 ± 0.477 | 0.8887 ± 0.0191 | 4397.8 ± 550.9 |
 | **Híbrido + EMA5** | **4.340 ± 0.101** | **3.235 ± 0.054** | **0.9460 ± 0.0025** | **2347.7 ± 49.4** |
-| Híbrido, fila de referencia en disco | 4.251 | 3.183 | 0.9482 | 2305.1 |
+| Híbrido, fila de referencia HISTÓRICA de B (archivado, NO en disco) | 4.251 | 3.183 | 0.9482 | 2305.1 |
 
-**Por qué hay dos filas del híbrido.** La de `4.340 ± 0.101` es la media de tres semillas. La de `4.251` es la corrida concreta cuyo artefacto está en disco: es la que reproduce `scripts/predict_ds02.py`. No son contradictorias; miden lo mismo en dos poblaciones distintas (tres corridas vs. una).
+**Por qué hay dos filas del híbrido.** La de `4.340 ± 0.101` es la media de tres semillas del bundle B. La de `4.251` es la fila histórica del bundle B, hoy archivado en `archive/models_b/` como referencia NO vigente (`models/ds02_manifest.json → historical_reference`): **ya no está en disco ni lo reproduce el servicio actual**. En disco está **C 4.338** (`metrics.reference_row` del manifiesto vigente). No son contradictorias; miden bundles distintos.
 
 **El NASA score es una suma, no una media.** Crece con la cantidad de ventanas evaluadas, así que solo es comparable entre modelos medidos sobre estas mismas 6 196 filas. No lo compares con un paper.
 
 ## Macro-RMSE — lo que el promedio ponderado esconde
+
+### Bundle C vigente (manifiesto: `macro_rmse`)
+
+| Motor | RMSE | Ventanas |
+|---|---|---|
+| 11 | 3.6328 | 3 293 |
+| 14 | 8.5761 | 760 |
+| 15 | 2.8371 | 2 143 |
+| **Macro C (cada motor pesa 1/3)** | **5.0153** | — |
+
+### Bundle B histórico (archivado, NO vigente)
 
 | Motor | RMSE | Ventanas |
 |---|---|---|
 | 11 | 3.7874 | 3 293 |
 | 14 | 7.9974 | 760 |
 | 15 | 2.7451 | 2 143 |
-| **Macro (cada motor pesa 1/3)** | **4.8433** | — |
-| Ponderado por ventana | 4.2515 | 6 196 |
+| **Macro B (cada motor pesa 1/3)** | **4.8433** | — |
+| Ponderado por ventana (B) | 4.2515 | 6 196 |
+
+La tabla B se conserva solo para comparar contra el histórico; la cifra vigente es el macro C 5.0153.
 
 La diferencia de `+0.6` es el costo de que el motor 14 tenga el peor error **y** la menor cantidad de ventanas: 760 filas concentran el 43,7 % del error cuadrático. El promedio de flota es más amable que lo que sufre un motor elegido al azar.
 
@@ -115,10 +130,13 @@ Es **cota conservadora, no intervalo de decisión**: se calibró con modelos de 
 
 | Archivo | SHA-256 | Bytes |
 |---|---|---|
-| `models/ensemble.joblib` | `d6c70142…` | 469 620 |
-| `models/bilstm_ds02.keras` | `bf9620a7…` | 1 935 767 |
+| `models/ensemble.joblib` | `d6c701429eed8623a9d900d922aca1922427d08ff8b4ec00604b8116c1a952dd` | 469 620 |
+| `models/bilstm_ds02.keras` | `bf9620a7de3bf9f8efa65c1993a96d8a95b903dc6fde72c772aa316f4c042219` | 1 935 767 |
+| `models/mejor_modelo_clase.joblib` (clase_xgb) | `5aab4d2a050163c9d9db0d0d3f769c198fe2e47a1bf2959fb355ca6f4652615f` | — |
+| `models/mejor_modelo_clase_E2.joblib` (clase_e2) | `3bebe67e8750f174737228bd5de9b13758b4889607b415840152b5b7a33aa376` | — |
+| `models/v3_bundle.joblib` (v3_bundle) | `47d809beaeb28d69810e73c75afb5ac8d7845b2120f05a2909dbc9179b401f3c` | — |
 
-(Los hashes `7acba335…` / `d0c5ed7f…` eran del bundle B: ver lista negra.)
+(Los hashes `7acba335…` / `d0c5ed7f…` eran del bundle B archivado: ver lista negra.)
 
 ## Capa de reglas (`src/mia/`)
 
@@ -143,9 +161,11 @@ Estas aparecen en material viejo del repo y del vault anterior. Son de corridas 
 |---|---|---|
 | `4.352`, `4.344`, `4.301` | corridas históricas del híbrido | no determinismo de TensorFlow y revisiones previas |
 | `4.289` | fila de test de una revisión anterior | reemplazada por `4.251` (y luego por `4.338` del bundle C) |
-| `4.340 ± 0.101`, `4.251`, `5772.5`, `4397.8` | bundle B completo | reemplazados por el bundle C (fila `4.338`, media `4.322 ± 0.064`) |
-| `4.301 ± 0.068` | media de una revisión intermedia | reemplazada por `4.322 ± 0.064` (NB06) |
-| `4.9026` | macro-RMSE anterior | reemplazada por `4.8433` |
+| `4.340 ± 0.101`, `4.251`, `5772.5`, `4397.8` | bundle B completo (histórico archivado) | reemplazados por el bundle C (fila `4.338`, medias NB05 4.330 / NB06 4.322) |
+| `4.301 ± 0.068` | media de una revisión intermedia | reemplazada por las medias NB05/NB06 de arriba |
+| `4.368` | media calculada con el CSV `bundle_c_multiseed.csv` en disco (7=4.429, 123=4.336 + 42) | pendiente de reconciliar con lo impreso en NB06 (4.376 / 4.252); no citar como cerrada |
+| `4.347 ± 0.012` | multiseed citada en ADR-011 | sustituida por los calculados NB05/NB06 |
+| `4.9026` | macro-RMSE anterior | reemplazada por el macro C vigente `5.0153` (el `4.8433` es el macro B histórico) |
 | `051e0af4`, `0acd795b` | hashes de artefactos viejos | no son los que están en disco |
 | `6.233`, `6.347`, `4.278` | BiLSTM/híbrido de otras corridas | ruido de ejecución, no resultado del bundle |
 
@@ -161,7 +181,7 @@ python -c "import json; d=json.load(open('models/ds02_manifest.json')); print(d[
 python -c "import json; d=json.load(open('models/ds02_manifest.json')); print(d['artifacts'])"
 ```
 
-Comparar con lo que imprime `notebooks/ds02_ensemble/EVALUACION_EJECUCION.md`. Si el manifiesto y esta página difieren, actualizá **solo esta página**.
+Comparar con lo que imprimen los notebooks actuales `notebooks/04_arquitectura_bilstm_oof.ipynb`, `notebooks/05_meta_ensemble_y_conformal.ipynb` y `notebooks/06_evaluacion_produccion_comparativa.ipynb` (no usar la ruta archivada `notebooks/ds02_ensemble/`). Si el manifiesto y esta página difieren, actualizá **solo esta página**.
 
 ## Qué hacer si re-ejecutás un cuaderno
 

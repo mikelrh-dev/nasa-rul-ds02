@@ -10,7 +10,7 @@ tags:
 # Informes index — qué pregunta responde cada uno
 
 > [!abstract] En una frase
-> Trece informes miden lo que el vault afirma: nada se dice sin su medición.
+> Trece informes miden lo que el vault afirma: nada se dice sin su medición. Más cuatro de noviembre (ver tabla): diecisiete en total en `docs/informes/`.
 
 ## Cómo leer esta tabla
 
@@ -20,7 +20,7 @@ Cada fila es un informe en `docs/informes/`. La tercera columna dice qué pregun
 |---|---|---|
 | `informe-2026-10-18-comparacion-nasa-fd001` | FD001 frente a DS02 | Por qué DS02 y no el clásico |
 | `informe-2026-10-20-ejecucion-cuaderno` | Ejecución de cuadernos | Si la cadena NB01→NB03 funciona |
-| `informe-2026-10-20-meta-cycle-fix` | Arreglo del ciclo en el meta | Por qué el meta lleva `cyc_norm` |
+| `informe-2026-10-20-meta-cycle-fix` | Arreglo del ciclo en el meta | Por qué el meta lleva `cyc_norm` OFF en meta (sin reloj) |
 | `informe-2026-10-21-alarma-y-confusion` | Alarmas y confusión | Cuánto anticipa y cuánto confunde |
 | `informe-2026-10-21-evaluacion-general` | Evaluación global | El 4.34 con su dispersión |
 | `informe-2026-10-21-motor16-vs-oof` | Meta en 16 frente a OOF | Por qué no se ajusta en OOF |
@@ -31,6 +31,10 @@ Cada fila es un informe en `docs/informes/`. La tercera columna dice qué pregun
 | `informe-2026-10-24-anticipacion-al-fallo` | Anticipación al fallo | Lead time 9/23/17 y su lectura |
 | `auditoria-2026-10-21-reglas` | Auditoría de reglas | Si R2b es isotónica y no regla |
 | `informe-auditoria-2026-10-31` | Auditoría global | Qué queda por blindar |
+| `informe-auditoria-2026-11-04-datos-mongo` | Auditoría datos + Mongo (2026-11-04) | Estado de datos, Mongo y reproducibilidad |
+| `informe-2026-11-05-bloques-auditoria-resultado` | Bloques BL-01…BL-09 (2026-11-05) | Qué se aplicó y se verificó (315 passed) |
+| `auditoria-2026-11-05-reto1-saa-pia-mia` | Auditoría Reto 1 SAA/PIA/MIA (2026-11-05) | Dónde está el reto frente a la rúbrica |
+| `informe_de_auditoria_ux_y_modelo_streamlit_ds02` | Auditoría UX + Streamlit DS02 | Riesgos de UX y conexión modelo-app |
 
 El índice vivo está en `docs/informes/README.md`. Si un informe y esta nota discrepan, manda el informe.
 

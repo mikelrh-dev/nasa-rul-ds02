@@ -30,6 +30,7 @@ La superficie vive en `app/` con el bundle de `models/` y caché en `app/cache/`
 | Ventanas por unidad | Orden por ciclo para inferencia real | `src/ds02_rul/inference.py:49` |
 | Validación de ventana | Rechaza forma corta antes del modelo | `src/ds02_rul/inference.py:62` |
 | Contenedor | Reproduce el entorno con pesos fijos | `Dockerfile` |
+| `ui_n8n` | Payload n8n desde la traza + dedupe por fingerprint (HANGAR/INSPECCION notifican, APTO solo log, SIN_DECISION nada) | `app/ui_n8n.py` |
 
 El flujo es el mismo que en train: crudo → scaler y ridges congelados → secuencia y tabular → bases → meta → EMA → banda → reglas. La diferencia es que aquí nada se ajusta: todo viene congelado de [[s12-persistencia-y-contrato]].
 
@@ -54,7 +55,7 @@ El lead time por motor (9 / 23 / 17 en media) es lo que la pantalla traduce a pl
 > [!warning] Lo que el despliegue no promete
 > La app no detecta cambio de distribución: si llega un régimen no visto, predice igual sin avisar. No hay monitor de deriva. Esa es la próxima frontera, no una prestación actual.
 >
-> **Pendientes declarados (rúbrica).** n8n (MIA-3, 35%: HANGAR → Postgres+Calendar+correo, INSPECCIÓN → Sheets, APTO → log) y MLflow (PIA-4, 20%: tracking de experimentos) van en el change siguiente, no en este. Si el tribunal los pide: están excluidos por alcance con diseño previsto, no olvidados. El negocio que sí cubre este change: [[c22-cuanto-vale-acertar]].
+> **Pendiente declarado (rúbrica).** MLflow (PIA-4, 20%: tracking de experimentos) va en el change siguiente, no en este. n8n (MIA-3) ya existe y está implementado (ver [[s24-n8n-mia3]]), no es pendiente. Si el tribunal pide MLflow: está excluido por alcance con diseño previsto, no olvidado. El negocio que sí cubre este change: [[c22-cuanto-vale-acertar]].
 
 ## Di esto en el tribunal
 

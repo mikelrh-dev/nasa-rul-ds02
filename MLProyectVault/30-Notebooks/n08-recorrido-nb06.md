@@ -11,7 +11,7 @@ tags:
 # NB06 — Evaluación en producción y comparativa
 
 > [!abstract] En una frase
-> El bundle C se evalúa como se despliega (ventana de test, una lectura), se compara por grano y se cierra con la tabla final: 4.338 en disco, 4.322 de media.
+> El bundle C se evalúa como se despliega (ventana de test, una lectura), se compara por grano y se cierra con la tabla final: 4.338 en disco, 4.322 de media en NB06 (ver reconciliación en [[e00-cifras-autoritativas]]).
 
 ## Antes de empezar
 
@@ -29,6 +29,8 @@ tags:
 | Conformal 90% | `selection['oof_calib']` | `fit_conformal` | print calibración (n_calib, cobertura objetivo) |
 | Residuales | `p_ens`, `test` | RMSE + diagnóstico | print residuales |
 | Comparativa por grano | tabla final | fila vs ventana, campeones separados | MLP E2 7.72 · Híbrido-C 4.338 |
+
+**El 4.322 de NB06, aclarado.** El 4.322 ± 0.064 es la media de NB06 (celdas 42-44: 4.338 + 4.376 + 4.252). No es la fila oficial (4.338, semilla 42, manifiesto) ni la media de NB05 (4.330). El CSV `resultados/bundle_c_multiseed.csv` en disco da otra media (4.368 con la 42) y está pendiente de reconciliar: ver el párrafo de reconciliación multiseed en [[e00-cifras-autoritativas]].
 
 ## Las 5 celdas que importan
 

@@ -2,11 +2,11 @@
 
 > **Español** | [English](../../README.en.md)
 
-Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir de telemetría y propone APTO / INSPECCIÓN / HANGAR. **El mejor MLP de clase (E2, elegido por validación) logra RMSE 7.72 en test (val 7.34; uds 11/14/15); el híbrido desplegado (BiLSTM + LightGBM + stacking sobre la base con nulos tratados) está en 4.338 (media multiseed 4.322+-0.064; NB05: 4.330+-0.053).**
+Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir de telemetría y propone APTO / INSPECCIÓN / HANGAR. **El mejor MLP de clase (E2, elegido por validación) logra RMSE 7.72 en test (val 7.34; uds 11/14/15); el híbrido desplegado (BiLSTM + LightGBM + stacking sobre la base con nulos tratados) está en 4.338 (media multiseed 4.368+-0.053; NB05: 4.330+-0.053).**
 
-![App del track de clase](../resultados/app_clase.png)
+![Real vs predicho del mejor clásico](../../docs/assets/clasicos_real_vs_pred.png)
 
-*Captura real de la app del track (métricas + caso nuevo con decisión de reglas; la p —RUL predicha— se muestra junto a la decisión). La del dashboard de producción va en el README raíz.*
+*Real vs predicho en test (2.000 puntos) del mejor clásico elegido por validación: la fila ordena el desgaste, pero se dispersa en RUL alta. Es la evidencia didáctica de por qué el track necesita ventanas; la app de producción usa el bundle C.*
 
 **Herramientas:** Python · pandas · matplotlib · scikit-learn · XGBoost · LightGBM · Streamlit · SHAP (MLflow y n8n pendientes, declarados abajo).
 
@@ -75,8 +75,8 @@ El modelo estima ciclos restantes. Las reglas (`src/mia/`, 6 con prioridad + seg
 - La fase corta el plano alt-Mach en bandas coherentes (Ascenso 26% / Crucero 30% / Descenso 44%) y la RUL media difiere por fase → la categórica justifica el `OneHot` de PIA 3.
 - T48 separada por fase: el sensor crudo manda régimen, no degradación → sin desacoplar, el modelo aprendería pilotaje (ADR-002).
 
-![Fases](../resultados/eda_barras_fase.png)
-![Alt vs Mach](../resultados/eda_scatter_alt_mach.png)
+![Fases](../../docs/assets/eda_barras_fase.png)
+![Alt vs Mach](../../docs/assets/eda_scatter_alt_mach.png)
 
 ## Pipeline de datos
 
@@ -109,7 +109,7 @@ flowchart LR
 
 | Modelo | RMSE val | MAE val | R² val | RMSE test | Tiempo (s) |
 |---|---|---|---|---|---|
-| XGBoost (elegido) | 8.22 | 7.47 | 0.85 | 11.03 | 7.2 |
+| XGBoost (mejor clásico) | 8.22 | 7.47 | 0.85 | 11.03 | 7.2 |
 | Ridge | 8.28 | 7.66 | 0.85 | — | 3.5 |
 | SVM | 8.29 | 7.53 | 0.86 | — | 2.7 |
 | Random Forest | 9.07 | 8.15 | 0.83 | — | 79.6 |
@@ -117,20 +117,27 @@ flowchart LR
 
 **MLP (elegido: E2 regularización, 33 s):** base 7.36 → E1 7.48 → E2 7.34 → E3 7.36 (RMSE val). E1 memoriza train (5.23, el mejor train) y pierde en val: overfit; la regularización vence a la capacidad bruta.
 
-**Modelo elegido (clase): MLP E2 (val 7.34; test 7.72 en lectura única).** No es el más rápido (XGB entrena en 7 s frente a 33 s) y se elige igualmente: RMSE manda porque un fallo gordo (motor parado) cuesta órdenes de magnitud más que segundos de CPU; a igualdad de RMSE se preferiría el más simple.
+**Modelo elegido del track de clase: MLP E2 (val 7.34; test 7.72 en lectura única).** No es el más rápido (XGB entrena en 7 s frente a 33 s) y se elige igualmente: RMSE manda porque un fallo gordo (motor parado) cuesta órdenes de magnitud más que segundos de CPU; a igualdad de RMSE se preferiría el más simple. Ese es el campeón **de clase**; el modelo
+que entra en producción, y el que defiende el reto, es el bundle C (4.338), no E2.
 
-**Modelo desplegado (bundle C):** híbrido BiLSTM + LightGBM + stacking + EMA sobre la base adaptada (MAR T30 + ffill con medianas de fit-units), RMSE 4.338 / NASA 2336.2 (test uds 11/14/15), media multiseed 4.322+-0.064 en NB06 (grano ventana test 6196; NB05 protocolo OOF da 4.330+-0.053). El híbrido es el "extra no visto en clase" del criterio SAA 6. El manifiesto declara la variante de datos, la partición de motores y las huellas SHA: el despliegue se audita desde el artefacto.
+**Modelo desplegado (bundle C):** híbrido BiLSTM + LightGBM + stacking + EMA sobre la base adaptada (MAR T30 + ffill con medianas de fit-units), RMSE 4.338 / NASA 2336.2 (test uds 11/14/15), media multiseed 4.368+-0.053 en NB06 (grano ventana test 6196; NB05 protocolo OOF da 4.330+-0.053). El híbrido es el "extra no visto en clase" del criterio SAA 6. El manifiesto declara la variante de datos, la partición de motores y las huellas SHA: el despliegue se audita desde el artefacto.
 
 **Test (una lectura, solo el elegido):** MLP E2 RMSE 7.72 · MAE 5.81 · R² 0.83. Híbrido desplegado RMSE 4.338 · MAE 3.227 · R² 0.9461.
 
-**Estabilidad entre semillas:** 42, 7 y 123 dan RMSE 4.322+-0.064 y NASA 2342.3+-43.4; la 42 es la del bundle desplegado, así que ese ± es la cota de ruido para leer cualquier diferencia. Evidencia: `resultados/bundle_c_multiseed.csv`, `resultados/comparativa_bundle_c.csv`.
+**Estabilidad entre semillas:** 42, 7 y 123 dan RMSE 4.368+-0.053 y NASA 2355.2+-24.6
+(`resultados/comparativa_c_multisemilla.csv`); la 42 es la del bundle desplegado, así que ese ± es la cota de ruido para leer cualquier diferencia. Evidencia: `resultados/bundle_c_multiseed.csv`, `resultados/comparativa_bundle_c.csv`.
 
-![Real vs predicho](../resultados/mlp_real_vs_pred.png)
+![Real vs predicho](../../docs/assets/mlp_real_vs_pred.png)
 
 **Qué pesan más (SHAP TreeExplainer exacto sobre XGB, fondo 200 train, explicadas 200 validación fold-0 —nunca test—):** cycle ≫ T50 > Nc. Describe el modelo, no el motor (no causal). Además, permutación sobre XGB (200 filas validación): cycle, T50, Nc; T30 6ª (el ffill la sostiene tras el dropout).
 
-![Importancia SHAP](../resultados/shap_importancia.png)
-![Importancia permutación](../resultados/importancia_permutacion.png)
+![Importancia SHAP](../../docs/assets/shap_importancia.png)
+![Importancia permutación](../../docs/assets/importancia_permutacion.png)
+
+**SHAP del bundle C (el del modelo que se despliega):** `src/ds02_rul/shap_c.py` y
+`notebooks/07_shap_c_bundle_c.ipynb` explican las tres ramas del híbrido (LightGBM,
+BiLSTM y meta) sobre 200 filas de validación del fold-0, con aditividad comprobada
+a ~1e-6. Es el SHAP que se defiende; el de XGB de arriba describe el track de clase.
 
 **Pendiente declarado (no hecho en este change):** registro MLflow + capturas MLflow y flujo n8n. La tabla comparativa es `resultados/comparativa.csv` (pandas).
 
@@ -147,7 +154,8 @@ src/clase/            dataset_clase.py, pipeline_clase.py, train_clasicos.py, tr
 data/raw|processed/     HDF5 fuera de git; train_con_nulos + imputados + X/y + auditoria_nulos.json
 notebooks/              01_eda_y_contexto.ipynb, 02_modelos_clasicos_y_mlp.ipynb, 03_feature_engineering_secuencial.ipynb,
                         04_arquitectura_bilstm_oof.ipynb, 05_meta_ensemble_y_conformal.ipynb,
-                        06_evaluacion_produccion_comparativa.ipynb (todos con outputs; corresponden al `notebooks/` pedido en la spec del reto)
+                        06_evaluacion_produccion_comparativa.ipynb, 07_shap_c_bundle_c.ipynb
+                        (todos con outputs; corresponden al `notebooks/` pedido en la spec del reto)
 models/                 bundle desplegado (C): ensemble.joblib, bilstm_ds02.keras, scaler.joblib,
                         ds02_manifest.json (+ mejor_modelo_clase.joblib, el elegido de clase)
 n8n/                    flujo.json (placeholder MIA 3)

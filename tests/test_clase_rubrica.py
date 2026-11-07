@@ -1,5 +1,9 @@
 """PIA-2: los alias con nombres de rúbrica existen, funcionan y no divergen."""
 
+import os
+
+import pytest
+
 import numpy as np
 import pandas as pd
 
@@ -20,6 +24,28 @@ def test_streamlit_app_delega_en_dashboard():
     assert p.exists()
     texto = p.read_text(encoding="utf-8")
     assert "dashboard_ds02" in texto  # router fino, sin lógica duplicada
+
+
+def test_el_campeon_desplegado_es_el_bundle_c():
+    """El artefacto que se defiende es C, y su error es menor que el de clase.
+
+    Antes este fichero solo comparaba el alias XGB contra el XGB: pasaba aunque
+    el campeón desplegado fuera otro. Ahora fija el bundle C y lo contrasta con
+    el mejor modelo de clase leído de su CSV.
+    """
+    import json
+    with open("models/ds02_manifest.json", encoding="utf-8") as fh:
+        manifest = json.load(fh)
+    assert manifest["code_version"] == "clase-bundle-C"
+    assert manifest["seed"] == 42
+    assert manifest["metrics"]["reference_row"]["RMSE"] == 4.338
+
+    ruta_mlp = "resultados/mlp_comparativa.csv"
+    if not os.path.exists(ruta_mlp):
+        pytest.skip("mlp_comparativa.csv no generado: no se puede contrastar con E2")
+    e2 = pd.read_csv(ruta_mlp)
+    e2 = e2.loc[e2["experimento"] == "E2_reg_lr", "rmse_test"].iloc[0]
+    assert manifest["metrics"]["reference_row"]["RMSE"] < float(e2)
 
 
 def test_mejor_modelo_alias_paridad():

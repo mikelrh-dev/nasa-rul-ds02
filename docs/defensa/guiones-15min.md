@@ -17,7 +17,9 @@ En MLP: `src/clase/train_mlp.py:107` ordena por `rmse_val`. No hay reentreno
 en la elección: el test se toca una sola vez y solo para el elegido.
 
 **Pregunta 2 — ¿De dónde salen 7,3404 y 7,7211?**
-**Respuesta.** Son la validación y el test del MLP-E2, el campeón de clase.
+**Respuesta.** Son la validación y el test del MLP-E2, el campeón del track de
+clase. El modelo que se despliega es otro: el ensemble C (4,338), que se elige y
+se mide con su propio protocolo de ventanas.
 Los dos números están en `resultados/mlp_comparativa.csv`, fila `E2_reg_lr`.
 La validación (7,3404) salía del CV por motores; el test (7,7211) es una
 lectura única posterior, solo para confirmar que no hay fuga.
@@ -27,6 +29,13 @@ lectura única posterior, solo para confirmar que no hay fuga.
 tolerancia 1e-5, en `src/clase/shap_clase.py` (`check_aditividad`). El
 explainer + fondo son explícitos y las 200 filas explicadas son de
 validación (fold-0), nunca test. Si el assert falla, se declara, no se oculta.
+
+**Pregunta 4 — ¿Y el modelo que se despliega?**
+**Respuesta.** El ensemble C: BiLSTM + LightGBM cuantílico, meta-learner y EMA causal,
+RMSE 4,338 y macro-RMSE 5,0153 (U11 3,63 · U14 8,58 · U15 2,84). La capa opcional de reglas
+recalibra la banda (R6) sobre 14.915 filas OOF puras: la unidad 16 se excluye porque
+entrenó el meta-learner. Sin esa corrección, la lectura usa la banda del artefacto. El guion no confunde los dos campeonatos: E2 es el mejor del
+track de clase; C es el que está en producción.
 
 **Que NO decir.** No mezcles E1 (capacidad grande, más overfit, val 7,48) con
 E2 (regularización, val 7,34): si te preguntan por capacidad, cita E1; si es

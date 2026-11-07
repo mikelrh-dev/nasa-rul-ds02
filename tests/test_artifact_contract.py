@@ -85,6 +85,44 @@ def test_manifest_pins_the_tabular_objective():
     assert abs(float(objective["alpha"]) - 0.35) < 1e-9
 
 
+def test_la_banda_de_decision_es_la_del_json_de_calibracion():
+    """La banda que usa la correccion de reglas no puede discrepar del manifiesto.
+
+    El manifiesto declara dos bandas con papeles distintos: `conformal` es la
+    interna del artefacto (17 450 filas, incluye la unidad 16, que entreno el
+    meta) y `conformal_decision` es la banda R6 (14 915 filas OOF puras), usada
+    solo cuando `aplicar_reglas` esta activado. Este test ata la segunda al
+    JSON que lee el codigo.
+    """
+    with open(os.path.join(MODELS, "ds02_manifest.json"), encoding="utf-8") as fh:
+        manifest = json.load(fh)
+    with open(os.path.join(ROOT, "src", "mia", "calibracion_banda.json"),
+              encoding="utf-8") as fh:
+        cal = json.load(fh)
+
+    decision = manifest["conformal_decision"]
+    assert decision["n_calibration"] == cal["n_calibration"] == 14915
+    assert decision["target_coverage"] == cal["target_coverage"]
+    assert sum(b["n"] for b in cal["bins"]) == cal["n_calibration"]
+    assert 16 not in decision["units"]
+    # La banda interna sigue siendo la del artefacto: no se falsea para cuadrar.
+    assert manifest["conformal"]["n_calibration"] == 17450
+
+
+def test_el_manifiesto_declara_la_referencia_historica():
+    """El bundle B archivado se compara desde el artefacto, no desde un README."""
+    with open(os.path.join(MODELS, "ds02_manifest.json"), encoding="utf-8") as fh:
+        manifest = json.load(fh)
+    ref = manifest["historical_reference"]
+    assert ref["model"] == "Hybrid stacking + EMA causal 5 (bundle B, HDF5 limpio)"
+    assert ref["multiseed"]["seeds"] == [42, 7, 123]
+    assert ref["n_windows"] == 6196
+    assert ref["source"] == "archive/models_b/ds02_manifest.json"
+    # El manifiesto no convierte a B en mejor candidato: documenta el coste medido de C.
+    assert ref["rmse"] == 4.251
+    assert manifest["metrics"]["reference_row"]["RMSE"] == 4.338
+
+
 def test_last_step_pooling_matches_slice():
     import tensorflow as tf
 

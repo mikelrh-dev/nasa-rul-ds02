@@ -7,7 +7,7 @@ tags:
   - trazabilidad
 ---
 
-# ADR index — 10 decisiones que sostienen el proyecto
+# ADR index — 11 decisiones que sostienen el proyecto
 
 > [!abstract] En una frase
 > Cada decisión difícil está escrita con qué se probó, qué se rechazó y con qué número.
@@ -18,9 +18,9 @@ Cada fila enlaza al ADR en `docs/decisions/`. La tercera columna es el número q
 
 | ADR | Qué decide | Número que lo respalda |
 |---|---|---|
-| ADR-001 | Stacking aprendido frente a blending lineal | Blending 8.091 y 7.180 vs híbrido ≈4.34 |
+| ADR-001 | Stacking aprendido frente a blending lineal | Blending 8.091 y 7.180 vs híbrido-C ≈4.338 |
 | ADR-002 | Residualizar sensores con Ridge grado 2 | Holdout limpio con 44 982 filas |
-| ADR-003 | Cuantil asimétrico `alpha` 0,35 en LightGBM | LGBM ≈7.10 que complementa, no que gana |
+| ADR-003 | Cuantil asimétrico `alpha` 0,35 en LightGBM | LGBM adaptada C 7.067 que complementa, no que gana |
 | ADR-004 | Boosting y Ridge frente a clásicos | Clásicos no capturan secuencia ni cuantil |
 | ADR-005 | Reservar la 16 como holdout de stacking | Meta en 2 535 ventanas, RUL 0–62 |
 | ADR-006 | EMA causal por motor con span 5 | Estabiliza sin mirar futuro |
@@ -28,12 +28,13 @@ Cada fila enlaza al ADR en `docs/decisions/`. La tercera columna es el número q
 | ADR-008 | Triaje sobre `L_inf` con 30 y 25 | APTO, INSPECCIÓN y HANGAR operativos |
 | ADR-009 | R2b es ajuste isotónico, no regla | R2b 9.623 frente a R2 10.737 |
 | ADR-010 | Rechaza simulador desacoplado por polling | Servir es recargar el bundle |
+| ADR-011 | Desplegar C como campeón único y archivar B (2026-11-04) | C 4.338 en `models/`; B 4.251 en `archive/models_b/` histórico |
 
 ADR-007 y ADR-010 son rechazos explícitos: también cuentan. Rechazar a tiempo es decidir.
 
 ## Dónde están los originales
 
-`docs/decisions/ADR-001-reject-linear-blending-adopt-learned-stacking.md` hasta `ADR-010-reject-decoupled-fleet-simulator-n8n-polling.md`. Extractos literales en la ground truth de la reestructuración.
+`docs/decisions/ADR-001-reject-linear-blending-adopt-learned-stacking.md` hasta `ADR-010-reject-decoupled-fleet-simulator-n8n-polling.md`, más `ADR-011-deploy-bundle-c-archive-bundle-b.md` (2026-11-04). Extractos literales en la ground truth de la reestructuración.
 
 La lógica de negocio de ADR-008 vive además en `docs/defensa_ds02_explicacion_logica_negocio.md`.
 
@@ -52,6 +53,9 @@ Ninguna decisión es gusto: todas tienen medición contraria descartada.
 
 > [!question]- ¿Qué rechaza ADR-001?
 > El blending lineal con 8.09 y 7.18 frente al stacking.
+
+> [!question]- ¿Qué decide ADR-011 (2026-11-04)?
+> Desplegar C (4.338) como campeón único en `models/` y archivar B (4.251) en `archive/models_b/` como histórico NO vigente.
 
 > [!question]- ¿Qué fija ADR-005?
 > La unidad 16 como holdout puro del meta.

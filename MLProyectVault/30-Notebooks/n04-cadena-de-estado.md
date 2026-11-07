@@ -10,7 +10,7 @@ tags:
 # Cadena de estado — qué guarda cada cuaderno
 
 > [!abstract] En una frase
-> Seis cuadernos encadenados por artefactos: NB01 mira, NB02 corona la fila, NB03 decide el reloj, NB04 combina, NB05 evidencia, NB06 congela.
+> Siete cuadernos encadenados por artefactos: NB01 mira, NB02 corona la fila, NB03 decide el reloj, NB04 combina, NB05 evidencia, NB06 congela, NB07 explica.
 
 ## Contrato
 
@@ -32,8 +32,9 @@ La cadena se prueba con marcas de carga entre cuadernos.
 | NB05 → NB06 | multisemilla + LGBM adaptada 7.067 | ruido medido, puente probado |
 | NB06 → disco | bundle C en `models/` | `ensemble.joblib` + manifiesto `clase-bundle-C` |
 | NB06 → servicio | `load_ensemble` con SHA | recargado == en memoria: True |
+| NB06 → NB07 | bundle C congelado + `resultados/shap_bundle_C/` | NB07 explica con SHAP sobre el bundle C, sin reentrenar |
 
-NB01 deja base mirada y baseline. NB02 corona la fila (MLP E2). NB03 decide el reloj. NB04 añade OOF, beta, meta y banda. NB05 añade multisemilla y el puente adaptado. NB06 congela el bundle C. Ningún cuaderno recalcula lo anterior: lo recarga y verifica.
+NB01 deja base mirada y baseline. NB02 corona la fila (MLP E2). NB03 decide el reloj. NB04 añade OOF, beta, meta y banda. NB05 añade multisemilla y el puente adaptado. NB06 congela el bundle C. NB07 explica el bundle C con SHAP (`notebooks/07_shap_c_bundle_c.ipynb`, `resultados/shap_bundle_C/`) sin reentrenar. Ningún cuaderno recalcula lo anterior: lo recarga y verifica.
 
 ```mermaid
 flowchart LR
@@ -43,6 +44,7 @@ flowchart LR
     D --> E[NB05 evidencia]
     E --> F[NB06 bundle C]
     F --> G[models + app]
+    F --> H[NB07 SHAP C]
 ```
 Fuente: [[visuals/n04-cadena-estado.mmd]]
 
@@ -71,7 +73,7 @@ Las cifras que viajan por la cadena son las de [[e00-cifras-autoritativas]]: la 
 ## Flashcards
 
 > [!question]- ¿Qué deja cada cuaderno en la cadena?
-> NB01: base mirada + baseline. NB02: MLP E2. NB03: decisión del reloj. NB04: beta 1.0 + p_ens. NB05: multisemilla + puente. NB06: bundle C en models.
+> NB01: base mirada + baseline. NB02: MLP E2. NB03: decisión del reloj. NB04: beta 1.0 + p_ens. NB05: multisemilla + puente. NB06: bundle C en models. NB07: explicación SHAP del bundle C.
 
 > [!question]- ¿Qué prueba el reload con SHA?
 > Que el bundle recargado predice igual que en memoria: servir es recargar, auditado por hash.

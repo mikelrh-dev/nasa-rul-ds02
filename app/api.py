@@ -160,6 +160,7 @@ async def _security_headers(request: Request, call_next):  # noqa: ANN001, ANN20
 
 
 class PredictRequest(BaseModel):
+    """Unidad y ventana solicitadas a la API del bundle congelado."""
     unit: float = Field(..., ge=1, le=10000, description="engine id, e.g. 11")
     window: int = Field(0, ge=0, le=10000, description="window index within the engine")
     all_windows: bool = Field(False, description="score the whole trajectory")
@@ -175,6 +176,7 @@ class PredictRequest(BaseModel):
 
 
 class PredictResponse(BaseModel):
+    """RUL puntual junto con el contrato del artefacto que la produjo."""
     unit: float
     cycle: float
     rul: float

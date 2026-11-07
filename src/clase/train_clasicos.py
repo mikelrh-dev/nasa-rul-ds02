@@ -2,8 +2,8 @@
 
 SAA 6 (30%): regresión/Ridge, KNN, RF, XGB, SVR. Grids mínimos publicados.
 PIA 3: mismo `pre` de `src/clase/pipeline_clase.py` dentro de cada Pipeline
-(pre refit por fold, sin fuga). SVR sobre submuestra 5k estratificada por
-unidad (O(n^2) en 52k imposible). Guarda `resultados/comparativa.csv` y
+(pre refit por fold, sin fuga). SVR sobre submuestra aleatoria de 5k
+(uniforme, semilla 42; O(n^2) en 52k imposible) — no estratificada. Guarda `resultados/comparativa.csv` y
 `models/mejor_modelo_clase.joblib` (mejor por rmse_val; desempate al simple).
 SAA-8: la tabla trae train + validación (medias out-of-fold del CV, sin
 coste extra: multimetric sobre los mismos fits). El test se evalúa UNA sola
@@ -106,6 +106,11 @@ def _metricas_test(y_te, p_te) -> dict:
 
 
 def entrenar_todo(sample_svm: int = SVR_MUESTRA, verbose: bool = True) -> pd.DataFrame:
+    """Entrena los 5 clásicos, elige por `rmse_val` y mide el test una vez.
+
+    Escribe `resultados/comparativa.csv` y `models/mejor_modelo_clase.joblib`.
+    El test se predice solo para el elegido (SAA: una sola lectura).
+    """
     X_tr = pd.read_parquet("data/processed/X_train.parquet")
     y_tr = pd.read_parquet("data/processed/y_train.parquet").values.ravel().astype(float)
     X_te = pd.read_parquet("data/processed/X_test.parquet")

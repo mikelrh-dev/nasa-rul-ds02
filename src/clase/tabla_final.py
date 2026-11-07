@@ -21,6 +21,11 @@ COLUMNAS = ["modelo", "familia", "grano", "rmse_val", "rmse_test", "mae_test",
 
 def construir_tabla(clasicos: pd.DataFrame, mlp: pd.DataFrame,
                     ventanas: pd.DataFrame, bundle_c: pd.DataFrame) -> pd.DataFrame:
+    """Une las cuatro fuentes en una tabla con `grano` explícito.
+
+    No ordena ni elige campeón: eso lo hace `main`, por grano y por
+    validación cuando existe. Las filas históricas se descartan.
+    """
     filas = []
     for _, r in clasicos.iterrows():
         filas.append({"modelo": r["modelo"], "familia": "clasicos", "grano": "fila",
@@ -61,6 +66,7 @@ def construir_tabla(clasicos: pd.DataFrame, mlp: pd.DataFrame,
 
 
 def main() -> pd.DataFrame:
+    """Genera `resultados/tabla_final_clase.csv` y declara un campeón por grano."""
     tab = construir_tabla(
         pd.read_csv("resultados/comparativa.csv"),
         pd.read_csv("resultados/mlp_comparativa.csv"),
@@ -78,7 +84,7 @@ def main() -> pd.DataFrame:
         # criterio, documentado y justificado.
         criterio = "rmse_val" if sub["rmse_val"].notna().any() else "rmse_test"
         sub = sub.sort_values(criterio, na_position="last")
-        print(f"campeón {grano}: {sub.iloc[0]['modelo']} "
+        print(f"campeón {grano} (por {criterio}): {sub.iloc[0]['modelo']} "
               f"(RMSE {sub.iloc[0]['rmse_test']:.4f})")
     return tab
 
