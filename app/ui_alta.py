@@ -106,6 +106,7 @@ def estado_historia(windows: pd.DataFrame, umbrales: dict) -> list[dict]:
                  .sort_values(["unit", "cycle"]).reset_index(drop=True))
 
     def banda(v: float) -> str:
+        """Clasifica un límite inferior con los umbrales en vigor."""
         if v >= umbrales["apto"]:
             return "APTO"
         if v >= umbrales["hangar"]:
@@ -113,6 +114,7 @@ def estado_historia(windows: pd.DataFrame, umbrales: dict) -> list[dict]:
         return "HANGAR"
 
     def primer_ciclo(unit: int, en_banda: str | None = None) -> int:
+        """Primer ciclo de un motor, o primero en un estado dado."""
         sub = por_ciclo[por_ciclo["unit"] == unit]
         if en_banda is None:
             return int(sub["cycle"].iloc[0])

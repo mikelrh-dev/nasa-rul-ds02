@@ -11,6 +11,7 @@ from typing import Any
 
 
 def parte_trabajo_pdf(order: dict[str, Any]) -> bytes:
+    """Vuelca en PDF una orden ya construida, sin volver a puntuar ni decidir."""
     from fpdf import FPDF
 
     def _latin1(txt: str) -> str:

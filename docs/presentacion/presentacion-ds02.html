@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, initial-scale=1">
+<title>DS02 // DE LA PREDICCION A LA ACCION — RUL QUE DECIDE EN HANGAR</title>
+<meta name="description" content="DS02 RUL — 20 diapositivas por notebooks NB01-NB07 — 1920x1080 — AERO_HUD_SYS">
+<!--
+  DS02 FINAL · Superficie: Decide/Learn (deck) con HUD Monitor: densidad terminal, una idea por slide.
+  Plantilla Stitch: proyecto 1188887004628404612 (DS02 RUL - Presentacion aeroespacial)
+    pantallas base: "Portada de Presentacion Aeroespacial" (files/7d1b2d7933b04d6fb1fb894e6550f337)
+    + "Diapositiva de Telemetria Aeroespacial" (files/683aef1bc89f4c68b4428a57e1fb4652)
+    + Imagenes integradas (fondos con overlay oscuro, sin tocar texto/orden):
+      s01 stitch-turbofan.jpg · s03 stitch-avion.jpg · s19 stitch-hangar.jpg · s20 stitch-cabina.jpg
+  Referencia: proyecto 4141643879944533883 (Portfolio Cyber-Tech Hacker v2):
+    fondo #000000, superficie #0A0A0A, borde #222222, texto #FAFAFA, acento #CCFF00,
+    todo JetBrains Mono, headlines 700 ALL CAPS, radius 0-4px, sin sombras suaves, sin glow, sin gradientes.
+  Uso: flechas / espacio / click izq-der para navegar. Export PDF: Chrome headless --print-to-pdf (@media print: 1 slide = 1 pagina).
+  Cifras: bundle C oficial seed 42 = 4.338 / 3.227 / 0.9461 / 2336.2 . B solo historico. MLflow fuera. Sin coste AOG en euros.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#000000; --surface:#0A0A0A; --border:#222222; --border2:#333333;
+  --text:#FAFAFA; --muted:#9A9A9A; --dim:#737373;
+  --accent:#CCFF00; --accent-dim:#1a2600;
+  --mono:'JetBrains Mono',ui-monospace,'Cascadia Mono',Consolas,monospace;
+}
+*{box-sizing:border-box; box-shadow:none!important; text-shadow:none!important; border-radius:0!important;}
+html,body{margin:0;padding:0;background:#000;color:var(--text);font-family:var(--mono);}
+#stage{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden;}
+#deck{position:relative;width:1920px;height:1080px;flex:none;transform-origin:center center;background:#000;border:1px solid var(--border);}
+.slide{position:absolute;inset:0;width:1920px;height:1080px;display:none;flex-direction:column;background:#000;color:var(--text);overflow:hidden;padding:0;}
+.slide.active{display:flex;}
+/* STITCH AERO BGs: imagenes de fondo con overlay oscuro (legibilidad), object-fit cover */
+.bgimg{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:#000;}
+.bgimg img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
+.bgimg::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.74);}
+.bgimg.soft::after{background:rgba(0,0,0,.68);}
+.bgimg.hard::after{background:rgba(0,0,0,.76);}
+.slide::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.55;
+  background-image:linear-gradient(to right,#111111 1px,transparent 1px),linear-gradient(to bottom,#111111 1px,transparent 1px);
+  background-size:40px 40px;}
+.slide::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.35;
+  background-image:linear-gradient(to right,#1a1a1a 1px,transparent 1px),linear-gradient(to bottom,#1a1a1a 1px,transparent 1px);
+  background-size:160px 160px;}
+.hud-top{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;
+  padding:18px 48px 16px;border-bottom:1px solid var(--border);background:#000;text-transform:uppercase;letter-spacing:.14em;}
+.hud-top .brand{display:flex;align-items:center;gap:14px;font-size:15px;font-weight:800;color:var(--accent);}
+.hud-top .brand::before{content:"";width:10px;height:10px;background:var(--accent);display:inline-block;}
+.hud-top .mid{font-size:13px;color:var(--dim);letter-spacing:.2em;}
+.hud-top .num{font-size:13px;color:var(--muted);letter-spacing:.18em;text-align:right;}
+.hud-top .num b{color:var(--accent);font-size:18px;}
+.hud-body{position:relative;z-index:2;flex:1;padding:36px 64px 28px;display:flex;flex-direction:column;min-height:0;}
+.hud-foot{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;
+  padding:12px 48px;border-top:1px solid var(--border);background:#000;font-size:11px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;}
+.hud-foot .acc{color:var(--accent);font-weight:700;}
+.hud-foot .keys{color:var(--muted);}
+.kicker{display:flex;justify-content:space-between;align-items:center;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--dim);margin-bottom:14px;}
+.kicker .nb{color:var(--accent);font-weight:700;border:1px solid var(--border);background:var(--surface);padding:4px 10px;}
+h2{font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:-.01em;line-height:1.08;margin:0 0 18px;font-size:54px;color:var(--text);}
+h2 .hl{color:var(--accent);}
+.sub{font-size:23px;line-height:1.45;color:var(--muted);max-width:1500px;margin:0 0 20px;}
+.rule{width:120px;height:4px;background:var(--accent);margin:0 0 22px;}
+.cols{display:flex;gap:28px;flex:1;min-height:0;}
+.col-text{flex:0 0 560px;min-width:0;display:flex;flex-direction:column;gap:18px;}
+.col-fig{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px;}
+.panel{background:var(--surface);border:1px solid var(--border);padding:20px 22px;position:relative;}
+.panel::before,.panel::after{content:"[";position:absolute;font-size:13px;color:var(--accent);line-height:1;}
+.panel::before{top:6px;left:8px;}
+.panel::after{bottom:6px;right:8px;transform:rotate(180deg);}
+.panel-t{font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;}
+.panel-t b{color:var(--text);}
+ul.b{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:16px;}
+ul.b li{font-size:24px;line-height:1.45;color:var(--text);padding-left:34px;position:relative;}
+ul.b li::before{content:">";position:absolute;left:0;color:var(--accent);font-weight:800;}
+ul.b li .v{color:var(--accent);font-weight:700;white-space:nowrap;}
+ul.b li .dim{color:var(--muted);}
+.fig{background:#000;border:1px solid var(--border);padding:14px;position:relative;flex:1;display:flex;flex-direction:column;min-height:0;}
+.fig img{width:100%;height:100%;max-height:560px;object-fit:contain;background:#000;border:1px solid var(--border);display:block;}
+.fig.trio{flex-direction:row;gap:14px;flex-wrap:wrap;}
+.fig.trio figure{flex:1;margin:0;display:flex;flex-direction:column;min-width:0;}
+.fig.trio img{flex:1;min-height:0;}
+.fig figure{margin:0;display:flex;flex-direction:column;min-height:0;flex:1;}
+.cap{font-size:13px;line-height:1.55;color:var(--dim);letter-spacing:.06em;padding-top:10px;}
+.cap b{color:var(--muted);}
+.tag{display:inline-block;border:1px solid var(--border);background:#000;color:var(--muted);font-size:12px;letter-spacing:.14em;padding:4px 8px;text-transform:uppercase;}
+.tag.g{color:var(--accent);border-color:#3a4a00;}
+table{width:100%;border-collapse:collapse;font-size:21px;line-height:1.4;}
+th,td{border:1px solid var(--border);padding:12px 14px;text-align:left;vertical-align:top;}
+th{background:#000;color:var(--muted);font-size:13px;letter-spacing:.18em;text-transform:uppercase;}
+td{background:var(--surface);}
+td.v{color:var(--accent);font-weight:700;}
+.flow{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;}
+.step{border:1px solid var(--border);background:#000;padding:12px 13px;font-size:20px;line-height:1.35;flex:1 1 200px;min-width:180px;}
+.step small{display:block;font-size:12px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;margin-bottom:6px;}
+.step.hot{border-color:#3a4a00;background:var(--accent-dim);}
+.arrow{align-self:center;color:var(--accent);font-weight:800;font-size:22px;}
+.cover-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;padding:40px 80px;}
+.cover-badge{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--border);background:var(--surface);padding:8px 14px;font-size:13px;letter-spacing:.26em;color:var(--accent);font-weight:700;margin-bottom:34px;text-transform:uppercase;}
+.cover-badge span{width:8px;height:8px;background:var(--accent);display:inline-block;}
+.title-box{position:relative;padding:18px 52px 22px;margin-bottom:22px;}
+.title-box i{position:absolute;width:14px;height:14px;border:0 solid var(--accent);}
+.title-box i.tl{top:0;left:0;border-top-width:2px;border-left-width:2px;}
+.title-box i.tr{top:0;right:0;border-top-width:2px;border-right-width:2px;}
+.title-box i.bl{bottom:0;left:0;border-bottom-width:2px;border-left-width:2px;}
+.title-box i.br{bottom:0;right:0;border-bottom-width:2px;border-right-width:2px;}
+h1{font-family:var(--mono);font-weight:800;text-transform:uppercase;letter-spacing:-.02em;line-height:.98;margin:0;font-size:88px;color:var(--text);}
+h1 .hl{color:var(--accent);}
+.cover-sub{font-size:28px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);line-height:1.5;max-width:1200px;}
+.cover-pills{display:flex;gap:12px;justify-content:center;margin-top:34px;flex-wrap:wrap;}
+.cover-pills .tag{font-size:13px;padding:7px 12px;}
+.corner{position:absolute;font-size:11px;letter-spacing:.2em;color:var(--dim);}
+.corner.tl{top:18px;left:24px;} .corner.tr{top:18px;right:24px;} .corner.bl{bottom:18px;left:24px;} .corner.br{bottom:18px;right:24px;}
+.ring{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);opacity:.22;pointer-events:none;}
+.note{font-size:16px;line-height:1.55;color:var(--dim);border-top:1px solid var(--border);padding-top:12px;margin-top:auto;}
+.note b{color:var(--muted);}
+#nav{position:fixed;right:18px;bottom:14px;z-index:50;display:flex;gap:8px;}
+#nav button{background:#000;color:var(--accent);border:1px solid var(--border);font-family:var(--mono);font-size:12px;letter-spacing:.16em;padding:8px 12px;cursor:pointer;text-transform:uppercase;}
+#nav button:hover{border-color:var(--accent);}
+#counter{position:fixed;left:18px;bottom:14px;z-index:50;font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--dim);background:#000;border:1px solid var(--border);padding:8px 12px;}
+#counter b{color:var(--accent);}
+@media print{
+  @page{size:1920px 1080px;margin:0;}
+  html,body,#stage{background:#000;}
+  #stage{display:block;width:auto;height:auto;overflow:visible;}
+  #deck{transform:none!important;width:1920px;height:auto;border:none;}
+  .slide{display:flex!important;position:relative;inset:auto;page-break-after:always;break-after:page;}
+  .slide:last-child{page-break-after:auto;}
+  #nav,#counter{display:none!important;}
+}
+</style>
+</head>
+<body>
+<div id="stage">
+<div id="deck">
+
+<!-- 01 PORTADA -->
+<section class="slide" data-nb="DS02" id="s01">
+  <div class="bgimg soft" aria-hidden="true"><img src="assets/stitch-turbofan.jpg" alt=""></div>
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">DS02_RUL_PORTADA // SECTOR AEROESPACIAL</div><div class="num">SLIDE <b>01</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="cover-wrap">
+      <svg class="ring" width="640" height="640" viewBox="0 0 600 600" fill="none" aria-hidden="true">
+        <circle cx="300" cy="300" r="280" stroke="#222" stroke-width="1"/><circle cx="300" cy="300" r="240" stroke="#222" stroke-width="1"/>
+        <circle cx="300" cy="300" r="200" stroke="#222" stroke-width="1"/><circle cx="300" cy="300" r="110" stroke="#222" stroke-width="1"/>
+        <circle cx="300" cy="300" r="12" stroke="#CCFF00" stroke-width="1"/>
+        <line x1="300" x2="300" y1="12" y2="30" stroke="#CCFF00" stroke-width="1.5"/><line x1="300" x2="300" y1="570" y2="588" stroke="#CCFF00" stroke-width="1.5"/>
+        <line x1="12" x2="30" y1="300" y2="300" stroke="#CCFF00" stroke-width="1.5"/><line x1="570" x2="588" y1="300" y2="300" stroke="#CCFF00" stroke-width="1.5"/>
+      </svg>
+      <div class="corner tl">[REF // 00:00:01]</div><div class="corner tr">[AXIS_ALPHA // ROT]</div>
+      <div class="corner bl">[VECTOR_STATION]</div><div class="corner br">[CAL_LOCK // TRUE]</div>
+      <div class="cover-badge"><span></span> DS02 // REMAINING USEFUL LIFE (RUL) — NB01–NB07 <span style="color:var(--dim)">::</span><span style="color:var(--muted);font-weight:400">MOD_01</span></div>
+      <div class="title-box"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>
+        <h1>DE LA PREDICCIÓN<br><span class="hl">A LA ACCIÓN</span></h1>
+      </div>
+      <p class="cover-sub">RUL QUE DECIDE EN HANGAR<br><span style="font-size:18px;letter-spacing:.18em;color:var(--dim)">VENTANA C · SEED 42 · RMSE 4.338 — MANDAN NB01–NB07 Y results/*.csv</span></p>
+      <div class="rule" style="margin:28px auto 0"></div>
+      <div class="cover-pills">
+        <span class="tag g">&gt; BUNDLE C 4.338 / 3.227 / 0.9461</span>
+        <span class="tag">&gt; STITCH HUD — #000000 / #CCFF00</span>
+        <span class="tag">&gt; 1920×1080 · TECLADO</span>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>SYS_REF // ORBITAL HUD TERMINAL</span><span class="acc">STATUS: SISTEMA_OPERACIONAL</span><span class="keys">← → NAVEGAR · IMPRIMIR: CHROME HEADLESS PDF</span></div>
+</section>
+
+<!-- 02 NB01 PROBLEMA -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB01 // EDA Y CONTEXTO</div><div class="num">SLIDE <b>02</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB01 · 01_EDA_Y_CONTEXTO</span><span>REGRESIÓN // SPLIT POR MOTOR</span></div>
+    <h2>RUL ES <span class="hl">REGRESIÓN</span> — SPLIT POR MOTOR</h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>RUL es <span class="v">regresión</span>, no clasificación: fit <span class="v">2/5/10/18/20</span> · holdout <span class="v">16</span> · test <span class="v">11/14/15</span>.</li>
+            <li>Correlación RUL–fila <span class="v">0.01</span>: la fila <span class="dim">no avisa</span>; manda la señal del sensor.</li>
+          </ul>
+        </div>
+        <div class="panel"><div class="panel-t"><span>REGLA</span><b>POR MOTOR</b></div>
+          <p style="font-size:21px;line-height:1.5;color:var(--muted);margin:0">Ningún motor aparece en dos particiones. La generalización se mide <span style="color:var(--text)">entre motores</span>, no entre filas del mismo motor.</p>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // HEATMAP_CORRELACIÓN</span><span class="tag g">NB01</span></div>
+          <figure><img src="assets/eda_heatmap_corr.png" alt="Heatmap de correlación NB01">
+          <figcaption class="cap"><b>Fig · NB01</b> — Heatmap de correlación (RUL–fila 0.01). Fuente: <b>resultados/eda_heatmap_corr.png</b>.</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB01 · FIT 2/5/10/18/20 · HOLDOUT 16 · TEST 11/14/15</span><span>02 / 20</span></div>
+</section>
+
+<!-- 03 NB01 NULOS + TABLA -->
+<section class="slide">
+  <div class="bgimg hard" aria-hidden="true"><img src="assets/stitch-avion.jpg" alt=""></div>
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB01 // NULOS MAR T30</div><div class="num">SLIDE <b>03</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB01 · 01_EDA_Y_CONTEXTO</span><span>SOLO TABLA</span></div>
+    <h2>NULOS <span class="hl">MAR T30</span> Y <span class="hl">FASE_VUELO</span></h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>Nulos MAR T30: alt&nbsp;&gt;&nbsp;27k &amp; Mach&nbsp;&gt;&nbsp;0.68 → <span class="v">1.82%</span> · <span class="v">1.185 nulos</span>.</li>
+            <li>Imputación <span class="v">ffill causal</span> (sin futuro); <span class="v">fase_vuelo</span> solo fila, sin leak.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="panel" style="flex:1;display:flex;flex-direction:column">
+          <div class="panel-t"><span>TABLA // TRATAMIENTO MAR</span><span class="tag g">NB01</span></div>
+          <table>
+            <tr><th>Condición</th><th>% T30</th><th>Nulos</th><th>Tratamiento</th></tr>
+            <tr><td>alt &gt; 27k<br>Mach &gt; 0.68</td><td class="v">1.82%</td><td class="v">1.185</td><td>ffill causal<br><span style="color:var(--dim)">sin mirar futuro</span></td></tr>
+            <tr><td>fase_vuelo</td><td>fila</td><td>—</td><td>solo fila<br><span style="color:var(--dim)">sin leak</span></td></tr>
+          </table>
+          <p class="note"><b>Fuente:</b> NB01 · tratamiento MAR T30 documentado en el cuaderno; sin cifras inventadas.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB01 · MAR 1.82% · FFILL CAUSAL · FASE_VUELO SOLO FILA</span><span>03 / 20</span></div>
+</section>
+
+<!-- 04 NB01 RESIDUALIZACIÓN -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB01 // RESIDUALIZACIÓN RIDGE</div><div class="num">SLIDE <b>04</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB01 · 01_EDA_Y_CONTEXTO</span><span>14 RIDGES + VENTANAS 50</span></div>
+    <h2>RESIDUALIZACIÓN <span class="hl">RIDGE</span> + VENTANAS 50</h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>Resid. Ridge <span class="v">14 ridges</span> + ventanas <span class="v">50</span>: <span class="v">X_seq 50×19</span> · <span class="v">X_tab 93</span>.</li>
+            <li><span class="v">dev 17.450</span> · <span class="v">test 6.196</span> ventanas; sin tocar test en el ajuste.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // RESID_T48_FASE</span><span class="tag g">NB01</span></div>
+          <figure><img src="assets/eda_t48_resid_fase.png" alt="Residualización T48 por fase NB01">
+          <figcaption class="cap"><b>Fig · NB01</b> — Residualización T48 por fase. Fuente: <b>resultados/eda_t48_resid_fase.png → assets/eda_t48_resid_fase.png</b>.</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB01 · X_SEQ 50×19 · X_TAB 93 · DEV 17.450 · TEST 6.196</span><span>04 / 20</span></div>
+</section>
+
+<!-- 05 NB02 CLÁSICOS -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB02 // MODELOS CLÁSICOS Y MLP</div><div class="num">SLIDE <b>05</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB02 · 02_MODELOS_CLÁSICOS_Y_MLP</span><span>PIPELINE COMPARTIDO</span></div>
+    <h2>CLÁSICOS: <span class="hl">XGB GANA</span> EN VAL</h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>Mismo pipeline + <span class="v">GroupKFold</span> por motor: <span class="v">XGB val 8.22</span> gana.</li>
+            <li>Test <span class="v">11.03</span>, <span class="dim">una sola lectura</span> (no tuning sobre test).</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // CLÁSICOS REAL VS PRED</span><span class="tag g">NB02</span></div>
+          <figure><img src="assets/clasicos_real_vs_pred.png" alt="Clásicos real vs predicho NB02">
+          <figcaption class="cap"><b>Fig · NB02</b> — Clásicos real vs predicho. Fuente: <b>resultados/clasicos_real_vs_pred.png</b> · comparativa en <b>resultados/comparativa.csv</b>.</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB02 · XGB VAL 8.22 · TEST 11.03 UNA LECTURA</span><span>05 / 20</span></div>
+</section>
+
+<!-- 06 NB02 MLP -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB02 // MLP BASE/E1/E2/E3</div><div class="num">SLIDE <b>06</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB02 · 02_MODELOS_CLÁSICOS_Y_MLP</span><span>HIPÓTESIS PREVIA</span></div>
+    <h2>MLP: <span class="hl">E2 GANA</span> — E1 OVERFIT</h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>Variantes base/E1/E2/E3 fijadas <span class="dim">antes</span>: <span class="v">E2 val 7.34 · test 7.72</span> gana.</li>
+            <li>E1 overfit: <span class="v">train 5.23</span> vs <span class="v">val 7.48</span> — se descarta.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // MLP REAL VS PRED</span><span class="tag g">NB02</span></div>
+          <figure><img src="assets/mlp_real_vs_pred.png" alt="MLP real vs predicho NB02">
+          <figcaption class="cap"><b>Fig · NB02</b> — MLP real vs predicho. Fuente: <b>resultados/mlp_real_vs_pred.png</b> · <b>resultados/mlp_comparativa.csv</b>.</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB02 · E2 VAL 7.34 · TEST 7.72 · E1 TRAIN 5.23 VAL 7.48</span><span>06 / 20</span></div>
+</section>
+
+<!-- 07 NB02 IMPORTANCIA -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB02 // IMPORTANCIA</div><div class="num">SLIDE <b>07</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB02 · 02_MODELOS_CLÁSICOS_Y_MLP</span><span>PERMUTACIÓN + SHAP</span></div>
+    <h2>IMPORTANCIA: <span class="hl">CYCLE Y T50</span> COINCIDEN</h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>Permutación: <span class="v">cycle 20.76</span> · <span class="v">T50 6.16</span>.</li>
+            <li>SHAP: <span class="v">cycle 34.50</span> · <span class="v">T50 6.14</span> — <span class="dim">mismo orden, coincide</span>.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // IMPORTANCIA_PERMUTACIÓN</span><span class="tag g">NB02</span></div>
+          <figure><img src="assets/importancia_permutacion.png" alt="Importancia por permutación NB02">
+          <figcaption class="cap"><b>Fig · NB02</b> — Importancia por permutación. Fuente: <b>resultados/importancia_permutacion.png</b> (SHAP en <b>resultados/shap_importancia.png</b>).</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB02 · PERM CYCLE 20.76 T50 6.16 · SHAP CYCLE 34.50 T50 6.14</span><span>07 / 20</span></div>
+</section>
+
+<!-- 08 NB03+04 ABLACIÓN -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB03+NB04 // ABLACIÓN CYC_NORM</div><div class="num">SLIDE <b>08</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB03 · 03_FEATURE_ENGINEERING_SECUENCIAL + NB04</span><span>NO ES EL BUNDLE FINAL</span></div>
+    <h2>ABLACIÓN <span class="hl">CYC_NORM</span></h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>BiLSTM: OFF <span class="v">6.563</span> → ON <span class="v">5.796</span> → ON+delta <span class="v">5.512</span> (gana ablación, <span class="dim">NO es el bundle final</span>).</li>
+            <li>LGBM OFF <span class="v">6.297</span> gana; delta rompe a <span class="v">8.765</span>. El reloj vive <span class="dim">en la base</span>, no en el meta.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // ABLACIÓN_CYCNORM_RMSE</span><span class="tag g">NB03+04</span></div>
+          <figure><img src="assets/ablacion_cycnorm_rmse.png" alt="Ablación cyc_norm RMSE NB03 NB04">
+          <figcaption class="cap"><b>Fig · NB03/NB04</b> — Ablación cyc_norm. Fuente: <b>resultados/ablacion_cycnorm_rmse.png</b>.</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB03+04 · BILSTM ON+DELTA 5.512 · LGBM OFF 6.297 · DELTA 8.765</span><span>08 / 20</span></div>
+</section>
+
+<!-- 09 NB04 ESPECIALISTAS -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB04 // ARQUITECTURA BILSTM·OOF</div><div class="num">SLIDE <b>09</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB04 · 04_ARQUITECTURA_BILSTM_OOF</span><span>DOS ESPECIALISTAS</span></div>
+    <h2>ESPECIALISTAS: <span class="hl">BILSTM + LGBM</span></h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>BiLSTM triple pooling <span class="v">5.654</span> · LGBM cuantil <span class="v">0.35</span> sobre <span class="v">93</span> features.</li>
+            <li>El cuantil 0.35 <span class="dim">subestima a propósito</span>: especialista sesgado, no óptimo solo.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // LOSS_CURVE_C</span><span class="tag g">NB04</span></div>
+          <figure><img src="assets/loss_curve_c.png" alt="Curva de loss bundle C NB04">
+          <figcaption class="cap"><b>Fig · NB04</b> — Curva de loss C. Fuente: <b>resultados/loss_curve_c.png</b>.</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB04 · BILSTM 5.654 · LGBM Q0.35 / 93</span><span>09 / 20</span></div>
+</section>
+
+<!-- 10 NB04 OOF BETA -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB04 // OOF + BETA</div><div class="num">SLIDE <b>10</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB04 · 04_ARQUITECTURA_BILSTM_OOF</span><span>SOLO TEXTO / DIAGRAMA</span></div>
+    <h2>OOF AGRUPADO + <span class="hl">BETA=1.00</span></h2>
+    <div class="cols">
+      <div class="col-text" style="flex:1 1 auto">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>OOF agrupado por motor + <span class="v">beta=1.00</span> calibrado <span class="v">fuera de fold</span>: <span class="v">9.700→8.470 / 11.241→10.164</span>.</li>
+            <li>Si beta se calibrara dentro del fold, fuga: <span class="v">0.308</span> (irreal). Fuera de fold, <span class="dim">honesto</span>.</li>
+          </ul>
+        </div>
+        <div class="panel"><div class="panel-t"><span>DIAGRAMA // CALIBRACIÓN</span><span class="tag g">NB04</span></div>
+          <div class="flow">
+            <div class="step"><small>OOF</small>Agrupado<br>por motor</div><span class="arrow">→</span>
+            <div class="step hot"><small>BETA</small>=1.00<br>fuera de fold</div><span class="arrow">→</span>
+            <div class="step"><small>FUGA</small>0.308<br><span style="color:var(--dim)">dentro = irreal</span></div>
+          </div>
+          <p class="note"><b>Fuente:</b> NB04 · beta calibrado fuera de fold; la cifra 0.308 es la fuga, no el resultado.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB04 · BETA 1.00 FUERA DE FOLD · 9.700→8.470</span><span>10 / 20</span></div>
+</section>
+
+<!-- 11 NB04 META -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB04 // META HOLDOUT-16</div><div class="num">SLIDE <b>11</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB04 · 04_ARQUITECTURA_BILSTM_OOF</span><span>Z=[P_LSTM, P_LGB]</span></div>
+    <h2>META: <span class="hl">SOLO HOLDOUT-16</span></h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>Meta <span class="dim">solo</span> en holdout-16: <span class="v">Z=[p_lstm, p_lgb]</span>, sin reloj ni features extra.</li>
+            <li>Ridge <span class="v">0.255/0.641</span> · alpha <span class="v">88.59</span>: el híbrido pondera <span class="dim">más LGBM</span>.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // RIDGE_META_PESOS_06</span><span class="tag g">NB04</span></div>
+          <figure><img src="assets/ridge_meta_pesos_06.png" alt="Pesos Ridge meta NB04">
+          <figcaption class="cap"><b>Fig · NB04</b> — Pesos Ridge meta. Fuente: <b>resultados/ridge_meta_pesos_06.png → assets/ridge_meta_pesos_06.png</b> (alternativa 04).</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB04 · RIDGE 0.255/0.641 · ALPHA 88.59 · SIN RELOJ</span><span>11 / 20</span></div>
+</section>
+
+<!-- 12 NB04 CASCADA -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB04 // ENSAMBLE + EMA5</div><div class="num">SLIDE <b>12</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB04 · 04_ARQUITECTURA_BILSTM_OOF</span><span>CASCADA C</span></div>
+    <h2>CASCADA <span class="hl">7.067→4.338</span> + EMA5</h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>Cascada <span class="v">7.067 → 5.654 → 5.618 → 4.338</span>; EMA5 <span class="dim">causal</span>, no mira futuro.</li>
+            <li>Baseline <span class="v">20.022</span> · macro <span class="v">5.015</span>: en promedio <span class="dim">manda la ventana</span>, no U14.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // BUNDLE_C_CASCADA_RMSE</span><span class="tag g">NB04</span></div>
+          <figure><img src="assets/bundle_c_cascada_rmse.png" alt="Cascada bundle C RMSE NB04">
+          <figcaption class="cap"><b>Fig · NB04</b> — Cascada bundle C. Fuente: <b>resultados/bundle_c_cascada_rmse.png</b> · <b>resultados/comparativa_bundle_c.csv</b>.</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB04 · 7.067→5.654→5.618→4.338 · BASELINE 20.022</span><span>12 / 20</span></div>
+</section>
+
+<!-- 13 NB04 CONFORMAL -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB04 // BANDA CONFORMAL</div><div class="num">SLIDE <b>13</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB04 · 04_ARQUITECTURA_BILSTM_OOF</span><span>SOLO TEXTO</span></div>
+    <h2>BANDA <span class="hl">CONFORMAL 90%</span></h2>
+    <div class="cols">
+      <div class="col-text" style="flex:1 1 auto">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>Banda conformal <span class="v">90%</span> calibrada <span class="v">fuera de fold</span>.</li>
+            <li>Cobertura <span class="v">100%</span> con ancho <span class="v">27.12</span>: es <span class="dim">cota conservadora</span>, no precisión.</li>
+          </ul>
+        </div>
+        <div class="panel"><div class="panel-t"><span>DIAGRAMA // CONFORMAL</span><span class="tag g">NB04</span></div>
+          <div class="flow">
+            <div class="step"><small>BANDA</small>90%<br>fuera de fold</div><span class="arrow">→</span>
+            <div class="step hot"><small>COBERTURA</small>100%<br>ancho 27.12</div><span class="arrow">→</span>
+            <div class="step"><small>LECTURA</small>Cota conservadora<br><span style="color:var(--dim)">no RMSE</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB04 · CONFORMAL 90% · COBERTURA 100% · ANCHO 27.12</span><span>13 / 20</span></div>
+</section>
+
+<!-- 14 NB05 -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB05 // META·ENSEMBLE·CONFORMAL</div><div class="num">SLIDE <b>14</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB05 · 05_META_ENSEMBLE_Y_CONFORMAL</span><span>MAR + MULTISEMILLA</span></div>
+    <h2>LGBM ADAPTADA: <span class="hl">MAR NO DEGRADA</span></h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>LGBM adaptada <span class="v">7.067</span>, <span class="dim">idéntica a MAR</span>: la adaptación no degrada.</li>
+            <li>Multisemilla <span class="v">4.330±0.053</span>: el híbrido <span class="dim">gana en 3 semillas</span>.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // LGBM_ADAPT_REAL_VS_PRED</span><span class="tag g">NB05</span></div>
+          <figure><img src="assets/lgbm_adapt_real_vs_pred.png" alt="LGBM adaptada real vs predicho NB05">
+          <figcaption class="cap"><b>Fig · NB05</b> — LGBM adaptada real vs predicho. Fuente: <b>resultados/lgbm_adapt_real_vs_pred.png</b>.</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB05 · LGBM 7.067 = MAR · MULTI 4.330±0.053</span><span>14 / 20</span></div>
+</section>
+
+<!-- 15 NB06 PASO A PASO -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB06 // EVALUACIÓN·PRODUCCIÓN</div><div class="num">SLIDE <b>15</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB06 · 06_EVALUACION_PRODUCCION_COMPARATIVA</span><span>SOLO TEXTO</span></div>
+    <h2>DESPLEGADO <span class="hl">PASO A PASO</span></h2>
+    <div class="cols">
+      <div class="col-text" style="flex:1 1 auto">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>Cadena: <span class="v">construir_raw_adaptado → run_seed → OOF/beta → fit_meta → HybridStacking+EMA5 → fit_conformal</span>.</li>
+            <li>Curva <span class="dim">sin brecha train/val</span>: sin overfit visible en despliegue.</li>
+          </ul>
+        </div>
+        <div class="panel"><div class="panel-t"><span>DIAGRAMA // CADENA NB06</span><span class="tag g">NB06</span></div>
+          <div class="flow">
+            <div class="step"><small>01</small>construir_raw_adaptado</div><span class="arrow">→</span>
+            <div class="step"><small>02</small>run_seed</div><span class="arrow">→</span>
+            <div class="step hot"><small>03</small>OOF / beta</div><span class="arrow">→</span>
+            <div class="step"><small>04</small>fit_meta</div><span class="arrow">→</span>
+            <div class="step"><small>05</small>HybridStacking+EMA5</div><span class="arrow">→</span>
+            <div class="step hot"><small>06</small>fit_conformal</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB06 · RAW_ADAPTADO → RUN_SEED → OOF/BETA → META → HYBRID → CONFORMAL</span><span>15 / 20</span></div>
+</section>
+
+<!-- 16 NB06 DOS LIGAS -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB06 // TABLA DOS LIGAS</div><div class="num">SLIDE <b>16</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB06 · 06_EVALUACION_PRODUCCION_COMPARATIVA</span><span>ANCLA MANIFIESTO</span></div>
+    <h2>TABLA <span class="hl">DOS LIGAS</span></h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>Dos ligas: <span class="v">MLP-E2 fila 7.7211</span> · <span class="v">ventana C 4.338</span>.</li>
+            <li>Ancla: <span class="v">manifiesto oficial seed 42</span> (C 4.338/3.227/0.9461/2336.2). B solo histórico · MLflow fuera.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="panel" style="padding:14px"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>TABLA // DOS LIGAS</span><span class="tag g">NB06</span></div>
+          <table>
+            <tr><th>Liga</th><th>Modelo</th><th>RMSE</th></tr>
+            <tr><td>fila</td><td>MLP-E2</td><td class="v">7.7211</td></tr>
+            <tr><td>ventana</td><td>C (oficial s42)</td><td class="v">4.338</td></tr>
+          </table>
+        </div>
+        <div class="fig" style="flex:0 0 auto"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // REAL_VS_PREDICHO_BUNDLE_C</span></div>
+          <figure><img src="assets/real_vs_predicho_bundle_c.png" alt="Real vs predicho bundle C NB06" style="max-height:300px">
+          <figcaption class="cap"><b>Fig · NB06</b> — Real vs predicho bundle C. Fuente: <b>resultados/real_vs_predicho_bundle_c.png</b>.</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB06 · MLP-E2 7.7211 · VENTANA C 4.338 · SEED 42</span><span>16 / 20</span></div>
+</section>
+
+<!-- 17 NB06 AUDITORÍA -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB06 // AUDITORÍA</div><div class="num">SLIDE <b>17</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB06 · 06_EVALUACION_PRODUCCION_COMPARATIVA</span><span>U14 · SHA</span></div>
+    <h2>AUDITORÍA: <span class="hl">MANDA EL MANIFIESTO</span></h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>Auditoría U14: <span class="v">RMSE 8.576 (n=760)</span> · sesgo <span class="v">+0.369</span> · <span class="v">58.8% exceso</span>.</li>
+            <li>Recarga <span class="v">diff 0.0</span> · multisemilla <span class="v">4.322</span>; <span class="dim">manda el manifiesto SHA</span> seed 42.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // BUNDLE_C_RMSE_POR_MOTOR</span><span class="tag g">NB06</span></div>
+          <figure><img src="assets/bundle_c_rmse_por_motor.png" alt="Bundle C RMSE por motor NB06">
+          <figcaption class="cap"><b>Fig · NB06</b> — Bundle C RMSE por motor. Fuente: <b>resultados/bundle_c_rmse_por_motor.png</b>.</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB06 · U14 8.576 N=760 · +0.369 · 58.8% · DIFF 0.0</span><span>17 / 20</span></div>
+</section>
+
+<!-- 18 NB07 SHAP -->
+<section class="slide">
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB07 // SHAP BUNDLE CONGELADO</div><div class="num">SLIDE <b>18</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">NB07 · 07_SHAP_C_BUNDLE_C</span><span>POR RAMAS</span></div>
+    <h2>SHAP <span class="hl">POR RAMAS</span> — BUNDLE CONGELADO</h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li>BiLSTM: <span class="v">cyc_norm 24.06 · T50 16.60</span> — LGBM: <span class="v">cyc_norm 12.91 · T50_mean 9.14</span>.</li>
+            <li>Meta: <span class="v">p_lgb 20.15 · p_lstm 8.09</span>; aditividad <span class="v">~1e-6</span> (SHAP cuadra).</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="fig trio"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px;flex-basis:100%"><span>FIG // BAR_BILSTM + BAR_LGBM + BAR_META</span><span class="tag g">NB07</span></div>
+          <figure><img src="assets/bar_bilstm.png" alt="SHAP BiLSTM NB07"><figcaption class="cap"><b>BiLSTM</b><br>resultados/shap_bundle_C/bar_bilstm.png</figcaption></figure>
+          <figure><img src="assets/bar_lgbm.png" alt="SHAP LGBM NB07"><figcaption class="cap"><b>LGBM</b><br>resultados/shap_bundle_C/bar_lgbm.png</figcaption></figure>
+          <figure><img src="assets/bar_meta.png" alt="SHAP meta NB07"><figcaption class="cap"><b>META</b><br>resultados/shap_bundle_C/bar_meta.png</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB07 · BILSTM 24.06 · LGBM 12.91 · META 20.15/8.09 · ~1E-6</span><span>18 / 20</span></div>
+</section>
+
+<!-- 19 REGLAS + APP + N8N -->
+<section class="slide">
+  <div class="bgimg hard" aria-hidden="true"><img src="assets/stitch-hangar.jpg" alt=""></div>
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">REGLAS · APP · N8N DEMO</div><div class="num">SLIDE <b>19</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">DEMO OPERATIVA</span><span>SOLO TEXTO</span></div>
+    <h2>REGLAS + <span class="hl">APP + N8N</span></h2>
+    <div class="cols">
+      <div class="col-text" style="flex:1 1 auto">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li><span class="v">8 reglas L_inf 30/25</span> — R1 seguridad; Streamlit: caso nuevo → <span class="v">p + decisión</span>.</li>
+            <li>n8n webhook <span class="v">ds02/decision</span>: APTO → log INSPECCION → Sheets HANGAR → Postgres+Calendar+Gmail. <span class="dim">Flujo inactivo, esperando credenciales.</span></li>
+          </ul>
+        </div>
+        <div class="panel"><div class="panel-t"><span>DIAGRAMA // DECISIÓN</span><span class="tag g">DEMO</span></div>
+          <div class="flow">
+            <div class="step"><small>STREAMLIT</small>Caso nuevo<br>p + decisión</div><span class="arrow">→</span>
+            <div class="step hot"><small>N8N</small>ds02/decision<br>INACTIVO · CREDENCIALES</div><span class="arrow">→</span>
+            <div class="step"><small>APTO</small>INSPECCION<br>Sheets · HANGAR</div><span class="arrow">→</span>
+            <div class="step"><small>DESTINO</small>Postgres<br>Calendar + Gmail</div>
+          </div>
+          <p class="note"><b>Nota:</b> MLflow fuera. Sin coste AOG en euros — no se afirma cifra económica.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">8 REGLAS L_INF 30/25 · R1 · STREAMLIT · N8N INACTIVO</span><span>19 / 20</span></div>
+</section>
+
+<!-- 20 CIERRE -->
+<section class="slide">
+  <div class="bgimg" aria-hidden="true"><img src="assets/stitch-cabina.jpg" alt=""></div>
+  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">CIERRE // C ES EL MODELO</div><div class="num">SLIDE <b>20</b> / 20</div></div>
+  <div class="hud-body">
+    <div class="kicker"><span class="nb">CIERRE · NB01–NB07</span><span>MODELS/</span></div>
+    <h2><span class="hl">C ES EL MODELO</span></h2>
+    <div class="cols">
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+          <ul class="b">
+            <li><span class="v">C es el modelo</span>: MAR con patrón + <span class="v">ffill causal</span>; pesos <span class="v">28/72</span> (meta Ridge).</li>
+            <li><span class="dim">Auditable desde models/</span> sin depender del cuaderno.</li>
+          </ul>
+        </div>
+        <div class="panel"><div class="panel-t"><span>ANCLA</span><b>SEED 42</b></div>
+          <p style="font-size:22px;line-height:1.5;color:var(--muted);margin:0">Bundle C oficial: <span style="color:var(--accent);font-weight:700">4.338 / 3.227 / 0.9461 / 2336.2</span><br><span style="font-size:16px">B solo histórico · MLflow fuera · manda el manifiesto SHA</span></p>
+        </div>
+      </div>
+      <div class="col-fig">
+        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // REAL_VS_PREDICHO_VIZ_C</span><span class="tag g">NB06</span></div>
+          <figure><img src="assets/real_vs_predicho_viz_c.png" alt="Real vs predicho viz C cierre">
+          <figcaption class="cap"><b>Fig · NB06</b> — Real vs predicho viz C. Fuente: <b>resultados/real_vs_predicho_viz_c.png</b>.</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">C 4.338/3.227/0.9461/2336.2 · PESOS 28/72 · MODELS/</span><span>20 / 20</span></div>
+</section>
+
+</div>
+</div>
+<div id="counter">SLIDE <b>01</b> / 20</div>
+<div id="nav"><button id="prev" type="button">← PREV</button><button id="next" type="button">NEXT →</button></div>
+<script>
+(function(){
+  var deck=document.getElementById('deck'),
+      slides=[].slice.call(document.querySelectorAll('.slide')),
+      counter=document.getElementById('counter'), idx=0;
+  try{ idx=Math.max(0,Math.min(slides.length-1,parseInt(localStorage.getItem('ds02_slide')||'0',10)||0)); }catch(e){}
+  function fit(){ var s=Math.min(window.innerWidth/1920,window.innerHeight/1080); deck.style.transform='scale('+s+')'; }
+  function pad(n){ return (n<10?'0':'')+n; }
+  function show(i){ idx=Math.max(0,Math.min(slides.length-1,i));
+    slides.forEach(function(s,j){ s.classList.toggle('active',j===idx); });
+    counter.innerHTML='SLIDE <b>'+pad(idx+1)+'</b> / '+slides.length;
+    try{ localStorage.setItem('ds02_slide',String(idx)); }catch(e){}
+  }
+  window.addEventListener('resize',fit); fit();
+  document.getElementById('prev').addEventListener('click',function(){show(idx-1);});
+  document.getElementById('next').addEventListener('click',function(){show(idx+1);});
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){ e.preventDefault(); show(idx+1); }
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); show(idx-1); }
+    else if(e.key==='Home'){ show(0); } else if(e.key==='End'){ show(slides.length-1); }
+  });
+  deck.addEventListener('click',function(e){
+    if(e.target.closest('button,a')) return;
+    var r=deck.getBoundingClientRect(), x=(e.clientX-r.left)/r.width;
+    show(x>0.5?idx+1:idx-1);
+  });
+  show(idx);
+})();
+</script>
+</body>
+</html>

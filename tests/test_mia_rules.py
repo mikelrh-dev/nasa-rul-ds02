@@ -45,6 +45,32 @@ def test_cada_regla_es_una_tupla_de_cinco_datos():
             assert porque and porque.strip()
 
 
+def test_hay_seis_reglas_de_decision_incluida_la_seguridad():
+    """MIA-2: 6+ reglas de decisión con prioridad, y las de corrección no cuentan."""
+    nombres = [r[0] for r in R.REGLAS_DECISION]
+    assert len(R.REGLAS_DECISION) >= 6
+    assert "R1_SEGURIDAD" in nombres
+    assert not any(n.startswith(("R2b", "R6")) for n in nombres)
+
+
+def test_una_ficha_incompleta_no_decide_y_lo_traza():
+    """Sin límite inferior no se clasifica: R10 lo dice en vez de caer al silencio."""
+    caso = {"umbrales": {"apto": 30.0, "hangar": 25.0}, "alertas_datos": []}
+    r = motor(caso, R.REGLAS_CORRECCION, R.REGLAS_DECISION)
+    assert r["decision"] == R.SIN_DECISION
+    assert "R10_DATOS_INSUFICIENTES" in r["usadas"]
+    assert caso["motivo"]
+
+
+def test_unos_umbrales_invertidos_no_clasifican():
+    """`hangar >= apto` es error de configuración, no una decisión arbitraria."""
+    caso = {"limite_inferior": 27.0, "umbrales": {"apto": 20.0, "hangar": 30.0},
+            "alertas_datos": []}
+    r = motor(caso, R.REGLAS_CORRECCION, R.REGLAS_DECISION)
+    assert r["decision"] == R.SIN_DECISION
+    assert "R11_UMBRALES_INCOHERENTES" in r["usadas"]
+
+
 def test_el_motor_devuelve_decision_usadas_y_porque():
     caso = ficha_invalida()
     r = motor(caso, R.REGLAS_CORRECCION, R.REGLAS_DECISION)

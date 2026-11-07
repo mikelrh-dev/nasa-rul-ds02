@@ -112,11 +112,13 @@ def registrar(registro: dict, twin: dict, reemplazar: bool = False) -> dict:
 
 
 def eliminar(registro: dict, engine_id: str) -> dict:
+    """Devuelve el registro sin el gemelo indicado; no muta la entrada."""
     engine_id = normalizar_id(engine_id)
     return {k: v for k, v in registro.items() if k != engine_id}
 
 
 def obtener(registro: dict, engine_id: str) -> dict | None:
+    """Busca un gemelo por su identificador normalizado."""
     return registro.get(normalizar_id(engine_id))
 
 

@@ -38,7 +38,7 @@
     "ensemble": "models\\ensemble.joblib",
     "ensemble_sha256": "d6c701429eed8623a9d900d922aca1922427d08ff8b4ec00604b8116c1a952dd",
     "manifest": "models\\ds02_manifest.json",
-    "manifest_sha256": "bdff6ff12454cd53a780e677ded504d153864142b283a0f1f988c3140fd64f9c",
+    "manifest_sha256": "1085dd67aed8179174996f3939bd7715f757f954a822d440a093dd847d3eb8c9",
     "paradigm": "Hybrid Stacking (BiLSTM triple-pooling + LGBM residualizado + RidgeCV/LGBM meta + EMA5)",
     "beta": 1.0,
     "ema_span": 5,

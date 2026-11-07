@@ -31,6 +31,7 @@ def motor(caso: dict, reglas_correccion: list, reglas_decision: list,
     porque: list[str] = []
 
     def se_cumple(regla) -> bool:
+        """Una condición que no encuentra su clave cuenta como no cumplida."""
         try:
             return bool(regla[1](caso))
         except KeyError:

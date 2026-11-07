@@ -55,6 +55,7 @@ def _datos():
 
 
 def hay_cache() -> bool:
+    """¿Están la telemetría y las ventanas cacheadas para la app?"""
     return os.path.exists(ROWS_PATH) and os.path.exists(WINDOWS_PATH)
 
 
@@ -144,6 +145,7 @@ def probar_casos(reglas_correccion: list, reglas_decision: list,
 
 
 def main() -> None:
+    """Imprime los casos de la partición de test con su decisión y su traza."""
     from src.mia.motor import motor, resumen
     from src.mia.reglas import REGLAS_CORRECCION, REGLAS_DECISION
 

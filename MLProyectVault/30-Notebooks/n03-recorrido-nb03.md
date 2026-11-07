@@ -11,11 +11,11 @@ tags:
 # NB03 — Features secuenciales y ablación de cyc_norm
 
 > [!abstract] En una frase
-> Trece celdas que responden una pregunta con un número: ¿el reloj `cyc_norm` ayuda o es trampa?
+> Catorce celdas que responden una pregunta con un número: ¿el reloj `cyc_norm` ayuda o es trampa?
 
 ## Antes de empezar
 
-13 celdas. Requiere NB02 (el reloj se ablaciona sobre el mejor pipeline). Es el cuaderno corto y quirúrgico: una hipótesis, un experimento, una conclusión escrita.
+14 celdas. Requiere NB02 (el reloj se ablaciona sobre el mejor pipeline). Es el cuaderno corto y quirúrgico: una hipótesis, un experimento, una conclusión escrita.
 
 ## Recorrido celda a celda
 
@@ -23,6 +23,7 @@ tags:
 |---|---|---|---|
 | Glosario 30 segundos | vocabulario | tabla nombre → qué es → dónde vive | leer sin perderse |
 | Ablación `cyc_norm` | con/sin reloj | mide, no afirma | ON en red + OFF en meta: 5.419 → 4.338 |
+| Figura barata (celda 12) | tabla de ablación ya calculada | barras RMSE por variante, sin reentrenar | `resultados/ablacion_cycnorm_rmse.png`; OFF BiLSTM 6.563 / ON 5.796, LGBM OFF 6.297 / ON 7.067 |
 | Siguiente | enlace | continúa en NB04 | la arquitectura que usa el reloj bien |
 
 ## La celda que importa

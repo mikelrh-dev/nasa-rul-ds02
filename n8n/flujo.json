@@ -3,6 +3,21 @@
   "nodes": [
     {
       "parameters": {
+        "content": "## DS02 Decision MIA-3\nLa app predice un caso y manda la decision por webhook.\nAPTO = solo log. INSPECCION = Google Sheets. HANGAR = Postgres + Calendar + Gmail.\nCredenciales: revisar en n8n antes de activar.",
+        "height": 180,
+        "width": 620
+      },
+      "id": "sticky_intro",
+      "name": "Nota intro",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        120,
+        40
+      ]
+    },
+    {
+      "parameters": {
         "httpMethod": "POST",
         "path": "ds02/decision",
         "responseMode": "onReceived",
@@ -12,7 +27,11 @@
       "name": "Webhook ds02/decision",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300]
+      "position": [
+        200,
+        320
+      ],
+      "notes": "Entrada: la app DS02 hace POST con decision, unidad, ciclo, RUL, L_inf, usadas, porque y fingerprint."
     },
     {
       "parameters": {
@@ -21,9 +40,21 @@
           "values": [
             {
               "conditions": {
-                "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
                 "conditions": [
-                  {"id": "c_apto", "leftValue": "={{ $json.decision }}", "rightValue": "APTO", "operator": {"type": "string", "operation": "equals"}}
+                  {
+                    "id": "c_apto",
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "APTO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
                 ],
                 "combinator": "and"
               },
@@ -32,9 +63,21 @@
             },
             {
               "conditions": {
-                "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
                 "conditions": [
-                  {"id": "c_inspeccion", "leftValue": "={{ $json.decision }}", "rightValue": "INSPECCION", "operator": {"type": "string", "operation": "equals"}}
+                  {
+                    "id": "c_inspeccion",
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "INSPECCION",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
                 ],
                 "combinator": "and"
               },
@@ -43,9 +86,21 @@
             },
             {
               "conditions": {
-                "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
                 "conditions": [
-                  {"id": "c_hangar", "leftValue": "={{ $json.decision }}", "rightValue": "HANGAR", "operator": {"type": "string", "operation": "equals"}}
+                  {
+                    "id": "c_hangar",
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "HANGAR",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
                 ],
                 "combinator": "and"
               },
@@ -60,13 +115,22 @@
       "name": "Switch por decision",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
-      "position": [460, 300]
+      "position": [
+        520,
+        320
+      ],
+      "notes": "Switch: una rama por decision. APTO arriba, INSPECCION en medio, HANGAR abajo."
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
-            {"id": "a_log", "name": "log", "value": "={{ 'APTO unidad ' + $json.unidad + ' ciclo ' + $json.ciclo + ': sin accion' }}", "type": "string"}
+            {
+              "id": "a_log",
+              "name": "log",
+              "value": "={{ 'APTO unidad ' + $json.unidad + ' ciclo ' + $json.ciclo + ': sin accion' }}",
+              "type": "string"
+            }
           ]
         },
         "options": {}
@@ -75,12 +139,24 @@
       "name": "APTO Set log",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [680, 140]
+      "position": [
+        880,
+        140
+      ],
+      "notes": "APTO: sin accion externa, solo deja constancia en el log."
     },
     {
       "parameters": {
-        "documentId": {"__rl": true, "value": "DS02 Decisiones", "mode": "name"},
-        "sheetName": {"__rl": true, "value": "Decisiones", "mode": "name"},
+        "documentId": {
+          "__rl": true,
+          "value": "DS02 Decisiones",
+          "mode": "name"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Decisiones",
+          "mode": "name"
+        },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
@@ -101,15 +177,20 @@
       "name": "INSPECCION Google Sheets append",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.2,
-      "position": [680, 300],
-      "credentials": {
-        "googleSheetsOAuth2": {"id": "credencial-local-sheets", "name": "Google Sheets (instancia local)"}
-      }
+      "position": [
+        880,
+        320
+      ],
+      "notes": "INSPECCION: anade la fila en Google Sheets para revision. Revisa la credencial de Sheets."
     },
     {
       "parameters": {
         "operation": "insert",
-        "table": {"__rl": true, "value": "ds02_decisiones", "mode": "name"},
+        "table": {
+          "__rl": true,
+          "value": "ds02_decisiones",
+          "mode": "name"
+        },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
@@ -132,14 +213,19 @@
       "name": "HANGAR Postgres insert",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [680, 460],
-      "credentials": {
-        "postgres": {"id": "credencial-local-postgres", "name": "Postgres (instancia local)"}
-      }
+      "position": [
+        880,
+        500
+      ],
+      "notes": "HANGAR paso 1: inserta la orden en Postgres tabla ds02_decisiones. Revisa la credencial de Postgres."
     },
     {
       "parameters": {
-        "calendarId": {"__rl": true, "value": "primary", "mode": "name"},
+        "calendarId": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "name"
+        },
         "operation": "create",
         "options": {
           "description": "={{ $json.motivo }}",
@@ -150,10 +236,11 @@
       "name": "HANGAR Google Calendar",
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1.2,
-      "position": [900, 460],
-      "credentials": {
-        "googleCalendarOAuth2": {"id": "credencial-local-calendar", "name": "Google Calendar (instancia local)"}
-      }
+      "position": [
+        1160,
+        500
+      ],
+      "notes": "HANGAR paso 2: crea el evento de hangar en Google Calendar. Revisa la credencial de Calendar."
     },
     {
       "parameters": {
@@ -166,28 +253,146 @@
       "name": "HANGAR Gmail",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [1120, 460],
-      "credentials": {
-        "gmailOAuth2": {"id": "credencial-local-gmail", "name": "Gmail (instancia local)"}
-      }
+      "position": [
+        1440,
+        500
+      ],
+      "notes": "HANGAR paso 3: avisa por correo a operaciones. Revisa la credencial de Gmail y el destinatario operaciones@ejemplo.invalid."
+    },
+    {
+      "parameters": {
+        "content": "## Credenciales por revisar\n- Google Sheets (INSPECCION)\n- Postgres (HANGAR)\n- Google Calendar (HANGAR)\n- Gmail (HANGAR)\nEl repo no guarda secretos.",
+        "height": 140,
+        "width": 620
+      },
+      "id": "sticky_creds",
+      "name": "Nota credenciales",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        880,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1 Entrada y decision\nPOST ds02/decision con decision APTO/INSPECCION/HANGAR, unidad, ciclo, RUL, L_inf, usadas, porque y fingerprint. El switch reparte por decision.",
+        "height": 200,
+        "width": 700
+      },
+      "id": "nota_entrada",
+      "name": "Nota entrada",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        140,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## APTO: solo log\nSin accion externa. Deja constancia del caso apto.",
+        "height": 160,
+        "width": 420
+      },
+      "id": "nota_apto",
+      "name": "Nota APTO",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        820,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## INSPECCION: Google Sheets\nAnade fila en DS02 Decisiones / Decisiones para revision.",
+        "height": 160,
+        "width": 420
+      },
+      "id": "nota_inspeccion",
+      "name": "Nota INSPECCION",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        820,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## HANGAR: taller en 3 pasos\n1 Postgres insert ds02_decisiones. 2 Google Calendar evento. 3 Gmail a operaciones.",
+        "height": 160,
+        "width": 900
+      },
+      "id": "nota_hangar",
+      "name": "Nota HANGAR",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        820,
+        440
+      ]
     }
   ],
   "connections": {
     "Webhook ds02/decision": {
-      "main": [[{"node": "Switch por decision", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Switch por decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Switch por decision": {
       "main": [
-        [{"node": "APTO Set log", "type": "main", "index": 0}],
-        [{"node": "INSPECCION Google Sheets append", "type": "main", "index": 0}],
-        [{"node": "HANGAR Postgres insert", "type": "main", "index": 0}]
+        [
+          {
+            "node": "APTO Set log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "INSPECCION Google Sheets append",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HANGAR Postgres insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "HANGAR Postgres insert": {
-      "main": [[{"node": "HANGAR Google Calendar", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "HANGAR Google Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "HANGAR Google Calendar": {
-      "main": [[{"node": "HANGAR Gmail", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "HANGAR Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -198,5 +403,9 @@
     "instanceId": "instancia-local"
   },
   "pinData": {},
-  "tags": [{"name": "DS02 MIA-3"}]
+  "tags": [
+    {
+      "name": "DS02 MIA-3"
+    }
+  ]
 }

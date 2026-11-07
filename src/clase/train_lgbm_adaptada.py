@@ -32,6 +32,7 @@ SEED = 42
 
 
 def entrenar(verbose: bool = True) -> pd.DataFrame:
+    """Entrena LightGBM en la base adaptada y mide el test una sola vez."""
     v = ventanas_adaptadas()
     dev, test = v["dev"], v["test"]
     w_units = dev["meta"]["unit"].to_numpy()

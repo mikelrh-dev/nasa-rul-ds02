@@ -105,6 +105,7 @@ def _m(y_tr, p_tr, y_te, p_te) -> dict:
 
 
 def entrenar_mlp(verbose: bool = True) -> pd.DataFrame:
+    """Entrena base/E1/E2/E3, elige por validación y mide el test una vez."""
     X_tr = pd.read_parquet("data/processed/X_train.parquet")
     y_tr = pd.read_parquet("data/processed/y_train.parquet").values.ravel().astype(float)
     X_te = pd.read_parquet("data/processed/X_test.parquet")

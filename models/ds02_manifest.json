@@ -3,7 +3,7 @@
   "code_version": "clase-bundle-C",
   "dataset": "DS02",
   "seed": 42,
-  "python": null,
+  "python": "3.12.10",
   "tensorflow": "2.21.0",
   "keras": "3.15.1",
   "sklearn": "1.9.1",
@@ -105,6 +105,17 @@
     ],
     "n_calibration": 17450
   },
+  "conformal_decision": {
+    "role": "banda de la pasada de correccion de la capa de reglas (R6); solo se usa cuando aplicar_reglas esta activado, no es la lectura por defecto",
+    "source": "src/mia/calibracion_banda.json",
+    "method": "split-conformal, per predicted-RUL bin, asymmetric",
+    "target_coverage": 0.9,
+    "n_calibration": 14915,
+    "units": [2, 5, 10, 18, 20],
+    "excluded_unit": 16,
+    "excluded_reason": "el meta enviado se ajusta en la unidad 16: sus filas serian in-sample",
+    "note": "el bloque conformal describe la banda interna del artefacto (17450 filas, incluye la unidad 16): es la lectura por defecto de la cache y de los casos nuevos. conformal_decision solo sustituye esos limites cuando R2b/R6 estan activados"
+  },
   "inference_contract": {
     "window_size": 50,
     "beta": 1.0,
@@ -128,6 +139,32 @@
     },
     "beta": 1.0,
     "macro_rmse": 5.0153
+  },
+  "historical_reference": {
+    "role": "referencia historica (bundle B archivado), NO vigente: se conserva para comparar",
+    "model": "Hybrid stacking + EMA causal 5 (bundle B, HDF5 limpio)",
+    "rmse": 4.251,
+    "mae": 3.183,
+    "r2": 0.9482,
+    "nasa_score": 2305.1,
+    "multiseed": {
+      "rmse_mean": 4.34,
+      "rmse_std": 0.101,
+      "nasa_mean": 2347.7,
+      "nasa_std": 49.4,
+      "seeds": [42, 7, 123]
+    },
+    "n_windows": 6196,
+    "macro_rmse": 4.8433,
+    "per_unit_rmse": {
+      "11": 3.7874,
+      "14": 7.9974,
+      "15": 2.7451
+    },
+    "source": "archive/models_b/ds02_manifest.json",
+    "bundle_b_sha256": "7acba3352a2c9aac46b1e95ee4045082a812cd9f947bf791fca4659412d64b1b",
+    "nasa_comparability": "NASA es una suma de exponenciales, no una media: solo es comparable sobre las mismas filas (6196 ventanas). nasa_sin_clamp=1387.3 usa otro recorte y no se compara con 2336.2.",
+    "selection_note": "C (4.338) queda +0.087 RMSE y +31.1 NASA sobre B medido, pero C es el campeon desplegado: es el unico que usa la base imputada del track de clase (ADR-011)."
   },
   "meta_protocol": {
     "fitted_on": "holdout unit 16 (adaptada)",

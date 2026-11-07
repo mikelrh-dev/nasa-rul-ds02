@@ -36,6 +36,30 @@ R2b es corrección isotónica causal: solo puede subir la predicción y como má
 
 Lead time vigente: 9 / 23 / 17 por corte de media y 13 / 23 / 18 por peor ventana. Saturación en ≈60.6 y `L_inf` máximo en ≈36: la decisión vive abajo, no en colas largas.
 
+### Las ocho reglas (dos pasadas)
+
+Ocho reglas en total: 2 de corrección (pasada B) + 6 de decisión (pasada A), definidas en `src/mia/reglas.py:246-271`. Cada pasada aplica una sola vez la regla de mayor prioridad que se cumple.
+
+**Pasada B — corrección (2):**
+
+| Regla | Prioridad | Condición | Efecto / Decisión | Porqué (`src/mia/reglas.py`) |
+|---|---|---|---|---|
+| `R2b_ISOTONICO_CAUSAL` | 2 | Hay `historial` de la misma unidad y `rul_punto` | Sustituye el punto por el extremo del ajuste isotonico causal del prefijo (+ `corregido_por_isotonico=True`) | «la tendencia del desgaste no sube con el ciclo: se toma el extremo del ajuste isotonico causal del historial» |
+| `R6_BANDA` | 1 | Hay `rul_punto` (corregido o no) | Recalibra la banda sobre el punto corregido: `limite_inferior`/`limite_superior` + `banda_recalibrada=True` | «la banda se recalibra sobre el punto ya corregido, no sobre el crudo» |
+
+**Pasada A — decisión (6):**
+
+| Regla | Prioridad | Condición | Efecto / Decisión | Porqué (`src/mia/reglas.py`) |
+|---|---|---|---|---|
+| `R1_SEGURIDAD` | 10 | `alertas_datos` no vacío (dato imposible) | `SIN_DECISION`, motivo «dato imposible, no se decide: …» | «con un dato imposible no se decide nada, tenga el riesgo que tenga» |
+| `R10_DATOS_INSUFICIENTES` | 9 | Datos sanos pero faltan `limite_inferior` o umbrales `apto`/`hangar` | `SIN_DECISION`, motivo «faltan limite inferior o umbrales: no se clasifica» | «sin ficha completa no hay decision posible, y se dice en vez de callarlo» |
+| `R11_UMBRALES_INCOHERENTES` | 8 | Datos sanos, umbrales presentes pero `hangar >= apto` | `SIN_DECISION`, motivo «umbrales incoherentes (hangar >= apto): no se clasifica» | «con la escalera de umbrales invertida cualquier decision seria arbitraria» |
+| `R9_HANGAR` | 3 | Datos y umbrales válidos y `L_inf < hangar` | `HANGAR` | «L_inf por debajo del umbral de hangar: la unidad no vuela» |
+| `R8_INSPECCION` | 2 | Datos y umbrales válidos y `hangar <= L_inf < apto` | `INSPECCION` | «L_inf entre los dos umbrales: inspeccion programada» |
+| `R7_APTO` | 1 | Datos y umbrales válidos y `L_inf >= apto` | `APTO` | «L_inf por encima del umbral de apto: sigue en servicio» |
+
+R1 (prioridad 10) manda sobre cualquier riesgo: un dato imposible anula la decisión. R10 (9) y R11 (8) distinguen ficha incompleta de escalera invertida; sin ellas el motor caía en `SIN_DECISION` por defecto sin decirlo en la traza. La escalera útil es R9 (3) > R8 (2) > R7 (1).
+
 ```mermaid
 flowchart LR
     A[L_inf] --> B{>=30?}

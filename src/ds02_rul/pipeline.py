@@ -44,6 +44,7 @@ LGB_PARAMS = dict(
 
 
 def make_lgbm(seed: int) -> LGBMRegressor:
+    """Rama tabular cuantílica del híbrido con los parámetros fijados."""
     return LGBMRegressor(**LGB_PARAMS, random_state=seed)
 
 
@@ -288,4 +289,5 @@ def ablation_table(raw: dict, seeds=(42,), window: int = 50, step_train: int = 3
 
 
 def nasa(y, p) -> float:
+    """NASA score con la misma convención que las métricas del híbrido."""
     return calculate_nasa_score(y, p)

@@ -17,10 +17,13 @@ class LastStepPooling(layers.Layer):
     """Return the last timestep of a (batch, time, features) tensor."""
 
     def call(self, inputs):
+        """Devuelve la representación del último paso temporal."""
         return inputs[:, -1, :]
 
     def compute_output_shape(self, input_shape):
+        """Forma `(batch, features)` tras descartar la dimensión temporal."""
         return (input_shape[0], input_shape[2])
 
     def get_config(self):
+        """Configuración serializable de la capa sin parámetros."""
         return super().get_config()

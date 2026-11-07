@@ -15,7 +15,7 @@ tags:
 
 ## Antes de empezar
 
-32 celdas. Requiere el HDF5 en `archive/CCMaps/N-CMAPSS_DS02-006.h5` y `pyproject.toml` en la raíz para fijar el `cwd`. Es EDA puro: rápido, sin entrenos. Cubre rúbrica SAA 1–5 (IA débil/supervisada, tabla de sensores, nulos, fase).
+33 celdas. Requiere el HDF5 en `archive/CCMaps/N-CMAPSS_DS02-006.h5` y `pyproject.toml` en la raíz para fijar el `cwd`. Es EDA puro: rápido, sin entrenos. Cubre rúbrica SAA 1–5 (IA débil/supervisada, tabla de sensores, nulos, fase).
 
 ## Recorrido celda a celda
 
@@ -29,6 +29,21 @@ tags:
 | Fig.3 boxplot T48 por fase | sensor crudo | el sensor manda régimen | sin fase se aprende pilotaje (ADR-002) |
 | Fig.4 alt vs Mach por fase | régimen | el plano se corta en bandas coherentes | justifica `fase_vuelo` |
 | Fig.5 heatmap correlación | régimen + sensores + RUL | última fila/columna | qué sensor mira a la RUL |
+| Las dos ligas (celda 18) | filas vs ventanas | tabla fila (52.635/12.538) vs ventana (17.450/6.196) | no se comparan entre ligas; cada una elige su campeón |
+| Nulos MAR / imputación / residualización en vivo (21-26) | T30, ffill+mediana, Ridge alt/Mach/TRA/T2 grado 2 | cálculo en vivo, sin fiarse del CSV | MAR ~1.8% físico; imputación causal sin fuga; residuo = degradación |
+| Fig.6 (27-28) | T48 residualizado por fase | compara con Fig.3 | si el recuadro se achica, el preprocesado quitó régimen |
+| Ventanas honestas (29-30) | 50 lecturas → RUL final | secuencia (50,19) + tabla (93) | `cyc_norm` canal 19; mismo contrato que 04/05 |
+| Cierre (31) | lo aprendido | pregunta para 02 | ¿cuánto explica una sola fila con un modelo barato? |
+| Conclusion (32) | texto exacto del notebook | ver cita abajo | cierra el EDA y pasa a 02 |
+
+**Conclusion (celda 32, texto exacto de `notebooks/01_eda_y_contexto.ipynb`):**
+
+> **Conclusion:**
+> He visto los campos, los nulos y su relacion con RUL y fases (Fig. 1-5).
+> He decidido usar ventanas de 50 y la imputacion causal.
+> La cifra que manda es la que sale en las Fig. 1-6 de este notebook, no la de los modelos.
+> No he re-ejecutado nada: esto es solo texto Markdown.
+> Siguiente paso: 02_modelos_clasicos_y_mlp.ipynb
 
 Las cifras de calidad viven en `src/clase/README.md` (tabla «Nulos antes / Nulos después»).
 

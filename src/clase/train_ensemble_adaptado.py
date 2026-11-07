@@ -83,6 +83,7 @@ def construir_raw_adaptado() -> dict:
     test_imp, _ = imputar_ffill(test_con, medianas_fit, SENSOR_COLS)
 
     def bloque(df: pd.DataFrame) -> dict:
+        """Convierte un parquet imputado al formato crudo adaptado de DS02."""
         df = df.sort_values(["unit", "cycle"]).reset_index(drop=True)
         return {
             "A": df[["unit", "cycle"]].to_numpy(dtype=float),
