@@ -3,13 +3,13 @@
 `payload_desde_traza` reutiliza la traza de `decision_en_vivo`
 (`app/ui_rules.py`): NO re-clasifica (prohibido `L.classify`) y NO incluye
 `X_raw` (numpy, no JSON). `debe_notificar` decide el dedupe por fingerprint:
-HANGAR e INSPECCION notifican; APTO solo deja log local sin POST y
-SIN_DECISION nunca notifica.
+HANGAR, INSPECCION y APTO notifican por POST (apto llega a la rama Set log
+de n8n); SIN_DECISION nunca notifica.
 """
 from __future__ import annotations
 
 UMBRALES_DEFECTO = {"apto": 30.0, "hangar": 25.0}
-DECISIONES_QUE_NOTIFICAN = ("HANGAR", "INSPECCION")
+DECISIONES_QUE_NOTIFICAN = ("HANGAR", "INSPECCION", "APTO")
 
 
 def payload_desde_traza(en_vivo: dict, umbrales: dict | None = None,
@@ -52,8 +52,8 @@ def payload_desde_traza(en_vivo: dict, umbrales: dict | None = None,
 def debe_notificar(decision: str, fingerprint: str, enviadas: set) -> bool:
     """¿Hay que enviar esta decisión por webhook en esta sesión?
 
-    Solo HANGAR e INSPECCION notifican (APTO: log local sin POST;
-    SIN_DECISION: nunca). Un fingerprint ya en `enviadas` no re-envía.
+    HANGAR, INSPECCION y APTO notifican (APTO llega a la rama Set log de
+    n8n); SIN_DECISION nunca. Un fingerprint ya en `enviadas` no re-envía.
     """
     if decision not in DECISIONES_QUE_NOTIFICAN:
         return False

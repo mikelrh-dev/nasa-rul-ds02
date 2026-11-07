@@ -48,7 +48,7 @@
                 "conditions": [
                   {
                     "id": "c_apto",
-                    "leftValue": "={{ $json.decision }}",
+                    "leftValue": "={{ $json.body.decision || $json.decision }}",
                     "rightValue": "APTO",
                     "operator": {
                       "type": "string",
@@ -71,7 +71,7 @@
                 "conditions": [
                   {
                     "id": "c_inspeccion",
-                    "leftValue": "={{ $json.decision }}",
+                    "leftValue": "={{ $json.body.decision || $json.decision }}",
                     "rightValue": "INSPECCION",
                     "operator": {
                       "type": "string",
@@ -94,7 +94,7 @@
                 "conditions": [
                   {
                     "id": "c_hangar",
-                    "leftValue": "={{ $json.decision }}",
+                    "leftValue": "={{ $json.body.decision || $json.decision }}",
                     "rightValue": "HANGAR",
                     "operator": {
                       "type": "string",
@@ -128,7 +128,7 @@
             {
               "id": "a_log",
               "name": "log",
-              "value": "={{ 'APTO unidad ' + $json.unidad + ' ciclo ' + $json.ciclo + ': sin accion' }}",
+              "value": "={{ 'APTO unidad ' + ($json.body.unidad || $json.unidad) + ' ciclo ' + ($json.body.ciclo || $json.ciclo) + ': sin accion' }}",
               "type": "string"
             }
           ]
@@ -160,13 +160,13 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "decision": "={{ $json.decision }}",
-            "unidad": "={{ $json.unidad }}",
-            "ciclo": "={{ $json.ciclo }}",
-            "rul_punto": "={{ $json.rul_punto }}",
-            "limite_inferior": "={{ $json.limite_inferior }}",
-            "motivo": "={{ $json.motivo }}",
-            "fingerprint": "={{ $json.fingerprint }}"
+            "decision": "={{ $json.body.decision || $json.decision }}",
+            "unidad": "={{ $json.body.unidad ?? $json.unidad }}",
+            "ciclo": "={{ $json.body.ciclo ?? $json.ciclo }}",
+            "rul_punto": "={{ $json.body.rul_punto ?? $json.rul_punto }}",
+            "limite_inferior": "={{ $json.body.limite_inferior ?? $json.limite_inferior }}",
+            "motivo": "={{ $json.body.motivo || $json.motivo }}",
+            "fingerprint": "={{ $json.body.fingerprint || $json.fingerprint }}"
           },
           "matchingColumns": [],
           "schema": []
@@ -194,15 +194,15 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "decision": "={{ $json.decision }}",
-            "unidad": "={{ $json.unidad }}",
-            "ciclo": "={{ $json.ciclo }}",
-            "rul_punto": "={{ $json.rul_punto }}",
-            "limite_inferior": "={{ $json.limite_inferior }}",
-            "limite_superior": "={{ $json.limite_superior }}",
-            "motivo": "={{ $json.motivo }}",
-            "artefacto_sha256": "={{ $json.artefacto_sha256 }}",
-            "fingerprint": "={{ $json.fingerprint }}"
+            "decision": "={{ $json.body.decision || $json.decision }}",
+            "unidad": "={{ $json.body.unidad ?? $json.unidad }}",
+            "ciclo": "={{ $json.body.ciclo ?? $json.ciclo }}",
+            "rul_punto": "={{ $json.body.rul_punto ?? $json.rul_punto }}",
+            "limite_inferior": "={{ $json.body.limite_inferior ?? $json.limite_inferior }}",
+            "limite_superior": "={{ $json.body.limite_superior ?? $json.limite_superior }}",
+            "motivo": "={{ $json.body.motivo || $json.motivo }}",
+            "artefacto_sha256": "={{ $json.body.artefacto_sha256 || $json.artefacto_sha256 }}",
+            "fingerprint": "={{ $json.body.fingerprint || $json.fingerprint }}"
           },
           "matchingColumns": [],
           "schema": []
@@ -228,8 +228,8 @@
         },
         "operation": "create",
         "options": {
-          "description": "={{ $json.motivo }}",
-          "summary": "={{ 'HANGAR DS02 unidad ' + $json.unidad + ' ciclo ' + $json.ciclo }}"
+          "description": "={{ $json.body.motivo || $json.motivo }}",
+          "summary": "={{ 'HANGAR DS02 unidad ' + ($json.body.unidad || $json.unidad) + ' ciclo ' + ($json.body.ciclo || $json.ciclo) }}"
         }
       },
       "id": "calendar_hangar",
@@ -245,8 +245,8 @@
     {
       "parameters": {
         "sendTo": "operaciones@ejemplo.invalid",
-        "subject": "={{ 'HANGAR DS02 unidad ' + $json.unidad + ' ciclo ' + $json.ciclo }}",
-        "message": "={{ $json.motivo }}",
+        "subject": "={{ 'HANGAR DS02 unidad ' + ($json.body.unidad || $json.unidad) + ' ciclo ' + ($json.body.ciclo || $json.ciclo) }}",
+        "message": "={{ $json.body.motivo || $json.motivo }}",
         "options": {}
       },
       "id": "gmail_hangar",

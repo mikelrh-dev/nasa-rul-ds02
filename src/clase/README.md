@@ -2,13 +2,13 @@
 
 > **Español** | [English](../../README.en.md)
 
-Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir de telemetría y propone APTO / INSPECCIÓN / HANGAR. **El mejor MLP de clase (E2, elegido por validación) logra RMSE 7.72 en test (val 7.34; uds 11/14/15); el híbrido desplegado (BiLSTM + LightGBM + stacking sobre la base con nulos tratados) está en 4.338 (media multiseed 4.368+-0.053; NB05: 4.330+-0.053).**
+Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir de telemetría y propone APTO / INSPECCIÓN / HANGAR. **El mejor MLP de clase (E2, elegido por validación) logra RMSE 7.72 en test (val 7.34; uds 11/14/15); el híbrido desplegado (BiLSTM + LightGBM + stacking sobre la base con nulos tratados) está en 4.338 (media multiseed 4.322+-0.064 en NB06; NB05: 4.330+-0.053).**
 
 ![Real vs predicho del mejor clásico](../../docs/assets/clasicos_real_vs_pred.png)
 
 *Real vs predicho en test (2.000 puntos) del mejor clásico elegido por validación: la fila ordena el desgaste, pero se dispersa en RUL alta. Es la evidencia didáctica de por qué el track necesita ventanas; la app de producción usa el bundle C.*
 
-**Herramientas:** Python · pandas · matplotlib · scikit-learn · XGBoost · LightGBM · Streamlit · SHAP (MLflow y n8n pendientes, declarados abajo).
+**Herramientas:** Python · pandas · matplotlib · scikit-learn · XGBoost · LightGBM · Streamlit · SHAP (MLflow pendiente; n8n implementado en `src/n8n.py` y `n8n/flujo.json`).
 
 ---
 
@@ -16,7 +16,7 @@ Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a part
 
 Taller MRO con flota DS02: un motor parado en pista cuesta decenas de miles de euros al día; una inspección a tiempo cuesta una fracción. Hoy la decisión de hangar depende de juicio experto sin número.
 
-**Objetivo:** predecir la RUL de cada motor para que el jefe de taller decida APTO (sigue volando) / INSPECCIÓN (revisar en la próxima parada) / HANGAR (inmovilizar ya), con la predicción convertida en decisión por reglas y, más adelante, en acción automática vía n8n.
+**Objetivo:** predecir la RUL de cada motor para que el jefe de taller decida APTO (sigue volando) / INSPECCIÓN (revisar en la próxima parada) / HANGAR (inmovilizar ya), con la predicción convertida en decisión por reglas y en acción automática vía n8n (flujo incluido, inactivo por defecto).
 
 | | |
 |---|---|
@@ -34,13 +34,13 @@ graph LR
 
     A[Telemetría DS02] --> B[Modelo: RUL]
     B --> C[Reglas: APTO/INSPECCIÓN/HANGAR]
-    C --> D[n8n pendiente]
+    C --> D[n8n MIA 3]
     D --> E[Orden de taller]
 ```
 
-El modelo estima ciclos restantes. Las reglas (`src/mia/`, 6 con prioridad + seguridad R1) deciden sobre la estimación. n8n (MIA 3, siguiente change) llevará cada decisión a su acción (HANGAR → Postgres+Calendar+correo, INSPECCIÓN → Sheets, APTO → log).
+El modelo estima ciclos restantes. Las reglas (`src/mia/`, 6 con prioridad + seguridad R1) deciden sobre la estimación. n8n (MIA 3, flujo incluido e inactivo por defecto) lleva cada decisión a su acción (HANGAR → Postgres+Calendar+correo, INSPECCIÓN → Sheets, APTO → log).
 
-**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer). MLflow y n8n se añaden en el change siguiente.
+**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer). MLflow queda pendiente; n8n ya está incluido (`src/n8n.py` + `n8n/flujo.json`).
 
 ## Los datos
 
@@ -120,11 +120,11 @@ flowchart LR
 **Modelo elegido del track de clase: MLP E2 (val 7.34; test 7.72 en lectura única).** No es el más rápido (XGB entrena en 7 s frente a 33 s) y se elige igualmente: RMSE manda porque un fallo gordo (motor parado) cuesta órdenes de magnitud más que segundos de CPU; a igualdad de RMSE se preferiría el más simple. Ese es el campeón **de clase**; el modelo
 que entra en producción, y el que defiende el reto, es el bundle C (4.338), no E2.
 
-**Modelo desplegado (bundle C):** híbrido BiLSTM + LightGBM + stacking + EMA sobre la base adaptada (MAR T30 + ffill con medianas de fit-units), RMSE 4.338 / NASA 2336.2 (test uds 11/14/15), media multiseed 4.368+-0.053 en NB06 (grano ventana test 6196; NB05 protocolo OOF da 4.330+-0.053). El híbrido es el "extra no visto en clase" del criterio SAA 6. El manifiesto declara la variante de datos, la partición de motores y las huellas SHA: el despliegue se audita desde el artefacto.
+**Modelo desplegado (bundle C):** híbrido BiLSTM + LightGBM + stacking + EMA sobre la base adaptada (MAR T30 + ffill con medianas de fit-units), RMSE 4.338 / NASA 2336.2 (test uds 11/14/15), media multiseed 4.322+-0.064 en NB06 (grano ventana test 6196; NB05 protocolo OOF da 4.330+-0.053). El híbrido es el "extra no visto en clase" del criterio SAA 6. El manifiesto declara la variante de datos, la partición de motores y las huellas SHA: el despliegue se audita desde el artefacto.
 
 **Test (una lectura, solo el elegido):** MLP E2 RMSE 7.72 · MAE 5.81 · R² 0.83. Híbrido desplegado RMSE 4.338 · MAE 3.227 · R² 0.9461.
 
-**Estabilidad entre semillas:** 42, 7 y 123 dan RMSE 4.368+-0.053 y NASA 2355.2+-24.6
+**Estabilidad entre semillas:** 42, 7 y 123 dan RMSE 4.322+-0.064 y NASA 2342.3+-43.4 en NB06 (NB05: 4.330+-0.053 / 2343.2+-24.1)
 (`resultados/comparativa_c_multisemilla.csv`); la 42 es la del bundle desplegado, así que ese ± es la cota de ruido para leer cualquier diferencia. Evidencia: `resultados/bundle_c_multiseed.csv`, `resultados/comparativa_bundle_c.csv`.
 
 ![Real vs predicho](../../docs/assets/mlp_real_vs_pred.png)
@@ -139,7 +139,7 @@ que entra en producción, y el que defiende el reto, es el bundle C (4.338), no 
 BiLSTM y meta) sobre 200 filas de validación del fold-0, con aditividad comprobada
 a ~1e-6. Es el SHAP que se defiende; el de XGB de arriba describe el track de clase.
 
-**Pendiente declarado (no hecho en este change):** registro MLflow + capturas MLflow y flujo n8n. La tabla comparativa es `resultados/comparativa.csv` (pandas).
+**Pendiente declarado:** registro MLflow + capturas MLflow. El flujo n8n ya está incluido en `n8n/flujo.json`. La tabla comparativa es `resultados/comparativa.csv` (pandas).
 
 ## Tests
 
@@ -158,10 +158,10 @@ notebooks/              01_eda_y_contexto.ipynb, 02_modelos_clasicos_y_mlp.ipynb
                         (todos con outputs; corresponden al `notebooks/` pedido en la spec del reto)
 models/                 bundle desplegado (C): ensemble.joblib, bilstm_ds02.keras, scaler.joblib,
                         ds02_manifest.json (+ mejor_modelo_clase.joblib, el elegido de clase)
-n8n/                    flujo.json (placeholder MIA 3)
+n8n/                    flujo.json (flujo MIA 3: webhook → switch APTO/INSPECCION/HANGAR)
 resultados/             eda_*.png, comparativa.csv, mlp_*.png/csv, importancia_*.png/csv, shap_*.png/csv
 src/reglas.py           re-export de src.mia.reglas (6 reglas + seguridad)
-src/n8n.py              stub (levanta NotImplementedError hasta el change n8n)
+src/n8n.py              cliente del webhook n8n (urllib, timeout 5 s, nunca lanza a la UI)
 app/ui_shap.py          SHAP en la app de producción (TreeExplainer, global + waterfall)
 app/dashboard_ds02.py   app de producción: evalúa el modelo desplegado (bundle C) en test, predice casos nuevos
                         con decisión de reglas y muestra la p (RUL) junto a la decisión (PIA-5; los modelos de clase
