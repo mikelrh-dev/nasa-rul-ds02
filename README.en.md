@@ -16,11 +16,25 @@ A BiLSTM over ordered windows and a quantile LightGBM over residualised tabular
 features are reconciled by a learned meta-learner, shrunk towards the champion by
 a factor `beta`, and smoothed with a causal per-unit EMA.
 
-```
-docker compose up --build      # http://localhost:8000/docs and http://localhost:8501
+```bash
+uvicorn app.api:app --host 127.0.0.1 --port 8000    # http://localhost:8000/docs
+streamlit run app/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
 ```
 
 ---
+
+## Data
+
+65,173 downsampled rows (STRIDE 100), 9 engines, train = dev (52,635, units 2/5/10/18/20/16), test = units 11/14/15 (12,538, single read). See `src/clase/README.md` for the full field table.
+
+| Column | Removed from | Why | Bulk | Evidence (path:line) |
+|---|---|---|---|---|
+| `unit` | `X` / `FEATURE_COLS` (not a predictor) | It is the split and GroupKFold group, not a physical reading: using it would leak by engine. | 65,173 rows, 9 engines (52,635 train with 6 units, 12,538 test with 3 units 11/14/15) | `src/clase/pipeline_clase.py:7`, `src/clase/pipeline_clase.py:22-24`, `src/clase/dataset_clase.py:201-209` |
+| `RUL` | `X` (kept as `y`) | It is the supervised target: predicting it while using it as input would leak. | 65,173 rows, range 0–88 cycles | `src/clase/dataset_clase.py:59` |
+| `split_origen` | `X_train` / `X_test` (kept in `train.parquet`/`test.parquet`) | Traceability only (train/test), not physics nor a predictor. | 65,173 rows (52,635 `train` + 12,538 `test`) | `src/clase/dataset_clase.py:60` |
+| `fase_vuelo` | Deployed bundle C (93 features) — **not** from the class track | The class track uses it (19 numeric + 1 OneHot categorical); the bundle-C contract (93) is residualised/windowed without that categorical. | 65,173 rows, 3 categories (Descenso 28,999 / Ascenso 18,595 / Crucero 17,579) | `src/clase/pipeline_clase.py:23-24`, `src/clase/ventanas_adaptadas.py:6` |
+
+No dataset field is discarded. `unit` never enters as a predictor (it is the split group) and `RUL` is the target; `fase_vuelo` is the new class-track categorical and the deployed bundle does not use it (93 features without it).
 
 ## Results — test units 11 / 14 / 15, 6 196 windows, mean ± std over seeds [42, 7, 123]
 
@@ -386,7 +400,7 @@ root filenames.
   shrinkage is poorly determined at the top of its range.
 - The BiLSTM is compute-bound on CPU (~165 s per fit) and its seed variance
   (±0.67 RMSE) is larger than most differences the pipeline is asked to resolve.
-- Docker images are defined and `docker compose config` parses, but the image was
-  not built or run in this environment.
+- No container image is shipped: Docker is deliberately out of scope for this
+  project, which runs from the virtualenv.
 - `STRIDE = 100` means a 50-row window spans **0.44 flight cycles**, not 50
   cycles. The name elsewhere in the code overstates the horizon.

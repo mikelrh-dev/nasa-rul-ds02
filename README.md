@@ -31,11 +31,51 @@ Un BiLSTM sobre ventanas ordenadas y un LightGBM cuantílico sobre features
 tabulares residualizadas se reconcilian por un meta-learner aprendido, encogido
 hacia el campeón por un factor `beta`, y suavizado con una EMA causal por motor.
 
-```
-docker compose up --build      # http://localhost:8000/docs y http://localhost:8501
+```bash
+uvicorn app.api:app --host 127.0.0.1 --port 8000    # http://localhost:8000/docs
+streamlit run app/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
 ```
 
 ---
+
+## Los datos
+
+65.173 filas downsampleadas (STRIDE 100), 9 motores, train = dev (52.635, uds 2/5/10/18/20/16), test = uds 11/14/15 (12.538, una sola lectura). Detalle en `src/clase/README.md` y `notebooks/01_eda_y_contexto.ipynb`.
+
+| Campo | Qué significa | Tipo | Nulos antes | Nulos después |
+|---|---|---|---|---|
+| `unit` | Motor (grupo, no predictor) | numérica | 0% | 0% |
+| `cycle` | Ciclo de vuelo | numérica | 0% | 0% |
+| `alt, Mach, TRA, T2` | Régimen de vuelo | numéricas | 0% | 0% |
+| `T24` | Temp. salida LPC (°R) | numérica | 0% | 0% |
+| `T30` | Temp. salida HPC (°R), sonda con dropout | numérica | ~1.8% MAR (crucero alto) | 0% tras ffill+mediana |
+| `T48` | Temp. salida HPT (°R) | numérica | 0% | 0% |
+| `T50` | Temp. salida LPT (°R) | numérica | 0% | 0% |
+| `P15` | Presión sangrado (psia) | numérica | 0% | 0% |
+| `P2` | Presión entrada fan (psia) | numérica | 0% | 0% |
+| `P21` | Presión salida LPC (psia) | numérica | 0% | 0% |
+| `P24` | Presión salida HPC (psia) | numérica | 0% | 0% |
+| `Ps30` | Presión estática HPC (psia) | numérica | 0% | 0% |
+| `P40` | Presión total HPT (psia) | numérica | 0% | 0% |
+| `P50` | Presión total LPT (psia) | numérica | 0% | 0% |
+| `Nf` | RPM del fan | numérica | 0% | 0% |
+| `Nc` | RPM del núcleo | numérica | 0% | 0% |
+| `Wf` | Caudal combustible (pps) | numérica | 0% | 0% |
+| `fase_vuelo` | Ascenso/Crucero/Descenso (nueva, de alt/Mach) | categórica | 0% | 0% |
+| `RUL` | **Objetivo:** ciclos restantes | numérica | 0% (nunca se inyecta) | 0% |
+
+**Calidad:** 0 duplicados funcionales; Mach en [0.33,0.74], alt en [10k,35k] (el 30k/0.8 teórico no existe en DS02: 0 filas, por eso los umbrales MAR son 27k/0.68). Nulos MAR con patrón físico (dropout de T30 en crucero alto) → imputación ffill causal por unidad + mediana de train (solo primer NaN). Split por motor, nunca por fila.
+
+**Campos quitados (qué sale del modelo, por qué y grueso).**
+
+| Campo | Sale de | Por qué | Grueso | Evidencia (path:línea) |
+|---|---|---|---|---|
+| `unit` | `X` / `FEATURE_COLS` (no es predictor) | Es el grupo del split por motor y de GroupKFold, no una lectura física: meterla permitiría fuga por motor. | 65.173 filas, 9 motores (52.635 train con 6 uds, 12.538 test con 3 uds 11/14/15) | `src/clase/pipeline_clase.py:7`, `src/clase/pipeline_clase.py:22-24`, `src/clase/dataset_clase.py:201-209` |
+| `RUL` | `X` (queda como `y`) | Es el objetivo supervisado: predecirlo usándolo como entrada sería fuga. | 65.173 filas, rango 0–88 ciclos | `src/clase/dataset_clase.py:59` |
+| `split_origen` | `X_train` / `X_test` (queda en `train.parquet`/`test.parquet`) | Solo trazabilidad train/test, no física ni predictor. | 65.173 filas (52.635 `train` + 12.538 `test`) | `src/clase/dataset_clase.py:60` |
+| `fase_vuelo` | Bundle desplegado C (93 features) — **no** del track de clase | El track de clase sí la usa (19 numéricas + 1 categórica OneHot); el contrato 93 del bundle C es residualizado/ventanado sin categórica. | 65.173 filas, 3 categorías (Descenso 28.999 / Ascenso 18.595 / Crucero 17.579) | `src/clase/pipeline_clase.py:23-24`, `src/clase/ventanas_adaptadas.py:6` |
+
+No se descarta ningún campo del dataset. `unit` no entra como predictor (es el grupo del split) y `RUL` es el objetivo; `fase_vuelo` es la categórica nueva del track de clase y el bundle desplegado no la usa (93 features sin ella).
 
 ## Arquitectura del híbrido
 

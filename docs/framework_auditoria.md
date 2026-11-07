@@ -24,7 +24,7 @@
 | `STACK` | Python 3.12 · TF/Keras · LightGBM · scikit-learn · FastAPI · Streamlit | qué se instala y cómo se ejecuta |
 | `PY` | `.venv/Scripts/python.exe` (Windows) | intérprete único de la auditoría |
 | `TEST_CMD` | `python -m pytest tests -q -rs` | puerta G1 |
-| `BUILD_CMD` | `docker compose build` | puerta G1 (opcional si hay Docker) |
+| `BUILD_CMD` | n/a — este proyecto no usa contenedores | puerta G1 (solo `TEST_CMD`) |
 | `ARTIFACTOS` | `models/ensemble.joblib`, `bilstm_ds02.keras`, `scaler.joblib`, `ds02_manifest.json` | tier C y puerta G3 |
 | `MANIFIESTO` | `models/ds02_manifest.json` | fuente de cifras y hashes |
 | `CIFRAS_AUTORITATIVAS` | `MLProyectVault/50-Evidencia/e00-cifras-autoritativas.md` | cruce número a número |
@@ -159,6 +159,10 @@ silencio no.
 ### C. Build, empaquetado y despliegue
 
 *Pregunta: ¿lo que se despliega es lo que se audita?*
+
+> **En este repo: NO APLICA.** No se publica imagen ni compose (decisión 2026-11-07: el
+> proyecto no lleva contenedores). El bloque se conserva como método para otros proyectos;
+> en §9 la fila C está marcada n/a.
 
 1. `Dockerfile`: base fijada, dependencias del sistema (p. ej. `libgomp1`),
    usuario no-root, `.dockerignore`, tamaño de contexto.
@@ -535,17 +539,17 @@ Rutas que el framework debe mirar aquí, sin sustituir los bloques:
 | --- | --- |
 | A | `git ls-files`, `app/`, `src/{clase,ds02_rul,mia}`, `tests/`, `scripts/`, `notebooks/`, `docs/`, `MLProyectVault/`, `archive/` |
 | B | `pyproject.toml`, `requirements.txt`, `.python-version`, `.venv`, `.github/workflows/ci.yml` |
-| C | `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `.github/workflows/ci.yml` |
+| C | n/a: el proyecto no llevará contenedores (decisión 2026-11-07); mirar `.github/workflows/ci.yml` |
 | D | `src/ds02_rul/*`, `src/clase/*`, `app/ui_modulos/*`, `src/utils.py`, `src/reglas.py` |
 | E | `src/clase/dataset_clase.py`, `src/ds02_rul/{data,features,residualizer,pipeline}.py`, `data/processed/auditoria_nulos.json` |
 | F | `src/ds02_rul/{model,stacking,ensemble,smoothing,conformal,metrics}.py`, `src/clase/train_*` |
 | G | `models/ds02_manifest.json`, `resultados/*.csv`, `README.md`, `docs/informes/`, `MLProyectVault/50-Evidencia/e00-cifras-autoritativas.md` |
-| H | `models/README.md`, `src/ds02_rul/persistence.py`, `app/cache/cache_manifest.json` |
+| H | `models/README.md`, `src/ds02_rul/persistence.py`, `app/cache/cache_manifest.json`, `src/mia/instrumento_oof.npz` (instrumento OOF versionado, ADR-012) |
 | I | `src/mia/{reglas,motor,casos,modelo}.py`, `src/mia/calibracion_banda.json`, `models/alarm_policy.json` |
 | J | `app/api.py`, `tests/test_security_api.py` |
 | K | `app/{dashboard_ds02,streamlit_app,ui_*}.py`, `app/ui_modulos/*`, `app/registros_sesiones*` |
 | L | `n8n/`, `src/n8n.py`, `app/ui_n8n.py`, `tests/test_n8n_decision.py` |
-| M | `tests/` (37 ficheros), `scripts/verify_gate.py`, `scripts/freeze_rules_evidence.py` |
+| M | `tests/` (38 ficheros), `scripts/verify_gate.py`, `scripts/freeze_rules_evidence.py`, `scripts/freeze_oof_instrument.py` |
 | N | `README.md`, `README.en.md`, `docs/`, `openspec/`, `src/clase/README.md`, `scripts/README.md` |
 | O | `costes_reales_aeronauticos.md`, `docs/informe_estrat_gico_y_arquitectura_mro_ds02.md`, `models/psi_reference.json` |
 | P | `README.md` («Qué hemos construido»), ADRs, `docs/defensa/` |
@@ -561,7 +565,9 @@ Si el manifiesto dice otra cosa, **manda el manifiesto**.
 
 - G0 incluye `manifest_sha256` de `app/cache/cache_manifest.json` contra el
   SHA real de `models/ds02_manifest.json`.
-- G1 espera que los únicos skips sean los que exigen `_p1_oof_cache.npz`.
+- G1 espera **cero skips**: los tests que dependían de `_p1_oof_cache.npz` corren
+  contra el instrumento versionado `src/mia/instrumento_oof.npz` (ADR-012). Un
+  skip que reaparezca es hallazgo, no ruido.
 - G3 incluye la lista negra de cifras de `e00-cifras-autoritativas.md`.
 - MIA-3 sin instancia n8n: techo 7, declarado.
 

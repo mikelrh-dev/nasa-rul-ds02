@@ -24,7 +24,9 @@ context: |
            `scaler.joblib`, `bilstm_ds02.keras`, `ds02_manifest.json`). Root-level
            `ensemble.joblib`/`scaler.joblib` copies are gitignored leftovers, never
            the contract. The FD001 v3 bundle is `models/v3_bundle.joblib`, served by
-           `scripts/predict.py`.
+           `scripts/predict.py`, which still points at the old `models/` path after the
+           2026-11-07 archive (audit finding C-01); the file now lives in
+           `archive/fd001-legacy-20261107/v3_bundle.joblib`.
   Metrics: RMSE, MAE, R^2 and the NASA scoring function — which is a SUM of
            asymmetric exponentials, exp(-d/13) when RUL is underestimated and
            exp(d/10) when it is overestimated, and applies NO 125-cycle clamp on

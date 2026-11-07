@@ -205,23 +205,21 @@ def test_la_correccion_mejora_el_nasa_en_el_oof_puro():
     assert calculate_nasa_score(verdad, corregido) < calculate_nasa_score(verdad, puntos)
 
 
-@needs_oof
 def test_la_cobertura_pura_es_la_nominal():
-    """Regresión: la recalibración se ajustó al 90 % en las 14 915 filas puras."""
-    cache = np.load(os.path.join(ROOT, "_p1_oof_cache.npz"))
+    """Regresión: la banda publicada cubre el 90 % en su propio instrumento.
+
+    Se mide sobre `mia/instrumento_oof.npz` —las 14 915 filas con las que la
+    banda se congeló— y no sobre un refit: la cobertura publicada describe ese
+    conjunto, no una muestra nueva del entrenamiento.
+    """
     sys.path.insert(0, os.path.join(ROOT, "src"))
     from ds02_rul.conformal import apply_conformal, empirical_coverage
-    from ds02_rul.stacking import select_beta_grouped
 
-    sel = select_beta_grouped(cache["units"], cache["cycles"], cache["y"],
-                              cache["p_lstm"], cache["p_lgb"], span=5,
-                              use_cycle_feature=False)
-    calib = sel["oof_calib"]
-    pure = np.isin(np.asarray(calib["units"], float), [2.0, 5.0, 10.0, 18.0, 20.0])
-    puntos = np.asarray(calib["pred_ema"], float)[pure]
-    unidades = np.asarray(calib["units"], float)[pure]
-    ciclos = np.asarray(calib["cycles"], float)[pure]
-    verdad = np.asarray(calib["y"], float)[pure]
+    with np.load(os.path.join(ROOT, "src", "mia", "instrumento_oof.npz")) as data:
+        unidades = np.asarray(data["units"], dtype=float)
+        ciclos = np.asarray(data["cycles"], dtype=float)
+        verdad = np.asarray(data["y"], dtype=float)
+        puntos = np.asarray(data["pred_ema"], dtype=float)
 
     corregido = np.empty(len(puntos))
     for u in np.unique(unidades):

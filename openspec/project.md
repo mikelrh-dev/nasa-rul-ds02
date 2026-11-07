@@ -52,6 +52,7 @@ DS02 artifact path.
 │   ├── build_02_notebook.py        # generator for the DS02 notebook (pure nbformat)
 │   ├── build_ui_cache.py           # DSS cache builder (app/cache)
 │   ├── freeze_rules_evidence.py    # gate for the rules-layer figures (RULES-06)
+│   ├── freeze_oof_instrument.py    # derives/verifies the tracked OOF instrument
 │   ├── extract_legacy_artifact.py  # weight extraction (must run under Python 3.10)
 │   ├── repackage_artifact.py       # portable bundle from legacy weights (Python 3.10)
 │   ├── ablate_meta_cycle.py        # measures what the cycle counter buys
@@ -103,7 +104,11 @@ reading remains the one that reproduces `models/ds02_manifest.json`.
 The calibration (`mia/calibracion_banda.json`) is frozen on 14 915 pure OOF rows
 (units 2, 5, 10, 18, 20; unit 16 excluded as in-sample), with coverage 0.9012 in
 OOF and 1.0000 on the test panel. `python scripts/freeze_rules_evidence.py`
-recomputes every figure and exits non-zero on drift. See
+verifies those rows against the shipped band through the tracked instrument
+`mia/instrumento_oof.npz` (coverage 0.9016) and exits non-zero on drift; the OOF
+table needs a git-ignored cache, so it is reported rather than asserted, and
+`--cache PATH` re-derives it
+([ADR-012](../docs/decisions/ADR-012-verify-the-band-against-a-frozen-instrument.md)). See
 [ADR-009](../docs/decisions/ADR-009-r2b-is-an-isotonic-fit-not-a-monotonicity-rule.md)
 and the [rules-engine spec](changes/2026-10-21-ds02-rules-layer/specs/ds02-rules-engine/spec.md).
 

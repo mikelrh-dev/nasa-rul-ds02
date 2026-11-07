@@ -1028,7 +1028,7 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
             ))
             _fig.add_trace(go.Scatter(
                 x=_curva["cycle"], y=_curva["lower_media"], mode="lines",
-                line=dict(width=0), name="Banda 90 %", fill="tonexty",
+                line=dict(width=0), name="objetivo 90 % · cobertura medida", fill="tonexty",
                 fillcolor="rgba(56,189,248,0.18)", hoverinfo="skip",
             ))
             _fig.add_trace(go.Scatter(

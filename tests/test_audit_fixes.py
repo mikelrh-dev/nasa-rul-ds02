@@ -54,13 +54,12 @@ def _sha256(path: str) -> str:
 
 
 # ---------------------------------------------------------------- 1. gate
-@needs_oof
 def test_el_gate_no_toca_el_json_si_las_cifras_derivan():
     """`--write` verifica primero: una figura movida sale con 4 y sin escritura."""
     antes = _sha256(CALIBRACION)
-    malo = dict(G.EXPECTED, rmse_r2b=G.EXPECTED["rmse_r2b"] + 5e-3)
+    malo = {"pure_rows": 14914}
     salida = io.StringIO()
-    assert G.run(malo, write=True, stream=salida) == 4
+    assert G.run(malo, write=True, instrument=True, stream=salida) == 4
     texto = salida.getvalue()
     assert "refusing to re-freeze" in texto
     assert "untouched" in texto

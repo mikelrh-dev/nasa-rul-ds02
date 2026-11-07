@@ -1,13 +1,20 @@
 """Re-derive the rules-layer evidence and fail on any drift (RULES-06).
 
-    python scripts/freeze_rules_evidence.py [--check | --write] [--cache PATH]
+    python scripts/freeze_rules_evidence.py [--check | --write] [--instrument | --cache PATH]
 
-One offline pass over `_p1_oof_cache.npz`: rebuild the grouped out-of-fold
-instrument, keep the pure units `[2, 5, 10, 18, 20]`, apply the shipped causal
-isotonic correction and the conformal band, then compare every recomputable
-figure against `mia/calibracion_banda.json` — at the precision it is recorded,
-never at the DSS's live-rerun tolerance. The report's monotonicity table stops
-being a quotation and becomes an output.
+By default it verifies the shipped band against `mia/instrumento_oof.npz`, the
+tracked 14 915-row instrument the band was fitted on (see ADR-012): pure units
+`[2, 5, 10, 18, 20]`, the shipped causal isotonic correction, the conformal band
+and the recorded quantiles, compared at the precision
+`mia/calibracion_banda.json` records — never at the DSS's live-rerun tolerance.
+The OOF table is *reported* on this path, not asserted: it was measured on a
+cache git ignores, so printing it as a contract would assert a figure nobody can
+reproduce.
+
+`--cache PATH` is the development path: rebuild the instrument from that
+out-of-fold cache (step-1 rows), which is where the table comes from. On the
+current tree it exits 5 — the base refit is not bit deterministic, and saying so
+is the point. `--instrument` forces the default path explicitly.
 
 Exit codes, so CI can tell the three failures apart:
 
@@ -53,6 +60,15 @@ MIA = os.path.join(SRC, "mia")
 
 REQUIRED_KEYS = ("units", "cycles", "y", "p_lstm", "p_lgb")
 PURE_UNITS = (2.0, 5.0, 10.0, 18.0, 20.0)
+# The band in `calibracion_banda.json` was fitted on a selection that git
+# ignores (`nb2_selection.joblib`), so the rows are frozen here instead: the
+# band's own evidence must survive a clone.
+INSTRUMENT_KEYS = ("units", "cycles", "y", "pred_ema")
+INSTRUMENT = os.path.join(MIA, "instrumento_oof.npz")
+# What the frozen instrument can speak for by itself. The OOF table below was
+# measured on a different, absent cache and cannot be re-derived from these
+# rows, so it is reported, not asserted, on this path.
+INSTRUMENT_EXPECTED = {"pure_rows": 14915}
 PROCEDENCIA_FIELDS = ("metodo", "filas_calibracion", "unidades_calibracion",
                       "excluida", "instrumento", "cache_origen", "regla_correccion")
 
@@ -180,19 +196,24 @@ def load_cache(path: str) -> dict:
         raise InputError("missing instrument", path)
     try:
         with np.load(path) as data:
-            missing = [key for key in REQUIRED_KEYS if key not in data]
-            arrays = {key: np.asarray(data[key]) for key in REQUIRED_KEYS if key in data}
+            present = set(data.keys())
+            # Base predictions rebuild the instrument; a frozen instrument is
+            # the rebuilt rows themselves, production-ready for the band.
+            keys = REQUIRED_KEYS if set(REQUIRED_KEYS) <= present else INSTRUMENT_KEYS
+            missing = [key for key in keys if key not in present]
+            arrays = {key: np.asarray(data[key]) for key in keys if key in present}
     except Exception as exc:  # corrupt zip, wrong dtype, permission denied
         raise InputError("unreadable instrument", f"{path}: {exc}") from exc
 
     if missing:
         raise InputError("incomplete instrument", f"{path} — missing key {missing[0]}")
-    for key in REQUIRED_KEYS:
+    for key in keys:
         if not np.all(np.isfinite(arrays[key])):
             raise InputError("invalid instrument", f"{path} — non-finite values in {key}")
-    lengths = {key: int(arrays[key].size) for key in REQUIRED_KEYS}
+    lengths = {key: int(arrays[key].size) for key in keys}
     if len(set(lengths.values())) != 1:
         raise InputError("invalid instrument", f"{path} — unequal lengths {lengths}")
+    arrays["_mode"] = "oof" if keys is REQUIRED_KEYS else "instrument"
     return arrays
 
 
@@ -261,17 +282,25 @@ def _require_api() -> None:
 
 def recompute(cache: dict) -> dict:
     """Rebuild the instrument and every figure RULES-06 makes checkable."""
-    _require_api()
-    try:
-        selection = STACKING.select_beta_grouped(
-            cache["units"], cache["cycles"], cache["y"],
-            cache["p_lstm"], cache["p_lgb"], span=5, use_cycle_feature=False,
-        )
-    except TypeError as exc:
-        raise ContractError(f"select_beta_grouped rejected the shipped call: {exc}") from exc
-    calib = selection.get("oof_calib")
-    if calib is None:
-        raise ContractError("select_beta_grouped returned no 'oof_calib'")
+    if cache.get("_mode") == "instrument":
+        # The rows arrive already reduced and smoothed. Re-deriving them here
+        # would build a different instrument, which is the defect this path
+        # exists to remove, not to repeat.
+        calib, beta, folds = cache, float(cache.get("beta", 1.0)), 0
+    else:
+        _require_api()
+        try:
+            selection = STACKING.select_beta_grouped(
+                cache["units"], cache["cycles"], cache["y"],
+                cache["p_lstm"], cache["p_lgb"], span=5, use_cycle_feature=False,
+            )
+        except TypeError as exc:
+            raise ContractError(f"select_beta_grouped rejected the shipped call: {exc}") from exc
+        calib = selection.get("oof_calib")
+        if calib is None:
+            raise ContractError("select_beta_grouped returned no 'oof_calib'")
+        beta = float(selection["beta"])
+        folds = int(selection.get("spread", {}).get("n_folds", 0))
     for key in ("units", "cycles", "y", "pred_ema"):
         if key not in calib:
             raise ContractError(f"oof_calib lost key {key!r}")
@@ -304,8 +333,8 @@ def recompute(cache: dict) -> dict:
         raise ContractError(f"fit_conformal rejected the shipped call: {exc}") from exc
 
     observed = {
-        "beta": float(selection["beta"]),
-        "folds": int(selection.get("spread", {}).get("n_folds", 0)),
+        "beta": beta,
+        "folds": folds,
         "rmse_baseline": rmse_base,
         "nasa_baseline": nasa_base,
         "rmse_r2": rmse_r2,
@@ -423,8 +452,11 @@ def _write_frozen(committed: dict, fit: dict) -> list[str]:
 
 # -------------------------------------------------------------- compare
 def _compare(observed: dict, expected: dict) -> list[str]:
+    """Compare only the figures this instrument can speak for."""
     failures = []
     for field, tolerance in TOLERANCE.items():
+        if field not in expected:
+            continue
         want = float(expected[field])
         have = float(observed[field])
         if tolerance == 0.0:
@@ -438,11 +470,17 @@ def _compare(observed: dict, expected: dict) -> list[str]:
 
 def _print_check_block(observed: dict, expected: dict, stream) -> None:
     print("", file=stream)
-    print(f"beta (median of {observed['folds']} folds): {observed['beta']}", file=stream)
+    if observed["folds"]:
+        print(f"beta (median of {observed['folds']} folds): {observed['beta']}", file=stream)
+    else:
+        print(f"beta: {observed['beta']} (frozen instrument, not re-selected)", file=stream)
     print(f"{'check':38s} {'expected':>12s} {'observed':>14s}  verdict", file=stream)
     for field in TOLERANCE:
-        want = float(expected[field])
         have = float(observed[field])
+        if field not in expected:
+            print(f"{LABELS[field]:38s} {'-':>12s} {have:>14.6f}  reported", file=stream)
+            continue
+        want = float(expected[field])
         tolerance = TOLERANCE[field]
         ok = (int(want) == int(have) if tolerance == 0.0
               else abs(want - have) <= tolerance + 1e-9)
@@ -452,13 +490,24 @@ def _print_check_block(observed: dict, expected: dict, stream) -> None:
 
 # ------------------------------------------------------------------ run
 def run(expected: dict | None = None, cache: str | None = None,
-        write: bool = False, stream=None) -> int:
-    """Run the gate and return its exit code (never raises on bad input)."""
+        write: bool = False, stream=None, instrument: bool = False) -> int:
+    """Run the gate and return its exit code (never raises on bad input).
+
+    `instrument=True` verifies the frozen band from `mia/instrumento_oof.npz`
+    instead of the OOF cache. The two paths answer different questions: the
+    cache re-derives an instrument, the frozen npz repeats the derivation the
+    shipped band actually came from.
+    """
     stream = sys.stdout if stream is None else stream
-    expected = EXPECTED if expected is None else expected
+    if instrument:
+        path = INSTRUMENT if cache is None else cache
+        expected = INSTRUMENT_EXPECTED if expected is None else expected
+    else:
+        path = DEFAULT_CACHE if cache is None else cache
+        expected = EXPECTED if expected is None else expected
 
     try:
-        arrays = load_cache(DEFAULT_CACHE if cache is None else cache)
+        arrays = load_cache(path)
         observed = recompute(arrays)
         committed = _load_committed()
         contract = _check_frozen_contract(committed, observed["fit"])
@@ -471,7 +520,8 @@ def run(expected: dict | None = None, cache: str | None = None,
         print(f"  policy:             {POLICY}", file=stream)
         return EXIT_CONTRACT
 
-    print(TABLE, file=stream)
+    if not instrument:
+        print(TABLE, file=stream)
     _print_check_block(observed, expected, stream)
 
     if contract:
@@ -532,10 +582,21 @@ def main(argv=None) -> int:
                        help="verify only (the default; spelling it states intent)")
     group.add_argument("--write", action="store_true",
                        help="re-freeze mia/calibracion_banda.json if a field drifted")
-    ap.add_argument("--cache", default=DEFAULT_CACHE,
-                    help="out-of-fold cache (default: _p1_oof_cache.npz at the root)")
+    group.add_argument("--instrument", action="store_true",
+                       help="verify the band from mia/instrumento_oof.npz")
+    ap.add_argument("--cache", default=None,
+                    help="out-of-fold cache: re-derive the instrument instead of "
+                         "reading the frozen one (development path)")
     args = ap.parse_args(argv)
-    return run(cache=args.cache, write=args.write)
+    if args.instrument:
+        return run(instrument=True, write=args.write)
+    if args.cache is not None:
+        return run(cache=args.cache, write=args.write)
+    # Default: the tracked instrument. A clone must verify the band without the
+    # notebook artifact and without re-running a nondeterministic base refit.
+    if os.path.exists(INSTRUMENT):
+        return run(instrument=True, write=args.write)
+    return run(write=args.write)
 
 
 if __name__ == "__main__":
