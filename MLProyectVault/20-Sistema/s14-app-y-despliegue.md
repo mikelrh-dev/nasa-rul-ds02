@@ -30,7 +30,7 @@ La superficie vive en `app/` con el bundle de `models/` y caché en `app/cache/`
 | Ventanas por unidad | Orden por ciclo para inferencia real | `src/ds02_rul/inference.py:49` |
 | Validación de ventana | Rechaza forma corta antes del modelo | `src/ds02_rul/inference.py:62` |
 | Contenedor | Reproduce el entorno con pesos fijos | `Dockerfile` |
-| `ui_n8n` | Payload n8n desde la traza + dedupe por fingerprint (HANGAR/INSPECCION notifican, APTO solo log, SIN_DECISION nada) | `app/ui_n8n.py` |
+| `ui_n8n` | Payload n8n desde la traza + dedupe por fingerprint (HANGAR/INSPECCION/APTO notifican por POST según `app/ui_n8n.py:12`, SIN_DECISION nada) | `app/ui_n8n.py` |
 
 El flujo es el mismo que en train: crudo → scaler y ridges congelados → secuencia y tabular → bases → meta → EMA → banda → reglas. La diferencia es que aquí nada se ajusta: todo viene congelado de [[s12-persistencia-y-contrato]].
 

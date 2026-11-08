@@ -28,7 +28,7 @@ Hay tres poblaciones distintas y conviene no mezclarlas:
 | Nivel | Qué se repite | Qué se reporta |
 |---|---|---|
 | Reejecución | mismo código, misma semilla, misma máquina | el híbrido se mueve ±0,05 RMSE (`README.md:55`) |
-| Semillas | protocolo completo con semillas 42, 7 y 123 | media ± desviación: `4.322 ± 0.064` (bundle C, [[e00-cifras-autoritativas]]) |
+| Semillas | protocolo completo con semillas 42, 7 y 123 | media ± desviación: `4.322 ± 0.064` impresa en NB06, **NO reconciliada** con el CSV (4.368 pendiente per [[e00-cifras-autoritativas]]); oficial 4.338 semilla 42 |
 | Fila en disco | una corrida concreta, la que reproduce el artefacto | `4.338` |
 
 La resolución de trabajo es ±0,1 RMSE. No es una convención arbitraria: la desviación entre semillas del híbrido es 0,101 y la dispersión entre reejecuciones es de ±0,05. Cualquier afirmación más fina que eso no es verificable con este pipeline (`README.md:57`).

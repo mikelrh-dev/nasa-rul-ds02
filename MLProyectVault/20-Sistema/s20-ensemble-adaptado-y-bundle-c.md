@@ -27,7 +27,7 @@ tags:
 | Meta | ridge + LGBM sobre `[p_lstm, p_lgb]`, sin `cyc_norm` | reconcilia ramas, sin prior de vida |
 | EMA causal | span 5 por motor | alisado causal por motor, sin futuro |
 | Fila oficial | 4.338 / 3.227 / 0.9461 / 2336.2 (semilla 42) | `metrics.reference_row` del manifiesto |
-| Multiseed | 4.322±0.064 (NB06) · 4.330±0.053 (NB05) | `evaluar_c_multisemilla.py`, semillas [42, 7, 123] |
+| Multiseed | 4.322±0.064 (NB06) · 4.330±0.053 (NB05) **impresas, NO regenerables desde el CSV (4.368 pendiente per [[e00-cifras-autoritativas]])** | `evaluar_c_multisemilla.py`, semillas [42, 7, 123] |
 | Cascada | 7.067 → 5.654 → 5.618 → **4.338** | LGBM, BiLSTM, +EMA5, híbrido |
 
 La persistencia verifica SHA-256 al cargar (`load_ensemble`): el despliegue se audita desde el artefacto, no desde la palabra del entrenador.
@@ -35,6 +35,8 @@ La persistencia verifica SHA-256 al cargar (`load_ensemble`): el despliegue se a
 ## Conexiones
 
 - Puente: [[s18-lgbm-adaptada]] · beta: [[c11-shrinkage-beta]] y [[s09-oof-y-beta]] · conformal: [[s11-banda-conformal]] · multiseed: [[c20-multisemilla-y-ruido]] · cyc_norm: [[c19-ablacion-cyc-norm]] · cifras: [[e00-cifras-autoritativas]]
+
+**Nota multiseed (NO reconciliada).** Las medias 4.322 ± 0.064 (NB06) y 4.330 ± 0.053 (NB05) están impresas en los cuadernos pero **no son regenerables desde** `resultados/bundle_c_multiseed.csv` (en disco: 7=4.429, 123=4.336, sin 42 → media 4.368, **pendiente de reconciliar** per [[e00-cifras-autoritativas]]). La fila oficial es **4.338 (semilla 42, manifiesto)**.
 
 ## Di esto en el tribunal
 

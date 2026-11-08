@@ -55,7 +55,7 @@ ADR-006 añade EMA causal después: sin ella el híbrido oscila entre ventanas v
 
 ## Qué medimos
 
-Híbrido-C + EMA5: media 4.322 ± 0.064, MAE ≈3.23, R² ≈0.946, NASA ≈2342, fila de disco 4.338 / 3.227 / 0.9461 / 2336.2 ([[e00-cifras-autoritativas]]).
+Híbrido-C + EMA5: media 4.322 ± 0.064 impresa NO reconciliada con el CSV (ver nota abajo, 4.368 pendiente per [[e00-cifras-autoritativas]]), MAE ≈3.23, R² ≈0.946, NASA ≈2342, fila de disco (oficial, semilla 42) 4.338 / 3.227 / 0.9461 / 2336.2 ([[e00-cifras-autoritativas]]).
 
 Frente a bases C: LGBM adaptada 7.067 y BiLSTM-C 5.654. El salto de ≈1.3 sobre la mejor rama es el argumento del ensamble ([[c09-ensembles]]).
 
@@ -64,10 +64,12 @@ Frente a bases C: LGBM adaptada 7.067 y BiLSTM-C 5.654. El salto de ≈1.3 sobre
 > [!warning] Lo que el ensamble no es
 > No es un modelo nuevo: es un protocolo de combinación con dos regresores diminutos. Si las bases se correlacionan en el error, el meta no tiene de dónde recortar. Su fuerza viene de que las bases se equivocan distinto, no de su capacidad.
 
+**Nota multiseed (NO reconciliada).** Las medias 4.322 ± 0.064 (NB06) y 4.330 ± 0.053 (NB05) están impresas en los cuadernos pero **no son regenerables desde** `resultados/bundle_c_multiseed.csv` (en disco: 7=4.429, 123=4.336, sin 42 → media 4.368, **pendiente de reconciliar** per [[e00-cifras-autoritativas]]). La fila oficial es **4.338 (semilla 42, manifiesto)**.
+
 ## Di esto en el tribunal
 
 > [!quote]
-> «El híbrido combina BiLSTM y LightGBM con un meta pequeño ajustado en la 16 y un beta de 1.0 que contrae hacia el meta. Da 4.322±0.064 de media y 4.338 en disco, más de un punto mejor que el campeón solo.»
+> «El híbrido combina BiLSTM y LightGBM con un meta pequeño ajustado en la 16 y un beta de 1.0 que contrae hacia el meta. Da 4.338 en disco (oficial semilla 42; media impresa NO reconciliada con CSV, ver nota arriba), más de un punto mejor que el campeón solo.»
 
 ## Flashcards
 
@@ -87,7 +89,7 @@ Frente a bases C: LGBM adaptada 7.067 y BiLSTM-C 5.654. El salto de ≈1.3 sobre
 > Dos bases distintas, un meta pequeño en holdout y un shrinkage que impide que el meta rompa al campeón.
 
 > [!question]- ¿Cómo la contarías en el tribunal?
-> «El híbrido combina BiLSTM y LightGBM con un meta pequeño ajustado en la 16 y un beta de 1.0 que contrae hacia el meta. Da 4.322±0.064 de media y 4.338 en disco, más de un punto mejor que el campeón solo.»
+> «El híbrido combina BiLSTM y LightGBM con un meta pequeño ajustado en la 16 y un beta de 1.0 que contrae hacia el meta. Da 4.338 en disco (oficial semilla 42; media impresa NO reconciliada con CSV, ver nota arriba), más de un punto mejor que el campeón solo.»
 
 ## Conexiones
 

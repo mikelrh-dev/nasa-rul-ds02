@@ -32,16 +32,16 @@ Respondés en voz alta: respuesta corta, por qué funciona y seguimiento probabl
 | 12 | ¿Qué es el meta? | RidgeCV más LGBM somero en la 16 | 2 535 ventanas |
 | 13 | ¿Qué da LightGBM? | 7.067 adaptada solo, cuantil 0,35 | ¿Por qué sigue? Complementa, y prueba la base [[s18-lgbm-adaptada]] |
 | 14 | ¿Qué da BiLSTM-C? | 5.65 solo | ¿Por qué varía? TF en CPU [[c20-multisemilla-y-ruido]] |
-| 15 | ¿Qué da el híbrido-C? | 4.322 ± 0.064, disco 4.338 | Fuente [[e00-cifras-autoritativas]] |
+| 15 | ¿Qué da el híbrido-C? | 4.338 en disco oficial (semilla 42); media 4.322±0.064 impresa NO reconciliada (CSV 4.368 pendiente per [[e00-cifras-autoritativas]]) | Fuente [[e00-cifras-autoritativas]] |
 | 16 | ¿Qué es pinball? | Pérdida cuyo mínimo es el cuantil | Alpha 0,35 [[c05-regresion-cuantilica]] |
 | 17 | ¿Qué es triple pooling? | Last, media y máximo | Evita Lambda [[s06-bilstm-triple-pooling]] |
 | 18 | ¿Qué es EMA? | Media exponencial causal por motor | Span 5 [[c13-ema-causal]] |
 | 19 | ¿Por qué causal? | No mira futuro | Centrada sería trampa |
 | 20 | ¿Qué es cyc_norm? | Ciclo dividido por 100 | Canal 19 y feature |
-| 21 | ¿Aporta el ciclo? | Sí, ~1 ciclo en híbrido | Solo reloj da 14.33 |
+| 21 | ¿Aporta el ciclo? | Sí, ~1 ciclo en híbrido | Solo reloj 14.33 retirado de defensa (ver [[s08-ablacion-cyc-norm]]) |
 | 22 | ¿Qué es NASA score? | Suma asimétrica, sobreestimar cuesta más | 1/10 vs 1/13 [[c04-metricas-y-baseline]] |
 | 23 | ¿Qué es macro-RMSE? | Promedio por motor sin ponderar | 5.0153 vs 4.338 (bundle C) |
-| 24 | ¿Por qué macro? | El 14 esconde el ponderado | 8.02 con 760 filas |
+| 24 | ¿Por qué macro? | El 14 esconde el ponderado | 8.5761 (C) con 760 filas |
 | 25 | ¿Qué es baseline? | Media de train, 20.022 | Suelo, no modelo |
 | 26 | ¿Qué es conformal? | Punto más banda con residuales no vistos | 90 pedido, 100 medido |
 | 27 | ¿Con qué calibras? | 17 450 ventanas OOF | Ancho 26.41 |
@@ -63,12 +63,12 @@ Respondés en voz alta: respuesta corta, por qué funciona y seguimiento probabl
 | 43 | ¿Por qué GroupKFold por motor? | Filas vecinas no son independientes | Validar memoria si no [[c16-groupkfold-por-motor]] |
 | 44 | ¿Cómo tratas T30? | ffill causal + mediana de train | MAR con patrón físico [[c17-nulos-mar-e-imputacion-causal]] |
 | 45 | ¿Qué es fase_vuelo? | Ascenso/Crucero/Descenso de alt/Mach | OneHot, sin orden [[c18-fase-vuelo-y-onehot]] |
-| 46 | ¿Dónde vive cyc_norm? | ON en red, OFF en meta | Medido: 5.419→4.338 [[c19-ablacion-cyc-norm]] |
+| 46 | ¿Dónde vive cyc_norm? | ON en red, OFF en meta | Ablación histórica semilla 42 (retirado de defensa [[s08-ablacion-cyc-norm]]); C usa 5.654→4.338 |
 | 47 | ¿Qué es la tabla final? | Una tabla, dos campeones por grano | `tabla_final.py:18` [[s19-tabla-final-y-grano]] |
-| 48 | ¿Qué es el bundle C? | Híbrido sobre base adaptada, 4.338 | Fila 42, media 4.322 [[s20-ensemble-adaptado-y-bundle-c]] |
+| 48 | ¿Qué es el bundle C? | Híbrido sobre base adaptada, 4.338 | Fila 42 (oficial); media 4.322 impresa NO reconciliada [[e00-cifras-autoritativas]] |
 | 49 | ¿Qué explica SHAP? | Contribución por feature, no métrica | `shap_xgb_top.joblib` [[c21-shap-e-ia-debil]] |
 | 50 | ¿IA débil o fuerte? | Débil: solo RUL de DS02 | Barata y auditable, a propósito |
-| 51 | ¿Dónde está el flujo n8n? | Pendiente declarado (MIA-3) | HANGAR → Postgres+Calendar+correo; diseño previsto en `s14` |
+| 51 | ¿Dónde está el flujo n8n? | Activo (MIA-3), `n8n/flujo.json` `active: true` v2 | HANGAR/INSPECCION/APTO → POST a `ds02/decision` (Switch: APTO=log, INSPECCION=Sheets, HANGAR=Postgres+Calendar+Gmail) [[s24-n8n-mia3]] |
 | 52 | ¿Dónde está MLflow? | Pendiente declarado (PIA-4) | Tabla y tiempos en CSV + captura app; tracking completo, siguiente change |
 | 53 | ¿Por qué sin SMOTE? | Regresión: sin clases | El desbalance es el motor 14 → macro-RMSE [[c21-shap-e-ia-debil]] |
 | 54 | ¿Por qué IA débil? | Solo RUL de DS02; fuerte no existe aquí | Barata, rápida, auditable: la estrechez es la virtud [[c21-shap-e-ia-debil]] |
@@ -88,7 +88,7 @@ Respondés en voz alta: respuesta corta, por qué funciona y seguimiento probabl
 ## Flashcards
 
 > [!question]- ¿Cuánto da cada modelo?
-> LGBM adaptada 7.07, BiLSTM-C 5.654, híbrido-C 4.322±0.064 con disco 4.338 (bundle C, `models/ds02_manifest.json`).
+> LGBM adaptada 7.07, BiLSTM-C 5.654, híbrido-C 4.338 en disco oficial semilla 42 (bundle C, `models/ds02_manifest.json`); media 4.322±0.064 impresa NO reconciliada con el CSV (4.368 pendiente per [[e00-cifras-autoritativas]]).
 
 > [!question]- ¿Qué tres números de protocolo no fallan?
 > 44 982 filas de ajuste, beta 1.0, 17 450 de banda.
@@ -97,7 +97,7 @@ Respondés en voz alta: respuesta corta, por qué funciona y seguimiento probabl
 > Las de la lista negra: corridas anteriores, no bundle (detalle en [[d05-como-decir-las-cifras]]).
 
 > [!question]- ¿Qué afirma esta nota en una frase?
-> Si respondes estas 40 sin leer, el tribunal no te saca del mapa.
+> Si respondes estas 61 sin leer, el tribunal no te saca del mapa.
 
 > [!question]- ¿Cómo la contarías en el tribunal?
 > «Pregúntame por reparto, fuga, beta, banda y decisión: cada una tiene número, archivo y límite. Si no lo sé decir en dos frases, me voy a la nota dueña.»

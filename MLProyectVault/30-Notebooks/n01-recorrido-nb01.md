@@ -15,7 +15,7 @@ tags:
 
 ## Antes de empezar
 
-33 celdas. Requiere el HDF5 en `archive/CCMaps/N-CMAPSS_DS02-006.h5` y `pyproject.toml` en la raíz para fijar el `cwd`. Es EDA puro: rápido, sin entrenos. Cubre rúbrica SAA 1–5 (IA débil/supervisada, tabla de sensores, nulos, fase).
+35 celdas. Requiere el HDF5 en `archive/CCMaps/N-CMAPSS_DS02-006.h5` y `pyproject.toml` en la raíz para fijar el `cwd`. Es EDA puro: rápido, sin entrenos. Cubre rúbrica SAA 1–5 (IA débil/supervisada, tabla de sensores, nulos, fase).
 
 ## Recorrido celda a celda
 

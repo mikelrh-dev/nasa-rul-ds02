@@ -119,15 +119,17 @@ entre semillas; el híbrido es estable a ±0.068. La dispersión del híbrido es
 capa de stacking depende realmente de los dos modelos base, así que hereda su
 varianza en lugar de leer un contador (ver la sección de ablación abajo).
 
+> [!warning] **FILA HISTÓRICA A 4.289 NO VIGENTE — vigente C 4.338** (bundle C, `models/ds02_manifest.json`). No citar 4.289 en defensa.
+
 ### Revisión 2026-10-21 (histórico — bundle A obsoleto, no vigente)
 
-Mismos modelos, mismo protocolo. Las adiciones son dos métricas, no precisión extra. <!-- bundle A obsoleto: la tabla 4.289 ± 0.018 es histórica, no vigente. -->
+Mismos modelos, mismo protocolo. Las adiciones son dos métricas, no precisión extra. (histórico, no vigente — vigente C 4.338).
 
 | Modelo | RMSE | MAE | R² | NASA score |
 | --- | --- | --- | --- | --- |
 | LightGBM cuantílico 0.35 (standalone) | 7.098 ± 0.034 | 5.572 ± 0.034 | 0.8557 ± 0.0014 | 5772.5 ± 50.1 |
 | BiLSTM triple pooling (standalone) | 6.337 ± 0.811 | 4.872 ± 0.756 | 0.8837 ± 0.0305 | 4509.9 ± 1051.1 |
-| **Hybrid stacking + EMA causal 5** | **4.289 ± 0.018** | **3.183 ± 0.017** | **0.9475 ± 0.0004** | **2297.5 ± 17.4** |
+| **Hybrid stacking + EMA causal 5 (histórico A, no vigente)** | **4.289 ± 0.018** | **3.183 ± 0.017** | **0.9475 ± 0.0004** | **2297.5 ± 17.4** |
 
 ### Bundle C (desplegado, congelado — vigente)
 

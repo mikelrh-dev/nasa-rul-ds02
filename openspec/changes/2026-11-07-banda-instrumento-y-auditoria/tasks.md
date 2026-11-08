@@ -1,7 +1,7 @@
 # Tasks: banda verificada contra instrumento congelado + retirada de Docker
 
 **Change:** `2026-11-07-banda-instrumento-y-auditoria`
-**Status:** Applied (con un item abierto: 1.4)
+**Status:** Applied (cerrado 2026-11-08: 1.4 verificado — `git ls-files --error-unmatch src/mia/instrumento_oof.npz` → 0; `--check` exit 0, 14915 filas)
 
 Cada tarea cierra con su acceptance. Comandos desde la raíz del repo, con
 `PYTHONPATH=src` y `.venv/Scripts/python.exe`. Nada escribe en `models/` ni en `app/cache/`.
@@ -30,7 +30,7 @@ Acceptance: `--write` sale 0 y reproduce bins `[5125, 6094, 3135, 561]`, `q_low`
 `python scripts/freeze_oof_instrument.py --check`.
 Acceptance: exit 0; el fichero tiene 14 915 filas y 115 225 B.
 
-### [ ] 1.4 Añadir el npz al índice (hallazgo A-01 de la auditoría)
+### [x] 1.4 Añadir el npz al índice (hallazgo A-01 de la auditoría)
 `git add src/mia/instrumento_oof.npz scripts/freeze_oof_instrument.py docs/decisions/ADR-012-*.md`.
 Acceptance: `git ls-files --error-unmatch src/mia/instrumento_oof.npz` → 0.
 **Bloqueante para cerrar el change:** sin esto, un clon no tiene instrumento.

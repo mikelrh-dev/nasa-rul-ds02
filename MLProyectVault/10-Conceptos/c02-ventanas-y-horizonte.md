@@ -22,7 +22,7 @@ Hay dos decisiones distintas metidas en la palabra «ventana», y confundirlas e
 
 | Parámetro | Qué decide | Dónde se aplica |
 |---|---|---|
-| `stride` | Cuántos registros crudos se conservan | Al cargar el HDF5 (`src/ds02_rul/data.py:61`) |
+| `stride` | Cuántos registros crudos se conservan | Al cargar el HDF5 (`src/ds02_rul/data.py:55`) |
 | `step` | Cuántas filas avanza la ventana dentro del motor | Al cortar las ventanas (`src/ds02_rul/features.py:130`) |
 
 ## Cómo funciona
@@ -34,7 +34,7 @@ flowchart LR
     C --> D[Etiqueta = RUL<br/>de la última fila]
 ```
 
-El primer recorte es global y ocurre una sola vez: `fh[k][::stride]` conserva una fila de cada 100 y mantiene alineados unidad, ciclo, `W`, `Xs` y RUL (`src/ds02_rul/data.py:61`). El segundo recorte es por motor: el bucle recorre las unidades y avanza de a `step` (`src/ds02_rul/features.py:118` y `:130`). Una ventana nunca cruza dos motores, y un motor con menos de 50 filas se descarta (`src/ds02_rul/features.py:127`).
+El primer recorte es global y ocurre una sola vez: `fh[k][::stride]` conserva una fila de cada 100 y mantiene alineados unidad, ciclo, `W`, `Xs` y RUL (`src/ds02_rul/data.py:55`). El segundo recorte es por motor: el bucle recorre las unidades y avanza de a `step` (`src/ds02_rul/features.py:118` y `:130`). Una ventana nunca cruza dos motores, y un motor con menos de 50 filas se descarta (`src/ds02_rul/features.py:127`).
 
 Los valores vigentes son ventana de 50, stride 100 y step 3 en ajuste, 2 en test (`src/ds02_rul/pipeline.py:88`). El step menor en test produce más ventanas por motor, que es lo que se quiere al evaluar.
 
@@ -44,7 +44,7 @@ El solapamiento es la otra mitad de la historia. Con ventana 50 y step 3, dos ve
 
 ## Dónde aparece en este proyecto
 
-- Decimación y alineación de arrays: `src/ds02_rul/data.py:49` (firma) y `:61` (el `[::stride]`).
+- Decimación y alineación de arrays: `src/ds02_rul/data.py:49` (firma) y `:55` (el `[::stride]`).
 - Corte de ventanas, salto por motor y resumen tabular: `src/ds02_rul/features.py:79`, `:118`, `:130`.
 - Steps de ajuste y de test: `src/ds02_rul/pipeline.py:88`.
 - Canales y conteos: 18 canales crudos, 19 en la secuencia por `cyc_norm`, 93 features tabulares ([[s04-ventanas-y-features]]).

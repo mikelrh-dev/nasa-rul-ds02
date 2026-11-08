@@ -7,7 +7,7 @@ tags:
   - trazabilidad
 ---
 
-# ADR index — 11 decisiones que sostienen el proyecto
+# ADR index — 12 decisiones que sostienen el proyecto
 
 > [!abstract] En una frase
 > Cada decisión difícil está escrita con qué se probó, qué se rechazó y con qué número.
@@ -29,12 +29,13 @@ Cada fila enlaza al ADR en `docs/decisions/`. La tercera columna es el número q
 | ADR-009 | R2b es ajuste isotónico, no regla | R2b 9.623 frente a R2 10.737 |
 | ADR-010 | Rechaza simulador desacoplado por polling | Servir es recargar el bundle |
 | ADR-011 | Desplegar C como campeón único y archivar B (2026-11-04) | C 4.338 en `models/`; B 4.251 en `archive/models_b/` histórico |
+| ADR-012 | Verificar la banda contra un instrumento congelado (2026-11-07) | Banda de decisión congelada en 14915 filas |
 
 ADR-007 y ADR-010 son rechazos explícitos: también cuentan. Rechazar a tiempo es decidir.
 
 ## Dónde están los originales
 
-`docs/decisions/ADR-001-reject-linear-blending-adopt-learned-stacking.md` hasta `ADR-010-reject-decoupled-fleet-simulator-n8n-polling.md`, más `ADR-011-deploy-bundle-c-archive-bundle-b.md` (2026-11-04). Extractos literales en la ground truth de la reestructuración.
+`docs/decisions/ADR-001-reject-linear-blending-adopt-learned-stacking.md` hasta `ADR-010-reject-decoupled-fleet-simulator-n8n-polling.md`, más `ADR-011-deploy-bundle-c-archive-bundle-b.md` (2026-11-04) y `ADR-012-verify-the-band-against-a-frozen-instrument.md` (2026-11-07). Extractos literales en la ground truth de la reestructuración.
 
 La lógica de negocio de ADR-008 vive además en `docs/defensa_ds02_explicacion_logica_negocio.md`.
 
@@ -62,6 +63,9 @@ Ninguna decisión es gusto: todas tienen medición contraria descartada.
 
 > [!question]- ¿Qué aclara ADR-009?
 > Que R2b es ajuste isotónico, no regla de monotonía.
+
+> [!question]- ¿Qué decide ADR-012 (2026-11-07)?
+> Verificar la banda contra un instrumento congelado: banda de decisión de 14915 filas.
 
 > [!question]- ¿Qué afirma esta nota en una frase?
 > Cada decisión difícil está escrita con qué se probó, qué se rechazó y con qué número.

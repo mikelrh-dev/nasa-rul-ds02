@@ -15,7 +15,7 @@ tags:
 
 ## Antes de empezar
 
-32 celdas. Requiere la base de NB01–NB03 y `src/ds02_rul` 4.1.0. Lo pesado es el entreno BiLSTM (EPOCHS 22) más el OOF de 3 folds (EPOCHS_OOF 15 por fold). Tarda en CPU; los prints de OOF y conformal se materializan al ejecutar.
+34 celdas. Requiere la base de NB01–NB03 y `src/ds02_rul` 4.1.0. Lo pesado es el entreno BiLSTM (EPOCHS 22) más el OOF de 3 folds (EPOCHS_OOF 15 por fold). Tarda en CPU; los prints de OOF y conformal se materializan al ejecutar.
 
 ## Recorrido celda a celda
 

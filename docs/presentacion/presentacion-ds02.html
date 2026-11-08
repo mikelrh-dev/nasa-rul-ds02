@@ -4,127 +4,177 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=1920, initial-scale=1">
 <title>DS02 // DE LA PREDICCION A LA ACCION — RUL QUE DECIDE EN HANGAR</title>
-<meta name="description" content="DS02 RUL — 20 diapositivas por notebooks NB01-NB07 — 1920x1080 — AERO_HUD_SYS">
+<meta name="description" content="DS02 RUL — 20 diapositivas por notebooks NB01-NB07 — 1920x1080 — AERO RUL">
 <!--
-  DS02 FINAL · Superficie: Decide/Learn (deck) con HUD Monitor: densidad terminal, una idea por slide.
+  DS02 · RUL QUE DECIDE EN HANGAR — Aeroespacial corporativa Safran.
   Plantilla Stitch: proyecto 1188887004628404612 (DS02 RUL - Presentacion aeroespacial)
-    pantallas base: "Portada de Presentacion Aeroespacial" (files/7d1b2d7933b04d6fb1fb894e6550f337)
-    + "Diapositiva de Telemetria Aeroespacial" (files/683aef1bc89f4c68b4428a57e1fb4652)
-    + Imagenes integradas (fondos con overlay oscuro, sin tocar texto/orden):
-      s01 stitch-turbofan.jpg · s03 stitch-avion.jpg · s19 stitch-hangar.jpg · s20 stitch-cabina.jpg
-  Referencia: proyecto 4141643879944533883 (Portfolio Cyber-Tech Hacker v2):
-    fondo #000000, superficie #0A0A0A, borde #222222, texto #FAFAFA, acento #CCFF00,
-    todo JetBrains Mono, headlines 700 ALL CAPS, radius 0-4px, sin sombras suaves, sin glow, sin gradientes.
+    pantallas base: Portada de Presentacion Aeroespacial (files/7d1b2d7933b04d6fb1fb894e6550f337)
+    + Diapositiva de Telemetria Aeroespacial (files/683aef1bc89f4c68b4428a57e1fb4652)
+    + Imagenes integradas (full bleed con velo, sin tocar texto/orden):
+      s01 stitch-turbofan.jpg full bleed velo navy 40% titular blanco
+      s03 stitch-avion.jpg · s19 stitch-hangar.jpg
+  Sistema unico Safran: tokens puros blanco #FFFFFF / navy #111827 / azul #1763A9 (+ acento #6799C8),
+  superficie #FFFFFF y sutil #F8FAFC, borde #E5E7EB, todo en Inter, tarjetas blancas radius 8-12px.
   Uso: flechas / espacio / click izq-der para navegar. Export PDF: Chrome headless --print-to-pdf (@media print: 1 slide = 1 pagina).
   Cifras: bundle C oficial seed 42 = 4.338 / 3.227 / 0.9461 / 2336.2 . B solo historico. MLflow fuera. Sin coste AOG en euros.
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<!-- Inter: sistema unico Safran (blanco / navy / azul) para las 20 slides -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#000000; --surface:#0A0A0A; --border:#222222; --border2:#333333;
-  --text:#FAFAFA; --muted:#9A9A9A; --dim:#737373;
-  --accent:#CCFF00; --accent-dim:#1a2600;
-  --mono:'JetBrains Mono',ui-monospace,'Cascadia Mono',Consolas,monospace;
+  --white:#FFFFFF; --navy:#111827; --blue:#1763A9; --accent:#1763A9; --accent-light:#6799C8;
+  --bg:#FFFFFF; --surface:#FFFFFF; --subtle:#F8FAFC; --border:#E5E7EB; --border2:#E5E7EB;
+  --text:#111827; --muted:#6B7280; --dim:#9CA3AF; --chip:#EFF6FF; --chip-bd:#BFDBFE;
+  --font:Inter,'Segoe UI',Helvetica,Arial,sans-serif;
 }
-*{box-sizing:border-box; box-shadow:none!important; text-shadow:none!important; border-radius:0!important;}
-html,body{margin:0;padding:0;background:#000;color:var(--text);font-family:var(--mono);}
-#stage{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden;}
-#deck{position:relative;width:1920px;height:1080px;flex:none;transform-origin:center center;background:#000;border:1px solid var(--border);}
-.slide{position:absolute;inset:0;width:1920px;height:1080px;display:none;flex-direction:column;background:#000;color:var(--text);overflow:hidden;padding:0;}
+*{box-sizing:border-box; box-shadow:none!important; text-shadow:none!important;}
+html,body{margin:0;padding:0;background:#FFFFFF;color:var(--text);font-family:var(--font);}
+#stage{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:#F8FAFC;overflow:hidden;}
+#deck{position:relative;width:1920px;height:1080px;flex:none;transform-origin:center center;background:#FFFFFF;border:1px solid var(--border);}
+.slide{position:absolute;inset:0;width:1920px;height:1080px;display:none;flex-direction:column;background:#FFFFFF;color:var(--text);overflow:hidden;padding:0;font-family:var(--font);}
 .slide.active{display:flex;}
-/* STITCH AERO BGs: imagenes de fondo con overlay oscuro (legibilidad), object-fit cover */
-.bgimg{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:#000;}
+/* Fondo aeroespacial full bleed: imagen + velo navy 40% (legibilidad), object-fit cover */
+.bgimg{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:var(--navy);}
 .bgimg img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
-.bgimg::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.74);}
-.bgimg.soft::after{background:rgba(0,0,0,.68);}
-.bgimg.hard::after{background:rgba(0,0,0,.76);}
-.slide::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.55;
-  background-image:linear-gradient(to right,#111111 1px,transparent 1px),linear-gradient(to bottom,#111111 1px,transparent 1px);
-  background-size:40px 40px;}
-.slide::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.35;
-  background-image:linear-gradient(to right,#1a1a1a 1px,transparent 1px),linear-gradient(to bottom,#1a1a1a 1px,transparent 1px);
-  background-size:160px 160px;}
-.hud-top{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;
-  padding:18px 48px 16px;border-bottom:1px solid var(--border);background:#000;text-transform:uppercase;letter-spacing:.14em;}
-.hud-top .brand{display:flex;align-items:center;gap:14px;font-size:15px;font-weight:800;color:var(--accent);}
-.hud-top .brand::before{content:"";width:10px;height:10px;background:var(--accent);display:inline-block;}
-.hud-top .mid{font-size:13px;color:var(--dim);letter-spacing:.2em;}
-.hud-top .num{font-size:13px;color:var(--muted);letter-spacing:.18em;text-align:right;}
-.hud-top .num b{color:var(--accent);font-size:18px;}
-.hud-body{position:relative;z-index:2;flex:1;padding:36px 64px 28px;display:flex;flex-direction:column;min-height:0;}
-.hud-foot{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;
-  padding:12px 48px;border-top:1px solid var(--border);background:#000;font-size:11px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;}
-.hud-foot .acc{color:var(--accent);font-weight:700;}
-.hud-foot .keys{color:var(--muted);}
-.kicker{display:flex;justify-content:space-between;align-items:center;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--dim);margin-bottom:14px;}
-.kicker .nb{color:var(--accent);font-weight:700;border:1px solid var(--border);background:var(--surface);padding:4px 10px;}
-h2{font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:-.01em;line-height:1.08;margin:0 0 18px;font-size:54px;color:var(--text);}
-h2 .hl{color:var(--accent);}
-.sub{font-size:23px;line-height:1.45;color:var(--muted);max-width:1500px;margin:0 0 20px;}
-.rule{width:120px;height:4px;background:var(--accent);margin:0 0 22px;}
-.cols{display:flex;gap:28px;flex:1;min-height:0;}
-.col-text{flex:0 0 560px;min-width:0;display:flex;flex-direction:column;gap:18px;}
+.bgimg::after{content:"";position:absolute;inset:0;background:rgba(17,24,39,0.40);}
+.bgimg.soft::after{background:rgba(17,24,39,0.40);}
+.bgimg.hard::after{background:rgba(17,24,39,0.40);}
+.slide::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background-image:linear-gradient(to right,rgba(23,99,169,.07) 1px,transparent 1px),linear-gradient(to bottom,rgba(23,99,169,.07) 1px,transparent 1px);
+  background-size:32px 32px;}
+.slide::after{display:none;}
+.hud-top{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 48px;border-bottom:1px solid var(--border);background:#FFFFFF;text-transform:uppercase;letter-spacing:.14em;}
+.hud-top .brand{display:flex;align-items:center;gap:12px;font-size:15px;font-weight:800;color:#1763A9;letter-spacing:.08em;}
+.hud-top .brand::before{content:"";width:12px;height:12px;background:#1763A9;border-radius:4px;display:inline-block;}
+.hud-top .mid{font-size:12px;color:#6B7280;letter-spacing:.16em;}
+.hud-top .num{font-size:12px;color:#6B7280;letter-spacing:.14em;text-align:right;}
+.hud-top .num b{color:#111827;font-size:16px;font-weight:800;}
+.hud-body{position:relative;z-index:2;flex:1;padding:26px 56px 18px;display:flex;flex-direction:column;min-height:0;background:linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%);}
+.hud-foot{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:12px 48px;border-top:1px solid var(--border);background:#FFFFFF;font-size:11px;letter-spacing:.14em;color:#9CA3AF;text-transform:uppercase;font-weight:600;}
+.hud-foot .acc{color:#1763A9;font-weight:700;}
+.hud-foot .keys{color:#9CA3AF;}
+.kicker{display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#6B7280;margin-bottom:12px;}
+.kicker .nb{color:#1763A9;font-weight:700;border:1px solid var(--chip-bd);background:var(--chip);padding:5px 12px;border-radius:999px;font-size:12px;letter-spacing:.16em;}
+h2{font-family:var(--font);font-weight:800;text-transform:none;letter-spacing:-.02em;line-height:1.08;margin:0 0 14px;font-size:44px;color:#111827;}
+h2 .hl{color:#1763A9;}
+.sub{font-size:17px;line-height:1.45;color:#4B5563;max-width:1600px;margin:0 0 18px;}
+.rule{width:72px;height:4px;border-radius:2px;background:#1763A9;margin:0 0 20px;}
+.cols{display:flex;gap:24px;flex:1;min-height:0;}
+.col-text{flex:0 0 600px;min-width:0;display:flex;flex-direction:column;gap:18px;}
 .col-fig{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px;}
-.panel{background:var(--surface);border:1px solid var(--border);padding:20px 22px;position:relative;}
-.panel::before,.panel::after{content:"[";position:absolute;font-size:13px;color:var(--accent);line-height:1;}
-.panel::before{top:6px;left:8px;}
-.panel::after{bottom:6px;right:8px;transform:rotate(180deg);}
-.panel-t{font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;}
-.panel-t b{color:var(--text);}
-ul.b{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:16px;}
-ul.b li{font-size:24px;line-height:1.45;color:var(--text);padding-left:34px;position:relative;}
-ul.b li::before{content:">";position:absolute;left:0;color:var(--accent);font-weight:800;}
-ul.b li .v{color:var(--accent);font-weight:700;white-space:nowrap;}
-ul.b li .dim{color:var(--muted);}
-.fig{background:#000;border:1px solid var(--border);padding:14px;position:relative;flex:1;display:flex;flex-direction:column;min-height:0;}
-.fig img{width:100%;height:100%;max-height:560px;object-fit:contain;background:#000;border:1px solid var(--border);display:block;}
+.panel{background:#FFFFFF;border:1px solid var(--border);padding:20px 22px;position:relative;border-radius:12px;}
+.panel-t{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#6B7280;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;}
+.panel-t b{color:#111827;}
+ul.b{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:15px;counter-reset:balas;}
+ul.b li{font-size:21px;line-height:1.45;color:#111827;padding-left:52px;position:relative;}
+ul.b li::before{content:counter(balas,decimal-leading-zero);counter-increment:balas;position:absolute;left:0;top:3px;color:#1763A9;font-weight:800;font-size:14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:3px 8px;letter-spacing:.04em;}
+ul.b li .v{color:#1763A9;font-weight:700;white-space:nowrap;}
+ul.b li .dim{color:#6B7280;}
+.fig{background:#F8FAFC;border:1px solid var(--border);padding:16px;position:relative;flex:1;display:flex;flex-direction:column;min-height:0;border-radius:12px;}
+.fig img{width:100%;height:100%;max-height:540px;object-fit:contain;background:#FFFFFF;border:1px solid var(--border);border-radius:8px;display:block;}
 .fig.trio{flex-direction:row;gap:14px;flex-wrap:wrap;}
 .fig.trio figure{flex:1;margin:0;display:flex;flex-direction:column;min-width:0;}
 .fig.trio img{flex:1;min-height:0;}
 .fig figure{margin:0;display:flex;flex-direction:column;min-height:0;flex:1;}
-.cap{font-size:13px;line-height:1.55;color:var(--dim);letter-spacing:.06em;padding-top:10px;}
-.cap b{color:var(--muted);}
-.tag{display:inline-block;border:1px solid var(--border);background:#000;color:var(--muted);font-size:12px;letter-spacing:.14em;padding:4px 8px;text-transform:uppercase;}
-.tag.g{color:var(--accent);border-color:#3a4a00;}
-table{width:100%;border-collapse:collapse;font-size:21px;line-height:1.4;}
+.cap{font-size:13px;line-height:1.5;color:#6B7280;padding-top:10px;}
+.cap b{color:#374151;}
+.tag{display:inline-block;border:1px solid var(--chip-bd);background:#EFF6FF;color:#1763A9;font-size:11px;font-weight:700;letter-spacing:.08em;padding:4px 10px;text-transform:uppercase;border-radius:999px;}
+.tag.g{color:#1763A9;border-color:#BFDBFE;}
+table{width:100%;border-collapse:collapse;font-size:20px;line-height:1.4;}
 th,td{border:1px solid var(--border);padding:12px 14px;text-align:left;vertical-align:top;}
-th{background:#000;color:var(--muted);font-size:13px;letter-spacing:.18em;text-transform:uppercase;}
-td{background:var(--surface);}
-td.v{color:var(--accent);font-weight:700;}
+th{background:#111827;color:#FFFFFF;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;border-color:#111827;}
+td{background:#FFFFFF;color:#111827;}
+td.v{color:#1763A9;font-weight:800;}
 .flow{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;}
-.step{border:1px solid var(--border);background:#000;padding:12px 13px;font-size:20px;line-height:1.35;flex:1 1 200px;min-width:180px;}
-.step small{display:block;font-size:12px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;margin-bottom:6px;}
-.step.hot{border-color:#3a4a00;background:var(--accent-dim);}
-.arrow{align-self:center;color:var(--accent);font-weight:800;font-size:22px;}
-.cover-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;padding:40px 80px;}
-.cover-badge{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--border);background:var(--surface);padding:8px 14px;font-size:13px;letter-spacing:.26em;color:var(--accent);font-weight:700;margin-bottom:34px;text-transform:uppercase;}
-.cover-badge span{width:8px;height:8px;background:var(--accent);display:inline-block;}
-.title-box{position:relative;padding:18px 52px 22px;margin-bottom:22px;}
-.title-box i{position:absolute;width:14px;height:14px;border:0 solid var(--accent);}
-.title-box i.tl{top:0;left:0;border-top-width:2px;border-left-width:2px;}
-.title-box i.tr{top:0;right:0;border-top-width:2px;border-right-width:2px;}
-.title-box i.bl{bottom:0;left:0;border-bottom-width:2px;border-left-width:2px;}
-.title-box i.br{bottom:0;right:0;border-bottom-width:2px;border-right-width:2px;}
-h1{font-family:var(--mono);font-weight:800;text-transform:uppercase;letter-spacing:-.02em;line-height:.98;margin:0;font-size:88px;color:var(--text);}
-h1 .hl{color:var(--accent);}
-.cover-sub{font-size:28px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);line-height:1.5;max-width:1200px;}
-.cover-pills{display:flex;gap:12px;justify-content:center;margin-top:34px;flex-wrap:wrap;}
-.cover-pills .tag{font-size:13px;padding:7px 12px;}
-.corner{position:absolute;font-size:11px;letter-spacing:.2em;color:var(--dim);}
-.corner.tl{top:18px;left:24px;} .corner.tr{top:18px;right:24px;} .corner.bl{bottom:18px;left:24px;} .corner.br{bottom:18px;right:24px;}
-.ring{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);opacity:.22;pointer-events:none;}
-.note{font-size:16px;line-height:1.55;color:var(--dim);border-top:1px solid var(--border);padding-top:12px;margin-top:auto;}
-.note b{color:var(--muted);}
+.step{border:1px solid var(--border);background:#FFFFFF;border-radius:10px;padding:14px;font-size:18px;line-height:1.35;flex:1 1 200px;min-width:180px;color:#111827;overflow-wrap:anywhere;word-break:break-word;}
+.step small{display:block;font-size:11px;font-weight:700;letter-spacing:.16em;color:#1763A9;text-transform:uppercase;margin-bottom:6px;}
+.step.hot{border-color:#93C5FD;background:#EFF6FF;}
+.arrow{align-self:center;color:#1763A9;font-weight:800;font-size:22px;}
+.cover-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;padding:32px 80px;}
+.cover-badge{display:inline-flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.30);background:rgba(255,255,255,.10);padding:8px 16px;border-radius:999px;font-size:12px;letter-spacing:.18em;color:#FFFFFF;font-weight:700;margin-bottom:26px;text-transform:uppercase;}
+.cover-badge span:first-child{width:8px;height:8px;border-radius:999px;background:#6799C8;display:inline-block;}
+.title-box{position:relative;padding:8px 24px 10px;margin-bottom:14px;max-width:1400px;}
+h1{font-family:var(--font);font-weight:800;text-transform:none;letter-spacing:-.02em;line-height:1.05;margin:0;font-size:76px;color:#FFFFFF;}
+h1 .hl{color:#FFFFFF;}
+.cover-sub{font-size:22px;letter-spacing:.06em;text-transform:none;color:#E5E7EB;line-height:1.5;max-width:1200px;margin:0 0 22px;font-weight:500;}
+.cover-pills{display:flex;gap:12px;justify-content:center;margin-top:8px;flex-wrap:wrap;}
+.cover-pills .tag{font-size:12px;padding:7px 14px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.30);color:#FFFFFF;}
+.corner{display:none!important;}
+.ring{display:none!important;}
+.puente{border:1px solid #BFDBFE;border-left:6px solid #1763A9;background:#EFF6FF;padding:14px 18px;font-size:18px;line-height:1.45;color:#374151;margin:0 56px 18px;border-radius:0 10px 10px 0;}
+.puente b{color:#1763A9;font-weight:800;letter-spacing:.08em;white-space:nowrap;text-transform:uppercase;font-size:14px;}
+.cover-bal{margin-top:18px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:1500px;}
+.cover-bal span{border:1px solid rgba(255,255,255,.30);background:rgba(255,255,255,.12);padding:8px 14px;border-radius:10px;font-size:14px;letter-spacing:.04em;color:#E5E7EB;}
+.cover-bal b{color:#FFFFFF;font-weight:800;}
+.cover-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;width:100%;max-width:1280px;margin-top:22px;}
+.cover-kpi{background:#FFFFFF;border:1px solid var(--border);border-radius:12px;padding:16px 20px;text-align:left;}
+.cover-kpi .k-label{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#6B7280;display:flex;justify-content:space-between;align-items:center;}
+.cover-kpi .k-label em{font-style:normal;font-family:Inter,sans-serif;font-size:11px;font-weight:700;color:#1763A9;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:999px;padding:2px 8px;}
+.cover-kpi .k-val{font-size:36px;font-weight:800;letter-spacing:-.02em;color:#111827;margin:6px 0 4px;line-height:1;}
+.cover-kpi .k-val small{font-size:13px;font-weight:700;color:#6799C8;letter-spacing:.08em;text-transform:uppercase;}
+.cover-kpi .k-desc{font-size:13px;line-height:1.45;color:#4B5563;margin:0;}
+.note{font-size:15px;line-height:1.55;color:#6B7280;border-top:1px solid var(--border);padding-top:10px;margin-top:12px;}
+.note b{color:#374151;}
 #nav{position:fixed;right:18px;bottom:14px;z-index:50;display:flex;gap:8px;}
-#nav button{background:#000;color:var(--accent);border:1px solid var(--border);font-family:var(--mono);font-size:12px;letter-spacing:.16em;padding:8px 12px;cursor:pointer;text-transform:uppercase;}
-#nav button:hover{border-color:var(--accent);}
-#counter{position:fixed;left:18px;bottom:14px;z-index:50;font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--dim);background:#000;border:1px solid var(--border);padding:8px 12px;}
-#counter b{color:var(--accent);}
+#nav button{background:#FFFFFF;color:#1763A9;border:1px solid var(--border);font-family:var(--font);font-size:12px;font-weight:700;letter-spacing:.12em;padding:8px 14px;cursor:pointer;text-transform:uppercase;border-radius:999px;}
+#nav button:hover{border-color:#1763A9;}
+#counter{position:fixed;left:18px;bottom:14px;z-index:50;font-family:var(--font);font-size:12px;font-weight:600;letter-spacing:.12em;color:#6B7280;background:#FFFFFF;border:1px solid var(--border);padding:8px 14px;border-radius:999px;}
+#counter b{color:#1763A9;font-weight:800;}
+/* ============================================================
+   SAFRAN — sistema unificado (base 01-14 + 15-20 con .safran-x).
+   Tokens puros: blanco #FFFFFF / navy #111827 / azul #1763A9
+   (+ acento #6799C8), sutil #F8FAFC, borde #E5E7EB, Inter.
+   La base anterior ya usa estos tokens; este bloque refuerza
+   01-14 con la misma malla, chips y numeros de bala.
+   ============================================================ */
+.slide.safran{background:#FFFFFF;color:#111827;font-family:Inter,'Segoe UI',Helvetica,Arial,sans-serif;}
+.slide.safran::before{background-image:linear-gradient(to right,rgba(23,99,169,.07) 1px,transparent 1px),linear-gradient(to bottom,rgba(23,99,169,.07) 1px,transparent 1px);background-size:32px 32px;opacity:1;}
+.slide.safran::after{display:none;}
+.slide.safran .hud-top{height:64px;padding:0 48px;background:#FFFFFF;border-bottom:1px solid #E5E7EB;}
+.slide.safran .hud-top .brand{color:#1763A9;font-size:15px;letter-spacing:.08em;font-weight:800;}
+.slide.safran .hud-top .brand::before{background:#1763A9;border-radius:4px;width:12px;height:12px;}
+.slide.safran .hud-top .mid{color:#6B7280;font-size:12px;letter-spacing:.16em;}
+.slide.safran .hud-top .num{color:#6B7280;font-size:12px;}
+.slide.safran .hud-top .num b{color:#111827;font-size:16px;}
+.slide.safran .hud-body{padding:26px 56px 18px;background:linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%);}
+.slide.safran .kicker{margin-bottom:12px;}
+.slide.safran .kicker .nb{color:#1763A9;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:999px;padding:5px 12px;font-size:12px;letter-spacing:.16em;}
+.slide.safran .kicker>span:last-child{color:#6B7280;font-size:12px;letter-spacing:.18em;}
+.slide.safran h2{font-family:Inter,'Segoe UI',Helvetica,Arial,sans-serif;font-weight:800;font-size:44px;line-height:1.08;color:#111827;letter-spacing:-.02em;margin:0 0 14px;}
+.slide.safran h2 .hl{color:#1763A9;}
+.slide.safran .rule{width:72px;height:4px;border-radius:2px;background:#1763A9;margin:0 0 20px;}
+.slide.safran .cols{gap:24px;}
+.slide.safran .col-text{flex:0 0 600px;}
+.slide.safran .panel{background:#FFFFFF;border:1px solid #E5E7EB;border-radius:12px;padding:20px 22px;}
+.slide.safran .panel::before,.slide.safran .panel::after{content:none;display:none;}
+.slide.safran .panel-t{color:#6B7280;border-bottom:1px solid #E5E7EB;font-size:12px;letter-spacing:.18em;}
+.slide.safran .panel-t b{color:#111827;}
+.slide.safran ul.b{counter-reset:balas;gap:15px;}
+.slide.safran ul.b li{font-size:21px;line-height:1.45;color:#111827;padding-left:52px;}
+.slide.safran ul.b li::before{content:counter(balas,decimal-leading-zero);counter-increment:balas;left:0;top:3px;color:#1763A9;font-weight:800;font-size:14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:3px 8px;letter-spacing:.04em;}
+.slide.safran ul.b li .v{color:#1763A9;}
+.slide.safran ul.b li .dim{color:#6B7280;}
+.slide.safran .fig{background:#F8FAFC;border:1px solid #E5E7EB;border-radius:12px;padding:16px;}
+.slide.safran .fig img{background:#FFFFFF;border:1px solid #E5E7EB;border-radius:8px;max-height:540px;}
+.slide.safran .fig .panel-t{border:none;margin:0;padding:0 0 10px;}
+.slide.safran .cap{color:#6B7280;font-size:13px;}
+.slide.safran .cap b{color:#374151;}
+.slide.safran .tag{border-radius:999px;background:#EFF6FF;border-color:#BFDBFE;color:#1763A9;font-size:11px;padding:4px 10px;font-weight:700;}
+.slide.safran .step{background:#FFFFFF;border:1px solid #E5E7EB;border-radius:10px;font-size:18px;color:#111827;padding:14px;text-align:center;}
+.slide.safran .step small{color:#1763A9;font-size:11px;}
+.slide.safran .step.hot{background:#EFF6FF;border-color:#93C5FD;}
+.slide.safran .arrow{color:#1763A9;font-size:22px;}
+.slide.safran .note{color:#6B7280;border-top:1px solid #E5E7EB;}
+.slide.safran .note b{color:#374151;}
+.slide.safran .puente{background:#EFF6FF;border:1px solid #BFDBFE;border-left:6px solid #1763A9;border-radius:0 10px 10px 0;color:#374151;margin:0 56px 18px;padding:14px 18px;font-size:18px;}
+.slide.safran .puente b{color:#1763A9;}
+.slide.safran .hud-foot{background:#FFFFFF;border-top:1px solid #E5E7EB;color:#6B7280;padding:12px 48px;font-size:11px;}
+.slide.safran .hud-foot .acc{color:#1763A9;}
 @media print{
   @page{size:1920px 1080px;margin:0;}
-  html,body,#stage{background:#000;}
+  html,body,#stage{background:#FFFFFF;}
   #stage{display:block;width:auto;height:auto;overflow:visible;}
   #deck{transform:none!important;width:1920px;height:auto;border:none;}
   .slide{display:flex!important;position:relative;inset:auto;page-break-after:always;break-after:page;}
@@ -132,60 +182,157 @@ h1 .hl{color:var(--accent);}
   #nav,#counter{display:none!important;}
 }
 </style>
+<style id="safran-15-20">
+/* ===== SAFRAN — slides 15-20 only (scoped, no toca 01-14) ===== */
+/* Paleta Safran-Grade desde stitch-ds02: navy #111827 · primario #1763A9 · acento #6799C8 · superficie #FFFFFF · borde #E5E7EB · sutil #F8FAFC */
+.slide.safran-x{background:#FFFFFF!important;color:#111827;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;text-transform:none;letter-spacing:0;}
+.slide.safran-x::before,.slide.safran-x::after{display:none!important;}
+.slide.safran-x *{border-radius:8px!important;}
+.slide.safran-x .sf-top{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 48px;background:#FFFFFF;border-bottom:1px solid #E5E7EB;}
+.slide.safran-x .sf-brand{display:flex;align-items:center;gap:12px;}
+.slide.safran-x .sf-logo{width:36px;height:36px;border-radius:8px!important;background:#1763A9;color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;letter-spacing:.02em;}
+.slide.safran-x .sf-brand-txt{display:flex;flex-direction:column;line-height:1.1;}
+.slide.safran-x .sf-brand-txt b{font-size:16px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#111827;}
+.slide.safran-x .sf-brand-txt i{font-style:normal;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#6799C8;margin-top:2px;}
+.slide.safran-x .sf-top-mid{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#6B7280;}
+.slide.safran-x .sf-num{font-size:12px;font-weight:600;letter-spacing:.14em;color:#6B7280;text-transform:uppercase;}
+.slide.safran-x .sf-num b{color:#1763A9;font-size:16px;font-weight:800;}
+.slide.safran-x .sf-body{position:relative;z-index:2;flex:1;padding:28px 48px 20px;display:flex;flex-direction:column;min-height:0;background:#FFFFFF;}
+.slide.safran-x .sf-body::before{content:"";position:absolute;inset:0;z-index:-1;background-size:32px 32px;background-image:linear-gradient(to right,rgba(226,232,240,.45) 1px,transparent 1px),linear-gradient(to bottom,rgba(226,232,240,.45) 1px,transparent 1px);}
+.slide.safran-x .sf-crumb{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.slide.safran-x .sf-chip{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;color:#1763A9;background:#EFF6FF;border:1px solid #BFDBFE;padding:5px 10px;border-radius:999px!important;text-transform:uppercase;}
+.slide.safran-x .sf-crumb-r{font-size:11px;font-weight:600;letter-spacing:.14em;color:#9CA3AF;text-transform:uppercase;}
+.slide.safran-x h2.sf-h{font-family:'Inter',sans-serif;font-size:44px;font-weight:800;letter-spacing:-.02em;line-height:1.05;color:#111827;text-transform:none;margin:0 0 8px;}
+.slide.safran-x h2.sf-h .hl{color:#1763A9;}
+.slide.safran-x .sf-sub{font-size:17px;line-height:1.45;color:#4B5563;margin:0 0 18px;max-width:1600px;}
+.slide.safran-x .sf-grid{display:flex;gap:24px;flex:1;min-height:0;}
+.slide.safran-x .sf-left{flex:0 0 720px;min-width:0;display:flex;flex-direction:column;min-height:0;}
+.slide.safran-x .sf-right{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;min-height:0;}
+.slide.safran-x .sf-panel{background:#FFFFFF;border:1px solid #E5E7EB;border-radius:12px!important;padding:18px 20px;display:flex;flex-direction:column;min-height:0;}
+.slide.safran-x .sf-panel-t{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#9CA3AF;border-bottom:1px solid #F3F4F6;padding-bottom:10px;margin-bottom:12px;}
+.slide.safran-x .sf-panel-t b{color:#111827;}
+.slide.safran-x .sf-panel-t .tag{background:#EFF6FF;color:#1763A9;border:1px solid #BFDBFE;border-radius:999px!important;font-size:11px;padding:3px 8px;letter-spacing:.08em;}
+.slide.safran-x ul.sf-balas{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
+.slide.safran-x ul.sf-balas li{display:flex;gap:14px;align-items:flex-start;border:1px solid #E5E7EB;border-radius:10px!important;padding:13px 14px;background:#F8FAFC;}
+.slide.safran-x ul.sf-balas li:nth-child(1){background:#FFFFFF;}
+.slide.safran-x .sf-n{flex:0 0 auto;width:36px;height:36px;border-radius:8px!important;background:#1763A9;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;}
+.slide.safran-x ul.sf-balas li:nth-child(2) .sf-n{background:#1763A9;}
+.slide.safran-x ul.sf-balas li:nth-child(3) .sf-n{background:#1763A9;}
+.slide.safran-x ul.sf-balas li:nth-child(4) .sf-n{background:#1763A9;color:#FFFFFF;}
+.slide.safran-x ul.sf-balas p{margin:0;font-size:19px;line-height:1.45;color:#1F2937;}
+.slide.safran-x ul.sf-balas p strong{color:#1763A9;font-weight:700;}
+.slide.safran-x ul.sf-balas p .dim{color:#6B7280;}
+.slide.safran-x .sf-fig{background:#F8FAFC;border:1px solid #E5E7EB;border-radius:12px!important;padding:14px;display:flex;flex-direction:column;flex:1;min-height:0;}
+.slide.safran-x .sf-fig figure{margin:0;display:flex;flex-direction:column;flex:1;min-height:0;}
+.slide.safran-x .sf-fig img{width:100%;height:100%;max-height:520px;object-fit:contain;background:#FFFFFF;border:1px solid #E5E7EB;border-radius:8px!important;display:block;}
+.slide.safran-x .sf-cap{font-size:13px;line-height:1.5;color:#6B7280;padding-top:10px;}
+.slide.safran-x .sf-cap b{color:#374151;}
+.slide.safran-x table.sf-table{width:100%;border-collapse:collapse;overflow:hidden;border:1px solid #E5E7EB;border-radius:10px!important;background:#fff;}
+.slide.safran-x table.sf-table th{background:#111827;color:#fff;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:12px 14px;text-align:left;}
+.slide.safran-x table.sf-table td{background:#fff;border-top:1px solid #F3F4F6;padding:13px 14px;font-size:19px;color:#1F2937;vertical-align:middle;}
+.slide.safran-x table.sf-table td.v{color:#1763A9;font-weight:800;font-size:24px;}
+.slide.safran-x .sf-flow{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;}
+.slide.safran-x .sf-step{flex:1 1 160px;min-width:150px;border:1px solid #E5E7EB;background:#FFFFFF;border-radius:10px!important;padding:12px 12px;font-size:17px;line-height:1.35;color:#111827;overflow-wrap:anywhere;word-break:break-word;}
+.slide.safran-x .sf-step small{display:block;font-size:11px;font-weight:700;letter-spacing:.16em;color:#1763A9;text-transform:uppercase;margin-bottom:6px;}
+.slide.safran-x .sf-step.hot{background:#EFF6FF;border-color:#BFDBFE;}
+.slide.safran-x .sf-arrow{align-self:center;color:#1763A9;font-weight:800;font-size:20px;}
+.slide.safran-x .sf-trio{display:flex;gap:12px;flex:1;min-height:0;}
+.slide.safran-x .sf-trio figure{flex:1;margin:0;display:flex;flex-direction:column;min-width:0;}
+.slide.safran-x .sf-trio img{flex:1;min-height:0;}
+.slide.safran-x .sf-anchor{background:#111827;color:#F8FAFC;border-radius:12px!important;padding:18px 20px;border:1px solid #111827;}
+.slide.safran-x .sf-anchor .sf-panel-t{border-color:#374151;color:#9CA3AF;}
+.slide.safran-x .sf-anchor .sf-panel-t b{color:#fff;}
+.slide.safran-x .sf-anchor p{font-size:22px;line-height:1.5;color:#E5E7EB;margin:0;}
+.slide.safran-x .sf-anchor p strong{color:#fff;}
+.slide.safran-x .sf-anchor p .sf-big{color:#fff;font-weight:800;font-size:26px;}
+.slide.safran-x .sf-note{font-size:15px;line-height:1.55;color:#6B7280;border-top:1px solid #F3F4F6;padding-top:10px;margin-top:12px;}
+.slide.safran-x .sf-note b{color:#374151;}
+.slide.safran-x .sf-puente{position:relative;z-index:2;display:flex;align-items:center;gap:14px;margin:14px 48px 0;background:#EFF6FF;border:1px solid #BFDBFE;border-left:6px solid #1763A9;border-radius:10px!important;padding:14px 20px;font-size:18px;line-height:1.45;color:#1F2937;}
+.slide.safran-x .sf-puente b{color:#1763A9;font-weight:800;letter-spacing:.08em;white-space:nowrap;text-transform:uppercase;font-size:14px;}
+.slide.safran-x .sf-foot{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 48px;background:#FFFFFF;border-top:1px solid #E5E7EB;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#9CA3AF;}
+.slide.safran-x .sf-foot .sf-acc{color:#1763A9;font-weight:700;}
+.slide.safran-x .sf-imgline{width:100%;height:180px;object-fit:cover;border-radius:10px!important;border:1px solid #E5E7EB;display:block;}
+</style>
+
+<style id="safran-01-07">
+/* SAFRAN 01-07: portada full bleed + tabla 03 (scope #s01/#s03). Tokens puros #FFFFFF / #111827 / #1763A9. */
+#s01.safran::before{display:none!important;}
+#s01.safran .hud-top{background:transparent;border-bottom:1px solid rgba(255,255,255,.22);}
+#s01.safran .hud-top .brand{color:#FFFFFF;}
+#s01.safran .hud-top .brand::before{background:#6799C8;}
+#s01.safran .hud-top .mid{color:#E5E7EB;}
+#s01.safran .hud-top .num{color:#E5E7EB;}
+#s01.safran .hud-top .num b{color:#FFFFFF;}
+#s01.safran .hud-body{background:transparent;}
+#s01.safran .bgimg::after{background:rgba(17,24,39,0.40)!important;}
+#s01.safran .bgimg.soft::after{background:rgba(17,24,39,0.40)!important;}
+#s01.safran h1{color:#FFFFFF;font-size:76px;font-weight:800;letter-spacing:-.02em;line-height:1.05;}
+#s01.safran h1 .hl{color:#FFFFFF;}
+#s01.safran .cover-sub{color:#E5E7EB;}
+#s01.safran .rule{background:#6799C8;margin:20px auto 0;}
+#s01.safran .title-box i{display:none!important;}
+#s01.safran .puente{margin:18px 0 0;width:100%;}
+#s01.safran .hud-foot{background:transparent;border-top:1px solid rgba(255,255,255,.22);color:#E5E7EB;}
+#s01.safran .hud-foot .acc{color:#6799C8;}
+#s01.safran .hud-foot .keys{color:#E5E7EB;}
+#s03.safran .bgimg::after{background:rgba(248,250,252,0.82)!important;}
+#s03.safran .bgimg.hard::after{background:rgba(248,250,252,0.82)!important;}
+#s03.safran table th{background:#111827;color:#FFFFFF;font-size:13px;letter-spacing:.16em;text-transform:uppercase;border-color:#111827;}
+#s03.safran table td{background:#FFFFFF;border-color:#E5E7EB;color:#111827;font-size:20px;}
+#s03.safran table td.v{color:#1763A9;font-weight:800;}
+</style>
 </head>
 <body>
 <div id="stage">
 <div id="deck">
 
 <!-- 01 PORTADA -->
-<section class="slide" data-nb="DS02" id="s01">
-  <div class="bgimg soft" aria-hidden="true"><img src="assets/stitch-turbofan.jpg" alt=""></div>
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">DS02_RUL_PORTADA // SECTOR AEROESPACIAL</div><div class="num">SLIDE <b>01</b> / 20</div></div>
+<section class="slide safran" data-nb="DS02" id="s01">
+  <div class="bgimg soft" aria-hidden="true"><img src="assets/stitch-turbofan.jpg" alt="Turbofán en hangar"></div>
+  <div class="hud-top"><div class="brand">DS02 · SAFRAN STYLE</div><div class="mid">PORTADA · SECTOR AEROESPACIAL</div><div class="num">SLIDE <b>01</b> / 20</div></div>
   <div class="hud-body">
     <div class="cover-wrap">
-      <svg class="ring" width="640" height="640" viewBox="0 0 600 600" fill="none" aria-hidden="true">
-        <circle cx="300" cy="300" r="280" stroke="#222" stroke-width="1"/><circle cx="300" cy="300" r="240" stroke="#222" stroke-width="1"/>
-        <circle cx="300" cy="300" r="200" stroke="#222" stroke-width="1"/><circle cx="300" cy="300" r="110" stroke="#222" stroke-width="1"/>
-        <circle cx="300" cy="300" r="12" stroke="#CCFF00" stroke-width="1"/>
-        <line x1="300" x2="300" y1="12" y2="30" stroke="#CCFF00" stroke-width="1.5"/><line x1="300" x2="300" y1="570" y2="588" stroke="#CCFF00" stroke-width="1.5"/>
-        <line x1="12" x2="30" y1="300" y2="300" stroke="#CCFF00" stroke-width="1.5"/><line x1="570" x2="588" y1="300" y2="300" stroke="#CCFF00" stroke-width="1.5"/>
-      </svg>
-      <div class="corner tl">[REF // 00:00:01]</div><div class="corner tr">[AXIS_ALPHA // ROT]</div>
-      <div class="corner bl">[VECTOR_STATION]</div><div class="corner br">[CAL_LOCK // TRUE]</div>
-      <div class="cover-badge"><span></span> DS02 // REMAINING USEFUL LIFE (RUL) — NB01–NB07 <span style="color:var(--dim)">::</span><span style="color:var(--muted);font-weight:400">MOD_01</span></div>
-      <div class="title-box"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>
+      <div class="cover-badge"><span></span> DS02 · REMAINING USEFUL LIFE (RUL) — NB01–NB07</div>
+      <div class="title-box">
         <h1>DE LA PREDICCIÓN<br><span class="hl">A LA ACCIÓN</span></h1>
       </div>
-      <p class="cover-sub">RUL QUE DECIDE EN HANGAR<br><span style="font-size:18px;letter-spacing:.18em;color:var(--dim)">VENTANA C · SEED 42 · RMSE 4.338 — MANDAN NB01–NB07 Y results/*.csv</span></p>
-      <div class="rule" style="margin:28px auto 0"></div>
-      <div class="cover-pills">
-        <span class="tag g">&gt; BUNDLE C 4.338 / 3.227 / 0.9461</span>
-        <span class="tag">&gt; STITCH HUD — #000000 / #CCFF00</span>
-        <span class="tag">&gt; 1920×1080 · TECLADO</span>
+      <p class="cover-sub">RUL QUE DECIDE EN HANGAR<br><span style="font-size:16px;letter-spacing:.08em;color:#CBD5E1">VENTANA C · SEED 42 · RMSE 4.338 — MANDAN NB01–NB07 Y results/*.csv</span></p>
+      <div class="rule" style="margin:20px auto 0"></div>
+      <div class="cover-kpis">
+        <div class="cover-kpi"><div class="k-label"><span>Error cuadrático medio</span><em>RMSE</em></div><div class="k-val">4.338</div><p class="k-desc">Bundle C · Ventana 50 · Seed 42 — desviación típica en ciclos.</p></div>
+        <div class="cover-kpi"><div class="k-label"><span>Validación ciega</span><em>Test</em></div><div class="k-val">3.227</div><p class="k-desc">Ocultos sin historial previo — ciclos RUL en turbofanes.</p></div>
+        <div class="cover-kpi"><div class="k-label"><span>Determinación</span><em>R²</em></div><div class="k-val">0.9461</div><p class="k-desc">94.6% alineación con deterioro termomecánico multivariable.</p></div>
       </div>
+      <div class="cover-pills">
+        <span class="tag">BUNDLE C · SEED 42</span>
+        <span class="tag">ESTÉTICA SAFRAN — BLANCO / NAVY / AZUL</span>
+        <span class="tag">1920×1080 · TECLADO</span>
+      </div>
+      <div class="cover-bal"><span><b>1</b> NB01 datos · IA débil</span><span><b>2</b> NB02-04 modelos honestos</span><span><b>3</b> NB05-06 cadena y ancla C</span><span><b>4</b> NB07 SHAP + decisión</span></div>
     </div>
+  <div class="puente"><b>PUENTE &rarr;</b> De la fila a la ventana: el RUL se decide con 50 lecturas, no con una fila. Arranca NB01.</div>
   </div>
-  <div class="hud-foot"><span>SYS_REF // ORBITAL HUD TERMINAL</span><span class="acc">STATUS: SISTEMA_OPERACIONAL</span><span class="keys">← → NAVEGAR · IMPRIMIR: CHROME HEADLESS PDF</span></div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">BUNDLE C · 4.338 / 3.227 / 0.9461</span><span class="keys">← → NAVEGAR · IMPRIMIR: CHROME HEADLESS PDF</span></div>
 </section>
 
 <!-- 02 NB01 PROBLEMA -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB01 // EDA Y CONTEXTO</div><div class="num">SLIDE <b>02</b> / 20</div></div>
+<section class="slide safran" id="s02">
+  <div class="hud-top"><div class="brand">DS02 · SAFRAN STYLE</div><div class="mid">NB01 // EDA Y CONTEXTO</div><div class="num">SLIDE <b>02</b> / 20</div></div>
   <div class="hud-body">
     <div class="kicker"><span class="nb">NB01 · 01_EDA_Y_CONTEXTO</span><span>REGRESIÓN // SPLIT POR MOTOR</span></div>
     <h2>RUL ES <span class="hl">REGRESIÓN</span> — SPLIT POR MOTOR</h2>
     <div class="cols">
       <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>4 BALAS</b></div>
           <ul class="b">
-            <li>RUL es <span class="v">regresión</span>, no clasificación: fit <span class="v">2/5/10/18/20</span> · holdout <span class="v">16</span> · test <span class="v">11/14/15</span>.</li>
-            <li>Correlación RUL–fila <span class="v">0.01</span>: la fila <span class="dim">no avisa</span>; manda la señal del sensor.</li>
+            <li>RUL es <span class="v">regresión</span>: ciclos que quedan, no categoría. Fit <span class="v">2/5/10/18/20</span> · holdout <span class="v">16</span> · test <span class="v">11/14/15</span>.</li>
+            <li><span class="v">IA débil</span>: no entiende el motor ni "sabe" de aviación; ajusta números a patrones de sensores. Lo útil es el aviso, no una explicación física.</li>
+            <li>Correlación RUL–fila <span class="v">0.01</span>: la fila sola <span class="dim">no avisa</span>; manda la ventana de 50 lecturas.</li>
+            <li>Split <span class="v">por motor</span>: ningún motor repite partición; la generalización se mide <span class="v">entre motores</span>, no entre filas del mismo motor.</li>
           </ul>
         </div>
-        <div class="panel"><div class="panel-t"><span>REGLA</span><b>POR MOTOR</b></div>
           <p style="font-size:21px;line-height:1.5;color:var(--muted);margin:0">Ningún motor aparece en dos particiones. La generalización se mide <span style="color:var(--text)">entre motores</span>, no entre filas del mismo motor.</p>
         </div>
-      </div>
       <div class="col-fig">
         <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // HEATMAP_CORRELACIÓN</span><span class="tag g">NB01</span></div>
           <figure><img src="assets/eda_heatmap_corr.png" alt="Heatmap de correlación NB01">
@@ -194,22 +341,26 @@ h1 .hl{color:var(--accent);}
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB01 · FIT 2/5/10/18/20 · HOLDOUT 16 · TEST 11/14/15</span><span>02 / 20</span></div>
+
+  <div class="puente"><b>PUENTE &rarr;</b> NB01 fijado (RUL y split por motor). Siguiente: nulos MAR T30 y fase de vuelo.</div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">NB01 · FIT 2/5/10/18/20 · HOLDOUT 16 · TEST 11/14/15</span><span>02 / 20</span></div>
 </section>
 
 <!-- 03 NB01 NULOS + TABLA -->
-<section class="slide">
+<section class="slide safran" id="s03">
   <div class="bgimg hard" aria-hidden="true"><img src="assets/stitch-avion.jpg" alt=""></div>
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB01 // NULOS MAR T30</div><div class="num">SLIDE <b>03</b> / 20</div></div>
+  <div class="hud-top"><div class="brand">DS02 · SAFRAN STYLE</div><div class="mid">NB01 // NULOS MAR T30</div><div class="num">SLIDE <b>03</b> / 20</div></div>
   <div class="hud-body">
     <div class="kicker"><span class="nb">NB01 · 01_EDA_Y_CONTEXTO</span><span>SOLO TABLA</span></div>
     <h2>NULOS <span class="hl">MAR T30</span> Y <span class="hl">FASE_VUELO</span></h2>
     <div class="cols">
       <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>4 BALAS</b></div>
           <ul class="b">
-            <li>Nulos MAR T30: alt&nbsp;&gt;&nbsp;27k &amp; Mach&nbsp;&gt;&nbsp;0.68 → <span class="v">1.82%</span> · <span class="v">1.185 nulos</span>.</li>
-            <li>Imputación <span class="v">ffill causal</span> (sin futuro); <span class="v">fase_vuelo</span> solo fila, sin leak.</li>
+            <li>Nulos MAR T30: alt&nbsp;&gt;&nbsp;27k &amp; Mach&nbsp;&gt;&nbsp;0.68 → <span class="v">1.82%</span> · <span class="v">1.185 nulos</span>. La causa es conocida (crucero alto), por eso <span class="v">MAR</span>.</li>
+            <li>Imputación <span class="v">ffill causal</span> (último valor anterior, sin futuro); <span class="v">fase_vuelo</span> solo aparece en fila, sin leak.</li>
+            <li>Tabla de campos (resumen en la figura): <span class="v">14 sensores</span> + <span class="v">4 ajustes operativos</span> + <span class="v">cycle</span> + <span class="v">Mach/alt</span> + <span class="v">fase_vuelo</span>; objetivo <span class="v">RUL</span>.</li>
+            <li>Por qué importa: si rellenar con el futuro inflaría el resultado, tratar el MAR sin fuga lo hace honesto.</li>
           </ul>
         </div>
       </div>
@@ -220,27 +371,34 @@ h1 .hl{color:var(--accent);}
             <tr><th>Condición</th><th>% T30</th><th>Nulos</th><th>Tratamiento</th></tr>
             <tr><td>alt &gt; 27k<br>Mach &gt; 0.68</td><td class="v">1.82%</td><td class="v">1.185</td><td>ffill causal<br><span style="color:var(--dim)">sin mirar futuro</span></td></tr>
             <tr><td>fase_vuelo</td><td>fila</td><td>—</td><td>solo fila<br><span style="color:var(--dim)">sin leak</span></td></tr>
+            <tr><td>14 sensores<br><span style="color:var(--dim)">T24 T30 T48 T50 P15 P2 P21 P24 Ps30 P40 P50 Nf Nc Wf</span></td><td>canal</td><td>—</td><td>señal<br><span style="color:var(--dim)">X_seq 50×19</span></td></tr>
+            <tr><td>4 ajustes op. + cycle/Mach/alt</td><td>contexto</td><td>—</td><td>régimen<br><span style="color:var(--dim)">X_tab 93</span></td></tr>
+            <tr><td>RUL (objetivo)</td><td>ciclos</td><td>—</td><td>regresión<br><span style="color:var(--dim)">lo predicho</span></td></tr>
           </table>
           <p class="note"><b>Fuente:</b> NB01 · tratamiento MAR T30 documentado en el cuaderno; sin cifras inventadas.</p>
         </div>
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB01 · MAR 1.82% · FFILL CAUSAL · FASE_VUELO SOLO FILA</span><span>03 / 20</span></div>
+
+  <div class="puente"><b>PUENTE &rarr;</b> La fila no avisa (0.01): hay que mirar la ventana. Siguiente → qué campos forman esa ventana y por qué T30 se pierde.</div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">NB01 · MAR 1.82% · FFILL CAUSAL · FASE_VUELO SOLO FILA</span><span>03 / 20</span></div>
 </section>
 
 <!-- 04 NB01 RESIDUALIZACIÓN -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB01 // RESIDUALIZACIÓN RIDGE</div><div class="num">SLIDE <b>04</b> / 20</div></div>
+<section class="slide safran" id="s04">
+  <div class="hud-top"><div class="brand">DS02 · SAFRAN STYLE</div><div class="mid">NB01 // RESIDUALIZACIÓN RIDGE</div><div class="num">SLIDE <b>04</b> / 20</div></div>
   <div class="hud-body">
     <div class="kicker"><span class="nb">NB01 · 01_EDA_Y_CONTEXTO</span><span>14 RIDGES + VENTANAS 50</span></div>
     <h2>RESIDUALIZACIÓN <span class="hl">RIDGE</span> + VENTANAS 50</h2>
     <div class="cols">
       <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>4 BALAS</b></div>
           <ul class="b">
-            <li>Resid. Ridge <span class="v">14 ridges</span> + ventanas <span class="v">50</span>: <span class="v">X_seq 50×19</span> · <span class="v">X_tab 93</span>.</li>
-            <li><span class="v">dev 17.450</span> · <span class="v">test 6.196</span> ventanas; sin tocar test en el ajuste.</li>
+            <li>Residualizar = <span class="dim">quitar el régimen/fase</span> para dejar la señal de degradación (T48 por fase). <span class="v">14 ridges</span> + ventanas <span class="v">50</span>.</li>
+            <li>Formas de entrada: <span class="v">X_seq 50×19</span> (secuencia 50×19 canales) · <span class="v">X_tab 93</span> (tabla plana de 93 rasgos).</li>
+            <li><span class="v">dev 17.450</span> · <span class="v">test 6.196</span> ventanas; el ajuste no toca test.</li>
+            <li>Sin residualizar, el modelo confundiría "crucero alto" con desgaste: el residuo es la historia tras restar el régimen.</li>
           </ul>
         </div>
       </div>
@@ -252,21 +410,25 @@ h1 .hl{color:var(--accent);}
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB01 · X_SEQ 50×19 · X_TAB 93 · DEV 17.450 · TEST 6.196</span><span>04 / 20</span></div>
+
+  <div class="puente"><b>PUENTE &rarr;</b> La ventana está definida: 50 lecturas x 19 canales + 93 rasgos. Siguiente → cómo se quita el régimen para ver la degradación.</div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">NB01 · X_SEQ 50×19 · X_TAB 93 · DEV 17.450 · TEST 6.196</span><span>04 / 20</span></div>
 </section>
 
 <!-- 05 NB02 CLÁSICOS -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB02 // MODELOS CLÁSICOS Y MLP</div><div class="num">SLIDE <b>05</b> / 20</div></div>
+<section class="slide safran" id="s05">
+  <div class="hud-top"><div class="brand">DS02 · SAFRAN STYLE</div><div class="mid">NB02 // MODELOS CLÁSICOS Y MLP</div><div class="num">SLIDE <b>05</b> / 20</div></div>
   <div class="hud-body">
     <div class="kicker"><span class="nb">NB02 · 02_MODELOS_CLÁSICOS_Y_MLP</span><span>PIPELINE COMPARTIDO</span></div>
     <h2>CLÁSICOS: <span class="hl">XGB GANA</span> EN VAL</h2>
     <div class="cols">
       <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>4 BALAS</b></div>
           <ul class="b">
-            <li>Mismo pipeline + <span class="v">GroupKFold</span> por motor: <span class="v">XGB val 8.22</span> gana.</li>
-            <li>Test <span class="v">11.03</span>, <span class="dim">una sola lectura</span> (no tuning sobre test).</li>
+            <li>Mismo pipeline + <span class="v">GroupKFold</span> por motor para los <span class="v">5 modelos clásicos</span>: knn · regresión · rf · svm · <span class="v">xgb</span> (fila, 22 rasgos).</li>
+            <li>Valores (val): knn <span class="v">9.41</span> · regresión <span class="v">8.28</span> · rf <span class="v">9.07</span> · svm <span class="v">8.29</span> · <span class="v">xgb 8.22</span> gana.</li>
+            <li>Hiperparámetros ganadores: xgb <span class="v">max_depth 4</span> · regresión <span class="v">alpha 10.0</span> · knn <span class="v">n_neighbors 31</span> · rf <span class="v">max_depth 8</span> · svm <span class="v">C 10.0, epsilon 1.0</span>.</li>
+            <li>Test <span class="v">xgb 11.03</span>, <span class="dim">una sola lectura</span> (no se tunifica sobre test). Mejor clásico ≠ mejor sistema: falta la ventana.</li>
           </ul>
         </div>
       </div>
@@ -278,21 +440,25 @@ h1 .hl{color:var(--accent);}
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB02 · XGB VAL 8.22 · TEST 11.03 UNA LECTURA</span><span>05 / 20</span></div>
+
+  <div class="puente"><b>PUENTE &rarr;</b> Fila y pipeline listos: toca competir modelos en igualdad — los clásicos primero, después las redes MLP.</div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">NB02 · XGB VAL 8.22 · TEST 11.03 UNA LECTURA</span><span>05 / 20</span></div>
 </section>
 
 <!-- 06 NB02 MLP -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB02 // MLP BASE/E1/E2/E3</div><div class="num">SLIDE <b>06</b> / 20</div></div>
+<section class="slide safran" id="s06">
+  <div class="hud-top"><div class="brand">DS02 · SAFRAN STYLE</div><div class="mid">NB02 // MLP BASE/E1/E2/E3</div><div class="num">SLIDE <b>06</b> / 20</div></div>
   <div class="hud-body">
     <div class="kicker"><span class="nb">NB02 · 02_MODELOS_CLÁSICOS_Y_MLP</span><span>HIPÓTESIS PREVIA</span></div>
     <h2>MLP: <span class="hl">E2 GANA</span> — E1 OVERFIT</h2>
     <div class="cols">
       <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>4 BALAS</b></div>
           <ul class="b">
-            <li>Variantes base/E1/E2/E3 fijadas <span class="dim">antes</span>: <span class="v">E2 val 7.34 · test 7.72</span> gana.</li>
-            <li>E1 overfit: <span class="v">train 5.23</span> vs <span class="v">val 7.48</span> — se descarta.</li>
+            <li>Hipótesis fijada <span class="dim">antes</span> de ver resultados: base / E1 capacidad / E2 regularización / E3 batch grande.</li>
+            <li><span class="v">E2 val 7.34 · test 7.72</span> gana. Base val <span class="v">7.36</span> · E3 val <span class="v">7.36</span>.</li>
+            <li>Hiperparámetros E2: <span class="v">hidden_layer_sizes (128, 64)</span> · <span class="v">alpha 0.01</span>. E1 <span class="v">(256, 128, 64) · alpha 0.001</span> memoriza.</li>
+            <li>E1 overfit: <span class="v">train 5.23</span> vs <span class="v">val 7.48</span> — memoriza 22 rasgos ruidosos. Regularizar frena el overfit.</li>
           </ul>
         </div>
       </div>
@@ -304,21 +470,25 @@ h1 .hl{color:var(--accent);}
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB02 · E2 VAL 7.34 · TEST 7.72 · E1 TRAIN 5.23 VAL 7.48</span><span>06 / 20</span></div>
+
+  <div class="puente"><b>PUENTE &rarr;</b> Los clásicos dejan tope en 8.22: una red que lea la secuencia (MLP) puede ir más allá si no memoriza.</div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">NB02 · E2 VAL 7.34 · TEST 7.72 · E1 TRAIN 5.23 VAL 7.48</span><span>06 / 20</span></div>
 </section>
 
 <!-- 07 NB02 IMPORTANCIA -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB02 // IMPORTANCIA</div><div class="num">SLIDE <b>07</b> / 20</div></div>
+<section class="slide safran" id="s07">
+  <div class="hud-top"><div class="brand">DS02 · SAFRAN STYLE</div><div class="mid">NB02 // IMPORTANCIA</div><div class="num">SLIDE <b>07</b> / 20</div></div>
   <div class="hud-body">
     <div class="kicker"><span class="nb">NB02 · 02_MODELOS_CLÁSICOS_Y_MLP</span><span>PERMUTACIÓN + SHAP</span></div>
     <h2>IMPORTANCIA: <span class="hl">CYCLE Y T50</span> COINCIDEN</h2>
     <div class="cols">
       <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>4 BALAS</b></div>
           <ul class="b">
-            <li>Permutación: <span class="v">cycle 20.76</span> · <span class="v">T50 6.16</span>.</li>
-            <li>SHAP: <span class="v">cycle 34.50</span> · <span class="v">T50 6.14</span> — <span class="dim">mismo orden, coincide</span>.</li>
+            <li>Permutación (borro un campo y mido la caída): <span class="v">cycle 20.76</span> · <span class="v">T50 6.16</span>.</li>
+            <li>SHAP (reparto la predicción entre campos): <span class="v">cycle 34.50</span> · <span class="v">T50 6.14</span> — <span class="dim">mismo orden, coincide</span>.</li>
+            <li>Dos métodos distintos, mismo ranking: la lectura es robusta, no un artefacto del método.</li>
+            <li>En llano: permutación = "¿qué pasa si lo borro?"; SHAP = "¿cuánto empujó cada campo en esta predicción?".</li>
           </ul>
         </div>
       </div>
@@ -330,76 +500,93 @@ h1 .hl{color:var(--accent);}
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB02 · PERM CYCLE 20.76 T50 6.16 · SHAP CYCLE 34.50 T50 6.14</span><span>07 / 20</span></div>
+
+  <div class="puente"><b>PUENTE &rarr;</b> El campo rey es cycle: el modelo es sobre todo un reloj. Siguiente → comprobar si ese reloj ayuda o decora (ablación).</div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">NB02 · PERM CYCLE 20.76 T50 6.16 · SHAP CYCLE 34.50 T50 6.14</span><span>07 / 20</span></div>
 </section>
 
 <!-- 08 NB03+04 ABLACIÓN -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB03+NB04 // ABLACIÓN CYC_NORM</div><div class="num">SLIDE <b>08</b> / 20</div></div>
+<section class="slide safran">
+  <div class="hud-top"><div class="brand">DS02 · SAFRAN STYLE</div><div class="mid">NB03+NB04 // ABLACIÓN CYC_NORM</div><div class="num">SLIDE <b>08</b> / 20</div></div>
   <div class="hud-body">
     <div class="kicker"><span class="nb">NB03 · 03_FEATURE_ENGINEERING_SECUENCIAL + NB04</span><span>NO ES EL BUNDLE FINAL</span></div>
     <h2>ABLACIÓN <span class="hl">CYC_NORM</span></h2>
+    <div class="rule"></div>
     <div class="cols">
       <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>4 BALAS</b></div>
           <ul class="b">
-            <li>BiLSTM: OFF <span class="v">6.563</span> → ON <span class="v">5.796</span> → ON+delta <span class="v">5.512</span> (gana ablación, <span class="dim">NO es el bundle final</span>).</li>
-            <li>LGBM OFF <span class="v">6.297</span> gana; delta rompe a <span class="v">8.765</span>. El reloj vive <span class="dim">en la base</span>, no en el meta.</li>
+            <li>BiLSTM: OFF <span class="v">6.563</span> → ON <span class="v">5.796</span> → ON+delta <span class="v">5.512</span> (gana la ablación, <span class="dim">NO es el bundle final</span>).</li>
+            <li>LGBM OFF <span class="v">6.297</span> gana; delta rompe a <span class="v">8.765</span>. Cada familia usa <span class="dim">otra</span> versión de cyc_norm.</li>
+            <li><span class="v">cyc_norm</span> = reloj relativo al ciclo de vuelo (normalizado): evita que el ciclo absoluto mande.</li>
+            <li>La ablación responde "¿y si quito esta pieza?": sin ella no sabríamos si cyc_norm ayuda o decora.</li>
           </ul>
         </div>
       </div>
       <div class="col-fig">
-        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // ABLACIÓN_CYCNORM_RMSE</span><span class="tag g">NB03+04</span></div>
+        <div class="fig"><div class="panel-t"><span>FIG // ABLACIÓN_CYCNORM_RMSE</span><span class="tag g">NB03+04</span></div>
           <figure><img src="assets/ablacion_cycnorm_rmse.png" alt="Ablación cyc_norm RMSE NB03 NB04">
           <figcaption class="cap"><b>Fig · NB03/NB04</b> — Ablación cyc_norm. Fuente: <b>resultados/ablacion_cycnorm_rmse.png</b>.</figcaption></figure>
         </div>
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB03+04 · BILSTM ON+DELTA 5.512 · LGBM OFF 6.297 · DELTA 8.765</span><span>08 / 20</span></div>
+
+  <div class="puente"><b>PUENTE &rarr;</b> La ablación deja el mapa: cyc_norm ayuda a la red, no al meta. Siguiente → construir los dos especialistas del bundle.</div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">NB03+04 · BILSTM ON+DELTA 5.512 · LGBM OFF 6.297 · DELTA 8.765</span><span>08 / 20</span></div>
 </section>
 
 <!-- 09 NB04 ESPECIALISTAS -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB04 // ARQUITECTURA BILSTM·OOF</div><div class="num">SLIDE <b>09</b> / 20</div></div>
+<section class="slide safran">
+  <div class="hud-top"><div class="brand">DS02 · SAFRAN STYLE</div><div class="mid">NB04 // ARQUITECTURA BILSTM·OOF</div><div class="num">SLIDE <b>09</b> / 20</div></div>
   <div class="hud-body">
     <div class="kicker"><span class="nb">NB04 · 04_ARQUITECTURA_BILSTM_OOF</span><span>DOS ESPECIALISTAS</span></div>
     <h2>ESPECIALISTAS: <span class="hl">BILSTM + LGBM</span></h2>
+    <div class="rule"></div>
     <div class="cols">
       <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>4 BALAS</b></div>
           <ul class="b">
-            <li>BiLSTM triple pooling <span class="v">5.654</span> · LGBM cuantil <span class="v">0.35</span> sobre <span class="v">93</span> features.</li>
-            <li>El cuantil 0.35 <span class="dim">subestima a propósito</span>: especialista sesgado, no óptimo solo.</li>
+            <li>BiLSTM triple pooling <span class="v">5.654</span>: entrada <span class="v">(None, 50, 19)</span> · <span class="v">154 253</span> parámetros. Lee la secuencia en dos sentidos.</li>
+            <li>LGBM cuantil <span class="v">0.35</span> sobre <span class="v">93</span> rasgos: hiperparámetro <span class="v">alpha = 0.35</span> (no el 0.5 del promedio).</li>
+            <li>El cuantil 0.35 <span class="dim">subestima a propósito</span>: especialista sesgado; su sesgo aporta información distinta al híbrido.</li>
+            <li>IA débil en dúo: ninguno "diagnostica"; cada uno falla a su manera y la combinación acierta.</li>
           </ul>
         </div>
       </div>
       <div class="col-fig">
-        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // LOSS_CURVE_C</span><span class="tag g">NB04</span></div>
+        <div class="fig"><div class="panel-t"><span>FIG // LOSS_CURVE_C</span><span class="tag g">NB04</span></div>
           <figure><img src="assets/loss_curve_c.png" alt="Curva de loss bundle C NB04">
           <figcaption class="cap"><b>Fig · NB04</b> — Curva de loss C. Fuente: <b>resultados/loss_curve_c.png</b>.</figcaption></figure>
         </div>
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB04 · BILSTM 5.654 · LGBM Q0.35 / 93</span><span>09 / 20</span></div>
+
+  <div class="puente"><b>PUENTE &rarr;</b> Especialistas listos. Siguiente → combinarlos sin engañarse (OOF agrupado y beta fuera de fold).</div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">NB04 · BILSTM 5.654 · LGBM Q0.35 / 93</span><span>09 / 20</span></div>
 </section>
 
 <!-- 10 NB04 OOF BETA -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB04 // OOF + BETA</div><div class="num">SLIDE <b>10</b> / 20</div></div>
+<section class="slide safran">
+  <div class="hud-top"><div class="brand">DS02 · SAFRAN STYLE</div><div class="mid">NB04 // OOF + BETA</div><div class="num">SLIDE <b>10</b> / 20</div></div>
   <div class="hud-body">
     <div class="kicker"><span class="nb">NB04 · 04_ARQUITECTURA_BILSTM_OOF</span><span>SOLO TEXTO / DIAGRAMA</span></div>
     <h2>OOF AGRUPADO + <span class="hl">BETA=1.00</span></h2>
+    <div class="rule"></div>
     <div class="cols">
-      <div class="col-text" style="flex:1 1 auto">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>4 BALAS</b></div>
           <ul class="b">
-            <li>OOF agrupado por motor + <span class="v">beta=1.00</span> calibrado <span class="v">fuera de fold</span>: <span class="v">9.700→8.470 / 11.241→10.164</span>.</li>
+            <li><span class="v">OOF agrupado por motor</span>: cada motor se predice con un modelo que no lo vio; beta calibrado <span class="v">fuera de fold</span>.</li>
+            <li>Con beta <span class="v">1.00</span>: <span class="v">9.700→8.470</span> · <span class="v">11.241→10.164</span> (antes → después).</li>
             <li>Si beta se calibrara dentro del fold, fuga: <span class="v">0.308</span> (irreal). Fuera de fold, <span class="dim">honesto</span>.</li>
+            <li>Por qué fuera: calibrar dentro del fold es autoevaluarse; fuera, el sesgo se mide en datos no usados para el ajuste.</li>
           </ul>
         </div>
-        <div class="panel"><div class="panel-t"><span>DIAGRAMA // CALIBRACIÓN</span><span class="tag g">NB04</span></div>
+      </div>
+      <div class="col-fig">
+        <div class="panel fig"><div class="panel-t"><span>DIAGRAMA // CALIBRACIÓN</span><span class="tag g">NB04</span></div>
           <div class="flow">
             <div class="step"><small>OOF</small>Agrupado<br>por motor</div><span class="arrow">→</span>
             <div class="step hot"><small>BETA</small>=1.00<br>fuera de fold</div><span class="arrow">→</span>
@@ -410,76 +597,93 @@ h1 .hl{color:var(--accent);}
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB04 · BETA 1.00 FUERA DE FOLD · 9.700→8.470</span><span>10 / 20</span></div>
+
+  <div class="puente"><b>PUENTE &rarr;</b> Combinación honesta lista. Siguiente → el juez que pondera a cada especialista (solo holdout-16).</div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">NB04 · BETA 1.00 FUERA DE FOLD · 9.700→8.470</span><span>10 / 20</span></div>
 </section>
 
 <!-- 11 NB04 META -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB04 // META HOLDOUT-16</div><div class="num">SLIDE <b>11</b> / 20</div></div>
+<section class="slide safran">
+  <div class="hud-top"><div class="brand">DS02 · SAFRAN STYLE</div><div class="mid">NB04 // META HOLDOUT-16</div><div class="num">SLIDE <b>11</b> / 20</div></div>
   <div class="hud-body">
     <div class="kicker"><span class="nb">NB04 · 04_ARQUITECTURA_BILSTM_OOF</span><span>Z=[P_LSTM, P_LGB]</span></div>
     <h2>META: <span class="hl">SOLO HOLDOUT-16</span></h2>
+    <div class="rule"></div>
     <div class="cols">
       <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>4 BALAS</b></div>
           <ul class="b">
-            <li>Meta <span class="dim">solo</span> en holdout-16: <span class="v">Z=[p_lstm, p_lgb]</span>, sin reloj ni features extra.</li>
-            <li>Ridge <span class="v">0.255/0.641</span> · alpha <span class="v">88.59</span>: el híbrido pondera <span class="dim">más LGBM</span>.</li>
+            <li>Meta <span class="dim">solo</span> en holdout-16: <span class="v">Z=[p_lstm, p_lgb]</span>, sin reloj ni rasgos extra (2 entradas, nada más).</li>
+            <li>Ridge <span class="v">0.255 / 0.641</span> · alpha <span class="v">88.59</span>: el híbrido pondera <span class="dim">más LGBM</span>, ≈ <span class="v">28/72</span>.</li>
+            <li>Meta-learner en llano: un "segundo juez" que aprende a combinar las dos opiniones según quién acierta.</li>
+            <li>Solo holdout-16 (2 535 ventanas): si entrara test, la combinación se evaluaría a sí misma.</li>
           </ul>
         </div>
       </div>
       <div class="col-fig">
-        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // RIDGE_META_PESOS_06</span><span class="tag g">NB04</span></div>
+        <div class="fig"><div class="panel-t"><span>FIG // RIDGE_META_PESOS_06</span><span class="tag g">NB04</span></div>
           <figure><img src="assets/ridge_meta_pesos_06.png" alt="Pesos Ridge meta NB04">
           <figcaption class="cap"><b>Fig · NB04</b> — Pesos Ridge meta. Fuente: <b>resultados/ridge_meta_pesos_06.png → assets/ridge_meta_pesos_06.png</b> (alternativa 04).</figcaption></figure>
         </div>
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB04 · RIDGE 0.255/0.641 · ALPHA 88.59 · SIN RELOJ</span><span>11 / 20</span></div>
+
+  <div class="puente"><b>PUENTE &rarr;</b> El juez pondera 28/72. Siguiente → la cascada completa 7.067→4.338 con EMA5.</div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">NB04 · RIDGE 0.255/0.641 · ALPHA 88.59 · SIN RELOJ</span><span>11 / 20</span></div>
 </section>
 
 <!-- 12 NB04 CASCADA -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB04 // ENSAMBLE + EMA5</div><div class="num">SLIDE <b>12</b> / 20</div></div>
+<section class="slide safran">
+  <div class="hud-top"><div class="brand">DS02 · SAFRAN STYLE</div><div class="mid">NB04 // ENSAMBLE + EMA5</div><div class="num">SLIDE <b>12</b> / 20</div></div>
   <div class="hud-body">
     <div class="kicker"><span class="nb">NB04 · 04_ARQUITECTURA_BILSTM_OOF</span><span>CASCADA C</span></div>
     <h2>CASCADA <span class="hl">7.067→4.338</span> + EMA5</h2>
+    <div class="rule"></div>
     <div class="cols">
       <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>4 BALAS</b></div>
           <ul class="b">
-            <li>Cascada <span class="v">7.067 → 5.654 → 5.618 → 4.338</span>; EMA5 <span class="dim">causal</span>, no mira futuro.</li>
-            <li>Baseline <span class="v">20.022</span> · macro <span class="v">5.015</span>: en promedio <span class="dim">manda la ventana</span>, no U14.</li>
+            <li>Cascada <span class="v">7.067 → 5.654 → 5.618 → 4.338</span>; EMA5 <span class="dim">causal</span> (suaviza solo con pasado, no mira futuro).</li>
+            <li>Baseline <span class="v">20.022</span> · macro <span class="v">5.015</span>: en promedio <span class="dim">manda la ventana</span>, no el motor corto.</li>
+            <li>Significado empresa: RMSE ≈ <span class="v">4-5 ciclos</span> de margen típico para planear la inspección antes de la rotura. Sin euros: herramienta de decisión, no un ahorro prometido.</li>
+            <li>Cada etapa suma: quitar EMA5 o el meta devuelve ≈ <span class="v">+1.3</span> puntos. Ninguna sobra.</li>
           </ul>
         </div>
       </div>
       <div class="col-fig">
-        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // BUNDLE_C_CASCADA_RMSE</span><span class="tag g">NB04</span></div>
+        <div class="fig"><div class="panel-t"><span>FIG // BUNDLE_C_CASCADA_RMSE</span><span class="tag g">NB04</span></div>
           <figure><img src="assets/bundle_c_cascada_rmse.png" alt="Cascada bundle C RMSE NB04">
           <figcaption class="cap"><b>Fig · NB04</b> — Cascada bundle C. Fuente: <b>resultados/bundle_c_cascada_rmse.png</b> · <b>resultados/comparativa_bundle_c.csv</b>.</figcaption></figure>
         </div>
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB04 · 7.067→5.654→5.618→4.338 · BASELINE 20.022</span><span>12 / 20</span></div>
+
+  <div class="puente"><b>PUENTE &rarr;</b> Cascada a 4.338. Siguiente → la banda conformal 90% que acota la incertidumbre.</div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">NB04 · 7.067→5.654→5.618→4.338 · BASELINE 20.022</span><span>12 / 20</span></div>
 </section>
 
 <!-- 13 NB04 CONFORMAL -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB04 // BANDA CONFORMAL</div><div class="num">SLIDE <b>13</b> / 20</div></div>
+<section class="slide safran">
+  <div class="hud-top"><div class="brand">DS02 · SAFRAN STYLE</div><div class="mid">NB04 // BANDA CONFORMAL</div><div class="num">SLIDE <b>13</b> / 20</div></div>
   <div class="hud-body">
     <div class="kicker"><span class="nb">NB04 · 04_ARQUITECTURA_BILSTM_OOF</span><span>SOLO TEXTO</span></div>
     <h2>BANDA <span class="hl">CONFORMAL 90%</span></h2>
+    <div class="rule"></div>
     <div class="cols">
-      <div class="col-text" style="flex:1 1 auto">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+      <div class="col-text">
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>4 BALAS</b></div>
           <ul class="b">
-            <li>Banda conformal <span class="v">90%</span> calibrada <span class="v">fuera de fold</span>.</li>
-            <li>Cobertura <span class="v">100%</span> con ancho <span class="v">27.12</span>: es <span class="dim">cota conservadora</span>, no precisión.</li>
+            <li>Banda conformal <span class="v">90%</span> calibrada <span class="v">fuera de fold</span>: garantía de cobertura, no de cercanía.</li>
+            <li>Cobertura <span class="v">100%</span> con ancho <span class="v">27.12</span>: es <span class="dim">cota conservadora</span>, no precisión. Un ancho grande cubre, pero no guía.</li>
+            <li>Cuesta margen: una banda de ±13 ciclos no dice "actúa ya", solo "no mires solo el predicho".</li>
+            <li>Uso correcto: envolver la decisión (umbral ± banda) y recalibrar si cambia la flota. No usar la banda como RMSE.</li>
           </ul>
         </div>
-        <div class="panel"><div class="panel-t"><span>DIAGRAMA // CONFORMAL</span><span class="tag g">NB04</span></div>
+      </div>
+      <div class="col-fig">
+        <div class="panel fig"><div class="panel-t"><span>DIAGRAMA // CONFORMAL</span><span class="tag g">NB04</span></div>
           <div class="flow">
             <div class="step"><small>BANDA</small>90%<br>fuera de fold</div><span class="arrow">→</span>
             <div class="step hot"><small>COBERTURA</small>100%<br>ancho 27.12</div><span class="arrow">→</span>
@@ -489,209 +693,249 @@ h1 .hl{color:var(--accent);}
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB04 · CONFORMAL 90% · COBERTURA 100% · ANCHO 27.12</span><span>13 / 20</span></div>
+
+  <div class="puente"><b>PUENTE &rarr;</b> Banda como cota conservadora. Siguiente → LGBM adaptada y multisemilla (NB05).</div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">NB04 · CONFORMAL 90% · COBERTURA 100% · ANCHO 27.12</span><span>13 / 20</span></div>
 </section>
 
 <!-- 14 NB05 -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB05 // META·ENSEMBLE·CONFORMAL</div><div class="num">SLIDE <b>14</b> / 20</div></div>
+<section class="slide safran">
+  <div class="hud-top"><div class="brand">DS02 · SAFRAN STYLE</div><div class="mid">NB05 // META·ENSEMBLE·CONFORMAL</div><div class="num">SLIDE <b>14</b> / 20</div></div>
   <div class="hud-body">
     <div class="kicker"><span class="nb">NB05 · 05_META_ENSEMBLE_Y_CONFORMAL</span><span>MAR + MULTISEMILLA</span></div>
     <h2>LGBM ADAPTADA: <span class="hl">MAR NO DEGRADA</span></h2>
+    <div class="rule"></div>
     <div class="cols">
       <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
+        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>4 BALAS</b></div>
           <ul class="b">
-            <li>LGBM adaptada <span class="v">7.067</span>, <span class="dim">idéntica a MAR</span>: la adaptación no degrada.</li>
-            <li>Multisemilla <span class="v">4.330±0.053</span>: el híbrido <span class="dim">gana en 3 semillas</span>.</li>
+            <li>LGBM adaptada <span class="v">7.067</span>, <span class="dim">idéntica a MAR</span>: la adaptación no degrada (ffill de medianas de fit-units).</li>
+            <li>Multisemilla <span class="v">4.330 ± 0.053</span>: el híbrido <span class="dim">gana en 3 semillas</span>. Si solo ganara en la 42, sería suerte.</li>
+            <li>Multisemilla en llano: correr el entrenamiento 3 veces cambiando la semilla para comprobar que la mejora no depende del azar.</li>
+            <li>Por eso la fila oficial es la <span class="v">42 (4.338)</span>: está en disco y reproduce el servicio; las medias miden estabilidad.</li>
           </ul>
         </div>
       </div>
       <div class="col-fig">
-        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // LGBM_ADAPT_REAL_VS_PRED</span><span class="tag g">NB05</span></div>
+        <div class="fig"><div class="panel-t"><span>FIG // LGBM_ADAPT_REAL_VS_PRED</span><span class="tag g">NB05</span></div>
           <figure><img src="assets/lgbm_adapt_real_vs_pred.png" alt="LGBM adaptada real vs predicho NB05">
           <figcaption class="cap"><b>Fig · NB05</b> — LGBM adaptada real vs predicho. Fuente: <b>resultados/lgbm_adapt_real_vs_pred.png</b>.</figcaption></figure>
         </div>
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB05 · LGBM 7.067 = MAR · MULTI 4.330±0.053</span><span>14 / 20</span></div>
+
+  <div class="puente"><b>PUENTE &rarr;</b> Ancla 42 (4.338) estable. Siguiente → la cadena de despliegue paso a paso (NB06).</div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">NB05 · LGBM 7.067 = MAR · MULTI 4.330±0.053</span><span>14 / 20</span></div>
 </section>
 
 <!-- 15 NB06 PASO A PASO -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB06 // EVALUACIÓN·PRODUCCIÓN</div><div class="num">SLIDE <b>15</b> / 20</div></div>
-  <div class="hud-body">
-    <div class="kicker"><span class="nb">NB06 · 06_EVALUACION_PRODUCCION_COMPARATIVA</span><span>SOLO TEXTO</span></div>
-    <h2>DESPLEGADO <span class="hl">PASO A PASO</span></h2>
-    <div class="cols">
-      <div class="col-text" style="flex:1 1 auto">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
-          <ul class="b">
-            <li>Cadena: <span class="v">construir_raw_adaptado → run_seed → OOF/beta → fit_meta → HybridStacking+EMA5 → fit_conformal</span>.</li>
-            <li>Curva <span class="dim">sin brecha train/val</span>: sin overfit visible en despliegue.</li>
+<section class="slide safran-x" id="s15">
+  <div class="sf-top"><div class="sf-brand"><span class="sf-logo">DS</span><span class="sf-brand-txt"><b>Aero RUL</b><i>DS02 Prognostics Engine</i></span></div><div class="sf-top-mid">NB06 // Evaluación · Producción</div><div class="sf-num">SLIDE <b>15</b> / 20</div></div>
+  <div class="sf-body">
+    <div class="sf-crumb"><span class="sf-chip">NB06 · 06_Evaluacion_Produccion_Comparativa</span><span class="sf-crumb-r">Despliegue · Solo texto</span></div>
+    <h2 class="sf-h">Desplegado <span class="hl">paso a paso</span></h2>
+    <p class="sf-sub">Cadena NB06 completa: de la base adaptada al intervalo conforme. Cada paso alimenta al siguiente.</p>
+    <div class="sf-grid">
+      <div class="sf-left">
+        <div class="sf-panel"><div class="sf-panel-t"><span>Lectura</span><b>4 balas</b></div>
+          <ul class="sf-balas">
+            <li><span class="sf-n">01</span><p>Cadena: <strong>construir_raw_adaptado → run_seed → OOF/beta → fit_meta → HybridStacking+EMA5 → fit_conformal</strong>.</p></li>
+            <li><span class="sf-n">02</span><p>Curva <span class="dim">sin brecha train/val</span>: sin overfit visible en despliegue; el modelo no memoriza, generaliza.</p></li>
+            <li><span class="sf-n">03</span><p><span class="dim">Desplegado</span> = los artefactos viven en <strong>models/</strong> y no dependen del cuaderno (auditable, re-ejecutable).</p></li>
+            <li><span class="sf-n">04</span><p>Si cambia la base (MAR/ffill), hay que repetir la cadena entera: cada paso alimenta al siguiente.</p></li>
           </ul>
         </div>
-        <div class="panel"><div class="panel-t"><span>DIAGRAMA // CADENA NB06</span><span class="tag g">NB06</span></div>
-          <div class="flow">
-            <div class="step"><small>01</small>construir_raw_adaptado</div><span class="arrow">→</span>
-            <div class="step"><small>02</small>run_seed</div><span class="arrow">→</span>
-            <div class="step hot"><small>03</small>OOF / beta</div><span class="arrow">→</span>
-            <div class="step"><small>04</small>fit_meta</div><span class="arrow">→</span>
-            <div class="step"><small>05</small>HybridStacking+EMA5</div><span class="arrow">→</span>
-            <div class="step hot"><small>06</small>fit_conformal</div>
+      </div>
+      <div class="sf-right">
+        <div class="sf-panel"><div class="sf-panel-t"><span>Diagrama // Cadena NB06</span><span class="tag">NB06</span></div>
+          <div class="sf-flow">
+            <div class="sf-step"><small>01</small>construir_raw_adaptado</div><span class="sf-arrow">→</span>
+            <div class="sf-step"><small>02</small>run_seed</div><span class="sf-arrow">→</span>
+            <div class="sf-step hot"><small>03</small>OOF / beta</div><span class="sf-arrow">→</span>
+            <div class="sf-step"><small>04</small>fit_meta</div><span class="sf-arrow">→</span>
+            <div class="sf-step"><small>05</small>HybridStacking+EMA5</div><span class="sf-arrow">→</span>
+            <div class="sf-step hot"><small>06</small>fit_conformal</div>
           </div>
+          <p class="sf-note"><b>Nota:</b> Los artefactos viven en <b>models/</b> — auditables y re-ejecutables sin depender del cuaderno.</p>
         </div>
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB06 · RAW_ADAPTADO → RUN_SEED → OOF/BETA → META → HYBRID → CONFORMAL</span><span>15 / 20</span></div>
+  <div class="sf-puente"><b>Puente →</b><span>La explicación (SHAP) cuadra el bundle. Siguiente → convertir el número en decisión (reglas + app + n8n).</span></div>
+  <div class="sf-foot"><span>AERO RUL // DS02</span><span class="sf-acc">NB06 · RAW_ADAPTADO → RUN_SEED → OOF/BETA → META → HYBRID → CONFORMAL</span><span>15 / 20</span></div>
 </section>
 
 <!-- 16 NB06 DOS LIGAS -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB06 // TABLA DOS LIGAS</div><div class="num">SLIDE <b>16</b> / 20</div></div>
-  <div class="hud-body">
-    <div class="kicker"><span class="nb">NB06 · 06_EVALUACION_PRODUCCION_COMPARATIVA</span><span>ANCLA MANIFIESTO</span></div>
-    <h2>TABLA <span class="hl">DOS LIGAS</span></h2>
-    <div class="cols">
-      <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
-          <ul class="b">
-            <li>Dos ligas: <span class="v">MLP-E2 fila 7.7211</span> · <span class="v">ventana C 4.338</span>.</li>
-            <li>Ancla: <span class="v">manifiesto oficial seed 42</span> (C 4.338/3.227/0.9461/2336.2). B solo histórico · MLflow fuera.</li>
+<section class="slide safran-x">
+  <div class="sf-top"><div class="sf-brand"><span class="sf-logo">DS</span><span class="sf-brand-txt"><b>Aero RUL</b><i>DS02 Prognostics Engine</i></span></div><div class="sf-top-mid">NB06 // Tabla dos ligas</div><div class="sf-num">SLIDE <b>16</b> / 20</div></div>
+  <div class="sf-body">
+    <div class="sf-crumb"><span class="sf-chip">NB06 · 06_Evaluacion_Produccion_Comparativa</span><span class="sf-crumb-r">Ancla manifiesto</span></div>
+    <h2 class="sf-h">Tabla <span class="hl">dos ligas</span></h2>
+    <p class="sf-sub">Fila frente a ventana: mismo RUL, distinto grano. El ancla es la ventana C oficial.</p>
+    <div class="sf-grid">
+      <div class="sf-left">
+        <div class="sf-panel"><div class="sf-panel-t"><span>Lectura</span><b>4 balas</b></div>
+          <ul class="sf-balas">
+            <li><span class="sf-n">01</span><p>Dos ligas: <strong>MLP-E2 fila 7.7211</strong> vs <strong>ventana C 4.338</strong>. Misma tarea, distinto grano (fila = 1 dato, ventana = 50).</p></li>
+            <li><span class="sf-n">02</span><p>Ancla: <strong>manifiesto oficial seed 42</strong> (C 4.338/3.227/0.9461/2336.2). B solo histórico · MLflow fuera.</p></li>
+            <li><span class="sf-n">03</span><p>Empresa: pasar de fila a ventana es pasar de «cada lectura» a «la historia reciente del motor»: la que decide en hangar.</p></li>
+            <li><span class="sf-n">04</span><p>Comparar 7.72 contra 4.34 sin decir el grano es comparar peras con racimos: siempre con la liga declarada.</p></li>
           </ul>
         </div>
       </div>
-      <div class="col-fig">
-        <div class="panel" style="padding:14px"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>TABLA // DOS LIGAS</span><span class="tag g">NB06</span></div>
-          <table>
+      <div class="sf-right">
+        <div class="sf-panel" style="padding:14px"><div class="sf-panel-t"><span>Tabla // Dos ligas</span><span class="tag">NB06</span></div>
+          <table class="sf-table">
             <tr><th>Liga</th><th>Modelo</th><th>RMSE</th></tr>
-            <tr><td>fila</td><td>MLP-E2</td><td class="v">7.7211</td></tr>
-            <tr><td>ventana</td><td>C (oficial s42)</td><td class="v">4.338</td></tr>
+            <tr><td>Fila</td><td>MLP-E2</td><td class="v">7.7211</td></tr>
+            <tr><td>Ventana</td><td>C (oficial s42)</td><td class="v">4.338</td></tr>
           </table>
         </div>
-        <div class="fig" style="flex:0 0 auto"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // REAL_VS_PREDICHO_BUNDLE_C</span></div>
+        <div class="sf-fig" style="flex:0 0 auto"><div class="sf-panel-t" style="border:none;padding:0 0 10px;margin:0"><span>Fig // Real vs predicho bundle C</span></div>
           <figure><img src="assets/real_vs_predicho_bundle_c.png" alt="Real vs predicho bundle C NB06" style="max-height:300px">
-          <figcaption class="cap"><b>Fig · NB06</b> — Real vs predicho bundle C. Fuente: <b>resultados/real_vs_predicho_bundle_c.png</b>.</figcaption></figure>
+          <figcaption class="sf-cap"><b>Fig · NB06</b> — Real vs predicho bundle C. Fuente: <b>resultados/real_vs_predicho_bundle_c.png</b>.</figcaption></figure>
         </div>
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB06 · MLP-E2 7.7211 · VENTANA C 4.338 · SEED 42</span><span>16 / 20</span></div>
+  <div class="sf-puente"><b>Puente →</b><span>Ancla fijada: la ventana C (4.338) es la referencia. Siguiente → auditar dónde falla (U14) y declarar el límite.</span></div>
+  <div class="sf-foot"><span>AERO RUL // DS02</span><span class="sf-acc">NB06 · MLP-E2 7.7211 · VENTANA C 4.338 · SEED 42</span><span>16 / 20</span></div>
 </section>
 
 <!-- 17 NB06 AUDITORÍA -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB06 // AUDITORÍA</div><div class="num">SLIDE <b>17</b> / 20</div></div>
-  <div class="hud-body">
-    <div class="kicker"><span class="nb">NB06 · 06_EVALUACION_PRODUCCION_COMPARATIVA</span><span>U14 · SHA</span></div>
-    <h2>AUDITORÍA: <span class="hl">MANDA EL MANIFIESTO</span></h2>
-    <div class="cols">
-      <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
-          <ul class="b">
-            <li>Auditoría U14: <span class="v">RMSE 8.576 (n=760)</span> · sesgo <span class="v">+0.369</span> · <span class="v">58.8% exceso</span>.</li>
-            <li>Recarga <span class="v">diff 0.0</span> · multisemilla <span class="v">4.322</span>; <span class="dim">manda el manifiesto SHA</span> seed 42.</li>
+<section class="slide safran-x">
+  <div class="sf-top"><div class="sf-brand"><span class="sf-logo">DS</span><span class="sf-brand-txt"><b>Aero RUL</b><i>DS02 Prognostics Engine</i></span></div><div class="sf-top-mid">NB06 // Auditoría</div><div class="sf-num">SLIDE <b>17</b> / 20</div></div>
+  <div class="sf-body">
+    <div class="sf-crumb"><span class="sf-chip">NB06 · 06_Evaluacion_Produccion_Comparativa</span><span class="sf-crumb-r">U14 · SHA</span></div>
+    <h2 class="sf-h">Auditoría: <span class="hl">manda el manifiesto</span></h2>
+    <p class="sf-sub">U14 es el límite declarado: menos ventanas, más error. La auditoría lo hace visible.</p>
+    <div class="sf-grid">
+      <div class="sf-left">
+        <div class="sf-panel"><div class="sf-panel-t"><span>Lectura</span><b>4 balas</b></div>
+          <ul class="sf-balas">
+            <li><span class="sf-n">01</span><p>Auditoría U14 (límite): <strong>RMSE 8.576 (n=760)</strong> · sesgo <strong>+0.369</strong> · <strong>58.8% exceso</strong>. Es el motor con menos ventanas y peor error.</p></li>
+            <li><span class="sf-n">02</span><p>Límite en llano: con pocas ventanas el modelo ve poca variedad y falla más; el <strong>macro 5.015</strong> (cada motor = 1/3) lo revela, el promedio ponderado lo esconde.</p></li>
+            <li><span class="sf-n">03</span><p>Recarga <strong>diff 0.0</strong> · multisemilla <strong>4.322</strong>: reproducible; <span class="dim">manda el manifiesto SHA</span> seed 42.</p></li>
+            <li><span class="sf-n">04</span><p>Uso prudente: en U14, decidir con más margen (banda conformal) y no como en el resto de la flota.</p></li>
           </ul>
         </div>
       </div>
-      <div class="col-fig">
-        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // BUNDLE_C_RMSE_POR_MOTOR</span><span class="tag g">NB06</span></div>
+      <div class="sf-right">
+        <div class="sf-fig"><div class="sf-panel-t" style="border:none;padding:0 0 10px;margin:0"><span>Fig // Bundle C RMSE por motor</span><span class="tag">NB06</span></div>
           <figure><img src="assets/bundle_c_rmse_por_motor.png" alt="Bundle C RMSE por motor NB06">
-          <figcaption class="cap"><b>Fig · NB06</b> — Bundle C RMSE por motor. Fuente: <b>resultados/bundle_c_rmse_por_motor.png</b>.</figcaption></figure>
+          <figcaption class="sf-cap"><b>Fig · NB06</b> — Bundle C RMSE por motor. Fuente: <b>resultados/bundle_c_rmse_por_motor.png</b>.</figcaption></figure>
         </div>
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB06 · U14 8.576 N=760 · +0.369 · 58.8% · DIFF 0.0</span><span>17 / 20</span></div>
+  <div class="sf-puente"><b>Puente →</b><span>El límite está declarado (U14: menos ventanas, más error). Siguiente → SHAP: qué campos empujan cada predicción.</span></div>
+  <div class="sf-foot"><span>AERO RUL // DS02</span><span class="sf-acc">NB06 · U14 8.576 N=760 · +0.369 · 58.8% · DIFF 0.0</span><span>17 / 20</span></div>
 </section>
 
 <!-- 18 NB07 SHAP -->
-<section class="slide">
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">NB07 // SHAP BUNDLE CONGELADO</div><div class="num">SLIDE <b>18</b> / 20</div></div>
-  <div class="hud-body">
-    <div class="kicker"><span class="nb">NB07 · 07_SHAP_C_BUNDLE_C</span><span>POR RAMAS</span></div>
-    <h2>SHAP <span class="hl">POR RAMAS</span> — BUNDLE CONGELADO</h2>
-    <div class="cols">
-      <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
-          <ul class="b">
-            <li>BiLSTM: <span class="v">cyc_norm 24.06 · T50 16.60</span> — LGBM: <span class="v">cyc_norm 12.91 · T50_mean 9.14</span>.</li>
-            <li>Meta: <span class="v">p_lgb 20.15 · p_lstm 8.09</span>; aditividad <span class="v">~1e-6</span> (SHAP cuadra).</li>
+<section class="slide safran-x">
+  <div class="sf-top"><div class="sf-brand"><span class="sf-logo">DS</span><span class="sf-brand-txt"><b>Aero RUL</b><i>DS02 Prognostics Engine</i></span></div><div class="sf-top-mid">NB07 // SHAP bundle congelado</div><div class="sf-num">SLIDE <b>18</b> / 20</div></div>
+  <div class="sf-body">
+    <div class="sf-crumb"><span class="sf-chip">NB07 · 07_SHAP_C_Bundle_C</span><span class="sf-crumb-r">Por ramas</span></div>
+    <h2 class="sf-h">SHAP <span class="hl">por ramas</span> — bundle congelado</h2>
+    <p class="sf-sub">La explicación cuadra el bundle: la suma de empujones reproduce la predicción.</p>
+    <div class="sf-grid">
+      <div class="sf-left">
+        <div class="sf-panel"><div class="sf-panel-t"><span>Lectura</span><b>4 balas</b></div>
+          <ul class="sf-balas">
+            <li><span class="sf-n">01</span><p>BiLSTM: <strong>cyc_norm 24.06 · T50 16.60</strong> — LGBM: <strong>cyc_norm 12.91 · T50_mean 9.14</strong>. Mismo rey, pesos distintos por rama.</p></li>
+            <li><span class="sf-n">02</span><p>Meta: <strong>p_lgb 20.15 · p_lstm 8.09</strong>; aditividad <strong>~1e-6</strong> (SHAP cuadra: la suma de empujones = predicción).</p></li>
+            <li><span class="sf-n">03</span><p>SHAP explica, no corrige: dice qué campos empujaron la predicción del bundle congelado, no cuánto errarías al cambiarlos.</p></li>
+            <li><span class="sf-n">04</span><p>Bundle <span class="dim">congelado</span> (NB07): las barras se calculan una vez sobre el artefacto en disco, no reentrenando por gráfico.</p></li>
           </ul>
         </div>
       </div>
-      <div class="col-fig">
-        <div class="fig trio"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px;flex-basis:100%"><span>FIG // BAR_BILSTM + BAR_LGBM + BAR_META</span><span class="tag g">NB07</span></div>
-          <figure><img src="assets/bar_bilstm.png" alt="SHAP BiLSTM NB07"><figcaption class="cap"><b>BiLSTM</b><br>resultados/shap_bundle_C/bar_bilstm.png</figcaption></figure>
-          <figure><img src="assets/bar_lgbm.png" alt="SHAP LGBM NB07"><figcaption class="cap"><b>LGBM</b><br>resultados/shap_bundle_C/bar_lgbm.png</figcaption></figure>
-          <figure><img src="assets/bar_meta.png" alt="SHAP meta NB07"><figcaption class="cap"><b>META</b><br>resultados/shap_bundle_C/bar_meta.png</figcaption></figure>
+      <div class="sf-right">
+        <div class="sf-fig"><div class="sf-panel-t" style="border:none;padding:0 0 10px;margin:0"><span>Fig // BiLSTM + LGBM + Meta</span><span class="tag">NB07</span></div>
+          <div class="sf-trio">
+            <figure><img src="assets/bar_bilstm.png" alt="SHAP BiLSTM NB07"><figcaption class="sf-cap"><b>BiLSTM</b><br>resultados/shap_bundle_C/bar_bilstm.png</figcaption></figure>
+            <figure><img src="assets/bar_lgbm.png" alt="SHAP LGBM NB07"><figcaption class="sf-cap"><b>LGBM</b><br>resultados/shap_bundle_C/bar_lgbm.png</figcaption></figure>
+            <figure><img src="assets/bar_meta.png" alt="SHAP meta NB07"><figcaption class="sf-cap"><b>META</b><br>resultados/shap_bundle_C/bar_meta.png</figcaption></figure>
+          </div>
         </div>
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">NB07 · BILSTM 24.06 · LGBM 12.91 · META 20.15/8.09 · ~1E-6</span><span>18 / 20</span></div>
+  <div class="sf-puente"><b>Puente →</b><span>La explicación (SHAP) cuadra el bundle. Siguiente → convertir el número en decisión (reglas + app + n8n).</span></div>
+  <div class="sf-foot"><span>AERO RUL // DS02</span><span class="sf-acc">NB07 · BILSTM 24.06 · LGBM 12.91 · META 20.15/8.09 · ~1E-6</span><span>18 / 20</span></div>
 </section>
 
 <!-- 19 REGLAS + APP + N8N -->
-<section class="slide">
-  <div class="bgimg hard" aria-hidden="true"><img src="assets/stitch-hangar.jpg" alt=""></div>
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">REGLAS · APP · N8N DEMO</div><div class="num">SLIDE <b>19</b> / 20</div></div>
-  <div class="hud-body">
-    <div class="kicker"><span class="nb">DEMO OPERATIVA</span><span>SOLO TEXTO</span></div>
-    <h2>REGLAS + <span class="hl">APP + N8N</span></h2>
-    <div class="cols">
-      <div class="col-text" style="flex:1 1 auto">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
-          <ul class="b">
-            <li><span class="v">8 reglas L_inf 30/25</span> — R1 seguridad; Streamlit: caso nuevo → <span class="v">p + decisión</span>.</li>
-            <li>n8n webhook <span class="v">ds02/decision</span>: APTO → log INSPECCION → Sheets HANGAR → Postgres+Calendar+Gmail. <span class="dim">Flujo inactivo, esperando credenciales.</span></li>
+<section class="slide safran-x">
+  <div class="sf-top"><div class="sf-brand"><span class="sf-logo">DS</span><span class="sf-brand-txt"><b>Aero RUL</b><i>DS02 Prognostics Engine</i></span></div><div class="sf-top-mid">Reglas · App · n8n demo</div><div class="sf-num">SLIDE <b>19</b> / 20</div></div>
+  <div class="sf-body">
+    <div class="sf-crumb"><span class="sf-chip">Demo operativa</span><span class="sf-crumb-r">Solo texto</span></div>
+    <h2 class="sf-h">Reglas + <span class="hl">app + n8n</span></h2>
+    <p class="sf-sub">La app ya decide en local; n8n sigue inactivo hasta credenciales. Sin cifras económicas inventadas.</p>
+    <div class="sf-grid">
+      <div class="sf-left">
+        <div class="sf-panel"><div class="sf-panel-t"><span>Lectura</span><b>4 balas</b></div>
+          <ul class="sf-balas">
+            <li><span class="sf-n">01</span><p><strong>8 reglas L_inf 30/25</strong> — R1 seguridad; Streamlit: caso nuevo → <strong>p + decisión</strong>. Sin N8N, la app ya decide local.</p></li>
+            <li><span class="sf-n">02</span><p>N8n webhook <strong>ds02/decision</strong>: APTO → log INSPECCION → Sheets HANGAR → Postgres+Calendar+Gmail. <span class="dim">Flujo inactivo, esperando credenciales.</span></p></li>
+            <li><span class="sf-n">03</span><p>Matiz inactivo: n8n hoy <span class="dim">no ejecuta nada</span>; la ruta real es Streamlit. Activarlo requiere credenciales que no se suplen con datos inventados.</p></li>
+            <li><span class="sf-n">04</span><p>MLflow fuera. Sin coste AOG en euros — no se afirma cifra económica. «Aviso» ≠ «ahorro».</p></li>
           </ul>
         </div>
-        <div class="panel"><div class="panel-t"><span>DIAGRAMA // DECISIÓN</span><span class="tag g">DEMO</span></div>
-          <div class="flow">
-            <div class="step"><small>STREAMLIT</small>Caso nuevo<br>p + decisión</div><span class="arrow">→</span>
-            <div class="step hot"><small>N8N</small>ds02/decision<br>INACTIVO · CREDENCIALES</div><span class="arrow">→</span>
-            <div class="step"><small>APTO</small>INSPECCION<br>Sheets · HANGAR</div><span class="arrow">→</span>
-            <div class="step"><small>DESTINO</small>Postgres<br>Calendar + Gmail</div>
+      </div>
+      <div class="sf-right">
+        <div class="sf-panel"><div class="sf-panel-t"><span>Diagrama // Decisión</span><span class="tag">Demo</span></div>
+          <div class="sf-flow">
+            <div class="sf-step"><small>Streamlit</small>Caso nuevo<br>p + decisión</div><span class="sf-arrow">→</span>
+            <div class="sf-step hot"><small>N8N</small>ds02/decision<br>INACTIVO · CREDENCIALES</div><span class="sf-arrow">→</span>
+            <div class="sf-step"><small>Apto</small>INSPECCION<br>Sheets · HANGAR</div><span class="sf-arrow">→</span>
+            <div class="sf-step"><small>Destino</small>Postgres<br>Calendar + Gmail</div>
           </div>
-          <p class="note"><b>Nota:</b> MLflow fuera. Sin coste AOG en euros — no se afirma cifra económica.</p>
+          <p class="sf-note"><b>Nota:</b> MLflow fuera. Sin coste AOG en euros — no se afirma cifra económica.</p>
+        </div>
+        <div class="sf-fig" style="flex:0 0 auto"><div class="sf-panel-t" style="border:none;padding:0 0 10px;margin:0"><span>Hangar // Contexto operativo</span></div>
+          <figure><img src="assets/stitch-hangar.jpg" alt="Hangar operativo" class="sf-imgline">
+          <figcaption class="sf-cap"><b>Fig · Demo</b> — Hangar operativo. La ruta real es Streamlit en local.</figcaption></figure>
         </div>
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">8 REGLAS L_INF 30/25 · R1 · STREAMLIT · N8N INACTIVO</span><span>19 / 20</span></div>
+  <div class="sf-puente"><b>Puente →</b><span>La app ya decide en local y n8n sigue inactivo. Siguiente → qué significa para la empresa y por qué C es el modelo.</span></div>
+  <div class="sf-foot"><span>AERO RUL // DS02</span><span class="sf-acc">8 REGLAS L_INF 30/25 · R1 · STREAMLIT · N8N INACTIVO</span><span>19 / 20</span></div>
 </section>
 
 <!-- 20 CIERRE -->
-<section class="slide">
-  <div class="bgimg" aria-hidden="true"><img src="assets/stitch-cabina.jpg" alt=""></div>
-  <div class="hud-top"><div class="brand">AERO_HUD_SYS</div><div class="mid">CIERRE // C ES EL MODELO</div><div class="num">SLIDE <b>20</b> / 20</div></div>
-  <div class="hud-body">
-    <div class="kicker"><span class="nb">CIERRE · NB01–NB07</span><span>MODELS/</span></div>
-    <h2><span class="hl">C ES EL MODELO</span></h2>
-    <div class="cols">
-      <div class="col-text">
-        <div class="panel"><div class="panel-t"><span>LECTURA</span><b>2 BALAS</b></div>
-          <ul class="b">
-            <li><span class="v">C es el modelo</span>: MAR con patrón + <span class="v">ffill causal</span>; pesos <span class="v">28/72</span> (meta Ridge).</li>
-            <li><span class="dim">Auditable desde models/</span> sin depender del cuaderno.</li>
+<section class="slide safran-x">
+  <div class="sf-top"><div class="sf-brand"><span class="sf-logo">DS</span><span class="sf-brand-txt"><b>Aero RUL</b><i>DS02 Prognostics Engine</i></span></div><div class="sf-top-mid">Cierre // C es el modelo</div><div class="sf-num">SLIDE <b>20</b> / 20</div></div>
+  <div class="sf-body">
+    <div class="sf-crumb"><span class="sf-chip">Cierre · NB01–NB07</span><span class="sf-crumb-r">models/</span></div>
+    <h2 class="sf-h"><span class="hl">C es el modelo</span></h2>
+    <p class="sf-sub">Desplegado, auditable, con límite declarado. Sin euros inventados.</p>
+    <div class="sf-grid">
+      <div class="sf-left">
+        <div class="sf-panel"><div class="sf-panel-t"><span>Lectura</span><b>4 balas</b></div>
+          <ul class="sf-balas">
+            <li><span class="sf-n">01</span><p><strong>C es el modelo</strong>: MAR con patrón + <strong>ffill causal</strong>; pesos <strong>28/72</strong> (meta Ridge).</p></li>
+            <li><span class="sf-n">02</span><p>Cierre en llano: IA débil que combina dos sesgos + suavizado causal + banda. Ninguna pieza sola es «la IA».</p></li>
+            <li><span class="sf-n">03</span><p><span class="dim">Auditable desde models/</span> sin depender del cuaderno: manifiesto, pesos y contrato (50×19, beta 1.0, EMA 5).</p></li>
+            <li><span class="sf-n">04</span><p>Qué llevarse: con ventana 50 y split por motor, el aviso mejora. El límite (U14) se declara, no se esconde.</p></li>
           </ul>
         </div>
-        <div class="panel"><div class="panel-t"><span>ANCLA</span><b>SEED 42</b></div>
-          <p style="font-size:22px;line-height:1.5;color:var(--muted);margin:0">Bundle C oficial: <span style="color:var(--accent);font-weight:700">4.338 / 3.227 / 0.9461 / 2336.2</span><br><span style="font-size:16px">B solo histórico · MLflow fuera · manda el manifiesto SHA</span></p>
+        <div class="sf-anchor" style="margin-top:14px"><div class="sf-panel-t"><span>Ancla</span><b>Seed 42</b></div>
+          <p>Bundle C oficial: <span class="sf-big">4.338 / 3.227 / 0.9461 / 2336.2</span><br><span style="font-size:15px;color:#9CA3AF">B solo histórico · MLflow fuera · manda el manifiesto SHA</span></p>
         </div>
       </div>
-      <div class="col-fig">
-        <div class="fig"><div class="panel-t" style="border:none;margin:0;padding:0 0 10px"><span>FIG // REAL_VS_PREDICHO_VIZ_C</span><span class="tag g">NB06</span></div>
+      <div class="sf-right">
+        <div class="sf-fig"><div class="sf-panel-t" style="border:none;padding:0 0 10px;margin:0"><span>Fig // Real vs predicho viz C</span><span class="tag">NB06</span></div>
           <figure><img src="assets/real_vs_predicho_viz_c.png" alt="Real vs predicho viz C cierre">
-          <figcaption class="cap"><b>Fig · NB06</b> — Real vs predicho viz C. Fuente: <b>resultados/real_vs_predicho_viz_c.png</b>.</figcaption></figure>
+          <figcaption class="sf-cap"><b>Fig · NB06</b> — Real vs predicho viz C. Fuente: <b>resultados/real_vs_predicho_viz_c.png</b>.</figcaption></figure>
         </div>
       </div>
     </div>
   </div>
-  <div class="hud-foot"><span>AERO_HUD_SYS // DS02_RUL</span><span class="acc">C 4.338/3.227/0.9461/2336.2 · PESOS 28/72 · MODELS/</span><span>20 / 20</span></div>
+  <div class="sf-puente"><b>Puente →</b><span>Puente final → C es el modelo: desplegado, auditable, con límite declarado (U14) y sin euros inventados. Fin de NB01–NB07.</span></div>
+  <div class="sf-foot"><span>AERO RUL // DS02</span><span class="sf-acc">C 4.338/3.227/0.9461/2336.2 · PESOS 28/72 · MODELS/</span><span>20 / 20</span></div>
 </section>
 
 </div>

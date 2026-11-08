@@ -9,6 +9,8 @@ tags:
   - manifiesto
 ---
 
+> NO VIGENTE — bundle histórico (A/B). Vigente C 4.338 macro 5.0153 en 50-Evidencia/e00 + models/ds02_manifest.json. No citar cifras de aquí en defensa.
+
 # Cifras autoritativas
 
 ## Idea central

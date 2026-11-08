@@ -66,7 +66,7 @@ tags:
 ## Flashcards
 
 > [!question]- ¿Stride y step son lo mismo?
-> No. El stride decima la serie al cargarla (`src/ds02_rul/data.py:61`) y define cuántos registros entran. El step avanza la ventana dentro de un motor ya cargado (`src/ds02_rul/features.py:130`) y define cuántas ventanas salen.
+> No. El stride decima la serie al cargarla (`src/ds02_rul/data.py:55`) y define cuántos registros entran. El step avanza la ventana dentro de un motor ya cargado (`src/ds02_rul/features.py:130`) y define cuántas ventanas salen.
 
 > [!question]- ¿Qué diferencia hay entre OOF y holdout?
 > El holdout es una unidad entera reservada; el OOF es una predicción por fila producida por un modelo que no vio ni esa fila ni su motor. El holdout es un conjunto; el OOF es una propiedad de cada predicción.

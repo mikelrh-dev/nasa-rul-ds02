@@ -27,7 +27,7 @@ tags:
 | Flota + modo historia | `app/ui_modulos/_tab_flota.py:140` | snapshot, tarjetas de gemelos, 4 botones `historia_1..4` con pasos y umbrales |
 | Motor | `app/ui_modulos/_tab_motor.py:64` | curva, SHAP, deriva y badge de estado del motor elegido |
 | Casos nuevos | `app/ui_batch.py:192` + `app/ui_inference.py:455` + `app/ui_rules.py:152` | `puntuar_lote` + `score_table` + decisión en vivo: CSV/formulario a gemelo y veredicto |
-| Casos → n8n (MIA-3) | `app/ui_n8n.py` + `src/n8n.py` + `app/dashboard_ds02.py:1877` | La pestaña Casos envía la decisión por webhook (`ds02/decision`) vía `app/ui_n8n.py` tras `decision_en_vivo`: `payload_desde_traza` + `debe_notificar` por fingerprint, POST `urllib` sin lanzar a la UI (HANGAR/INSPECCION notifican, APTO solo log, SIN_DECISION nada) |
+| Casos → n8n (MIA-3) | `app/ui_n8n.py` + `src/n8n.py` + `app/dashboard_ds02.py:1877` | La pestaña Casos envía la decisión por webhook (`ds02/decision`) vía `app/ui_n8n.py` tras `decision_en_vivo`: `payload_desde_traza` + `debe_notificar` por fingerprint, POST `urllib` sin lanzar a la UI (HANGAR/INSPECCION/APTO notifican según `app/ui_n8n.py:12`, SIN_DECISION nada) |
 | Auditoría | `app/ui_modulos/_tab_auditoria.py:48` | per-unit, provenance, informe PDF con firma |
 | Estrés (sandbox, no pestaña) | `app/ui_modulos/_sandbox_estres.py:42` | sandbox de puntuación con caché propia, dentro del dashboard |
 | Alta de motor | `app/ui_alta.py:92` | `estado_historia`: los 4 pasos con datos vivos |

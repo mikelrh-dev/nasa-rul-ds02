@@ -88,7 +88,7 @@ Test: unidades 11 / 14 / 15, 6 196 ventanas. Media ± desviación sobre semillas
 
 La tabla B se conserva solo para comparar contra el histórico; la cifra vigente es el macro C 5.0153.
 
-La diferencia de `+0.6` es el costo de que el motor 14 tenga el peor error **y** la menor cantidad de ventanas: 760 filas concentran el 43,7 % del error cuadrático. El promedio de flota es más amable que lo que sufre un motor elegido al azar.
+La diferencia de `+0.6` es el costo de que el motor 14 tenga el peor error **y** la menor cantidad de ventanas: 760 filas concentran el 47,9 % del error cuadrático (bundle C). El promedio de flota es más amable que lo que sufre un motor elegido al azar.
 
 ## Banda conformal
 
@@ -163,7 +163,7 @@ Estas aparecen en material viejo del repo y del vault anterior. Son de corridas 
 | `4.289` | fila de test de una revisión anterior | reemplazada por `4.251` (y luego por `4.338` del bundle C) |
 | `4.340 ± 0.101`, `4.251`, `5772.5`, `4397.8` | bundle B completo (histórico archivado) | reemplazados por el bundle C (fila `4.338`, medias NB05 4.330 / NB06 4.322) |
 | `4.301 ± 0.068` | media de una revisión intermedia | reemplazada por las medias NB05/NB06 de arriba |
-| `4.368` | media calculada con el CSV `bundle_c_multiseed.csv` en disco (7=4.429, 123=4.336 + 42) | pendiente de reconciliar con lo impreso en NB06 (4.376 / 4.252); no citar como cerrada |
+| `4.368` | media calculada con el CSV `bundle_c_multiseed.csv` en disco (7=4.429, 123=4.336 + 42) | **NO reconciliada**: las medias impresas en NB05/NB06 (4.330/4.322) no son regenerables desde el CSV; pendiente de reconciliar con lo impreso en NB06 (4.376 / 4.252); no citar como cerrada — oficial 4.338 (semilla 42, manifiesto) |
 | `4.347 ± 0.012` | multiseed citada en ADR-011 | sustituida por los calculados NB05/NB06 |
 | `4.9026` | macro-RMSE anterior | reemplazada por el macro C vigente `5.0153` (el `4.8433` es el macro B histórico) |
 | `051e0af4`, `0acd795b` | hashes de artefactos viejos | no son los que están en disco |
