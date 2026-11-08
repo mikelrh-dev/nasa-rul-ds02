@@ -18,8 +18,8 @@ TensorFlow en CPU no es determinista bit a bit: la misma configuración con dist
 
 ## Cómo se lee una tabla con este criterio
 
-- Híbrido-C: media 4.322 ± 0.064 (NB06, ventana test) y 4.330 ± 0.053 (NB05, OOF). Las dos medias caen dentro de la banda de la otra: no hay contradicción, hay ruido.
-- Fila oficial 4.338 (semilla 42, en disco): cae dentro de 4.322 ± 0.064. El artefacto desplegado es una muestra típica, no un cherry-pick.
+- Híbrido-C: media 4.322 ± 0.064 (NB06, ventana test) y 4.330 ± 0.053 (NB05, OOF) **impresas en el notebook, NO reconciliadas**: el CSV `resultados/bundle_c_multiseed.csv` en disco (7=4.429, 123=4.336, sin 42) da media 4.368 pendiente de reconciliar per [[e00-cifras-autoritativas]].
+- Fila oficial 4.338 (semilla 42, en disco): cae dentro de 4.322 ± 0.064 impreso. El artefacto desplegado es una muestra típica, no un cherry-pick (la media CSV 4.368 sigue sin reconciliar).
 - Regla práctica: diferencias menores que ~0.1 en RMSE con una sola semilla por lado **no se anuncian como mejora**.
 
 ## Dónde aparece en este proyecto
@@ -44,4 +44,4 @@ TensorFlow en CPU no es determinista bit a bit: la misma configuración con dist
 > Media y dispersión sobre [42, 7, 123]: la media es el resultado y la std (±0.064 en NB06) es la cota de ruido por debajo de la cual ninguna diferencia cuenta como mejora.
 
 > [!question]- ¿Contradicen 4.322 (NB06) y 4.330 (NB05) a la fila 4.338?
-> No: ambas medias caen dentro de la banda de ruido mutua y la fila oficial cae dentro de 4.322±0.064. Miden poblaciones distintas (ventanas test vs OOF vs una semilla en disco).
+> No: ambas medias impresas caen dentro de la banda de ruido mutua y la fila oficial cae dentro de 4.322±0.064. Miden poblaciones distintas (ventanas test vs OOF vs una semilla en disco). Aviso: las medias impresas **NO están reconciliadas** con `resultados/bundle_c_multiseed.csv` (media CSV 4.368 pendiente, ver [[e00-cifras-autoritativas]]); la oficial es 4.338.

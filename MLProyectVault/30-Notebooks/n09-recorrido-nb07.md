@@ -11,11 +11,11 @@ tags:
 # NB07 — SHAP por ramas sobre el bundle C
 
 > [!abstract] En una frase
-> Cuaderno fino de 6 celdas que no entrena nada: llama a `ejecutar_shap_c` y explica cada rama del híbrido con su explainer correcto.
+> Cuaderno fino de 8 celdas que no entrena nada: llama a `ejecutar_shap_c` y explica cada rama del híbrido con su explainer correcto.
 
 ## Antes de empezar
 
-6 celdas. Requiere bundle C instalado (`models/ensemble.joblib` + `ds02_manifest.json`). No entrena, no recalibra: solo explica con validación fold-0, nunca test.
+8 celdas. Requiere bundle C instalado (`models/ensemble.joblib` + `ds02_manifest.json`). No entrena, no recalibra: solo explica con validación fold-0, nunca test.
 
 ## Recorrido celda a celda
 

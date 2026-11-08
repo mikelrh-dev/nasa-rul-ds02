@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aero RUL — Predicción de Vida Útil Remanente</title>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              navy: "#111827",
+              primary: "#1763A9",
+              accent: "#6799C8",
+              surface: "#FFFFFF",
+              border: "#E5E7EB"
+            }
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          spacing: {},
+          fontFamily: {
+            headline: ["Inter", "sans-serif"],
+            display: ["Inter", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            label: ["Inter", "sans-serif"]
+          },
+          fontSize: {}
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body class="bg-brand-surface text-brand-navy font-body antialiased min-h-screen flex flex-col justify-between selection:bg-brand-accent selection:text-white">
+<!-- TopNavBar Anchor Component -->
+<header class="w-full h-16 sticky top-0 z-50 bg-white border-b border-gray-200">
+<div class="w-full max-w-7xl mx-auto px-8 flex justify-between items-center h-16">
+<!-- Brand Logo & Aerospace Signifier -->
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-[#1763A9] flex items-center justify-center text-white shadow-sm">
+<span class="material-symbols-outlined text-lg" data-icon="blur_circular">blur_circular</span>
+</div>
+<div class="flex flex-col">
+<span class="font-display font-bold text-lg text-gray-900 tracking-wider uppercase">Aero RUL</span>
+<span class="text-[10px] tracking-widest uppercase font-semibold text-[#6799C8] -mt-1">DS02 Prognostics Engine</span>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="hidden md:flex items-center space-x-8 font-headline font-semibold text-sm leading-normal tracking-tight">
+<a class="text-blue-700 font-semibold border-b-2 border-blue-700 py-5 transition-colors" href="#overview">Overview</a>
+<a class="text-gray-700 font-medium hover:text-blue-700 py-5 transition-colors" href="#telemetry">Turbine Telemetry</a>
+<a class="text-gray-700 font-medium hover:text-blue-700 py-5 transition-colors" href="#analytics">Fleet Analytics</a>
+<a class="text-gray-700 font-medium hover:text-blue-700 py-5 transition-colors" href="#docs">Documentation</a>
+</nav>
+<!-- Trailing Action Cluster -->
+<div class="flex items-center gap-4">
+<div class="hidden sm:flex items-center space-x-2 text-gray-500 mr-2">
+<button class="p-2 rounded-full hover:text-blue-700 hover:bg-gray-50 transition-colors duration-150" title="System Help">
+<span class="material-symbols-outlined text-xl" data-icon="help">help</span>
+</button>
+<button class="p-2 rounded-full hover:text-blue-700 hover:bg-gray-50 transition-colors duration-150" title="Configuration">
+<span class="material-symbols-outlined text-xl" data-icon="settings">settings</span>
+</button>
+</div>
+<button class="hidden lg:inline-flex text-xs font-semibold text-gray-700 hover:text-blue-700 px-3 py-1.5 transition-colors duration-150">
+          Sign In
+        </button>
+<button class="rounded-full bg-[#1763A9] text-white px-5 py-2 text-xs font-semibold tracking-wide hover:bg-[#124d85] transition-all duration-150 ease-in-out active:scale-95 shadow-sm inline-flex items-center gap-1.5">
+<span>Launch Analysis</span>
+<span class="material-symbols-outlined text-sm" data-icon="arrow_outward">arrow_outward</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Hero Stage: Safran-Grade Corporate Canvas -->
+<main class="relative flex-1 flex flex-col justify-between overflow-hidden">
+<!-- Hero Turbine Backdrop Section -->
+<div class="relative w-full min-h-[580px] lg:min-h-[640px] flex items-center justify-center overflow-hidden">
+<!-- Full-Width High-Resolution Turbine Imagery -->
+<div class="absolute inset-0 z-0">
+<img alt="Turborreactor en inspección en hangar" class="w-full h-full object-cover object-center" data-alt="An ultra-detailed cinematic close-up of a commercial high-bypass turbofan jet engine core under technical hangar lighting. Gleaming titanium compressor and turbine blades with precise aerospace machining, dark industrial metallic textures, and cool blue ambient maintenance workshop highlights. Crisp depth of field capturing mechanical tolerances, engineering perfection, and pristine aerospace assembly standards in corporate navy and pristine steel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRKsx2d2UeZ8FiqFa9zcGqg0hzp7IokEqtYNtYEbw7ekxjCluUg1DVII1ZkT_iNz_vHfgs8BddXF04-ejrAjY-fEtoeTpYgfU3IaYJc1sGdV2tnH49hAx1WXURIP9axRomOjxQspB_tlJ0z0J0HoRurdyca-g4841Odock2kEN2ObuNENaWDpusurk9iCYm285GPL9AwfI3CDWMxG5qRzgLkvlcqXVDlMwcRkTA3ni4iQRND7LK-jIaIpQ53z0-tBFktiDLAIJ0No"/>
+<!-- Velo / Navy Overlay #111827 al 45% + Degradado sutil para legibilidad absoluta -->
+<div class="absolute inset-0 bg-[#111827]/45 mix-blend-multiply"></div>
+<div class="absolute inset-0 bg-gradient-to-r from-[#111827]/90 via-[#111827]/60 to-transparent"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-[#111827] via-transparent to-transparent opacity-80"></div>
+</div>
+<!-- Hero Content Anchor Layout -->
+<div class="relative z-10 w-full max-w-7xl mx-auto px-8 py-20 flex flex-col items-start justify-center">
+<!-- Technical Breadcrumb / Engineering Badge -->
+<div class="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-6 text-white text-xs font-medium tracking-wide">
+<span class="w-2 h-2 rounded-full bg-[#6799C8] animate-pulse"></span>
+<span class="text-gray-200">CFM-LEAP / GE9X Telemetry Protocol</span>
+<span class="text-white/40">|</span>
+<span class="text-[#6799C8] font-mono font-semibold">S01 MRO HANGAR STAGE</span>
+</div>
+<!-- Main Headline -->
+<h1 class="font-headline font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white tracking-tight leading-[1.08] max-w-3xl drop-shadow-sm">
+          RUL que decide en hangar
+        </h1>
+<!-- Subtitle -->
+<p class="mt-4 font-body text-lg sm:text-xl lg:text-2xl text-gray-200 font-normal max-w-2xl leading-relaxed">
+          Prediccion de vida util remanente para mantenimiento
+        </p>
+<!-- Primary Call to Action Button: Pill Safran-like -->
+<div class="mt-10 flex flex-wrap items-center gap-4">
+<a class="rounded-full bg-[#1763A9] text-white px-8 py-3.5 text-sm sm:text-base font-semibold tracking-wide hover:bg-[#14538c] hover:shadow-lg transition-all duration-200 ease-in-out active:scale-95 flex items-center gap-2.5 group" href="#cascada">
+<span>Ver la cascada</span>
+<span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform duration-200" data-icon="arrow_forward">arrow_forward</span>
+</a>
+<div class="flex items-center gap-3 text-xs text-gray-300 pl-2">
+<span class="flex h-2.5 w-2.5 relative">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+</span>
+<span class="font-mono text-gray-300">Edge Inference Latency: 12ms</span>
+</div>
+</div>
+</div>
+<!-- Slide Corner Watermark -->
+<div class="absolute bottom-4 right-8 z-10 hidden sm:flex items-center gap-2 text-white/50 font-mono text-xs">
+<span class="material-symbols-outlined text-sm" data-icon="radar">radar</span>
+<span>AERO-RUL-S01 // DECISION PLATFORM</span>
+</div>
+</div>
+<!-- Section: KPIs Superpuestos / Bloque Inferior Limpio -->
+<section class="w-full bg-[#FFFFFF] border-t border-gray-200 py-10 relative z-20">
+<div class="max-w-7xl mx-auto px-8">
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-6 pb-4 border-b border-gray-100 gap-4">
+<div>
+<div class="text-xs font-bold uppercase tracking-widest text-[#1763A9]">Validación Predictiva de Modelo</div>
+<h2 class="text-xl font-bold text-gray-900 mt-0.5">Indicadores Críticos de Ciclos de Vida Remanente</h2>
+</div>
+<div class="flex items-center gap-2 text-xs font-medium text-gray-500 font-mono">
+<span class="inline-block w-2 h-2 rounded-full bg-blue-600"></span>
+            Conjunto de prueba C-MAPSS FD001-FD004
+          </div>
+</div>
+<!-- Bento Grid KPI Cards: White background, 1px border #E5E7EB, 8px radius (rounded-lg), no deep shadows -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Card 1: RMSE Precision -->
+<div class="bg-white border border-[#E5E7EB] rounded-lg p-6 hover:border-[#6799C8] transition-all duration-200 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Error Cuadrático Medio</span>
+<span class="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-blue-50 text-[#1763A9] border border-blue-100">(RMSE)</span>
+</div>
+<div class="mt-4 flex items-baseline gap-2">
+<span class="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#111827] font-headline">C = 4.338</span>
+</div>
+<p class="mt-2 text-xs leading-relaxed text-gray-600">
+                Desviación típica estricta en el corte final de ciclo antes de desmonte programado de cámara y álabes.
+              </p>
+</div>
+<div class="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+<span class="flex items-center gap-1 text-emerald-600 font-semibold">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle">check_circle</span>
+                Tolerancia FAA/EASA OK
+              </span>
+<span class="font-mono">σ = ±0.18 ciclos</span>
+</div>
+</div>
+<!-- Card 2: Blind Validation / Ocultos -->
+<div class="bg-white border border-[#E5E7EB] rounded-lg p-6 hover:border-[#6799C8] transition-all duration-200 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Validación Ciega</span>
+<span class="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-blue-50 text-[#1763A9] border border-blue-100">(ocultos)</span>
+</div>
+<div class="mt-4 flex items-baseline gap-2">
+<span class="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#111827] font-headline">3.227</span>
+<span class="text-xs font-bold text-[#6799C8] uppercase tracking-wider">Ciclos RUL</span>
+</div>
+<p class="mt-2 text-xs leading-relaxed text-gray-600">
+                Puntuación de ajuste en turbofanes en servicio sin historial de degradación previo revelado al modelo.
+              </p>
+</div>
+<div class="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+<span class="flex items-center gap-1 text-[#1763A9] font-medium">
+<span class="material-symbols-outlined text-sm" data-icon="memory">memory</span>
+                Inferencia en Tiempo Real
+              </span>
+<span class="font-mono">100/100 Muestras</span>
+</div>
+</div>
+<!-- Card 3: R2 Coeficiente -->
+<div class="bg-white border border-[#E5E7EB] rounded-lg p-6 hover:border-[#6799C8] transition-all duration-200 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Coef. de Determinación</span>
+<span class="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-blue-50 text-[#1763A9] border border-blue-100">(R2)</span>
+</div>
+<div class="mt-4 flex items-baseline gap-2">
+<span class="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#111827] font-headline">0.9461</span>
+<span class="text-xs font-medium text-emerald-600">94.6% correlación</span>
+</div>
+<p class="mt-2 text-xs leading-relaxed text-gray-600">
+                Alineación robusta de curva de deterioro termomecánico multivariable frente a lecturas de sensores de presión.
+              </p>
+</div>
+<div class="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+<span class="flex items-center gap-1 text-gray-600 font-medium">
+<span class="material-symbols-outlined text-sm text-[#1763A9]" data-icon="insights">insights</span>
+                Alta Confianza MRO
+              </span>
+<span class="font-mono">p &lt; 0.0001</span>
+</div>
+</div>
+</div>
+<!-- Slide Identity Bar: S01 · 1920x1080 & Certificación -->
+<div class="mt-8 pt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center text-xs text-gray-500 gap-2">
+<div class="flex items-center gap-3">
+<span class="px-2.5 py-1 rounded bg-gray-100 font-mono font-semibold text-gray-800 text-[11px] border border-gray-200">
+              S01 · 1920x1080
+            </span>
+<span class="text-gray-400">|</span>
+<span class="font-medium text-gray-700">Presentación Corporativa Aeroespacial</span>
+</div>
+<div class="flex items-center gap-2 text-gray-500">
+<span class="material-symbols-outlined text-sm text-[#1763A9]" data-icon="verified">verified</span>
+<span>Certificación operacional bajo estándar de confiabilidad MSG-3</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer Anchor Component -->
+<footer class="w-full bottom-0 bg-white border-t border-gray-200">
+<div class="w-full max-w-7xl mx-auto px-8 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
+<!-- Brand Copyright -->
+<div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
+<span class="font-display font-bold text-sm text-gray-900 tracking-wider uppercase">Aero RUL</span>
+<span class="font-body text-xs text-gray-500">© 2025 Aero RUL Analytics. High-Precision Aerospace Prognostics. All rights reserved.</span>
+</div>
+<!-- Mandatory Shared Footer Links -->
+<div class="flex flex-wrap items-center justify-center gap-6 font-body text-xs">
+<a class="text-gray-500 hover:text-gray-900 transition-colors" href="#telemetry">Telemetry Standard</a>
+<a class="text-gray-500 hover:text-gray-900 transition-colors" href="#models">Model Specifications</a>
+<a class="text-gray-500 hover:text-gray-900 transition-colors" href="#fleet">Fleet Compliance</a>
+<a class="text-gray-500 hover:text-gray-900 transition-colors" href="#contact">Contact Operations</a>
+</div>
+</div>
+</footer>
+</body></html>

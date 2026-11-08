@@ -33,7 +33,7 @@ Fuente: [[visuals/d02-recorrido-5min.mmd]]
 
 ## 0:40–1:40 — Datos y protocolo honesto
 
-«DS02 en HDF5 con 4 canales de régimen y 14 sensores. Parto por motor: cinco ajustan, la 16 valida y 11, 14 y 15 confirman. Ventanas de 50 filas que cubren 0,44 ciclos.» ([[s02-datos-ds02-y-reparto]])
+«DS02 en base adaptada parquet-clase con 4 canales de régimen y 14 sensores (nulos MAR T30 + ffill causal). Parto por motor: cinco ajustan, la 16 valida y 11, 14 y 15 confirman. Ventanas de 50 filas que cubren 0,44 ciclos.» ([[s02-datos-ds02-y-reparto]])
 
 «Escalador y 14 ridges solo con ajuste: 44 982 filas. El holdout aporta cero.» ([[s03-preproceso-sin-fuga]])
 
@@ -43,13 +43,13 @@ Fuente: [[visuals/d02-recorrido-5min.mmd]]
 
 «BiLSTM lee la película de 50 pasos en dos direcciones con triple pooling: da 5.65 solo.» ([[s06-bilstm-triple-pooling]])
 
-«Ablacioné el contador de ciclos: aporta pero no es un reloj. Solo con reloj da 14.33.» ([[s08-ablacion-cyc-norm]])
+«Ablacioné el contador de ciclos: aporta pero no es un reloj. (Las cifras de ablación tipo 14.33 están retiradas de defensa: medición histórica en [[s08-ablacion-cyc-norm]], no citar.)»
 
 ## 2:40–3:30 — Ensamble y beta
 
 «Combino con meta pequeño en la 16 y shrinkage beta 1.0 elegido fuera de fold con mediana 1.0. Dos folds piden 1.0 y uno pide 0: hay disenso y lo enseño.» ([[s09-oof-y-beta]])
 
-«El híbrido-C más EMA5 da 4.322±0.064 de media y 4.338 en disco. Más de un punto mejor que su mejor rama.» ([[s20-ensemble-adaptado-y-bundle-c]])
+«El híbrido-C más EMA5 da 4.338 en disco (oficial, semilla 42; la media 4.322±0.064 impresa en NB06 está NO reconciliada con el CSV — 4.368 pendiente per [[e00-cifras-autoritativas]]). Más de un punto mejor que su mejor rama.» ([[s20-ensemble-adaptado-y-bundle-c]])
 
 ## 3:30–4:20 — Banda como cota
 

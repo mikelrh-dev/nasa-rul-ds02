@@ -10,7 +10,7 @@ tags:
 # Informes index — qué pregunta responde cada uno
 
 > [!abstract] En una frase
-> Trece informes miden lo que el vault afirma: nada se dice sin su medición. Más cuatro de noviembre (ver tabla): diecisiete en total en `docs/informes/`.
+> Veinte informes miden lo que el vault afirma: nada se dice sin su medición (trece originales más siete de noviembre; ver tabla).
 
 ## Cómo leer esta tabla
 
@@ -35,6 +35,9 @@ Cada fila es un informe en `docs/informes/`. La tercera columna dice qué pregun
 | `informe-2026-11-05-bloques-auditoria-resultado` | Bloques BL-01…BL-09 (2026-11-05) | Qué se aplicó y se verificó (315 passed) |
 | `auditoria-2026-11-05-reto1-saa-pia-mia` | Auditoría Reto 1 SAA/PIA/MIA (2026-11-05) | Dónde está el reto frente a la rúbrica |
 | `informe_de_auditoria_ux_y_modelo_streamlit_ds02` | Auditoría UX + Streamlit DS02 | Riesgos de UX y conexión modelo-app |
+| `auditoria-2026-11-06-reto1-v2` | Auditoría Reto 1 v2 (2026-11-06) | Estado del reto frente a la rúbrica v2 |
+| `auditoria-2026-11-07-ds02` | Auditoría DS02 (2026-11-07) | Estado del bundle DS02 |
+| `auditoria-2026-11-07-cobertura` | Cobertura 2026-11-07 (CSV) | Matriz de cobertura de rúbrica |
 
 El índice vivo está en `docs/informes/README.md`. Si un informe y esta nota discrepan, manda el informe.
 
@@ -61,7 +64,7 @@ El índice vivo está en `docs/informes/README.md`. Si un informe y esta nota di
 > En `docs/informes/README.md`; esta nota lo resume.
 
 > [!question]- ¿Qué afirma esta nota en una frase?
-> Trece informes miden lo que el vault afirma: nada se dice sin su medición.
+> Veinte informes miden lo que el vault afirma: nada se dice sin su medición.
 
 > [!question]- ¿Cómo la contarías en el tribunal?
 > «Nada de lo que afirmo es palabra: cada punto tiene su informe con medición contraria incluida. El que más me protege es el que demuestra que el OOF no transfiere a la 16.»

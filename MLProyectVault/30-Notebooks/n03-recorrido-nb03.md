@@ -11,11 +11,11 @@ tags:
 # NB03 — Features secuenciales y ablación de cyc_norm
 
 > [!abstract] En una frase
-> Catorce celdas que responden una pregunta con un número: ¿el reloj `cyc_norm` ayuda o es trampa?
+> Diecisiete celdas que responden una pregunta con un número: ¿el reloj `cyc_norm` ayuda o es trampa?
 
 ## Antes de empezar
 
-14 celdas. Requiere NB02 (el reloj se ablaciona sobre el mejor pipeline). Es el cuaderno corto y quirúrgico: una hipótesis, un experimento, una conclusión escrita.
+17 celdas. Requiere NB02 (el reloj se ablaciona sobre el mejor pipeline). Es el cuaderno corto y quirúrgico: una hipótesis, un experimento, una conclusión escrita.
 
 ## Recorrido celda a celda
 

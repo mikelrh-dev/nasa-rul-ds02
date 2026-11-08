@@ -15,7 +15,7 @@ tags:
 
 ## Antes de empezar
 
-39 celdas. Requiere beta y ensamble de NB04. Tres bloques independientes: evidencia multisemilla, diagnósticos por motor y prototipo LGBM sobre base adaptada.
+42 celdas. Requiere beta y ensamble de NB04. Tres bloques independientes: evidencia multisemilla, diagnósticos por motor y prototipo LGBM sobre base adaptada.
 
 ## Recorrido celda a celda
 
@@ -23,7 +23,7 @@ tags:
 |---|---|---|---|
 | Línea base | prosa + manifiesto | fija la cifra autoritativa y la regla del empate | media vs fila, sin contradicciones |
 | Fases B1 / B4 (celdas 9-10) | `p_ens`, `lo/hi` de test | B1: trayectoria por motor con banda (real vs predicha por ciclo); B4: cobertura real vs 90% nominal por motor | B1: la verde sigue a la negra dentro de la sombra; B4: 100% en 11/14/15 con anchos 27.6 / 26.8 / 26.5 |
-| Tabla línea base (celda 11) | manifiesto C | fila oficial 4.338 (seed 42) frente a 3 semillas | RMSE 4.338, MAE 3.227, R2 0.9461, NASA 2336.2; macro 5.0153 (11: 3.633 · 14: 8.576 · 15: 2.837). Nota de autoridad: 4.347±0.012 sustituido por NB05 4.330±0.053 y NB06 4.322±0.064 |
+| Tabla línea base (celda 11) | manifiesto C | fila oficial 4.338 (seed 42) frente a 3 semillas | RMSE 4.338, MAE 3.227, R2 0.9461, NASA 2336.2; macro 5.0153 (11: 3.633 · 14: 8.576 · 15: 2.837). Nota de autoridad: 4.347±0.012 sustituido por NB05 4.330±0.053 y NB06 4.322±0.064 **(impresas, NO reconciliadas con el CSV en disco — 4.368 pendiente per [[e00-cifras-autoritativas]]; oficial 4.338 semilla 42)** |
 | Mejora sobre bases | tabla | cada modelo contra su baseline | deltas negativos en RMSE |
 | Regla del empate | resta 1.º−2.º | diferencia menor que el ruido = empate | criterio escrito, no opinado |
 | Diagnóstico | residuales por motor | dónde falla (el 14, siempre el 14) | vistas + macro-RMSE |

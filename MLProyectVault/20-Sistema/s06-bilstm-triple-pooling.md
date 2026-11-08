@@ -33,7 +33,7 @@ El grafo vive en `src/ds02_rul/model.py:19` y el entrenamiento en `src/ds02_rul/
 
 Parámetros totales: 154 253 (`models/ds02_manifest.json`). La clase de pooling registra `get_config` para que el `.keras` recargue sin código fantasma (`src/ds02_rul/pooling.py:25`).
 
-Solo da ≈5.7–6.2 en RMSE según base y semilla (5.654 en la base adaptada C; ≈6.22 ± 0.54 en la original, [[e00-cifras-autoritativas]]). Es el campeón del ensamble: `beta=0` reproduce exactamente esta rama ([[s10-stacking-hibrido]]).
+Solo da ≈5.7–6.2 en RMSE según base y semilla (5.654 en la base adaptada C; ≈6.22 ± 0.54 en la original (bundle B histórico), [[e00-cifras-autoritativas]]). Es el campeón del ensamble: `beta=0` reproduce exactamente esta rama ([[s10-stacking-hibrido]]).
 
 ## La decisión que hay detrás
 
@@ -43,7 +43,7 @@ Se rechazó serializar con Lambda: el `.keras` no recargaba fuera del entrenamie
 
 ## Qué medimos
 
-BiLSTM solo: RMSE 6.218 ± 0.541, MAE 4.820 ± 0.477, R² 0.8887 ± 0.0191, NASA 4397.8 ± 550.9 ([[e00-cifras-autoritativas]]).
+BiLSTM solo (bundle B histórico): RMSE 6.218 ± 0.541, MAE 4.820 ± 0.477, R² 0.8887 ± 0.0191, NASA 4397.8 ± 550.9 ([[e00-cifras-autoritativas]]).
 
 La dispersión ±0.54 es resolución del cómputo en CPU, no error de medida ([[c14-ruido-y-reproducibilidad]]). Por eso el bundle cita media y desviación, no una sola corrida.
 

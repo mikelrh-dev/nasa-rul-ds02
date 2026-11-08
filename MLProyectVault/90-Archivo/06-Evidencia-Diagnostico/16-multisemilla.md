@@ -10,6 +10,8 @@ tags:
   - robustez
 ---
 
+> NO VIGENTE — bundle histórico (A/B). Vigente C 4.338 macro 5.0153 en 50-Evidencia/e00 + models/ds02_manifest.json. No citar cifras de aquí en defensa.
+
 # Multisemilla (media ± std entre 42, 7 y 123)
 
 ## Idea central

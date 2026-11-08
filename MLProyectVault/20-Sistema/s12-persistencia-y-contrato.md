@@ -21,22 +21,22 @@ tags:
 
 ## Cómo está implementado
 
-El guardado vive en `src/ds02_rul/persistence.py:108` y la carga en `src/ds02_rul/persistence.py:189`.
+El guardado vive en `src/ds02_rul/persistence.py:202` y la carga en `src/ds02_rul/persistence.py:285`.
 
 | Archivo | Huella | Dónde se verifica |
 |---|---|---|
 | `ensemble.joblib` | `d6c70142…`, 469 620 bytes | `src/ds02_rul/persistence.py:29` |
-| `bilstm_ds02.keras` | `bf9620a7…`, 1 935 767 bytes | `src/ds02_rul/persistence.py:170` |
+| `bilstm_ds02.keras` | `bf9620a7…`, 1 935 767 bytes | `src/ds02_rul/persistence.py:264` |
 | `ds02_manifest.json` | Métricas, formas y protocolo | `src/ds02_rul/persistence.py:37` |
-| Guarda de forma | Aborta si el bundle no es DS02 | `src/ds02_rul/persistence.py:94` |
+| Guarda de forma | Aborta si el bundle no es DS02 | `src/ds02_rul/persistence.py:188` |
 
-El `.keras` es nativo con la capa `LastStepPooling` registrada al cargar (`src/ds02_rul/persistence.py:170`). Nada de HDF5 legacy ni Lambdas sin registrar ([[s06-bilstm-triple-pooling]]).
+El `.keras` es nativo con la capa `LastStepPooling` registrada al cargar (`src/ds02_rul/persistence.py:264`). Nada de HDF5 legacy ni Lambdas sin registrar ([[s06-bilstm-triple-pooling]]).
 
 El manifiesto fija semillas `[42, 7, 123]`, ventana 50, stride 100, steps 3 y 2, `beta` 1.0 y `ema_span` 5. Si el manifiesto y un cuaderno discrepan, gana el manifiesto ([[e00-cifras-autoritativas]]).
 
 ## La decisión que hay detrás
 
-El change `2026-10-20-ds02-honest-deployable` impone `.keras` nativo frente a `h5` y `joblib` frente a `pickle` suelto: el grafo recarga sin el código de entrenamiento y el resto viaja con versión fijada (ver `src/ds02_rul/persistence.py:108` y `src/ds02_rul/persistence.py:189`; ADR-010 es solo el rechazo del simulador n8n).
+El change `2026-10-20-ds02-honest-deployable` impone `.keras` nativo frente a `h5` y `joblib` frente a `pickle` suelto: el grafo recarga sin el código de entrenamiento y el resto viaja con versión fijada (ver `src/ds02_rul/persistence.py:202` y `src/ds02_rul/persistence.py:285`; ADR-010 es solo el rechazo del simulador n8n).
 
 La guarda `assert_ds02_artifact` existe porque un bundle de FD001 cargado como DS02 puntuaría sin avisar. Falla alto antes de publicar números.
 
@@ -77,7 +77,7 @@ Verificación en 30 segundos con `models/ds02_manifest.json` y comparación cont
 > «Lo que defiendo es lo que hay en disco: ensemble con hash d6c70142 y BiLSTM con bf9620a7, más manifiesto con métricas y protocolo. La fila de disco da 4.338 y la recarga pasa por guarda de forma.»
 
 > [!question]- ¿Qué archivo respalda esta nota?
-`src/ds02_rul/persistence.py:108`
+`src/ds02_rul/persistence.py:202`
 
 ## Conexiones
 

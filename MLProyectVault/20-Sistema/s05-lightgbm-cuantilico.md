@@ -42,7 +42,7 @@ Se rechazó usar LightGBM como predictor final único: su NASA de ≈5772 es cas
 
 ## Qué medimos
 
-LightGBM solo: RMSE 7.098 ± 0.034, MAE 5.572 ± 0.034, R² 0.8557 ± 0.0014, NASA 5772.5 ± 50.1 ([[e00-cifras-autoritativas]]).
+LightGBM solo (bundle B histórico): RMSE 7.098 ± 0.034, MAE 5.572 ± 0.034, R² 0.8557 ± 0.0014, NASA 5772.5 ± 50.1 ([[e00-cifras-autoritativas]]).
 
 La mejora del híbrido sobre esta rama (≈2.76 ciclos de RMSE) es la que justifica el ensamble ([[s10-stacking-hibrido]]).
 

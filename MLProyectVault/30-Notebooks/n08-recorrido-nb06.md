@@ -15,7 +15,7 @@ tags:
 
 ## Antes de empezar
 
-61 celdas. Requiere todo lo anterior: es el cierre, no un experimento. Lo pesado es el entreno vivo seed 42 (curva de pérdida) + OOF; las celdas de banda y residuales son ligeras pero dependen de esos estados.
+63 celdas. Requiere todo lo anterior: es el cierre, no un experimento. Lo pesado es el entreno vivo seed 42 (curva de pérdida) + OOF; las celdas de banda y residuales son ligeras pero dependen de esos estados.
 
 ## Recorrido celda a celda
 
@@ -30,7 +30,7 @@ tags:
 | Residuales | `p_ens`, `test` | RMSE + diagnóstico | print residuales |
 | Comparativa por grano | tabla final | fila vs ventana, campeones separados | MLP E2 7.72 · Híbrido-C 4.338 |
 
-**El 4.322 de NB06, aclarado.** El 4.322 ± 0.064 es la media de NB06 (celdas 42-44: 4.338 + 4.376 + 4.252). No es la fila oficial (4.338, semilla 42, manifiesto) ni la media de NB05 (4.330). El CSV `resultados/bundle_c_multiseed.csv` en disco da otra media (4.368 con la 42) y está pendiente de reconciliar: ver el párrafo de reconciliación multiseed en [[e00-cifras-autoritativas]].
+**El 4.322 de NB06, aclarado.** El 4.322 ± 0.064 es la media de NB06 (celdas 42-44: 4.338 + 4.376 + 4.252). No es la fila oficial (4.338, semilla 42, manifiesto) ni la media de NB05 (4.330). El CSV `resultados/bundle_c_multiseed.csv` en disco da otra media (4.368 con la 42) y está **NO reconciliada** (CSV sin la 42: 7=4.429, 123=4.336, media 4.368 pendiente de reconciliar per [[e00-cifras-autoritativas]]): las medias impresas en NB05/NB06 no son regenerables desde el CSV; oficial 4.338 (semilla 42, manifiesto).
 
 ## Las 5 celdas que importan
 

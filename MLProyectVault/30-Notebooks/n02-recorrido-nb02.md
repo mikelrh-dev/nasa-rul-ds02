@@ -15,7 +15,7 @@ tags:
 
 ## Antes de empezar
 
-39 celdas. Requiere la base de [[s15-dataset-de-clase]] y el pipeline de [[s16-pipeline-de-clase]]. Cubre rúbrica SAA 6/8 (comparativa) y SAA 7/9 (MLP + importancia). GridSearch con GroupKFold: tarda minutos en CPU.
+43 celdas. Requiere la base de [[s15-dataset-de-clase]] y el pipeline de [[s16-pipeline-de-clase]]. Cubre rúbrica SAA 6/8 (comparativa) y SAA 7/9 (MLP + importancia). GridSearch con GroupKFold: tarda minutos en CPU.
 
 ## Recorrido celda a celda
 

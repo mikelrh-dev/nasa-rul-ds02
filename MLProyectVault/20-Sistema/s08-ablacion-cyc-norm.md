@@ -23,12 +23,12 @@ tags:
 
 La medición vive en `src/ds02_rul/pipeline.py:247` y se invoca sin reentrenar el bundle final.
 
-| Condición (seed 42) | LightGBM | BiLSTM | Híbrido |
+| Condición (semilla 42, no media) | LightGBM | BiLSTM | Híbrido |
 |---|---|---|---|
 | Con `cyc_norm` | 7.113 | 5.419 | 5.386 |
 | Sin `cyc_norm` | 6.297 | 6.513 | 6.477 |
 
-Cifras de ablación ([[e00-cifras-autoritativas]]). El patrón es revelador: sin el contador, LightGBM mejora y el BiLSTM empeora. El contador ayuda a la secuencia y estorba al tabular si va solo.
+Cifras de ablación de una sola semilla (semilla 42, no media; base original, bundle B histórico) ([[e00-cifras-autoritativas]]). C bundle C usa LGBM 7.067 / BiLSTM 5.654 / híbrido 4.338. El patrón es revelador: sin el contador, LightGBM mejora y el BiLSTM empeora. El contador ayuda a la secuencia y estorba al tabular si va solo.
 
 El reloj desnudo es tramposo: OLS solo con reloj da 14.327 y la constante da ≈20.02. El coeficiente del reloj llega a −98.4065 con importancias `[0, 0, 720]`: el modelo deja de leer sensores y cuenta ciclos. El protocolo anterior daba 5.523 por este atajo.
 

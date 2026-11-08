@@ -57,7 +57,7 @@ const = np.full_like(y, float(np.mean(train_y)))
 
 `scripts/ablate_meta_cycle.py:132`
 
-Su RMSE es 20.022. Existe por dos razones: demuestra que el pipeline no está roto, y convierte «4,25 ciclos» en una frase con significado. No compite porque no es un modelo: no lee features, no se puede mejorar y no entra en la tabla de comparación.
+Su RMSE es 20.022. Existe por dos razones: demuestra que el pipeline no está roto, y convierte «4,34 ciclos» en una frase con significado. No compite porque no es un modelo: no lee features, no se puede mejorar y no entra en la tabla de comparación.
 
 ## Dónde aparece en este proyecto
 
@@ -94,7 +94,7 @@ Su RMSE es 20.022. Existe por dos razones: demuestra que el pipeline no está ro
 > El error de un motor típico. Cada motor pesa 1/n, así que el peor motor no queda diluido por tener pocas ventanas.
 
 > [!question]- ¿Para qué existe un baseline que predice la media?
-> Para fijar el piso. Con 20.022 de RMSE, un resultado de 4,25 demuestra que el pipeline aprendió algo; sin piso, el número no tiene escala.
+> Para fijar el piso. Con 20.022 de RMSE, un resultado de 4,34 demuestra que el pipeline aprendió algo; sin piso, el número no tiene escala.
 
 > [!question]- ¿El baseline compite con los modelos?
 > No. No lee features, no se entrena y no se puede mejorar. Aparece solo en el diagnóstico como referencia.

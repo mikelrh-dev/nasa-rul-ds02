@@ -41,7 +41,7 @@ La asimetría aparece en los extremos. En el tramo alto el modelo subestima de f
 
 - El bundle expone `predict_interval`, que devuelve punto, cota inferior y cota superior; `predict` queda intacto (`src/ds02_rul/ensemble.py:161`).
 - Resultado enviado: objetivo 90 %, cobertura realizada 100 %, ancho medio `26.41` ciclos, con 11 → `26.92`, 14 → `26.03`, 15 → `25.75` ([[e00-cifras-autoritativas]]).
-- Calibración sobre `17450` ventanas fuera de fold de los seis motores de desarrollo ([[e00-cifras-autoritativas]]; `README.md:78`).
+- Calibración sobre `17450` ventanas fuera de fold de los seis motores de desarrollo (incluye la unidad 16: el meta la vio; `14915` es la banda de decisión sin la 16) ([[e00-cifras-autoritativas]]; `README.md:78`).
 - La cota inferior alimenta la decisión de estado en [[s13-capa-de-reglas-y-decision]]; el detalle de la banda enviada está en [[s11-banda-conformal]].
 - La nota de honestidad del README lo dice sin rodeos: es una cota conservadora, no un intervalo de grado de decisión (`README.md:80`).
 

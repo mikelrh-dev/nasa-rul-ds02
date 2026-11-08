@@ -25,7 +25,7 @@ tags:
 | `COLUMNAS` | `src/clase/tabla_final.py:18` | modelo, familia, **grano**, rmse_val/test, mae, r2, nasa, tiempo, n_test |
 | Regla SAA-9 | cabecera de `tabla_final.py` | filas `grano=fila` y `grano=ventana` nunca se ordenan juntas |
 | Campeón fila | MLP E2 (7.72) | mejor de su grano por validación |
-| Campeón ventana | Híbrido-C (4.338, media 4.322±0.064) | desplegado, bundle C |
+| Campeón ventana | Híbrido-C (4.338 oficial; media 4.322±0.064 impresa NO reconciliada con CSV — 4.368 pendiente per [[e00-cifras-autoritativas]]) | desplegado, bundle C |
 
 ## Conexiones
 

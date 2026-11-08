@@ -27,7 +27,7 @@ tags:
 | `comparativa_bundle_c.csv` | `resultados/` | bundle C frente a bases, misma ventana de test |
 | Ventanas adaptadas | `src/clase/ventanas_adaptadas.py` | ventanas de 50 sobre la base imputada |
 
-Sin estos scripts, «4.322±0.064» sería una frase; con ellos, es un CSV regenerable.
+Sin estos scripts, «4.322±0.064» sería una frase; con ellos, debería ser un CSV regenerable — pero el CSV en disco hoy **NO reproduce** la media impresa (7=4.429, 123=4.336 → 4.368, **NO reconciliada** per [[e00-cifras-autoritativas]]); la fila oficial es 4.338 (semilla 42).
 
 ## Conexiones
 
@@ -41,4 +41,4 @@ Sin estos scripts, «4.322±0.064» sería una frase; con ellos, es un CSV regen
 ## Flashcards
 
 > [!question]- ¿Qué garantizan puente_c y evaluar_c_multisemilla?
-> Que el número multiseed es regenerable: el puente traslada la base al protocolo del bundle y el script de multisemilla repite [42, 7, 123] dejando los CSV en `resultados/`.
+> Que el número multiseed es **impreso en NB05/NB06, no regenerable hoy desde el CSV** (CSV 4.368 pendiente de reconciliar per [[e00-cifras-autoritativas]]): el puente traslada la base al protocolo del bundle y el script de multisemilla repite [42, 7, 123] dejando los CSV en `resultados/`.

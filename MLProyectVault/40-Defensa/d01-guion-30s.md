@@ -27,7 +27,7 @@ Decila mirando al tribunal, sin pantalla. Si se quedan con una sola frase, que s
 «Combino una red que lee la película de 50 pasos con un árbol que lee resúmenes, más meta pequeño y suavizado por motor.»
 
 **10–18 s — Cuánto doy.**
-«Híbrido-C más EMA da 4.32 de media y 4.34 en disco, frente a 5.65 del BiLSTM y 7.07 de la LGBM adaptada.» ([[e00-cifras-autoritativas]])
+«Híbrido-C más EMA da 4.34 en disco (oficial, semilla 42; la media impresa está NO reconciliada con el CSV — ver [[e00-cifras-autoritativas]]), frente a 5.65 del BiLSTM y 7.07 de la LGBM adaptada.» ([[e00-cifras-autoritativas]])
 
 **18–25 s — Por qué creerme.**
 «Reparto por motor, preproceso solo con ajuste, beta fuera de fold y banda con 17 450 residuales no vistos.» ([[s01-protocolo-honesto]])
@@ -59,7 +59,7 @@ Decir «ventanas de 50 ciclos» en vez de 0,44 ciclos ([[c02-ventanas-y-horizont
 > Problema, método, cifra, prueba y decisión.
 
 > [!question]- ¿Qué cifra dices y cuál es su fuente?
-> 4.34 en disco, con media 4.32; fuente [[e00-cifras-autoritativas]].
+> 4.34 en disco oficial (semilla 42); media impresa NO reconciliada con el CSV (4.368 pendiente); fuente [[e00-cifras-autoritativas]].
 
 > [!question]- ¿Qué no dices nunca en 30 s?
 > Cifras viejas, detalles de pooling o el IQR de beta.
