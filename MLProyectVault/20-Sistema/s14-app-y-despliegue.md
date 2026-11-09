@@ -55,7 +55,7 @@ El lead time por motor (9 / 23 / 17 en media) es lo que la pantalla traduce a pl
 > [!warning] Lo que el despliegue no promete
 > La app no detecta cambio de distribución: si llega un régimen no visto, predice igual sin avisar. No hay monitor de deriva. Esa es la próxima frontera, no una prestación actual.
 >
-> **Pendiente declarado (rúbrica).** MLflow (PIA-4, 20%: tracking de experimentos) va en el change siguiente, no en este. n8n (MIA-3) ya existe y está implementado (ver [[s24-n8n-mia3]]), no es pendiente. Si el tribunal pide MLflow: está excluido por alcance con diseño previsto, no olvidado. El negocio que sí cubre este change: [[c22-cuanto-vale-acertar]].
+> **MLflow (PIA-4) implementado (2026-11-09).** El tracking vive en `mlruns/` (file store de texto, 13 runs: 9 fila + 4 ventana), con export en `docs/evidencia/mlflow/comparativa.csv` y capturas. El store no guarda binarios: los modelos siguen en `models/` y se identifican por SHA. n8n (MIA-3) ya existe y está implementado (ver [[s24-n8n-mia3]]); sigue inactivo hasta credenciales. El negocio que sí cubre este change: [[c22-cuanto-vale-acertar]].
 
 ## Di esto en el tribunal
 

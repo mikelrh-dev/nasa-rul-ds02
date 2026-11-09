@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/mikel/Desktop/Pruebas/nasa/mlruns/456179934766753270/3bdaf3ddfb834f72b4716c7cb6598aab/artifacts
+end_time: 1794214673105
+entry_point_name: ''
+experiment_id: '456179934766753270'
+lifecycle_stage: active
+run_id: 3bdaf3ddfb834f72b4716c7cb6598aab
+run_name: clasico__regresion
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1794214673018
+status: 3
+tags: []
+user_id: unknown

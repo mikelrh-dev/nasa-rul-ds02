@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/mikel/Desktop/Pruebas/nasa/mlruns/456179934766753270/bae187bccdf64039b5c961746e61ef8c/artifacts
+deleted_time: 1794214675081
+end_time: 1794214647002
+entry_point_name: ''
+experiment_id: '456179934766753270'
+lifecycle_stage: deleted
+run_id: bae187bccdf64039b5c961746e61ef8c
+run_name: bundle__lgbm_c
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1794214646819
+status: 3
+tags: []
+user_id: unknown

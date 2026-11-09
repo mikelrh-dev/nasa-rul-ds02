@@ -1,6 +1,7 @@
 # Runtime environment that produced models/bilstm_ds02.keras, models/ensemble.joblib
 # and models/ds02_manifest.json. Pinned so the artifact does not carry version skew.
-# Python 3.12.10 (see .python-version).
+# Also pins the experiment-tracking tool (PIA-4): the store is text-only, no model
+# binaries. Python 3.12.10 (see .python-version).
 
 numpy==2.5.4
 pandas==3.0.6
@@ -13,6 +14,9 @@ joblib==1.6.0
 matplotlib==3.11.2
 xgboost==3.4.1
 shap==0.54.1
+
+# experiment tracking (PIA-4) — text-only file store; no log_model/autolog
+mlflow==3.18.0
 
 # notebook generation / execution
 nbformat==5.11.1

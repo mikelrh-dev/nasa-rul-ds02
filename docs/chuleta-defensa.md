@@ -48,11 +48,11 @@
 - **No sabes el detalle** → navega: *"te lo enseño: NB02 celda 15, vive en `src/clase/train_mlp.py`"*. Abrir el fichero y leer el docstring puntúa como 10 de la pregunta individual.
 - **Duda de número** → no inventes: *"está en `resultados/comparativa.csv`, fila XGB, columna rmse_val: 8,22"*.
 - **Demo app** → `streamlit run app/streamlit_app.py`: métricas del elegido + caso nuevo con decisión (la p=RUL sale junto a la decisión).
-- **MLflow / n8n real** → si preguntan: "quedan fuera de este change a propósito; el contrato está diseñado (`src/n8n.py`, `resultados/`), la integración va en el siguiente". No los vendas como hechos.
+- **MLflow / n8n** → MLflow: 13 runs en `mlruns/` (9 fila + 4 ventana), export en `docs/evidencia/mlflow/comparativa.csv` y capturas; el store es texto, sin binarios. n8n: flujo incluido en `n8n/flujo.json`, inactivo hasta credenciales; no vendas una ejecución real que no existe.
 
 ## Noche antes (checklist)
 
 - [ ] Abrir la app una vez y puntuar un caso (que no sea la primera vez en vivo).
 - [ ] Recitar la apertura + el arco en voz alta, una vez, con cronómetro.
-- [ ] Tener a mano: esta chuleta, `resultados/comparativa.csv`, `resultados/mlp_comparativa.csv`.
+- [ ] Tener a mano: esta chuleta, `resultados/comparativa.csv`, `resultados/mlp_comparativa.csv`, `docs/evidencia/mlflow/comparativa.csv`.
 - [ ] `models/ds02_manifest.json` abre y trae 4.338 (prueba de que lo defendido es lo de disco).

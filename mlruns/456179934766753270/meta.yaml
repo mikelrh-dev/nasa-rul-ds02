@@ -1,0 +1,9 @@
+artifact_location: file:///C:/Users/mikel/Desktop/Pruebas/nasa/mlruns/456179934766753270
+creation_time: 1794214644158
+effective_trace_archival_retention: null
+experiment_id: '456179934766753270'
+last_update_time: 1794214644158
+lifecycle_stage: active
+name: ds02-clase
+trace_location: null
+workspace: default
