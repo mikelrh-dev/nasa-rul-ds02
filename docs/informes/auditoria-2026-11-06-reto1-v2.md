@@ -1,5 +1,11 @@
 # Auditoría v2 del Reto 1 (SAA + PIA + MIA) — 2026-11-06
 
+> **Actualización 2026-11-09 — PIA-4.** La ausencia de MLflow que puntúa esta
+> auditoría queda cubierta por `openspec/changes/2026-11-09-mlflow-pia4/`:
+> 13 runs en `mlruns/` (9 fila + 4 ventana), export en
+> `docs/evidencia/mlflow/comparativa.csv` y capturas. Las notas y puntuaciones
+> de este informe son históricas (2026-11-06); no se reescriben.
+
 > **Modo:** solo lectura. No se modificó código, artefacto, notebook, dato ni configuración.
 > **Rama:** `clase-modelo-c` · **HEAD:** `a9d55a2` · **Árbol:** 49 modificados + 12 sin seguimiento
 > **Rúbrica:** `docClase/Reto1_SAA_PIA_MIA_2026-27_v5.pdf` (escala 0 / 3 / 7 / 10)

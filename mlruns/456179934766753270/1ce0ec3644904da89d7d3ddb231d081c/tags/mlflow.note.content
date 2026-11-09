@@ -1,0 +1,1 @@
+Modelo desplegado (bundle C). Métricas del manifiesto, no de un reentrenamiento; el tiempo es el total del entrenamiento del bundle (447 s), con LGBM 0.3 s y BiLSTM 113.2 s. `v3_bundle` es un tag archivado, no un parámetro.

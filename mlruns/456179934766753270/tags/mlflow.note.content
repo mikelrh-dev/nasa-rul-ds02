@@ -1,0 +1,1 @@
+Reto 1 — 13 runs medidos: 9 de grano fila (5 clásicos + 4 MLP) y 4 de grano ventana (LGBM, BiLSTM, BiLSTM+EMA5 y el bundle C desplegado). Los dos granos NO son comparables entre sí: fila = una lectura, ventana = 50 lecturas. El store es texto; los binarios siguen en models/ y se identifican por SHA.

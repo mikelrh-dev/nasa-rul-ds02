@@ -1,8 +1,9 @@
 # Guiones de defensa — 15 minutos por alumno
 
-Verificación previa: toda cifra citada sale de `resultados/` o de código con
-`path:línea`. Si el tribunal pregunta por MLflow o n8n, respuesta honesta:
-«pendiente, declarado en README».
+Verificación previa: toda cifra citada sale de `resultados/`, de `mlruns/` o de
+código con `path:línea`. MLflow: 13 runs en `mlruns/` (9 fila + 4 ventana) y
+export en `docs/evidencia/mlflow/comparativa.csv`. n8n: flujo incluido en
+`n8n/flujo.json`, inactivo hasta credenciales; no se afirma una ejecución real.
 
 ---
 
@@ -121,4 +122,4 @@ es solo una de las semillas del análisis.
 - **Test una vez.** La frase es siempre: «el test se evalúa una sola vez y
   solo para el elegido». Ver `src/clase/train_clasicos.py` y
   `src/clase/train_mlp.py:107`.
-- **MLflow / n8n.** «Pendiente, declarado en README». No los vendas como hechos.
+- **MLflow / n8n.** «MLflow tiene 13 runs en `mlruns/`: 9 de fila y 4 de ventana, con export y capturas; el store es texto y no guarda binarios. n8n está incluido pero inactivo hasta credenciales». No vendas una ejecución real de n8n.

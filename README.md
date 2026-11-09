@@ -11,8 +11,12 @@
 
 ![RMSE por motor del bundle C](docs/assets/bundle_c_rmse_por_motor.png)
 
-*RMSE del bundle C desglosado por motor (test 11/14/15). La captura del dashboard se regenera con*
-*`streamlit run app/dashboard_ds02.py`: la anterior era de la app del track y mostraba cifras que ya no existen.*
+*RMSE del bundle C desglosado por motor (test 11/14/15).*
+
+![Dashboard DS02 — bundle C](docs/assets/dashboard_ds02.png)
+
+*Centro de control DS02: SHA-256 `d6c70142…` del ensemble, 6.196 ventanas y banda 90 %. La app sirve el bundle C congelado; la captura está versionada en `docs/assets/dashboard_ds02.png`.*
+
 
 ## La necesidad de negocio
 
@@ -22,7 +26,7 @@ Taller MRO con flota DS02: un motor parado en pista (AOG) cuesta del orden de 10
 
 ## Qué hemos construido
 
-**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer).
+**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer), MLflow (tracking de 13 runs; PIA-4).
 
 Predicción de vida útil restante en el dataset turbofán N-CMAPSS DS02, empaquetado
 para que **cargue, sirva y sea honesto sobre lo que mide**.
@@ -152,6 +156,59 @@ U14 8.5761 · U15 2.8371. El error no está repartido: la unidad 14 concentra el
 
 El híbrido de clase **es** el modelo desplegado: mismo `run_seed`, mismo contrato de 93 features y sin `fase_vuelo`, entrenado sobre la base con nulos MAR tratados (patrón físico + ffill causal con medianas de fit-units).
 
+## MLflow — 13 runs (PIA-4)
+
+El tracking vive en `mlruns/` (file store de texto, sin servidor ni SQLite) y se regenera desde los CSV medidos:
+
+```bash
+python scripts/backfill_mlflow.py --write   # 13 runs; idempotente por run_key
+python scripts/backfill_mlflow.py --check   # store + export, 0 artefactos
+MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
+```
+
+MLflow 3.18 exige `MLFLOW_ALLOW_FILE_STORE=true` para el backend de ficheros; el script y el test lo activan. La comparativa exportada por la API es [`docs/evidencia/mlflow/comparativa.csv`](docs/evidencia/mlflow/comparativa.csv). **Los dos granos no se mezclan**: 9 runs de fila (una lectura) y 4 de ventana (50 lecturas).
+
+### Grano fila — 9 runs (GroupKFold por motor)
+
+| run_key | Modelo | RMSE val | RMSE test | Tiempo (s) | Selección |
+| --- | --- | ---: | ---: | ---: | --- |
+| `clasico__knn` | KNN | 9.4092 | — | 9.1 | — |
+| `clasico__regresion` | Ridge | 8.2762 | — | 3.5 | — |
+| `clasico__rf` | Random Forest | 9.0704 | — | 79.6 | — |
+| `clasico__svm` | SVR | 8.2927 | — | 2.7 | — |
+| `clasico__xgb` | XGBoost | 8.2173 | 11.034 | 7.2 | `mejor_clasico` |
+| `mlp__base` | MLP base | 7.358 | — | 27.5 | — |
+| `mlp__E1_capacidad` | MLP E1 | 7.4808 | — | 70.7 | — |
+| `mlp__E2_reg_lr` | MLP E2 | 7.3404 | 7.7211 | 33.3 | `mejor_mlp,campeon_fila` |
+| `mlp__E3_batch` | MLP E3 | 7.3554 | — | 38.6 | — |
+
+El test de fila se lee **una sola vez y solo para el elegido**: XGB 11.034 y MLP-E2 7.7211. No se usa para seleccionar.
+
+### Grano ventana — 4 runs (grouped out-of-fold; test 6.196 ventanas, uds 11/14/15)
+
+| run_key | Modelo | RMSE val | RMSE test | Tiempo (s) | Rol |
+| --- | --- | ---: | ---: | ---: | --- |
+| `bundle__lgbm_c` | LightGBM-C (cuantil 0.35) | — | 7.067 | 0.3 | componente / alias `lgbm_adaptada` |
+| `bundle__bilstm_c` | BiLSTM-C | — | 5.654 | 113.2 | componente |
+| `bundle__bilstm_ema5` | BiLSTM-C + EMA5 | — | 5.618 | — (no cronometrado) | variante |
+| `prod__bundle_c` | Híbrido-C + EMA5 (bundle C) | — | 4.338 | 447 | producción |
+
+No hay `rmse_val` de ventana comparable: el protocolo es OOF agrupado y la referencia es el test del manifiesto. Producción: MAE 3.227 · R² 0.9461 · NASA 2336.2; `beta=1.0`, EMA 5, ventana 50, 93 features LGBM, 18 scaler y los cuatro SHA del manifiesto. `v3_bundle=archivado` es un tag, no un parámetro.
+
+### Capturas MLflow
+
+![Comparativa MLflow — grano fila](docs/evidencia/mlflow/compare_fila.png)
+
+*9 runs de fila; `rmse_test` solo aparece en XGB y MLP-E2 porque el test se leyó una vez.*
+
+![Comparativa MLflow — grano ventana](docs/evidencia/mlflow/compare_ventana.png)
+
+*4 runs de ventana; el tiempo de EMA5 queda vacío porque no se cronometró.*
+
+![Run de producción](docs/evidencia/mlflow/run_prod.png)
+
+*`prod__bundle_c`: 4.338 / 3.227 / 0.9461 / 2336.2 y los cuatro SHA.*
+
 ---
 
 ## Estabilidad entre semillas (C)
@@ -271,6 +328,8 @@ python -m pytest tests/ -q
 python -m src.clase.train_clasicos
 python -m src.clase.train_mlp
 python -m src.clase.shap_clase
+python scripts/backfill_mlflow.py --check
+MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
 
 ---
@@ -284,6 +343,8 @@ src/utils.py            fachada rúbrica (re-exporta pipeline_clase + métricas)
 src/reglas.py           fachada rúbrica sobre src.mia/ (6+ reglas, prioridad, seguridad)
 src/n8n.py              envío de la decisión a n8n (MIA-3)
 src/ds02_rul/           data, features, model, pipeline, stacking, metrics, ...
+mlruns/                 store MLflow de texto (13 runs; sin artefactos)
+docs/evidencia/mlflow/  comparativa.csv + capturas de MLflow
 models/mejor_modelo.joblib  elegido de clase (copia de mejor_modelo_clase.joblib)
 models/                 bundle desplegado (C): ensemble.joblib, bilstm_ds02.keras,
                         scaler.joblib, ds02_manifest.json
@@ -303,6 +364,7 @@ resultados/             gráficas y CSVs (ignorado en git, regenerable)
 - Track de clase: [src/clase/README.md](src/clase/README.md)
 - Rúbrica: `docClase/Reto1_SAA_PIA_MIA_2026-27_v4.pdf`
 - Planificación: `docs/pendiente/planificacion-clase-5notebooks.md`
+- MLflow: [`docs/evidencia/mlflow/comparativa.csv`](docs/evidencia/mlflow/comparativa.csv) y capturas en `docs/evidencia/mlflow/`
 
 ---
 

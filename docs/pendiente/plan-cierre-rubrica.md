@@ -1,4 +1,9 @@
-# Plan de cierre de rúbrica (sin MLflow ni n8n)
+# Plan de cierre de rúbrica (sin MLflow ni n8n) — SUPERSEDED
+
+> **SUPERSEDED (2026-11-09).** Este plan queda cerrado como histórico: MLflow
+> (PIA-4) ya está implementado en `openspec/changes/2026-11-09-mlflow-pia4/` y
+> `docs/plans/plan-mlflow-pia4-10.md` (13 runs en `mlruns/`, export y capturas).
+> No usar sus cifras de techo ni su lista de tareas excluidas como estado actual.
 
 Documento de trabajo para un agente que cierre las lagunas menores identificadas
 en la evaluación 0-10 de SAA, PIA y MIA (sin implementar MLflow ni n8n).

@@ -10,7 +10,7 @@ tags:
 # MLflow — tracking de experimentos
 
 > [!abstract] En una frase
-> MLflow registra qué hiperparámetros se probaron, con qué métricas train/val y cuánto tiempo tardaron, para comparar experimentos sin perder el rastro.
+> MLflow registra qué hiperparámetros se probaron, con qué métricas train/val/test y cuánto tiempo tardaron, para comparar experimentos sin perder el rastro.
 
 ## La idea
 
@@ -22,9 +22,16 @@ Tres piezas:
 2. **Métricas**: RMSE/MAE/R² en train y en validación (y test cuando existe). Son el criterio para elegir.
 3. **Tiempo**: segundos de entrenamiento por modelo. Permite descartar lo que no compensa, aunque mida bien.
 
-## Comparativa del proyecto (sustituto actual)
+## MLflow del proyecto (13 runs)
 
-Tabla de `resultados/comparativa.csv` (hiperparámetros y métricas train/val/tiempo):
+El 2026-11-09 se registraron **13 corridas** en el experimento `ds02-clase`, dentro de `mlruns/` (file store de texto, sin servidor ni SQLite). No se reentrenó nada: `scripts/backfill_mlflow.py --write` lee los CSV, el log del bundle y el manifiesto, y es idempotente por el tag `run_key`.
+
+| Grano | Runs | Qué contiene |
+|---|---:|---|
+| fila | 9 | 5 clásicos + 4 MLP; `rmse_val` y test solo del elegido |
+| ventana | 4 | LGBM, BiLSTM, BiLSTM+EMA5 y bundle C; test 6.196 ventanas |
+
+La tabla de 5 clásicos sigue siendo la foto rápida (`resultados/comparativa.csv`); el CSV exportado por la API (`docs/evidencia/mlflow/comparativa.csv`) añade `run_id`, `grano`, `rol`, `seleccion`, `params_summary` y las métricas de los 13.
 
 | Modelo | Hiperparámetros | Tiempo (s) | RMSE train/val | MAE train/val | R² train/val |
 |---|---|---|---|---|---|
@@ -34,43 +41,44 @@ Tabla de `resultados/comparativa.csv` (hiperparámetros y métricas train/val/ti
 | svm | `{'reg__C': 10.0, 'reg__epsilon': 1.0}` | 2.7 | 7.5251 / 8.2927 | 5.8227 / 7.5299 | 0.8869 / 0.8565 |
 | xgb | `{'reg__max_depth': 4}` | 7.2 | 7.1887 / 8.2173 | 5.9025 / 7.4688 | 0.8968 / 0.8543 |
 
-Columnas del CSV original: `modelo,mejores_params,tiempo_s,rmse_train,mae_train,r2_train,rmse_val,mae_val,r2_val,rmse_test,mae_test,r2_test`. Solo `xgb` trae fila de test (11.034 / 9.9098 / 0.6616); el resto deja test vacío porque la selección se hace con train/val.
+Solo `xgb` y `mlp__E2_reg_lr` traen `rmse_test` en el grano fila (11.034 y 7.7211): el test se leyó una vez y solo para el elegido. El resto deja test vacío porque la selección se hace con train/val.
 
-Las capturas y figuras de esta comparativa viven en `resultados/` junto al CSV (`mlp_comparativa.csv`, `tabla_final_clase.csv`, `comparativa_bundle_c.csv`, `comparativa_c_multisemilla.csv`, `comparativa_ventanas.csv` y los PNG asociados). Hoy son el artefacto consultable: si hay que defender un número, se abre el CSV y el PNG de esa carpeta.
+Las capturas viven en `docs/evidencia/mlflow/`: `compare_fila.png` (9 runs de fila), `compare_ventana.png` (4 de ventana) y `run_prod.png` (bundle C con los cuatro SHA). El store no guarda binarios; los modelos siguen en `models/` y se identifican por SHA-256.
 
 ## Dónde aparece en este proyecto
 
-- `resultados/comparativa.csv` — la comparativa vigente sin MLflow.
-- `s14-app-y-despliegue` pendiente declarado: MLflow (PIA-4, 20%: tracking de experimentos).
-- `s17-clasicos-y-mlp` y `s18-lgbm-adaptada` — familias que hoy se comparan con CSV.
+- `mlruns/` — store MLflow de texto con los 13 runs (PIA-4).
+- `scripts/backfill_mlflow.py` — backfill idempotente `--write` / `--check` / `--export`.
+- `docs/evidencia/mlflow/comparativa.csv` — exportación por API del store.
+- `docs/evidencia/mlflow/compare_fila.png`, `compare_ventana.png`, `run_prod.png` — evidencia visual.
+- [[s14-app-y-despliegue]] — la app sirve el bundle C; no depende de MLflow en runtime.
+- `s17-clasicos-y-mlp` y `s18-lgbm-adaptada` — familias registradas en el experimento.
 
 > [!warning] La trampa
-> «El CSV ya es MLflow»: no. El CSV guarda la foto de una comparativa; MLflow guarda el historial ordenado de corridas con parámetros, métricas y artefactos recuperables. El CSV engaña si no se sabe qué se probó antes.
+> «El CSV ya es MLflow»: no. El CSV es una foto; MLflow guarda el historial de corridas con parámetros, métricas y tags consultables. Aquí el CSV es la **exportación** del store, no su sustituto.
 
 ## Estado actual
 
-La spec lo exige como PIA-4 (tracking de experimentos, 20 % de rúbrica), pero **el proyecto aún no lo tiene**: no hay `mlflow` en `requirements` ni runs registrados en el repo. Hoy se sustituye con `resultados/comparativa.csv` y los PNG en `resultados/`.
-
-Está declarado como pendiente en [[s14-app-y-despliegue]]: «MLflow (PIA-4) va en el change siguiente, no en este. Si el tribunal lo pide: está excluido por alcance con diseño previsto, no olvidado». No se inventa un backend ni una URL: cuando se implemente, esta nota se actualiza con el destino de los runs.
+Implementado el 2026-11-09 (change `2026-11-09-mlflow-pia4`): MLflow 3.18.0, file store de texto en `mlruns/`, 13 runs (9 fila + 4 ventana), `MLFLOW_ALLOW_FILE_STORE=true` porque 3.18 bloquea el backend de ficheros por defecto. No hay artefactos ni `log_model`/`autolog`; los binarios siguen en `models/` y los cuatro SHA del manifiesto identifican el bundle. `tests/test_mlflow_backfill.py` lee el store desde disco, sin servidor, y `--check` exige 13 runs, 9/4 por grano, `run_key` único y CSV==store.
 
 ## Di esto en el tribunal
 
 > [!quote]
-> «MLflow es el registro de experimentos: hiperparámetros, métricas train/val y tiempo por corrida. La rúbrica lo pide como PIA-4; hoy lo sustituye `resultados/comparativa.csv` con sus capturas en `resultados/`, y está declarado como pendiente con diseño previsto».
+> «MLflow registra 13 corridas en `mlruns/`: 9 de grano fila (5 clásicos + 4 MLP) y 4 de grano ventana (LGBM, BiLSTM, EMA5 y el bundle C). Cada una guarda parámetros, métricas y tiempo; el CSV de `docs/evidencia/mlflow/` es la exportación, y las dos capturas separan los granos para no comparar peras con racimos. El store es texto y los binarios siguen en `models/` con su SHA».
 
 ## Flashcards
 
 > [!question]- ¿Qué es MLflow?
-> Tracking de experimentos: cada corrida guarda hiperparámetros, métricas train/val y tiempo para comparar y reproducir.
+> Tracking de experimentos: cada corrida guarda hiperparámetros, métricas train/val/test y tiempo para comparar y reproducir.
 
-> [!question]- ¿Qué columnas tiene la comparativa actual?
-> `modelo,mejores_params,tiempo_s,rmse_train,mae_train,r2_train,rmse_val,mae_val,r2_val,rmse_test,mae_test,r2_test` en `resultados/comparativa.csv`.
+> [!question]- ¿Cuántos runs y de qué granos hay?
+> 13 en `ds02-clase`: 9 de fila (5 clásicos + 4 MLP) y 4 de ventana (LGBM, BiLSTM, EMA5, bundle C).
 
 > [!question]- ¿Dónde están las capturas?
-> En `resultados/` junto a los CSV (`mlp_comparativa.csv`, `tabla_final_clase.csv`, `comparativa_bundle_c.csv` y sus PNG).
+> En `docs/evidencia/mlflow/`: `compare_fila.png`, `compare_ventana.png` y `run_prod.png`.
 
 > [!question]- ¿Cuál es el estado de MLflow en el proyecto?
-> Exigido por la spec (PIA-4) pero aún no implementado; hoy se sustituye con `resultados/comparativa.csv`. Pendiente declarado en `s14`.
+> Implementado (2026-11-09) con 13 runs y store de texto en `mlruns/`; `--check` y el test lo verifican. No guarda binarios.
 
 > [!question]- ¿Qué afirma esta nota en una frase?
-> MLflow es el registro de experimentos con hiperparámetros y métricas; hoy el CSV es su sustituto y PIA-4 sigue pendiente.
+> MLflow es el registro de experimentos con hiperparámetros y métricas; el proyecto tiene 13 runs y el CSV es su exportación, no un sustituto.

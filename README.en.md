@@ -16,6 +16,10 @@ A BiLSTM over ordered windows and a quantile LightGBM over residualised tabular
 features are reconciled by a learned meta-learner, shrunk towards the champion by
 a factor `beta`, and smoothed with a causal per-unit EMA.
 
+![DS02 dashboard — bundle C](docs/assets/dashboard_ds02.png)
+
+*DS02 control centre: ensemble SHA-256 `d6c70142…`, 6,196 windows and a 90 % band. The app serves the frozen bundle C.*
+
 ```bash
 uvicorn app.api:app --host 127.0.0.1 --port 8000    # http://localhost:8000/docs
 streamlit run app/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
@@ -105,6 +109,61 @@ rejected: the interval collapses to **3.35 cycles at 31.4 % coverage** (41.4 %
 below, 27.2 % above), because the meta-learner is fitted on unit 16 and unit 16
 holds no row above 62 cycles, so no quantile fitted there can cover high life.
 `predict_interval()` returns `(point, lower, upper)`; `predict()` is unchanged.
+
+---
+
+## MLflow — 13 runs (PIA-4)
+
+Tracking lives in `mlruns/` (text file store, no server, no SQLite) and is rebuilt from the measured CSVs:
+
+```bash
+python scripts/backfill_mlflow.py --write   # 13 runs; idempotent by run_key
+python scripts/backfill_mlflow.py --check   # store + export, zero artifacts
+MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
+```
+
+MLflow 3.18 requires `MLFLOW_ALLOW_FILE_STORE=true` for the filesystem backend; the script and the test set it. The API-exported comparison is [`docs/evidencia/mlflow/comparativa.csv`](docs/evidencia/mlflow/comparativa.csv). **The two grains are not mixed**: 9 row runs (one reading) and 4 window runs (50 readings).
+
+### Row grain — 9 runs (GroupKFold by engine)
+
+| run_key | Model | RMSE val | RMSE test | Time (s) | Selection |
+| --- | --- | ---: | ---: | ---: | --- |
+| `clasico__knn` | KNN | 9.4092 | — | 9.1 | — |
+| `clasico__regresion` | Ridge | 8.2762 | — | 3.5 | — |
+| `clasico__rf` | Random Forest | 9.0704 | — | 79.6 | — |
+| `clasico__svm` | SVR | 8.2927 | — | 2.7 | — |
+| `clasico__xgb` | XGBoost | 8.2173 | 11.034 | 7.2 | `mejor_clasico` |
+| `mlp__base` | MLP base | 7.358 | — | 27.5 | — |
+| `mlp__E1_capacidad` | MLP E1 | 7.4808 | — | 70.7 | — |
+| `mlp__E2_reg_lr` | MLP E2 | 7.3404 | 7.7211 | 33.3 | `mejor_mlp,campeon_fila` |
+| `mlp__E3_batch` | MLP E3 | 7.3554 | — | 38.6 | — |
+
+The row test is read **once and only for the selected model**: XGB 11.034 and MLP-E2 7.7211. It is not used for selection.
+
+### Window grain — 4 runs (grouped out-of-fold; test 6,196 windows, units 11/14/15)
+
+| run_key | Model | RMSE val | RMSE test | Time (s) | Role |
+| --- | --- | ---: | ---: | ---: | --- |
+| `bundle__lgbm_c` | LightGBM-C (quantile 0.35) | — | 7.067 | 0.3 | component / alias `lgbm_adaptada` |
+| `bundle__bilstm_c` | BiLSTM-C | — | 5.654 | 113.2 | component |
+| `bundle__bilstm_ema5` | BiLSTM-C + EMA5 | — | 5.618 | — (not timed) | variant |
+| `prod__bundle_c` | Hybrid-C + EMA5 (bundle C) | — | 4.338 | 447 | production |
+
+No comparable `rmse_val` exists for the window grain: the protocol is grouped OOF and the reference is the manifest test. Production: MAE 3.227 · R² 0.9461 · NASA 2336.2; `beta=1.0`, EMA 5, window 50, 93 LGBM features, 18 scaler features and the four manifest SHAs. `v3_bundle=archivado` is a tag, not a parameter.
+
+### MLflow captures
+
+![MLflow comparison — row grain](docs/evidencia/mlflow/compare_fila.png)
+
+*9 row runs; `rmse_test` only appears for XGB and MLP-E2 because the test was read once.*
+
+![MLflow comparison — window grain](docs/evidencia/mlflow/compare_ventana.png)
+
+*4 window runs; EMA5 has no time because it was not timed.*
+
+![Production run](docs/evidencia/mlflow/run_prod.png)
+
+*`prod__bundle_c`: 4.338 / 3.227 / 0.9461 / 2336.2 and the four SHAs.*
 
 ---
 
@@ -333,6 +392,8 @@ jupyter nbconvert --to notebook --execute 02_DS02_ensemble_RUL.ipynb --inplace
 # measurements and checks
 python scripts/ablate_meta_cycle.py
 python -m pytest -q
+python scripts/backfill_mlflow.py --check
+MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
 
 The notebook is a **build output**. Edit `scripts/build_02_notebook.py` and
@@ -356,6 +417,8 @@ scripts/               builder, migration, ablation, CLI, probes
 app/                   FastAPI service, Streamlit dashboards, live-evaluation seam
 tests/                 pytest suite: artifact contract, DSS, rules layer
 openspec/              SDD: deployed spec, change proposal, tasks
+mlruns/                text-only MLflow store (13 runs; no artifacts)
+docs/evidencia/mlflow/ API-exported comparison CSV + MLflow captures
 docs/                  spec, decisions/ (ADR-001…009), informes/ (measurements), plans/
 models/                artifacts + manifest + ablation results
 02_DS02_ensemble_RUL.ipynb   executed notebook (generated, frozen reference — do not re-execute; use notebooks/ds02_ensemble/01→02→03 for presentation)

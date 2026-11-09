@@ -23,6 +23,8 @@ dependencies = [
     "matplotlib==3.11.2",
     "xgboost==3.4.1",
     "shap==0.54.1",
+    # experiment tracking (PIA-4): text-only file store; no model binaries
+    "mlflow==3.18.0",
     # notebook generation / execution
     "nbformat==5.11.1",
     "ipykernel==7.4.0",
