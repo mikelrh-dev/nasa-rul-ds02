@@ -1,6 +1,0 @@
-{
- "nombre": "B: Bidirectional LSTM 100-50 + Dropout 0.2 (w=30)",
- "window": 30,
- "rmse_test": 14.78350748320098,
- "mae_test": 11.580146789550781
-}

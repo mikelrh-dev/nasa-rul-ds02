@@ -5,7 +5,7 @@
 | **Status** | Implemented, verified on test units; **loadable outside the notebook** (§6) |
 | **Date** | 2026-10-19 |
 | **Source of truth** | `02_DS02_ensemble_RUL.ipynb` (34 cells, generated — not hand-written — by `scripts/build_02_notebook.py`) |
-| **Dataset** | N-CMAPSS **DS02** (`archive/CCMaps/N-CMAPSS_DS02-006.h5`, 2.34 GB) |
+| **Dataset** | N-CMAPSS **DS02** (`data/raw/N-CMAPSS_DS02-006.h5`, 2.34 GB) |
 | **Target** | Remaining Useful Life (RUL) per engine, in cycles |
 | **Evaluation** | Test units **11, 14, 15** (3 engines), scored with RMSE / MAE / R² / NASA score |
 | **Related** | `openspec/specs/rul-prediction-ds02/spec.md` · `openspec/changes/2026-10-19-ds02-production-hardening/` · `docs/decisions/` |
@@ -138,7 +138,7 @@ timeline
 
 | Aspect | Value |
 |---|---|
-| Primary source | `archive/CCMaps/N-CMAPSS_DS02-006.h5` (candidate paths are probed in order) |
+| Primary source | `data/raw/N-CMAPSS_DS02-006.h5` (candidate paths are probed in order) |
 | Fallback source | C-MAPSS **FD001** text files (`train_FD001.txt` / `test_FD001.txt` / `RUL_FD001.txt`) |
 | HDF5 keys | `A_dev, W_dev, X_s_dev, Y_dev` and `A_test, W_test, X_s_test, Y_test` |
 | `W` channels (4) | `alt`, `Mach`, `TRA`, `T2` — operating conditions |
@@ -743,8 +743,8 @@ Get-ChildItem ensemble.joblib, scaler.joblib, models\ensemble.joblib, models\sca
 
 | Input | Path | Size |
 |---|---|---|
-| DS02 dataset | `archive/CCMaps/N-CMAPSS_DS02-006.h5` | 2.34 GB |
-| FD001 fallback (optional) | `archive/CMaps/train_FD001.txt`, `test_FD001.txt`, `RUL_FD001.txt` | small |
+| DS02 dataset | `data/raw/N-CMAPSS_DS02-006.h5` | 2.34 GB |
+| FD001 fallback (optional) | `train_FD001.txt`, `test_FD001.txt`, `RUL_FD001.txt` — no incluidos en el repo (retirados 2026-11-09, ver `archive/README.md`) | small |
 
 **Notebooks are generated, not authored.** `scripts/build_02_notebook.py` (587 lines) is a pure `nbformat` builder: it emits the 20 code cells and 14 markdown cells as verbatim triple-quoted strings and writes the `.ipynb`. It does not execute the notebook and does not read or write any artefact. Any edit to the notebook's content belongs in the builder.
 
@@ -762,7 +762,7 @@ Get-ChildItem ensemble.joblib, scaler.joblib, models\ensemble.joblib, models\sca
 | `models/ds02_manifest.json` | 2.3 KB | Provenance: shape, partition, seed, env, `meta_features: 2`, SHA-256 | notebook cell 31 |
 | `ensemble.joblib`, `scaler.joblib` (repo root) | — | Copies of the two above, keeping the documented paths valid | notebook cell 31 |
 | `models/ablation_meta_cycle.json` | 1.7 KB | Measured effect of the cycle counter on the meta-learner | `scripts/ablate_meta_cycle.py` |
-| `archive/CCMaps/N-CMAPSS_DS02-006.h5` | 2.34 GB | Source dataset | — |
+| `data/raw/N-CMAPSS_DS02-006.h5` | 2.34 GB | Source dataset | — |
 | `scripts/probe_q35.py` | 3.4 KB | Quantile-objective experiment | — |
 | `scripts/probe_cyclech.py` | 3.3 KB | Cycle-channel experiment | — |
 | `scripts/probe_variants2.py` | 3.2 KB | Pooling-variant experiment | — |

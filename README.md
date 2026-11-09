@@ -348,7 +348,7 @@ docs/evidencia/mlflow/  comparativa.csv + capturas de MLflow
 models/mejor_modelo.joblib  elegido de clase (copia de mejor_modelo_clase.joblib)
 models/                 bundle desplegado (C): ensemble.joblib, bilstm_ds02.keras,
                         scaler.joblib, ds02_manifest.json
-archive/                material retirado sin borrar (fuera de git)
+archive/                punto de restauración del bundle B (4 artefactos)
 src/clase/            track académico (dataset, pipeline, 5 modelos, MLP, SHAP, puente_c, multiseed)
 notebooks/              01_eda ... 06_evaluacion (con outputs)
 tests/                  tests de clase + tests de app
