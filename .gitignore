@@ -101,6 +101,7 @@ notebooks/artifacts_c.bak-2026-11-09/
 app/registros_flota.json
 app/registros_sesiones/
 app/registros_flota.json.bak
+app/registros_n8n.json
 
 # respaldo que deja conftest al mover los registros de sesion
 app/registros_sesiones.hermes-respaldo/

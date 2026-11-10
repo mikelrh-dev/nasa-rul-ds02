@@ -3,7 +3,7 @@
 Verificación previa: toda cifra citada sale de `resultados/`, de `mlruns/` o de
 código con `path:línea`. MLflow: 13 runs en `mlruns/` (9 fila + 4 ventana) y
 export en `docs/evidencia/mlflow/comparativa.csv`. n8n: flujo incluido en
-`n8n/flujo.json`, inactivo hasta credenciales; no se afirma una ejecución real.
+`n8n/flujo.json`: el flujo versionado está inactivo por diseño, pero la instancia local lo tiene activo y lo ejecutó 29 veces el 2026-11-07 (25 success / 4 error) con efectos reales en Postgres, Calendar y Gmail. El envío desde la app está cableado (`src/n8n.py`), pero no hay ejecución atribuible a la app.
 
 ---
 
@@ -122,4 +122,5 @@ es solo una de las semillas del análisis.
 - **Test una vez.** La frase es siempre: «el test se evalúa una sola vez y
   solo para el elegido». Ver `src/clase/train_clasicos.py` y
   `src/clase/train_mlp.py:107`.
-- **MLflow / n8n.** «MLflow tiene 13 runs en `mlruns/`: 9 de fila y 4 de ventana, con export y capturas; el store es texto y no guarda binarios. n8n está incluido pero inactivo hasta credenciales». No vendas una ejecución real de n8n.
+- **Acción propia en n8n (MIA-3).** La rama HANGAR no termina en servicios de terceros: llama a `POST /n8n-decision` de la API del propio proyecto (`app/api.py`), que registra la decisión con token compartido e idempotencia por `fingerprint`. Es la acción que no se vio en clase: el flujo consume la API del proyecto, no solo Postgres/Calendar/Gmail.
+- **MLflow / n8n.** «MLflow tiene 13 runs en `mlruns/`: 9 de fila y 4 de ventana, con export y capturas; el store es texto y no guarda binarios. n8n está incluido; el flujo versionado está inactivo por diseño (un test lo exige así), pero la instancia local lo ejecutó 29 veces (2026-11-07) con efectos reales. No vendas una ejecución de la app: no la hay.»

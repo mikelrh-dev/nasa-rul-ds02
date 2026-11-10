@@ -16,7 +16,7 @@ Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a part
 
 Taller MRO con flota DS02: un motor parado en pista cuesta decenas de miles de euros al día; una inspección a tiempo cuesta una fracción. Hoy la decisión de hangar depende de juicio experto sin número.
 
-**Objetivo:** predecir la RUL de cada motor para que el jefe de taller decida APTO (sigue volando) / INSPECCIÓN (revisar en la próxima parada) / HANGAR (inmovilizar ya), con la predicción convertida en decisión por reglas y en acción automática vía n8n (flujo incluido, inactivo por defecto).
+**Objetivo:** predecir la RUL de cada motor para que el jefe de taller decida APTO (sigue volando) / INSPECCIÓN (revisar en la próxima parada) / HANGAR (inmovilizar ya), con la predicción convertida en decisión por reglas y en acción automática vía n8n (flujo incluido; el JSON versionado está inactivo por diseño, pero la instancia local lo ejecutó 29 veces el 2026-11-07 con efectos reales).
 
 | | |
 |---|---|
@@ -38,7 +38,7 @@ graph LR
     D --> E[Orden de taller]
 ```
 
-El modelo estima ciclos restantes. Las reglas (`src/mia/`, 6 con prioridad + seguridad R1) deciden sobre la estimación. n8n (MIA 3, flujo incluido e inactivo por defecto) lleva cada decisión a su acción (HANGAR → Postgres+Calendar+correo, INSPECCIÓN → Sheets, APTO → log).
+El modelo estima ciclos restantes. Las reglas (`src/mia/`, 6 con prioridad + seguridad R1) deciden sobre la estimación. n8n (MIA 3, flujo incluido; el JSON versionado está inactivo por diseño, aunque la instancia local lo ha ejecutado) lleva cada decisión a su acción (HANGAR → Postgres+Calendar+correo, INSPECCIÓN → Sheets, APTO → log).
 
 **Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer), MLflow (tracking de 13 runs; PIA-4). n8n ya está incluido (`src/n8n.py` + `n8n/flujo.json`).
 
@@ -194,6 +194,10 @@ python -m pytest tests/test_clase_*.py tests/test_live_eval.py -q
 ```
 
 `requirements.txt` pinnea todo lo importado (numpy → shap, streamlit, fpdf2…) e incluye `mlflow==3.18.0` para el store de texto (PIA-4); ningún notebook lo importa. El backfill es el único que escribe los 13 runs.
+
+## Acción propia en n8n (MIA-3)
+
+La rama HANGAR del flujo llama a `POST /n8n-decision` de la API del proyecto (`app/api.py`), que registra la decisión con token compartido (`hmac.compare_digest`) e idempotencia por `fingerprint`; el flujo consume la API propia, no solo servicios de terceros.
 
 ## Autoría
 
