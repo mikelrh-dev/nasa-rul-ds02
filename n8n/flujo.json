@@ -411,7 +411,8 @@
       "parameters": {
         "method": "POST",
         "url": "http://127.0.0.1:8000/n8n-decision",
-        "authentication": "genericHeaderAuth",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -423,7 +424,8 @@
         },
         "sendBody": true,
         "contentType": "json",
-        "body": "={{ JSON.stringify({ decision: ($('Webhook ds02/decision').first().json.body.decision || 'HANGAR'), fingerprint: ($('Webhook ds02/decision').first().json.body.fingerprint || ''), artefacto_sha256: ($('Webhook ds02/decision').first().json.body.artefacto_sha256 || ''), unidad: ($('Webhook ds02/decision').first().json.body.unidad ?? null) }) }}",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const b = $('Webhook ds02/decision').first().json.body || {}; return JSON.stringify({ decision: b.decision || 'HANGAR', fingerprint: b.fingerprint || '', artefacto_sha256: b.artefacto_sha256 || '', unidad: b.unidad ?? null }); })() }}",
         "options": {}
       },
       "id": "api_propia_hangar",
