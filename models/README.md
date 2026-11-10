@@ -19,5 +19,16 @@ Notas:
 - `mejor_modelo.joblib` y `mejor_modelo_clase.joblib` tienen el mismo tamaño y contenido:
   el primero es el alias de rúbrica; el segundo lo escribe `train_clasicos.py:158`.
   Ningún notebook ni script hace la copia: si se borra el alias, no se regenera solo.
+- **Tres "mejores" que no son el mismo** (no confundirlos en la defensa):
+
+  | Grano | Artefacto | Criterio |
+  |---|---|---|
+  | mejor clásico (fila) | `mejor_modelo_clase.joblib` y su alias `mejor_modelo.joblib` | menor `rmse_val` entre los 5 clásicos (XGB, 8.2173) |
+  | mejor de fila (todos) | `mejor_modelo_clase_E2.joblib` | menor `rmse_val` global en fila (MLP E2, 7.3404) |
+  | desplegado (ventana) | `ensemble.joblib` | campeón congelado C (4.338) |
+
+  El alias de rúbrica es el mejor **clásico**, no el mejor absoluto ni el desplegado:
+  PIA-3 y NB02 cargan ese pipeline XGB. El campeón por validación es E2 y el que se
+  sirve es C; los tres quedan fijados por `tests/test_clase_rubrica.py`.
 - La fila de `comparativa_ventanas.csv` y el joblib `lgbm_adaptada.joblib` comparten escritor:
   `train_lgbm_adaptada.py:entrenar` escribe ambos en la misma ejecución (líneas 60-61).

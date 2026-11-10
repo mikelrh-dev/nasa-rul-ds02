@@ -1,11 +1,11 @@
 """Genera los checksums SHA-256 de los artefactos joblib de clase/scripts.
 
 SEC-JOBLIB-01: `src/ds02_rul/persistence.py::verify_artifact_sha256` busca las
-claves en `models/ds02_manifest.json` (bloque `artifacts`). Este generador
-registra ahí los digests de los modelos de clase y del bundle v3 que cargan
-`src/clase/shap_clase.py`, `src/clase/shap_clase_e2.py`,
-`src/clase/train_mlp.py`, `scripts/predict.py` y
-`scripts/repackage_artifact.py`.
+claves en `models/ds02_manifest.json` (bloque `artifacts`). Este generador    registra ahí los digests de los modelos de clase y del scaler del bundle C que
+cargan `src/clase/shap_clase.py`, `src/clase/shap_clase_e2.py`,
+`src/clase/train_mlp.py` y `scripts/repackage_artifact.py`. El bundle FD001 v3
+quedó archivado y su hash vive en `historical_reference`, no en `artifacts`
+(no es un artefacto servido).
 
 Orden padre (enmienda): los checksums se crean ANTES del guard, para que las
 cargas válidas sigan funcionando y `test_clase_shap*` no se rompa. Es
@@ -21,9 +21,7 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
 from ds02_rul.persistence import sha256_of  # noqa: E402
 
@@ -34,11 +32,12 @@ MANIFEST = os.path.join(ROOT, "models", "ds02_manifest.json")
 ARTEFACTOS = {
     "models/mejor_modelo_clase.joblib": "clase_xgb_sha256",
     "models/mejor_modelo_clase_E2.joblib": "clase_e2_sha256",
-    "models/v3_bundle.joblib": "v3_bundle_sha256",
+    "models/scaler.joblib": "scaler_sha256",
 }
 
 
 def main() -> int:
+    """Registra en el manifiesto los SHA-256 de los joblib de clase y del scaler."""
     with open(MANIFEST, encoding="utf-8") as fh:
         manifest = json.load(fh)
     artifacts = manifest.setdefault("artifacts", {})

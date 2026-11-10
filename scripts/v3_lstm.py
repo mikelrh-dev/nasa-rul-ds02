@@ -34,6 +34,7 @@ def split_engines(df, frac=0.2, seed=42):
 
 
 def build(inp_shape, units=(100, 50), dropout=0.2):
+    """Construye el modelo BiLSTM v3 con la ventana y canales configurados."""
     inp = layers.Input(shape=inp_shape)
     x = inp
     for i, u in enumerate(units):
@@ -51,6 +52,7 @@ def build(inp_shape, units=(100, 50), dropout=0.2):
 
 
 def run(fd, epochs, seed, frac=0.2, cfn=20):
+    """Entrena el BiLSTM v3 y devuelve test y predicciones."""
     tf.keras.utils.set_random_seed(seed)
     tr, te, rul = c.load_fd(fd)
     _, f_tr = c.add_health_features(tr)

@@ -21,7 +21,6 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
 LEGACY = "ensemble.joblib"
 LEGACY_DIR = os.path.join("models", "legacy")
@@ -37,6 +36,7 @@ class _Bootstrap:
 
 
 def main() -> int:
+    """Reempaqueta el bundle C verificando su SHA antes de escribir."""
     print(f"python {sys.version.split()[0]}")
 
     import __main__

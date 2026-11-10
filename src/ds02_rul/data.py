@@ -15,11 +15,10 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 DS02_CANDIDATE_PATHS = (
+    # archive/ (y su CCMaps/) se retiro el 2026-11-09 a un backup externo:
+    # solo se mantienen rutas que pueden existir en este repo.
     "data/raw/N-CMAPSS_DS02-006.h5",
-    "archive/CCMaps/N-CMAPSS_DS02-006.h5",
     "N-CMAPSS_DS02-006.h5",
-    "archive/N-CMAPSS_DS02-006.h5",
-    "../archive/CCMaps/N-CMAPSS_DS02-006.h5",
 )
 
 DEV_KEYS = ("A_dev", "W_dev", "X_s_dev", "Y_dev")

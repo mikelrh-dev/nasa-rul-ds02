@@ -9,13 +9,11 @@ import argparse
 import json
 import os
 import pathlib
-import sys
 
 import joblib
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 from ds02_rul.persistence import verify_artifact_sha256  # noqa: E402
 
 import v3_core as c
@@ -30,6 +28,13 @@ COSTE_INSPECCION = 1.0  # coste relativo de una inspección
 
 
 def _load():
+    """Carga el bundle FD001; hoy fuera de servicio (archivado y no versionado)."""
+    if not os.path.exists(str(BUNDLE)):
+        raise RuntimeError(
+            "FD001 v3 bundle no esta en models/ (archivado en "
+            "archive/fd001-legacy-20261107/ y no versionado). El repo sirve DS02 "
+            "en models/ensemble.joblib; este CLI queda fuera de servicio."
+        )
     # SEC-JOBLIB-01: checksum verificado ANTES de deserializar.
     verify_artifact_sha256(str(BUNDLE), "v3_bundle_sha256")
     b = joblib.load(BUNDLE)
@@ -123,6 +128,7 @@ def predict(history, bundle=None):
 
 
 def report(fd='FD001'):
+    """Informe batch FD001: RUL, alerta y coste por motor; escribe el CSV."""
     b = _load()
     tr, te, rul = c.load_fd(fd)
     rows = []
@@ -151,6 +157,13 @@ if __name__ == '__main__':
     ap.add_argument('--cut', type=int, default=0)
     ap.add_argument('--report', action='store_true')
     a = ap.parse_args()
+
+    if not os.path.exists(str(BUNDLE)):
+        raise SystemExit(
+            "FD001 v3 bundle no esta en models/ (archivado en "
+            "archive/fd001-legacy-20261107/ y no versionado). El repo sirve DS02 "
+            "en models/ensemble.joblib; este CLI queda fuera de servicio."
+        )
 
     if a.report:
         df, m = report(a.fd)

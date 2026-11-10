@@ -27,6 +27,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1] / 'archive' / 'CMaps'
 
 
 def load_fd(fd='FD001', root=ROOT):
+    """Carga el split FD001 (train, test y RUL) desde su CSV."""
     train = pd.read_csv(f'{root}/train_{fd}.txt', sep=r'\s+', header=None, names=COLS)
     test = pd.read_csv(f'{root}/test_{fd}.txt', sep=r'\s+', header=None, names=COLS)
     rul = pd.read_csv(f'{root}/RUL_{fd}.txt', sep=r'\s+', header=None, names=['RUL'])
@@ -79,6 +80,7 @@ def make_windows(df, feats, window=WINDOW, only_last=False):
 
 
 def test_last(df, feats, rul_df, window=WINDOW):
+    """Selecciona la ultima lectura de cada motor en test."""
     X, y, meta = make_windows(df, feats, window, only_last=True)
     X = X[meta['es_ultima'].values]
     meta = meta[meta['es_ultima']].reset_index(drop=True)
@@ -89,10 +91,12 @@ def test_last(df, feats, rul_df, window=WINDOW):
 
 # ---------------------------------------------------------------- métricas
 def rmse(a, b):
+    """RMSE entre verdad y prediccion."""
     return float(np.sqrt(mean_squared_error(a, b)))
 
 
 def mae(a, b):
+    """MAE entre verdad y prediccion."""
     return float(mean_absolute_error(a, b))
 
 
@@ -132,6 +136,7 @@ def calibrate_threshold(oof_pred, y_true, cfn=20, cfp=1, event=15, grid=None):
 
 
 def eval_alarm(pred, real, T, cfn=20, cfp=1, event=15):
+    """Evalua la alarma por coste: recall, precision y confusion."""
     pred = np.asarray(pred)
     real = np.asarray(real)
     pos = real < event
@@ -146,6 +151,7 @@ def eval_alarm(pred, real, T, cfn=20, cfp=1, event=15):
 
 
 def resumen(y_pred, meta, label, oof=None, y_oof=None):
+    """Resume metricas y alarmas en una tabla imprimible."""
     real = meta['RUL_real'].values
     d = {'modelo': label, 'n': int(len(real)),
          'rmse_test': round(rmse(real, y_pred), 2), 'mae_test': round(mae(real, y_pred), 2),

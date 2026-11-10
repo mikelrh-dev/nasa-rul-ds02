@@ -21,20 +21,24 @@ SEEDS = (42, 7, 2024)
 
 
 def lgb_maker(seed):
+    """Fabrica el modelo LightGBM del experimento v3."""
     return LGBMRegressor(n_estimators=300, learning_rate=0.05, max_depth=8,
                          random_state=seed, n_jobs=-1, verbose=-1)
 
 
 def rf_maker(seed):
+    """Fabrica el modelo Random Forest del experimento v3."""
     return RandomForestRegressor(n_estimators=200, max_depth=12, max_features='sqrt',
                                  random_state=seed, n_jobs=-1)
 
 
 def lr_maker(seed):
+    """Fabrica el modelo Ridge del experimento v3."""
     return make_pipeline(StandardScaler(), LinearRegression())
 
 
 def run(fd, folds, n_seeds, with_rf, feats_list, cfn=20):
+    """Ejecuta el experimento v3 completo y devuelve sus metricas."""
     tr, te, rul = c.load_fd(fd)
     _, f_all_tr = c.add_health_features(tr)
     _, f_all_te = c.add_health_features(te)

@@ -16,7 +16,6 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
 from ds02_rul.data import load_ds02  # noqa: E402
 from ds02_rul.inference import windows_for_unit  # noqa: E402
@@ -58,6 +57,7 @@ def _predict_unit(unit: float, window_index: int | None, h5: str | None, artifac
 
 
 def main() -> int:
+    """Predice RUL DS02 para un motor y ciclo desde el bundle C."""
     ap = argparse.ArgumentParser(description="DS02 RUL inference")
     ap.add_argument("--unit", type=float)
     ap.add_argument("--window", type=int, default=0)
