@@ -210,7 +210,7 @@ def test_puente_c_timing_dict_is_none_with_fuente():
 def test_backfill_specs_are_historic_only():
     mod = _load_backfill()
     specs = mod.build_specs()
-    assert len(specs) == 13
+    assert len(specs) == 17
     for spec in specs:
         assert spec["tags"].get("fuente") == "historico", spec["run_key"]
 
