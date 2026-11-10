@@ -44,7 +44,7 @@ El bundle en disco es **C** (`code_version: clase-bundle-C` en el manifiesto): h
 
 **Por qué hay tres filas del híbrido-C.** La de `4.338` es la corrida de la semilla 42, cuyo artefacto está en disco (`models/ds02_manifest.json → metrics.reference_row`): es la que reproduce el servicio. Las de NB05 y NB06 son medias de tres semillas y miden la estabilidad, no el artefacto. Si difieren en centésimas, es ruido TensorFlow en CPU ([[c14-ruido-y-reproducibilidad]]), no contradicción.
 
-**Reconciliación multiseed (leer antes de citar una media).** NB05 (celdas 7-8, semillas 42/7/123 = 4.338 / 4.274 / 4.379) da **4.330 ± 0.053**; NB06 (celdas 42-44, 4.338 + CSV de semillas 7/123 = 4.376 / 4.252 impresos en el notebook) da **4.322 ± 0.064**. El CSV `resultados/bundle_c_multiseed.csv` que hay en disco contiene otros valores para 7 y 123 (4.429 / 4.336), que con la 42 dan **4.368**: no coincide con lo impreso en NB06, así que **hay que reconciliarlo** (regenerar el CSV con la celda multiseed de NB06 / `evaluar_c_multisemilla` y volver a calcular la media) antes de citar 4.368 como cerrada. ADR-011 citaba **4.347 ± 0.012**: queda sustituido por los calculados de NB05/NB06 según la nota de autoridad de las celdas 11 (NB05) y 41 (NB06). **Manda el manifiesto para la fila oficial (4.338, semilla 42 desplegada)**; las medias multiseed solo miden variabilidad y, hasta reconciliar el CSV, se citan como NB05 4.330 y NB06 4.322 con esta discrepancia declarada.
+**Reconciliación multiseed (leer antes de citar una media).** NB05 (4.330 ± 0.053) y NB06 (4.322 ± 0.064) son histórico impreso, no regenerable. El CSV vigente `resultados/bundle_c_multiseed.csv` trae 7=4.211 / 123=4.424 y, con la 42 del manifiesto, da **4.324 ± 0.107 / NASA 2341.0 ± 54.1** sobre 42/7/123. `resultados/comparativa_c_multisemilla.csv` (4.368) queda OBSOLETA y no debe citarse. **Manda el manifiesto para la fila oficial (4.338, semilla 42 desplegada)**; las medias multiseed solo miden variabilidad.
 
 **Macro-RMSE del bundle C:** 5.0153 (motor 11: 3.6328 · 14: 8.5761 · 15: 2.8371). El motor 14 sigue siendo el que más sufre con menos ventanas.
 
@@ -163,7 +163,7 @@ Estas aparecen en material viejo del repo y del vault anterior. Son de corridas 
 | `4.289` | fila de test de una revisión anterior | reemplazada por `4.251` (y luego por `4.338` del bundle C) |
 | `4.340 ± 0.101`, `4.251`, `5772.5`, `4397.8` | bundle B completo (histórico archivado) | reemplazados por el bundle C (fila `4.338`, medias NB05 4.330 / NB06 4.322) |
 | `4.301 ± 0.068` | media de una revisión intermedia | reemplazada por las medias NB05/NB06 de arriba |
-| `4.368` | media calculada con el CSV `bundle_c_multiseed.csv` en disco (7=4.429, 123=4.336 + 42) | **NO reconciliada**: las medias impresas en NB05/NB06 (4.330/4.322) no son regenerables desde el CSV; pendiente de reconciliar con lo impreso en NB06 (4.376 / 4.252); no citar como cerrada — oficial 4.338 (semilla 42, manifiesto) |
+| `4.368` | media obsoleta de `resultados/comparativa_c_multisemilla.csv` (7=4.429, 123=4.336) | OBSOLETA: el CSV vigente `bundle_c_multiseed.csv` (7=4.211, 123=4.424) da 4.324 ± 0.107; no citar 4.368 — oficial 4.338 (semilla 42, manifiesto) |
 | `4.347 ± 0.012` | multiseed citada en ADR-011 | sustituida por los calculados NB05/NB06 |
 | `4.9026` | macro-RMSE anterior | reemplazada por el macro C vigente `5.0153` (el `4.8433` es el macro B histórico) |
 | `051e0af4`, `0acd795b` | hashes de artefactos viejos | no son los que están en disco |

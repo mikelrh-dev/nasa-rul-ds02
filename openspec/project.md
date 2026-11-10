@@ -59,8 +59,7 @@ DS02 artifact path.
 │   ├── predict_ds02.py             # DS02 CLI entry point
 │   ├── predict.py                  # FD001 v3 bundle inference entry point
 │   ├── v3_*.py                     # FD001 v3 feature/model/run/finalize modules
-│   ├── probe_*.py                  # experiment probes (evidence behind decisions)
-│   └── verify_blend.py             # EMA + blend verification probe
+│   └── probe_*.py                  # experiment probes (evidence behind decisions)
 ├── models/                         # persisted artifacts (never hand-edited)
 ├── archive/                        # datasets (read-only inputs)
 ├── ensemble.joblib                 # DS02 full pipeline (copy under models/)
@@ -102,7 +101,7 @@ The toggle in `app/dashboard_ds02.py` is **off by default**, and the raw cached
 reading remains the one that reproduces `models/ds02_manifest.json`.
 
 The calibration (`mia/calibracion_banda.json`) is frozen on 14 915 pure OOF rows
-(units 2, 5, 10, 18, 20; unit 16 excluded as in-sample), with coverage 0.9012 in
+(units 2, 5, 10, 18, 20; unit 16 excluded as in-sample), with coverage 0.9016 in
 OOF and 1.0000 on the test panel. `python scripts/freeze_rules_evidence.py`
 verifies those rows against the shipped band through the tracked instrument
 `mia/instrumento_oof.npz` (coverage 0.9016) and exits non-zero on drift; the OOF
@@ -230,8 +229,7 @@ The probes that produced the evidence are scripts, not notebooks:
 `scripts/probe_q35.py` (recovered the quantile-0.35 LightGBM recipe),
 `scripts/probe_cyclech.py` (BiLSTM with/without the cycle channel),
 `scripts/probe_variants2.py` (pooling variants),
-`scripts/probe_variants.log` (which selected unit 16 as the validation unit),
-`scripts/verify_blend.py` (EMA + blend construction).
+`scripts/probe_variants.log` (which selected unit 16 as the validation unit).
 
 ## Known limitations
 

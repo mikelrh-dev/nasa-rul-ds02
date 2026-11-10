@@ -25,7 +25,7 @@ en [`../../openspec/specs/`](../../openspec/specs/). Los planes, en
 | 2026-10-21 | [informe-2026-10-21-evaluacion-general.md](informe-2026-10-21-evaluacion-general.md) | ¿Cómo de bueno es prediciendo? Todas las métricas sobre el artefacto en disco | `scripts/evaluate_model_quality.py` y cuatro sondeos |
 | 2026-10-21 | [informe-2026-10-21-reglas-oof.md](informe-2026-10-21-reglas-oof.md) | Medidor de las reglas de corrección (R2–R5) y coherencia de banda (R6). Solo lectura | scratch de Hermes sobre `_p1_oof_cache.npz` |
 | 2026-10-21 | [auditoria-2026-10-21-reglas.md](auditoria-2026-10-21-reglas.md) | Los 18 hallazgos de la auditoría: ¿alguna reparación exige reentrenar? **No** | lectura y recomputación |
-| 2026-10-22 | [pendientes-2026-10-22-traspaso.md](pendientes-2026-10-22-traspaso.md) | Documento de traspaso: qué quedó cerrado, qué falta y cuánto cuesta | `pytest`, servidor real, gate de evidencias |
+| 2026-10-22 | [pendientes-2026-10-22-traspaso.md](../pendiente/pendientes-2026-10-22-traspaso.md) | Documento de traspaso: qué quedó cerrado, qué falta y cuánto cuesta | `pytest`, servidor real, gate de evidencias |
 
 `pendientes-2026-10-22-traspaso.md` es evidencia de estado de una sesión, no un
 informe de medición: se conserva y se indexa, pero caduca. Los tres documentos que

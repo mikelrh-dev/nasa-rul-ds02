@@ -741,14 +741,14 @@ h1 .hl{color:#FFFFFF;}
   <div class="hud-body">
     <div class="kicker"><span class="nb">Demo operativa</span><span>Solo texto</span></div>
     <h2>Reglas + <span class="hl">app + n8n</span></h2>
-    <p class="sub">La app ya decide en local; n8n sigue inactivo hasta credenciales. Sin cifras económicas inventadas.</p>
+    <p class="sub">La app ya decide en local; el flujo n8n versionado está inactivo por diseño, pero la instancia local lo ejecutó 29 veces con efectos reales. Sin cifras económicas inventadas.</p>
     <div class="cols">
       <div class="col-text">
         <div class="panel"><div class="panel-t"><span>Lectura</span><b>4 balas</b></div>
           <ul class="b">
             <li><strong>8 reglas L_inf 30/25</strong> — R1 seguridad; Streamlit: caso nuevo → <strong>p + decisión</strong>. Sin N8N, la app ya decide local.</li>
-            <li>N8n webhook <strong>ds02/decision</strong>: APTO → log INSPECCION → Sheets HANGAR → Postgres+Calendar+Gmail. <span class="dim">Flujo inactivo, esperando credenciales.</span></li>
-            <li>Matiz inactivo: n8n hoy <span class="dim">no ejecuta nada</span>; la ruta real es Streamlit. Activarlo requiere credenciales que no se suplen con datos inventados.</li>
+            <li>N8n webhook <strong>ds02/decision</strong>: APTO → log INSPECCION → Sheets HANGAR → Postgres+Calendar+Gmail. <span class="dim">Flujo versionado inactivo por diseño; la instancia local lo ejecutó 29 veces (2026-11-07).</span></li>
+            <li>Matiz: el JSON versionado está inactivo por diseño y un test lo exige así; la instancia local sí ejecutó el flujo (29 veces, 25 success / 4 error). No hay ejecución atribuible a la app Streamlit.</li>
             <li>MLflow: 13 runs en <code>mlruns/</code> (9 fila / 4 ventana). Sin coste AOG en euros — no se afirma cifra económica. «Aviso» ≠ «ahorro».</li>
           </ul>
         </div>
@@ -757,7 +757,7 @@ h1 .hl{color:#FFFFFF;}
         <div class="panel"><div class="panel-t"><span>Diagrama // Decisión</span><span class="tag">Demo</span></div>
           <div class="flow">
             <div class="step"><small>Streamlit</small>Caso nuevo<br>p + decisión</div><span class="arrow">→</span>
-            <div class="step hot"><small>N8N</small>ds02/decision<br>INACTIVO · CREDENCIALES</div><span class="arrow">→</span>
+            <div class="step hot"><small>N8N</small>ds02/decision<br>INSTANCIA ACTIVA · 29 EJEC.</div><span class="arrow">→</span>
             <div class="step"><small>Apto</small>INSPECCION<br>Sheets · HANGAR</div><span class="arrow">→</span>
             <div class="step"><small>Destino</small>Postgres<br>Calendar + Gmail</div>
           </div>
@@ -766,8 +766,8 @@ h1 .hl{color:#FFFFFF;}
       </div>
     </div>
   </div>
-  <div class="puente"><b>PUENTE &rarr;</b><span>La app ya decide en local y n8n sigue inactivo. Siguiente → qué significa para la empresa y por qué C es el modelo.</span></div>
-  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">8 REGLAS L_INF 30/25 · R1 · STREAMLIT · N8N INACTIVO</span><span>19 / 20</span></div>
+  <div class="puente"><b>PUENTE &rarr;</b><span>La app ya decide en local; la instancia n8n ejecutó el flujo 29 veces. Siguiente → qué significa para la empresa y por qué C es el modelo.</span></div>
+  <div class="hud-foot"><span>DS02 · SAFRAN STYLE</span><span class="acc">8 REGLAS L_INF 30/25 · R1 · STREAMLIT · N8N INSTANCIA ACTIVA</span><span>19 / 20</span></div>
 </section>
 
 <!-- 20 CIERRE -->

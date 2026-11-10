@@ -381,7 +381,6 @@ Full records live in `docs/decisions/`. Each is written against the ADR template
 | `scripts/probe_cyclech.py` | BiLSTM with/without the normalised-cycle channel | `cyclech_s42` RMSE 5.447, R² 0.9150, NASA 3574.9 vs dual-pooling baseline 5.789 | Yes — but see the seed variance in §6.5 |
 | `scripts/probe_variants2.py` | pooling variants on unit 16 | `dual_w32_u16_s42` RMSE 5.721, R² 0.9063, NASA 3297.6 | Yes — width 64, triple pooling |
 | `scripts/probe_variants.log` | which unit to hold out | unit 16: RMSE 5.789 / NASA 3211.4 vs unit 20: 7.113 and 7.838 | Yes — unit 16 |
-| `scripts/verify_blend.py` | the EMA + blend construction over saved prediction arrays | Confirms the blend and smoothing behaviour | Yes |
 
 ---
 
@@ -766,7 +765,6 @@ Get-ChildItem ensemble.joblib, scaler.joblib, models\ensemble.joblib, models\sca
 | `scripts/probe_q35.py` | 3.4 KB | Quantile-objective experiment | — |
 | `scripts/probe_cyclech.py` | 3.3 KB | Cycle-channel experiment | — |
 | `scripts/probe_variants2.py` | 3.2 KB | Pooling-variant experiment | — |
-| `scripts/verify_blend.py` | 2.2 KB | Blend + EMA verification over saved predictions | — |
 | `scripts/pred_cyclech_s42.npy`, `pred_dual_*.npy`, `pred_lgb_q35.npy` | 24–49 KB | Saved prediction arrays reused by the probes | probes |
 
 ---

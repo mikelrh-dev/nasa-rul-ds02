@@ -26,7 +26,7 @@ Taller MRO con flota DS02: un motor parado en pista (AOG) cuesta del orden de 10
 
 ## Qué hemos construido
 
-**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer), MLflow (tracking de 13 runs; PIA-4).
+**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer), MLflow (13 runs históricos del backfill + runs live de notebooks; PIA-4).
 
 Predicción de vida útil restante en el dataset turbofán N-CMAPSS DS02, empaquetado
 para que **cargue, sirva y sea honesto sobre lo que mide**.
@@ -79,7 +79,7 @@ streamlit run app/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
 | `split_origen` | `X_train` / `X_test` (queda en `train.parquet`/`test.parquet`) | Solo trazabilidad train/test, no física ni predictor. | 65.173 filas (52.635 `train` + 12.538 `test`) | `src/clase/dataset_clase.py:60` |
 | `fase_vuelo` | Bundle desplegado C (93 features) — **no** del track de clase | El track de clase sí la usa (19 numéricas + 1 categórica OneHot); el contrato 93 del bundle C es residualizado/ventanado sin categórica. | 65.173 filas, 3 categorías (Descenso 28.999 / Ascenso 18.595 / Crucero 17.579) | `src/clase/pipeline_clase.py:23-24`, `src/clase/ventanas_adaptadas.py:6` |
 
-No se descarta ningún campo del dataset. `unit` no entra como predictor (es el grupo del split) y `RUL` es el objetivo; `fase_vuelo` es la categórica nueva del track de clase y el bundle desplegado no la usa (93 features sin ella).
+El modelo no usa como predictores los campos que la tabla de campos quitados indica: `unit` (es el grupo del split, no una lectura física) y `RUL` (es el objetivo). `fase_vuelo` es la categórica nueva del track de clase y el bundle desplegado no la usa (93 features sin ella).
 
 ## Arquitectura del híbrido
 
@@ -141,7 +141,7 @@ Mismos modelos, mismo protocolo. Las adiciones son dos métricas, no precisión 
 | --- | --- | --- | --- | --- |
 | **Hybrid stacking + EMA causal 5 (base imputada)** | **4.338** | **3.227** | **0.9461** | **2336.2** |
 
-Desplegado (bundle C): RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2 (semilla 42, base adaptada MAR T30 + ffill); media multissemilla 4.322+-0.064 / NASA 2342.3+-43.4 en NB06 (NB05: 4.330+-0.053 / 2343.2+-24.1) sobre [42, 7, 123].
+Desplegado (bundle C): RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2 (semilla 42, base adaptada MAR T30 + ffill); variabilidad multisemilla **4.324 ± 0.107 / NASA 2341.0 ± 54.1** sobre [42, 7, 123] (media de `resultados/bundle_c_multiseed.csv` + manifiesto; la antigua 4.368 de `resultados/comparativa_c_multisemilla.csv` queda obsoleta y no debe citarse). Las medias impresas en NB06 (4.322+-0.064) y NB05 (4.330+-0.053) son histórico no regenerable.
 **Macro-RMSE por motor (el número que esconde la media):** 5.0153 — U11 3.6328 ·
 U14 8.5761 · U15 2.8371. El error no está repartido: la unidad 14 concentra el fallo.
 
@@ -154,14 +154,16 @@ U14 8.5761 · U15 2.8371. El error no está repartido: la unidad 14 concentra el
 | XGB (mejor clásico, elegido por val) | 11.03 | 9.91 | 0.66 | — |
 | Híbrido-C = modelo desplegado | 4.338 | 3.227 | 0.9461 | 2336.2 |
 
+**Ojo con los granos:** MLP E2 (7.72) y XGB (11.03) se miden en grano fila (ventana deslizante de 22 features); el Híbrido-C (4.338) en grano ventana (50 ciclos × 19 canales + 93 features tabulares). No son comparables directamente; la comparación válida es intra-grano (LGBM 7.067 → BiLSTM 5.654 → Híbrido-C 4.338).
+
 El híbrido de clase **es** el modelo desplegado: mismo `run_seed`, mismo contrato de 93 features y sin `fase_vuelo`, entrenado sobre la base con nulos MAR tratados (patrón físico + ffill causal con medianas de fit-units).
 
-## MLflow — 13 runs (PIA-4)
+## MLflow — 13 runs históricos (PIA-4)
 
 El tracking vive en `mlruns/` (file store de texto, sin servidor ni SQLite) y se regenera desde los CSV medidos:
 
 ```bash
-python scripts/backfill_mlflow.py --write   # 13 runs; idempotente por run_key
+python scripts/backfill_mlflow.py --write   # 13 runs históricos; idempotente por run_key
 python scripts/backfill_mlflow.py --check   # store + export, 0 artefactos
 MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
@@ -215,8 +217,9 @@ No hay `rmse_val` de ventana comparable: el protocolo es OOF agrupado y la refer
 
 | Modelo | RMSE | NASA score | Semillas |
 |---|---|---|---|
-| C-media (NB06, grano ventana test 6196) | **4.322+-0.064** | **2342.3+-43.4** | 42, 7, 123 |
-| C-media (NB05, protocolo OOF) | 4.330+-0.053 | 2343.2+-24.1 | 42, 7, 123 |
+| C-media (CSV vigente, ventana test 6196) | **4.324+-0.107** | **2341.0+-54.1** | 42, 7, 123 |
+| C-media (NB06 impresa, ventana) — histórico | 4.322+-0.064 | 2342.3+-43.4 | 42, 7, 123, no regenerable |
+| C-media (NB05 impresa, OOF) — histórico | 4.330+-0.053 | 2343.2+-24.1 | 42, 7, 123, no regenerable |
 
 La semilla 42 es la del bundle desplegado (`models/ds02_manifest.json`); 7 y 123 se
 reentrenan con el mismo protocolo en `src/clase/evaluar_c_multisemilla.py`. El ± es
@@ -343,9 +346,9 @@ src/utils.py            fachada rúbrica (re-exporta pipeline_clase + métricas)
 src/reglas.py           fachada rúbrica sobre src.mia/ (6+ reglas, prioridad, seguridad)
 src/n8n.py              envío de la decisión a n8n (MIA-3)
 src/ds02_rul/           data, features, model, pipeline, stacking, metrics, ...
-mlruns/                 store MLflow de texto (13 runs; sin artefactos)
+mlruns/                 store MLflow de texto (13 runs históricos + live; sin artefactos)
 docs/evidencia/mlflow/  comparativa.csv + capturas de MLflow
-models/mejor_modelo.joblib  elegido de clase (copia de mejor_modelo_clase.joblib)
+models/mejor_modelo.joblib  alias del mejor clasico (copia de mejor_modelo_clase.joblib, XGB)
 models/                 bundle desplegado (C): ensemble.joblib, bilstm_ds02.keras,
                         scaler.joblib, ds02_manifest.json
 archive/                punto de restauración del bundle B (4 artefactos)
@@ -362,7 +365,7 @@ resultados/             gráficas y CSVs (ignorado en git, regenerable)
 
 - README en inglés: [README.en.md](README.en.md)
 - Track de clase: [src/clase/README.md](src/clase/README.md)
-- Rúbrica: `docClase/Reto1_SAA_PIA_MIA_2026-27_v4.pdf`
+- Rúbrica: `docClase/Reto1_SAA_PIA_MIA_2026-27_v5.pdf`
 - Planificación: `docs/pendiente/planificacion-clase-5notebooks.md`
 - MLflow: [`docs/evidencia/mlflow/comparativa.csv`](docs/evidencia/mlflow/comparativa.csv) y capturas en `docs/evidencia/mlflow/`
 
@@ -370,4 +373,4 @@ resultados/             gráficas y CSVs (ignorado en git, regenerable)
 
 ## Autoría
 
-Proyecto N-CMAPSS DS02 · rama `clase-modelo-c` · changes openspec `2026-11-02-clase-track` + `2026-11-04-adopcion-bundle-c` · Curso IA y Big Data 2026-27
+Proyecto N-CMAPSS DS02 · rama `mlflow-pia4` · changes openspec `2026-11-02-clase-track` + `2026-11-04-adopcion-bundle-c` · Curso IA y Big Data 2026-27

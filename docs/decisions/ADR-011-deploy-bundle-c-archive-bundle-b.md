@@ -16,7 +16,7 @@ Two bundles coexisted in the repository:
   HDF5, `models/`, RMSE 4.251 / NASA 2305.1 on the 6.196 test windows.
 - **C** — the same pipeline trained on the imputed base (MAR T30 dropout handled
   with a physical pattern + causal ffill using fit-unit medians), deployed from
-  `src/clase/models/`, RMSE 4.338 / NASA 2336.2 (seed 42), multiseed 4.322 ± 0.064 (NB06; NB05 4.330 ± 0.053).
+  `src/clase/models/`, RMSE 4.338 / NASA 2336.2 (seed 42), multiseed variability 4.324 ± 0.107 (from `resultados/bundle_c_multiseed.csv` + manifest; the old 4.368 from `comparativa_c_multisemilla.csv` is obsolete). The printed NB06 4.322 and NB05 4.330 are historical, not regenerable.
 
 The class deliverable is defended as **one** model. The rubric asks for missing
 values handled with criteria and for the presented model to be the explained one.
@@ -51,7 +51,7 @@ reference for the deployed bundle; bundle B is archived, not champion.
 ## Consequences
 
 - **Measured cost, stated plainly.** On the same 6.196 windows C is +0.087 RMSE and
-  +31.1 NASA above B. The multiseed band of C (4.322 ± 0.064; NB05 4.330 ± 0.053) is the noise floor
+  +31.1 NASA above B. The multiseed band of C (4.324 ± 0.107, from `resultados/bundle_c_multiseed.csv` + manifest) is the noise floor
   that any future comparison must respect.
 - **The manifest is the truth, not a run.** TensorFlow on CPU is not bit
   deterministic; re-running the training can move the headline figure (4.229 and

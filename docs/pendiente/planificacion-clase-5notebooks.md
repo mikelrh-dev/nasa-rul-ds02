@@ -15,7 +15,7 @@ CONTEXTO DEL PROYECTO:
 - Modelo experimental: bundle C (RMSE 4.338, con nulos) — reentrenado en clase/05_ensemble_adaptado.ipynb
 - Mejor modelo del track de clase: MLP E1 (RMSE 7.70, MAE 5.57, R² 0.84)
 - Restricción: SOLO modificar archivos dentro de clase/ (excepto models/ y tests/ cuando se guarde un modelo o test).
-- Rúbrica en: docClase/Reto1_SAA_PIA_MIA_2026-27_v4.pdf (texto en C:\Users\mikel\AppData\Local\hermes\cache\scratch\reto.txt).
+- Rúbrica en: docClase/Reto1_SAA_PIA_MIA_2026-27_v5.pdf (texto en C:\Users\mikel\AppData\Local\hermes\cache\scratch\reto.txt).
 
 ESTRUCTURA FINAL (5 notebooks en clase/):
 1. 01_eda.ipynb — EDA + nulos + fase_vuelo.

@@ -55,7 +55,7 @@ modificados). El informe describe el árbol de trabajo en `a9d55a2`, no un commi
 | `pytest tests -q -rs -p no:cacheprovider` | **336 passed, 6 skipped, 194,70 s, exit 0** |
 | Skips | 6/6 por `_p1_oof_cache.npz` ausente (los esperados; ninguno nuevo) |
 | Notebooks | 7/7 con salida, **0 errores** |
-| Docstrings públicas | **268 / 268 documentadas** (0 sin docstring) |
+| Docstrings públicas | **268 / 268 documentadas** (0 sin docstring) — cifra de 2026-11-06; hoy 344/345 (ver `docs/informes/auditoria-2026-11-10-rubrica-integral.md`) |
 | App | `streamlit run app/streamlit_app.py` arranca; `/_stcore/health` → **200** |
 | `docs/assets` | 9 PNG en disco, **0 versionados** (`git ls-files` vacío) |
 | `resultados/` | 0 versionados (ignorado por diseño) |

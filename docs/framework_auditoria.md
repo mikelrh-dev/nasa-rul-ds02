@@ -424,7 +424,7 @@ El veredicto global es la peor puerta fallida, no el promedio.
 ```markdown
 | ID | Bloque | Sev. | Hallazgo | Reproducción | Evidencia | Impacto | Propuesta |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| C1 | G | C | README publica 4.368 y el manifiesto dice 4.338 | `grep -n 4.368 README.md` | `README.md:112` vs `models/ds02_manifest.json:…` | cifra no trazable | alinear con manifiesto |
+| C1 | G | C | README publica una media multiseed que el manifiesto no respalda | `grep -n 4.368 README.md` | media del CSV vs `metrics.reference_row` | cifra no trazable | citar la media vigente del CSV (4.324 ± 0.107) y la fila oficial (4.338) por separado |
 ```
 
 ### 5.2 Matriz de criterios (si hay rúbrica)
@@ -557,7 +557,7 @@ Rutas que el framework debe mirar aquí, sin sustituir los bloques:
 
 **Cifras vigentes que cualquier auditoría debe reconciliar con el manifiesto:**
 RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2 (semilla 42, bundle C);
-multisemilla 4.368 ± 0.053 · NASA 2355.2 ± 24.6 ([42, 7, 123]);
+multisemilla 4.324 ± 0.107 · NASA 2341.0 ± 54.1 ([42, 7, 123], de `resultados/bundle_c_multiseed.csv` + manifiesto; la 4.368 de `comparativa_c_multisemilla.csv` queda obsoleta);
 macro-RMSE por motor 5.0153 (U11 3.6328 · U14 8.5761 · U15 2.8371).
 Si el manifiesto dice otra cosa, **manda el manifiesto**.
 

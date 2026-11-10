@@ -94,7 +94,7 @@ streamlit run app/dashboard_ds02.py  # verificar que arranca
 
 ## Archivos de referencia
 
-- Rúbrica: `docClase/Reto1_SAA_PIA_MIA_2026-27_v4.pdf`
+- Rúbrica: `docClase/Reto1_SAA_PIA_MIA_2026-27_v5.pdf`
 - README raíz: `README.md` (español, default)
 - README clase: `track_clase/README.md`
 - App: `app/dashboard_ds02.py`

@@ -77,8 +77,7 @@ Same models, same protocol. The additions are two metrics, not extra accuracy.
 | **Hybrid stacking + causal EMA5 (imputed base, deployed)** | **4.338** | **3.227** | **0.9461** | **2336.2** |
 
 Deployed (bundle C): RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2 (seed 42,
-imputed base MAR T30 + ffill); multiseed mean **4.322+-0.064 RMSE / 2342.3+-43.4
-NASA** (NB06; NB05 4.330+-0.053 / 2343.2+-24.1) over [42, 7, 123], which is the band any future change has to beat.
+imputed base MAR T30 + ffill); multiseed variability **4.324+-0.107 RMSE / 2341.0+-54.1 NASA** over [42, 7, 123] (mean of `resultados/bundle_c_multiseed.csv` + manifest; the old 4.368 from `resultados/comparativa_c_multisemilla.csv` is obsolete and must not be cited). The printed NB06 (4.322+-0.064) and NB05 (4.330+-0.053) means are historical and not regenerable.
 
 TensorFlow on CPU is not bit-for-bit deterministic between runs, so prose figures
 and printed tables can differ by ±0.1. The authoritative numbers are the ones
@@ -112,12 +111,12 @@ holds no row above 62 cycles, so no quantile fitted there can cover high life.
 
 ---
 
-## MLflow — 13 runs (PIA-4)
+## MLflow — 13 historic runs (PIA-4)
 
 Tracking lives in `mlruns/` (text file store, no server, no SQLite) and is rebuilt from the measured CSVs:
 
 ```bash
-python scripts/backfill_mlflow.py --write   # 13 runs; idempotent by run_key
+python scripts/backfill_mlflow.py --write   # 13 historic runs; idempotent by run_key
 python scripts/backfill_mlflow.py --check   # store + export, zero artifacts
 MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
@@ -214,7 +213,7 @@ Four conclusions, all measured:
 3. Removing the clock from the stacking layer — while keeping it in both base
    models, where it is a legitimate input — is the fix, and it is the
    configuration the shipped bundle uses (RMSE 4.338;
-   multiseed 4.322+-0.064; NB05 4.330+-0.053) against
+   multiseed variability 4.324+-0.107) against
    the previous 5.523 ± 0.001, with the meta-learner splitting its weight between the two
    branches instead of betting everything on one counter.
 4. Removing it from *every* component instead (5.568) is a different experiment:
@@ -249,8 +248,9 @@ three folds selected `beta = 0` — i.e. that fold saw no value in the meta-lear
 
 | Model | RMSE | NASA score | Seeds |
 |---|---|---|---|
-| C-mean (NB06) | **4.322+-0.064** | **2342.3+-43.4** | 42, 7, 123 |
-| C-mean (NB05, OOF) | 4.330+-0.053 | 2343.2+-24.1 | 42, 7, 123 |
+| C-mean (current CSV, test windows) | **4.324+-0.107** | **2341.0+-54.1** | 42, 7, 123 |
+| C-mean (NB06 printed) — historical | 4.322+-0.064 | 2342.3+-43.4 | 42, 7, 123, not regenerable |
+| C-mean (NB05 printed, OOF) — historical | 4.330+-0.053 | 2343.2+-24.1 | 42, 7, 123, not regenerable |
 
 Seed 42 is the shipped bundle (`models/ds02_manifest.json`); seeds 7 and 123 are
 retrained under the same protocol by `src/clase/evaluar_c_multisemilla.py`. The ± is
@@ -417,7 +417,7 @@ scripts/               builder, migration, ablation, CLI, probes
 app/                   FastAPI service, Streamlit dashboards, live-evaluation seam
 tests/                 pytest suite: artifact contract, DSS, rules layer
 openspec/              SDD: deployed spec, change proposal, tasks
-mlruns/                text-only MLflow store (13 runs; no artifacts)
+mlruns/                text-only MLflow store (13 historic runs + live; no artifacts)
 docs/evidencia/mlflow/ API-exported comparison CSV + MLflow captures
 docs/                  spec, decisions/ (ADR-001…009), informes/ (measurements), plans/
 models/                artifacts + manifest + ablation results

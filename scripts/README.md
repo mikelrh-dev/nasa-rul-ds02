@@ -14,6 +14,6 @@ Vigente DS02 (bundle C, clase-track):
 - `predict_ds02.py` — CLI DS02.
 
 Legado FD001 (no tocar para DS02, solo referencia):
-- `v3_*.py`, `predict.py`, `verify_blend.py`, `repackage_artifact.py`.
+- `v3_*.py`, `predict.py`, `repackage_artifact.py`.
 
 Generación vieja de notebooks de clase retirada el 2026-11-09 a un backup externo (ver `archive/README.md`).

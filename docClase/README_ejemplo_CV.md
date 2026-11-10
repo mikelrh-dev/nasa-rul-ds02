@@ -67,7 +67,7 @@ El modelo calcula la probabilidad de que el socio se vaya. Las reglas deciden qu
 - El plan Básico tiene un 36 % de bajas, casi el doble que el Premium (20 %).
 - La edad falta en el 23 % de las altas online y solo en el 3 % de las de recepción. No es al azar, así que la rellenamos con la mediana de cada plan, calculada solo con los datos de entrenamiento.
 
-![Bajas por plan](resultados/eda_bajas_por_plan.png)
+![Bajas por plan](../resultados/eda_barras_fase.png)
 
 ## Resultados
 

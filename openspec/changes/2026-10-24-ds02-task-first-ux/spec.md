@@ -264,7 +264,7 @@ None.
 ## Related capabilities
 
 The live-evaluation capability remains specified by
-[`ds02-live-evaluation`](../ds02-live-evaluation/spec.md) and inherits this
+[`ds02-live-evaluation`](../../specs/ds02-live-evaluation/spec.md) and inherits this
 surface's theme, `alt=` and read-only rules. Its content moves into Evidencia as
 a section, so it is no longer a top-level tab: the deployed phrase "the fifth
 tab" is superseded by this change.
