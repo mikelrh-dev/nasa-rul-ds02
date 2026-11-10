@@ -103,8 +103,8 @@ app/registros_sesiones/
 app/registros_flota.json.bak
 app/registros_n8n.json
 
-# respaldo que deja conftest al mover los registros de sesion
-app/registros_sesiones.hermes-respaldo/
+# respaldos que deja conftest al apartar los registros (flota y sesiones)
+*.hermes-respaldo
 
 # class material (notebooks/ds02_ensemble/RequisitosClase/Ejemplos) — not part of
 # the deliverable: regenerable exercise folders and their data
