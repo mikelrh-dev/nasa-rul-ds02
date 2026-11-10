@@ -152,6 +152,7 @@ def compare(fit: dict, committed: dict) -> list[str]:
 
 
 def main(argv=None) -> int:
+    """Congela el instrumento OOF versionado en src/mia/instrumento_oof.npz."""
     ap = argparse.ArgumentParser(
         description="Freeze the OOF instrument behind mia/calibracion_banda.json.")
     group = ap.add_mutually_exclusive_group()

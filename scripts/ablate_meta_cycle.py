@@ -23,11 +23,9 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
 from ds02_rul import HybridStackingEnsemble  # noqa: E402
 from ds02_rul.data import load_ds02  # noqa: E402
@@ -46,6 +44,7 @@ from sklearn.linear_model import RidgeCV  # noqa: E402
 
 
 def fit_meta(Z_hold, y_hold, seed):
+    """Ajusta el meta-learner Ridge sobre las predicciones OOF de train."""
     ridge = RidgeCV(alphas=np.logspace(-2, 3, 20)).fit(Z_hold, y_hold)
     lgbm = lgb.LGBMRegressor(
         max_depth=3, num_leaves=7, n_estimators=120, learning_rate=0.03,
@@ -55,6 +54,7 @@ def fit_meta(Z_hold, y_hold, seed):
 
 
 def meta_design(out, with_cycle):
+    """Construye la matriz de meta-features (predicciones base + ciclo normalizado)."""
     cyc = out["dev"]["meta"]["cycle"].values[out["hold_idx"]] / 100.0
     cols = [out["p_lstm_hold"], out["p_lgb_hold"]]
     if with_cycle:
@@ -63,6 +63,7 @@ def meta_design(out, with_cycle):
 
 
 def evaluate(ensemble, test):
+    """Evalua la ablacion sobre el holdout y devuelve RMSE y MAE."""
     units = test["meta"]["unit"].values
     cycles = test["meta"]["cycle"].values
     pred = ensemble.predict(test["X_raw"], cycles, units)
@@ -70,6 +71,7 @@ def evaluate(ensemble, test):
 
 
 def main() -> int:
+    """Ejecuta la ablacion cyc_norm y escribe models/ablation_meta_cycle.json."""
     raw = load_ds02(stride=100)
     results = {}
 

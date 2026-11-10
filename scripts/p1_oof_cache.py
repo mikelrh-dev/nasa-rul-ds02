@@ -24,6 +24,7 @@ OUT = "_p1_oof_cache.npz"
 
 
 def main():
+    """Genera el cache OOF usado por los experimentos P1."""
     raw = load_ds02(stride=100)
     dev_units = np.unique(raw["A_train"][:, 0])
     t0 = time.time()

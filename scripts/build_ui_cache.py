@@ -37,7 +37,6 @@ import numpy as np
 import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from ds02_rul.data import load_ds02  # noqa: E402
 from ds02_rul.inference import raw_windows  # noqa: E402
@@ -121,6 +120,7 @@ def _density_reference(raw: dict) -> float:
 
 def build(out_dir: str = DEFAULT_OUT, stride: int = 100, step: int = 2,
           base: str = "adaptada") -> dict:
+    """Construye los parquet de ventanas y filas y el manifiesto de procedencia."""
     if base == "adaptada":
         raw = _raw_adaptada()
     elif base == "limpia":
@@ -262,6 +262,7 @@ def build(out_dir: str = DEFAULT_OUT, stride: int = 100, step: int = 2,
 
 
 def main() -> int:
+    """CLI de la cache: --out, --stride, --step y --base."""
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", default=DEFAULT_OUT, help="cache directory (default app/cache)")
     ap.add_argument("--stride", type=int, default=100, help="HDF5 row stride (default 100)")

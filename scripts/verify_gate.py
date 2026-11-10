@@ -25,6 +25,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def main() -> int:
+    """Comprueba las puertas del repo y devuelve 0 solo si todas pasan."""
     ap = argparse.ArgumentParser(description="DS02 verification gate")
     ap.add_argument("--only", metavar="PATH", help="run a single test file or directory")
     ap.add_argument("--list", action="store_true", help="list collected tests and exit")

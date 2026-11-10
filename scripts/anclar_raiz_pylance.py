@@ -38,6 +38,7 @@ NOMBRE_PTH = "nasa_root.pth"
 
 
 def main() -> int:
+    """Fija la raiz del repo en la configuracion de Pylance y crea el marcador."""
     raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     if sys.prefix == sys.base_prefix:

@@ -53,6 +53,22 @@ STEP_TRAIN = 3
 STEP_TEST = 2
 
 
+def clean_timing_value(value: Any) -> float | None:
+    """Finite timing value, or None for NaN/inf/non-numeric.
+
+    Frozen-bundle timings are NaN by design (nothing was retrained); callers
+    MUST route them through here (or ``mlflow_live.clean_metric``) instead of
+    logging the raw NaN as a metric.
+    """
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    import math
+
+    return number if math.isfinite(number) else None
+
+
 def _prep_del_bundle(ens) -> dict[str, Any]:
     """Objetos de preproceso ajustados que viajan dentro del artefacto."""
     return {
@@ -121,6 +137,12 @@ def puente_c(
         "p_lgb_test": p_test["p_lgb"],
         "t_lgb": float("nan"),
         "t_lstm": float("nan"),
+        # Refreshed NaN handling: clean timings for JSON/MLflow consumers.
+        # The legacy NaN keys above stay for back-compat; new code must use
+        # this dict (all None, never NaN) or clean_timing_value().
+        "timing": {"t_lgb_s": None, "t_bilstm_s": None, "tiempo_s": None,
+                   "fuente": "bundle_congelado"},
+        "timing_measured": False,
         "history": type("H", (), {"history": {}})(),
     }
 

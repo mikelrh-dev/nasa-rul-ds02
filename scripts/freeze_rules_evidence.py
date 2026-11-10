@@ -575,6 +575,7 @@ def run(expected: dict | None = None, cache: str | None = None,
 
 
 def main(argv=None) -> int:
+    """Congela la evidencia de reglas y escribe el JSON de calibracion."""
     ap = argparse.ArgumentParser(
         description="Verify the DS02 rules-layer evidence (RULES-06).")
     group = ap.add_mutually_exclusive_group()

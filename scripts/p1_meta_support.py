@@ -33,6 +33,7 @@ HOLDOUT = 16.0
 
 
 def build_cache():
+    """Calcula y guarda el cache P1 de soporte del meta-learner."""
     raw = load_ds02(stride=100)
     ens = load_ensemble("models/ensemble.joblib")
     A, W, Xs, Y = raw["A_train"], raw["W_train"], raw["Xs_train"], raw["y_train"]
@@ -63,6 +64,7 @@ def build_cache():
 
 
 def load_cache(rebuild: bool, source: str = "insample"):
+    """Carga el cache P1 o devuelve None si no existe."""
     path = OOF_CACHE if source == "oof" else CACHE
     if source == "insample" and (rebuild or not os.path.exists(path)):
         print(f"building {path} (one BiLSTM pass over dev) ...")
@@ -74,10 +76,12 @@ def load_cache(rebuild: bool, source: str = "insample"):
 
 
 def rmse(a, b):
+    """RMSE entre verdad y prediccion."""
     return float(np.sqrt(np.mean((np.asarray(a) - np.asarray(b)) ** 2)))
 
 
 def evaluate(tag, p_meta, d, sel):
+    """Evalua el soporte del meta-learner sobre el holdout."""
     y, units, cycles = d["y"][sel], d["units"][sel], d["cycles"][sel]
     ema = causal_ema_by_unit(p_meta, units, cycles, span=5)
     hi, lo = y > 65, y <= 62
@@ -107,6 +111,7 @@ def evaluate(tag, p_meta, d, sel):
 
 
 def main():
+    """CLI del experimento P1."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--rebuild-cache", action="store_true")
     ap.add_argument("--preds", choices=("insample", "oof"), default="insample",

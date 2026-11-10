@@ -82,6 +82,9 @@ def main() -> pd.DataFrame:
         # Selección por validación, nunca por test (SAA-8). El grano ventana no
         # tiene rmse_val en sus CSV fuente: allí rmse_test queda como único
         # criterio, documentado y justificado.
+        # RESERVA (auditoría 2026-11-10): en el grano ventana no hay rmse_val,
+        # así que el desempate cae en rmse_test; el bundle desplegado se adoptó
+        # por puerta (ADR-011), no por este orden.
         criterio = "rmse_val" if sub["rmse_val"].notna().any() else "rmse_test"
         sub = sub.sort_values(criterio, na_position="last")
         print(f"campeón {grano} (por {criterio}): {sub.iloc[0]['modelo']} "

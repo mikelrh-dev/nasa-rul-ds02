@@ -42,6 +42,7 @@ SEED = 12345
 
 
 def regression_metrics(y: np.ndarray, p: np.ndarray) -> dict:
+    """Calcula RMSE, MAE y R2 de un par verdad/prediccion."""
     e = p - y
     ae = np.abs(e)
     ss_res = float(np.sum(e ** 2))
@@ -56,6 +57,7 @@ def regression_metrics(y: np.ndarray, p: np.ndarray) -> dict:
 
 
 def confusion(p: np.ndarray, y: np.ndarray, t: int) -> dict:
+    """Matriz de confusion con umbral sobre la clase positiva."""
     a, b = p <= t, y <= t
     tp = int(np.sum(a & b)); fp = int(np.sum(a & ~b))
     fn = int(np.sum(~a & b)); tn = int(np.sum(~a & ~b))
@@ -76,6 +78,7 @@ def confusion(p: np.ndarray, y: np.ndarray, t: int) -> dict:
 
 
 def tolerance_accuracy(y: np.ndarray, p: np.ndarray) -> list[dict]:
+    """Acierto dentro de una tolerancia en ciclos."""
     ae = np.abs(p - y)
     return [dict(tol=k, share=float(np.mean(ae <= k)),
                  misses=int(np.sum(ae > k))) for k in (5, 10, 15, 20)]
@@ -122,6 +125,7 @@ def bootstrap(y, p, unit, cyc, rng, draws=BOOT) -> dict:
 
 
 def main() -> None:
+    """Evalua el bundle contra el test y escribe el informe de calidad."""
     raw = load_ds02(stride=100)
     fit_rows = np.isin(raw["A_train"][:, 0], FIT_UNITS)
     prep = fit_preprocessing(raw["W_train"][fit_rows], raw["Xs_train"][fit_rows])

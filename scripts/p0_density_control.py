@@ -90,6 +90,7 @@ def build(fh, unit, step_raw, ens):
 
 
 def report(tag, res):
+    """Resume la densidad de filas por ciclo y marca los motores fuera de rango."""
     y, hi = res["y"], res["y"] > 65
     lo = ~hi
     rmse = lambda a, b: float(np.sqrt(np.mean((a - b) ** 2)))  # noqa: E731
@@ -105,6 +106,7 @@ def report(tag, res):
 
 
 def main():
+    """Ejecuta el control P0 de densidad y escribe su log."""
     ens = load_ensemble("models/ensemble.joblib")
     with h5py.File(resolve_ds02(), "r") as fh:
         for unit in UNITS:
