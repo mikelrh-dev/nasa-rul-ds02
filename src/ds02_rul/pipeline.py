@@ -119,18 +119,18 @@ def run_seed(raw: dict, seed: int, fit_units, holdout_units, test_units,
     hold_idx = np.where(np.isin(dev_units, holdout_units))[0]
 
     # ---- tabular branch
-    t0 = time.time()
+    t0 = time.perf_counter()
     lgbm = make_lgbm(seed).fit(dev["X_tab"][fit_idx], dev["y"][fit_idx])
-    t_lgb = time.time() - t0
+    t_lgb = time.perf_counter() - t0
     p_lgb_hold = lgbm.predict(dev["X_tab"][hold_idx])
     p_lgb_test = lgbm.predict(test["X_tab"])
 
     # ---- sequential branch
-    t0 = time.time()
+    t0 = time.perf_counter()
     model, history = fit_bilstm(
         dev["X_seq"], dev["y"], fit_idx, hold_idx, seed=seed, epochs=epochs
     )
-    t_lstm = time.time() - t0
+    t_lstm = time.perf_counter() - t0
     p_lstm_hold = model.predict(dev["X_seq"][hold_idx], verbose=0).ravel()
     p_lstm_test = model.predict(test["X_seq"], verbose=0).ravel()
 
@@ -150,6 +150,9 @@ def run_seed(raw: dict, seed: int, fit_units, holdout_units, test_units,
         "p_lstm_test": p_lstm_test,
         "t_lgb": t_lgb,
         "t_lstm": t_lstm,
+        "t_total": float(t_lgb + t_lstm),
+        "timing": {"t_lgb": float(t_lgb), "t_lstm": float(t_lstm),
+                   "t_total": float(t_lgb + t_lstm)},
         "n_params": int(model.count_params()),
         "use_cycle": use_cycle,
     }
@@ -205,13 +208,13 @@ def oof_base_predictions(raw: dict, dev_units, n_splits: int = 3, seed: int = 42
 
         assert not np.intersect1d(w_units[tr_idx], w_units[va_idx]).size
 
-        t0 = time.time()
+        t0 = time.perf_counter()
         lgbm = make_lgbm(seed).fit(dev["X_tab"][tr_idx], dev["y"][tr_idx])
         model, _ = fit_bilstm(
             dev["X_seq"], dev["y"], tr_idx, va_idx, seed=seed, epochs=epochs
         )
         timing.append({"fold": fold_id, "scored_units": [float(u) for u in held_units],
-                       "seconds": round(time.time() - t0, 1)})
+                       "seconds": round(time.perf_counter() - t0, 1)})
 
         p_lstm[va_idx] = model.predict(dev["X_seq"][va_idx], verbose=0).ravel()
         p_lgb[va_idx] = lgbm.predict(dev["X_tab"][va_idx])
@@ -252,6 +255,11 @@ def ablation_table(raw: dict, seeds=(42,), window: int = 50, step_train: int = 3
 
     The tabular variants are seconds each; the BiLSTM variants are the expensive
     part and are gated by `include_bilstm`.
+
+    Each row carries branch timings measured with `time.perf_counter()` by
+    `run_seed`: LGBM rows carry `t_lgb_s` (= `tiempo_s`), BiLSTM rows carry
+    `t_bilstm_s` (= `tiempo_s`), and the EMA row carries no time (smoothing
+    retrains nothing).
     """
     rows = []
     variants = [
@@ -270,19 +278,22 @@ def ablation_table(raw: dict, seeds=(42,), window: int = 50, step_train: int = 3
         units = test["meta"]["unit"].values
         cycles = test["meta"]["cycle"].values
         y_test = test["y"]
+        timing = out.get("timing") or out
+        t_lgb = float(timing.get("t_lgb", float("nan")))
+        t_lstm = float(timing.get("t_lstm", float("nan")))
 
         lgb_metrics = evaluate_predictions(y_test, out["p_lgb_test"], f"LGBM | {label}")
-        rows.append({"variant": label, "model": "LGBM", **{k: lgb_metrics[k] for k in ("RMSE", "MAE", "R2", "NASA_Score")}})
+        rows.append({"variant": label, "model": "LGBM", **{k: lgb_metrics[k] for k in ("RMSE", "MAE", "R2", "NASA_Score")}, "t_lgb_s": t_lgb, "t_bilstm_s": float("nan"), "tiempo_s": t_lgb})
 
         if include_bilstm:
             lstm_metrics = evaluate_predictions(y_test, out["p_lstm_test"], f"BiLSTM | {label}")
-            rows.append({"variant": label, "model": "BiLSTM", **{k: lstm_metrics[k] for k in ("RMSE", "MAE", "R2", "NASA_Score")}})
+            rows.append({"variant": label, "model": "BiLSTM", **{k: lstm_metrics[k] for k in ("RMSE", "MAE", "R2", "NASA_Score")}, "t_lgb_s": float("nan"), "t_bilstm_s": t_lstm, "tiempo_s": t_lstm})
 
             from .smoothing import causal_ema_by_unit
 
             sm = causal_ema_by_unit(out["p_lstm_test"], units, cycles, span=5)
             sm_metrics = evaluate_predictions(y_test, sm, f"BiLSTM+EMA | {label}")
-            rows.append({"variant": label, "model": "BiLSTM+EMA", **{k: sm_metrics[k] for k in ("RMSE", "MAE", "R2", "NASA_Score")}})
+            rows.append({"variant": label, "model": "BiLSTM+EMA", **{k: sm_metrics[k] for k in ("RMSE", "MAE", "R2", "NASA_Score")}, "t_lgb_s": float("nan"), "t_bilstm_s": float("nan"), "tiempo_s": float("nan")})
 
         del out
     return pd.DataFrame(rows)

@@ -48,6 +48,28 @@ def test_el_campeon_desplegado_es_el_bundle_c():
     assert manifest["metrics"]["reference_row"]["RMSE"] < float(e2)
 
 
+def test_tres_campeones_no_se_confunden():
+    """SAA-9: el alias es el mejor clásico, E2 el mejor de fila y C el desplegado."""
+    import json
+
+    import joblib
+    from sklearn.pipeline import Pipeline
+
+    xgb = joblib.load("models/mejor_modelo_clase.joblib")
+    alias = joblib.load("models/mejor_modelo.joblib")
+    e2 = joblib.load("models/mejor_modelo_clase_E2.joblib")
+
+    assert isinstance(xgb, Pipeline)
+    assert type(xgb.steps[-1][1]).__name__ == "XGBRegressor"
+    assert type(alias.steps[-1][1]) is type(xgb.steps[-1][1])
+    assert type(e2.steps[-1][1]).__name__ == "MLPRegressor"
+
+    with open("models/ds02_manifest.json", encoding="utf-8") as fh:
+        manifest = json.load(fh)
+    assert manifest["code_version"] == "clase-bundle-C"
+    assert manifest["metrics"]["reference_row"]["RMSE"] == 4.338
+
+
 def test_mejor_modelo_alias_paridad():
     import joblib
     a = joblib.load("models/mejor_modelo_clase.joblib")

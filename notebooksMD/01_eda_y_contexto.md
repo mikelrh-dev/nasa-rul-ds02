@@ -103,7 +103,7 @@ print('RUL train media', round(train['RUL'].mean(), 2), '| test media', round(te
 **Descartes:** ninguna columna se elimina; la columna `descarte` dice su destino: `unit`→grupo (no entra como predictor numérico, se usa como grupo en GroupKFold), `RUL`→objetivo, `split_origen`→trazabilidad, el resto se mantiene. Duplicados e imposibles se chequean abajo.
 
 
-**Que vemos (tabla de campos, nulos antes/despues).** Solo T30 trae nulos (~1,8 % MAR en crucero alto); el resto 0 % antes y 0 % despues. Despues de ffill + mediana todo queda en 0 %: la imputacion no deja huecos, y el 1,8 % inicial es el tamano del problema resuelto, no un defecto del dataset. `unit` y `RUL` nunca se imputan: son grupo y objetivo.
+**Que vemos (tabla de campos, nulos antes/despues).** Solo T30 trae nulos (2,01 % en train (≈1,8 % del dataset completo) MAR en crucero alto); el resto 0 % antes y 0 % despues. Despues de ffill + mediana todo queda en 0 %: la imputacion no deja huecos, y el 1,8 % inicial es el tamano del problema resuelto, no un defecto del dataset. `unit` y `RUL` nunca se imputan: son grupo y objetivo.
 
 
 

@@ -35,10 +35,12 @@ CELLS = []
 
 
 def md(text: str) -> None:
+    """Devuelve una celda markdown para el notebook generado."""
     CELLS.append(nbf.v4.new_markdown_cell(text))
 
 
 def code(text: str) -> None:
+    """Devuelve una celda de codigo para el notebook generado."""
     CELLS.append(nbf.v4.new_code_cell(text))
 
 
@@ -52,6 +54,16 @@ if str(_ROOT) not in _sys.path:
     _sys.path.insert(0, str(_ROOT))
 if str(_ROOT / "src") not in _sys.path:
     _sys.path.insert(0, str(_ROOT / "src"))
+
+# --- MLflow live (mlflow-live-notebooks): env BEFORE any TF/Keras import ---
+_os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
+_os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")
+_os.environ.setdefault("TF_NUM_INTEROP_THREADS", "1")
+_os.environ.setdefault("TF_NUM_INTRAOP_THREADS", "1")
+_os.environ.setdefault("OMP_NUM_THREADS", "1")
+from ds02_rul.mlflow_live import log_live_run, persist_timings, setup_mlflow
+setup_mlflow()
+print("mlflow live: store=mlruns experiment=ds02-clase (fuente=live_notebook)")
 
 # Entorno de ejecucion reproducible: TF en 1 hilo (antes de importar Keras/TF;
 # `ejecutar_shap_c` carga el bundle con lazy-load dentro de la funcion).
@@ -146,6 +158,22 @@ md(r"""## Lectura y limites
   interprete del `.venv`).
 
 > SHAP describe el modelo, no el motor: asociaciones no causales.
+""")
+
+code("""# --- MLflow live: SHAP (params-only run; explanation, not training) ---
+from ds02_rul.mlflow_live import log_live_run, persist_timings
+_res = globals().get("res")
+_metrics = {}
+if isinstance(_res, dict):
+    for _k in ("aditividad_max_error", "n_background", "n_explicadas"):
+        if _k in _res:
+            _metrics[_k] = float(_res[_k])
+log_live_run("live__nb07_shap_c",
+             params={"notebook": "07_shap_c_bundle_c", "seed": 42,
+                     "n_filas": globals().get("N_FILAS", 200),
+                     "n_fondo": globals().get("N_FONDO", 200)},
+             metrics=_metrics, notebook="07")
+print("[NB07 MLflow live OK]")
 """)
 
 nb = nbf.v4.new_notebook()

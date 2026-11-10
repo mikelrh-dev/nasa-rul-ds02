@@ -556,7 +556,7 @@ fila está en el manifiesto. Las semillas 7 y 123 se entrenan en la celda
 siguiente con el mismo protocolo y el mismo `beta = 1.00`. El consolidado lo deja
 `python -m src.clase.evaluar_c_multisemilla`.
 
-**Nota de autoridad multisemilla (unica, vale para 05 y 06).** El manifiesto manda para la fila oficial (4.338, seed 42 desplegada); las tres semillas solo miden variabilidad. El 4.347 +- 0.012 citado antes queda sustituido por los calculados: en el 05, 4.330 +- 0.053 (semillas 42/7/123: 4.338 / 4.274 / 4.379) y en el 06, 4.322 +- 0.064 (4.338 / 4.376 / 4.252). Sin reentrenar: solo se corrige la cita.
+**Nota de autoridad multisemilla (unica, vale para 05 y 06).** El manifiesto manda para la fila oficial (4.338, seed 42 desplegada); las tres semillas solo miden variabilidad. La media vigente es la de `resultados/bundle_c_multiseed.csv` + manifiesto: **4.324 ± 0.107 / NASA 2341.0 ± 54.1** sobre 42/7/123; la antigua 4.368 de `resultados/comparativa_c_multisemilla.csv` queda obsoleta y no debe citarse. Las cifras impresas en este cuaderno (4.330 / 4.322) quedan como histórico no regenerable; la fila oficial sigue siendo 4.338 (semilla 42, manifiesto).
 
 
 
