@@ -42,6 +42,7 @@ import pdf_partes as PP  # noqa: E402
 import ui_inference as INF  # noqa: E402
 import ui_rules as UR  # noqa: E402
 import flota as F  # noqa: E402
+import dashboard_helpers as DH  # noqa: E402
 import simulacion as S  # noqa: E402
 import ui_modulos as UM  # noqa: E402
 import ui_n8n as UN  # noqa: E402
@@ -560,6 +561,16 @@ if st.session_state.get("_escenario_pendiente"):
     _u, _c = st.session_state.pop("_escenario_pendiente")
     st.session_state["unit"] = int(_u)
     st.session_state["cycle"] = int(_c)
+# «Ver gemelo» del muro apunta al tab Motor con `selected_unit` (app-ux-bundle-fix):
+# la clave del widget del sidebar es `unit`, así que la selección se consume aquí,
+# antes de que los widgets se instancien. `selected_unit` queda como huella visible.
+if st.session_state.pop("_ver_gemelo_pendiente", None) is not None:
+    _sel = st.session_state.get("selected_unit")
+    if _sel is not None:
+        try:
+            st.session_state["unit"] = int(_sel)
+        except (TypeError, ValueError):
+            pass
 if st.session_state.get("_avance_flota") is not None:
     st.session_state["cycle"] = int(st.session_state.pop("_avance_flota"))
 
@@ -573,6 +584,8 @@ _PRESETS = {
     "Normal": (0.0, 0.0),
     "Prudente (+5)": (5.0, 5.0),
     "Permisivo (−5)": (-5.0, -5.0),
+    "Conservador (+10)": (10.0, 10.0),
+    "Agresivo (−10)": (-10.0, -10.0),
 }
 preset = str(st.session_state.get("preset", "Normal"))
 _base_apto = float(provenance["defaults"]["threshold_airworthy"])
@@ -767,6 +780,35 @@ with st.sidebar:
 - **Orden de trabajo**: JSON/CSV de las unidades bloqueadas con banda y acción."""
         )
 
+    # Panel n8n visible (app-ux-bundle-fix): estado del webhook, último envío y
+    # botón de prueba. Nunca rompe la app si falta la URL (ver src/n8n.py).
+    with st.expander("n8n · webhook de decisión", icon=":material/webhook:"):
+        _url_n8n = os.environ.get("N8N_WEBHOOK_URL", "")
+        if _url_n8n:
+            st.caption(f"Webhook configurado: `{_url_n8n}`")
+        else:
+            st.caption(
+                "Webhook no configurado (`N8N_WEBHOOK_URL` vacío): los envíos "
+                "quedan en log local y el test devuelve ok=False."
+            )
+        _ult_n8n = st.session_state.get("n8n_ultimo") or {}
+        if _ult_n8n:
+            st.caption(
+                f"Último envío: {_ult_n8n.get('decision', '?')} · "
+                f"ok={_ult_n8n.get('ok')} · status={_ult_n8n.get('status')} · "
+                f"en {_ult_n8n.get('en', '?')}"
+            )
+        else:
+            st.caption("Último envío: ninguno en esta sesión.")
+        if st.button("Probar envío n8n", key="n8n_prueba", icon=":material/send:"):
+            _res_prueba = DH.probar_n8n()
+            st.session_state["n8n_ultimo"] = {
+                "decision": "APTO (test)",
+                "ok": bool(isinstance(_res_prueba, dict) and _res_prueba.get("ok") is True),
+                "status": (_res_prueba.get("status") if isinstance(_res_prueba, dict) else None),
+                "en": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            }
+
 
 # La capa de reglas (src/mia/) es opcional y arranca apagada: con ella apagada la UI
 # muestra la lectura cruda de la caché, que es la que reproduce el contrato
@@ -940,6 +982,10 @@ with head_right:
             f"Banda {provenance['artifact']['conformal_target_coverage']:.0%}",
             icon=":material/verified:", color="green",
         )
+        st.badge(
+            "Lectura corregida (R2b+R6)" if aplicar_reglas else "Lectura cruda de caché",
+            icon=":material/tune:", color="blue",
+        )
 
 with st.container(border=True):
     st.subheader("Primera lectura", icon=":material/visibility:")
@@ -972,7 +1018,8 @@ with st.container(border=True):
 
 @st.cache_data(ttl=3600, show_spinner="Re-puntuando tramo con el artefacto…")
 def _sandbox_puntua_cached(
-    unit: int, deriva_pct: int, apto: float, hangar: float, tramo_sig: str
+    unit: int, deriva_pct: int, apto: float, hangar: float, tramo_sig: str,
+    sensor: str = "T48",
 ) -> tuple:
     """Preflight + puntuación + decisión del tramo perturbado (una vez por clave).
 
@@ -992,7 +1039,7 @@ def _sandbox_puntua_cached(
                        & (telemetry["cycle"] <= _c_fin)].reset_index(drop=True)
     _tab = _tramo[["cycle"] + INF.channel_order()].copy()
     _deriva = float(int(deriva_pct)) / 100.0
-    _tab["T48"] = _tab["T48"].astype(float) * (
+    _tab[sensor] = _tab[sensor].astype(float) * (
         1.0 + _deriva * np.linspace(0.0, 1.0, len(_tab)))
     _pf = INF.preflight(_tab)
     if not _pf["ok"]:
@@ -1907,6 +1954,12 @@ with tab_casos:
                     str(live["contract"].get("artefacto_sha256") or ""), _fp_n8n,
                     unidad=_unidad_real)
                 _res_n8n = N8N.enviar_decision(traza_live["decision"], _payload_n8n)
+                st.session_state["n8n_ultimo"] = {
+                    "decision": str(traza_live["decision"]),
+                    "ok": bool(isinstance(_res_n8n, dict) and _res_n8n.get("ok") is True),
+                    "status": (_res_n8n.get("status") if isinstance(_res_n8n, dict) else None),
+                    "en": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                }
                 if isinstance(_res_n8n, dict) and _res_n8n.get("ok") is True:
                     _enviadas_n8n.add(_fp_n8n)
                     st.session_state["n8n_enviadas"] = _enviadas_n8n

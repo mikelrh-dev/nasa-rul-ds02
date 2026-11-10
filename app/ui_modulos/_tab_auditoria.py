@@ -450,6 +450,27 @@ def _tab_auditoria(per_unit=None, provenance=None, chart_layout=None,
         )
 
     with st.container(border=True):
+        st.subheader("Vista de las 6 reglas de decisión", icon=":material/rule:")
+        st.caption(
+            "Las seis reglas de la pasada A (`src/mia/reglas.py`, solo lectura): "
+            "gana la de mayor prioridad que se cumple."
+        )
+        try:
+            import dashboard_helpers as _DH_A
+            _vista_reglas = pd.DataFrame(_DH_A.reglas_decision_vista())
+        except Exception:
+            _vista_reglas = pd.DataFrame()
+        if not _vista_reglas.empty:
+            st.dataframe(
+                _vista_reglas,
+                hide_index=True,
+                column_config={
+                    "Prioridad": st.column_config.NumberColumn("Prioridad", format="%d"),
+                },
+                alt="Las seis reglas de decisión con su prioridad y su justificación.",
+            )
+
+    with st.container(border=True):
         st.subheader("Informe de auditoría", icon=":material/picture_as_pdf:")
         st.caption(
             "Un PDF con las dos tablas de arriba —precisión por tramo y alarma vs. "

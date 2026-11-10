@@ -108,10 +108,18 @@ def _sandbox_estres(windows=None, telemetry=None, units=None, cache_sha=None,
         "Unidad del tramo", units, default=14, key="sbx_unit",
         help="Motores del conjunto de test DS02 (partición fija [11, 14, 15]).",
     )
+    _sensor_sbx = st.selectbox(
+        "Sensor a perturbar",
+        ["T48", "T24"],
+        index=0,
+        key="sbx_sensor",
+        help="T48 (salida HPT) por defecto; T24 (salida LPC) es el segundo sensor "
+             "del sandbox (app-ux-bundle-fix).",
+    )
     _deriva_pct = st.slider(
-        "Deriva térmica acumulada en T48", min_value=0, max_value=30, value=0,
+        f"Deriva térmica acumulada en {_sensor_sbx}", min_value=0, max_value=30, value=0,
         step=1, format="%d%%", key="sbx_deriva",
-        help="Porcentaje que T48 (temperatura de salida del compresor de alta) gana "
+        help=f"Porcentaje que {_sensor_sbx} (canal N-CMAPSS) gana "
              "al final del tramo respecto a su valor en caché. Con 0 % el tramo es "
              "la caché tal cual; cualquier otro valor es una intervención sintética.",
     )
@@ -158,6 +166,7 @@ def _sandbox_estres(windows=None, telemetry=None, units=None, cache_sha=None,
         _ok, _error, _avisos, _dec, _ventanas = _sandbox_puntua_cached(
             int(_u_sbx), int(_deriva_pct),
             float(_umb_sbx["apto"]), float(_umb_sbx["hangar"]), _cache_sha,
+            _sensor_sbx,
         )
         if not _ok:
             st.error(_error, icon=":material/rule:")
@@ -210,7 +219,7 @@ def _sandbox_estres(windows=None, telemetry=None, units=None, cache_sha=None,
     fig.update_layout(**chart_layout(height=360))
     style_axes(fig, x_title="Ciclo de vuelo", y_title="ciclos de RUL")
     _alt = (f"Curva de RUL de la unidad {int(_u_sbx)} entre los ciclos {_c_inicio} y "
-            f"{_c_fin}, con una deriva sintética del {_deriva_pct:.0f} % en T48: el "
+            f"{_c_fin}, con una deriva sintética del {_deriva_pct:.0f} % en {_sensor_sbx}: el "
             f"límite inferior cruza el umbral de hangar en el ciclo {_cruce_ciclo} y el "
             f"estado al final del tramo es {L.STATE_LABELS.get(_estado, _estado)}."
             if _cruce_ciclo is not None and _perturbado else
@@ -244,7 +253,7 @@ def _sandbox_estres(windows=None, telemetry=None, units=None, cache_sha=None,
         for _aviso in _pf["avisos"]:
             st.warning(_aviso, icon=":material/find_in_page:")
         st.warning(
-            f"Deriva sintética del {_deriva_pct:.0f} % sobre T48: la banda pierde la "
+            f"Deriva sintética del {_deriva_pct:.0f} % sobre {_sensor_sbx}: la banda pierde la "
             "garantía conformal del 90 % — el split-conformal se calibró sobre datos "
             "reales y una intervención sintética rompe la intercambiabilidad. El "
             "límite inferior sigue gobernando la decisión (ADR-008), pero su cobertura "

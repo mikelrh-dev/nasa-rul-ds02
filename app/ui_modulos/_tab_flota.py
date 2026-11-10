@@ -43,6 +43,11 @@ except ImportError:  # pragma: no cover - import-style fallback
     from app import hangar as HGR  # type: ignore[no-redef]
 
 try:
+    import dashboard_helpers as DH  # noqa: E402
+except ImportError:  # pragma: no cover - import-style fallback
+    from app import dashboard_helpers as DH  # type: ignore[no-redef]
+
+try:
     import pdf_partes as PP  # noqa: E402
 except ImportError:  # pragma: no cover - import-style fallback
     from app import pdf_partes as PP  # type: ignore[no-redef]
@@ -301,6 +306,26 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
                         st.metric("L_inf (decide)", _lo, "ciclos",
                                   border=True, delta_color="off",
                                   icon=":material/trending_down:")
+                        # app-ux-bundle-fix: sparkline del muro (serie L_inf del motor).
+                        if "cycle" in curva.columns and "lower" in curva.columns:
+                            _sp = curva.sort_values("cycle")
+                            st.plotly_chart(
+                                go.Figure(go.Scatter(
+                                    x=_sp["cycle"], y=_sp["lower"],
+                                    mode="lines",
+                                    line=dict(width=1.5),
+                                    showlegend=False, hoverinfo="skip",
+                                    name="L_inf",
+                                )).update_layout(
+                                    height=60, margin=dict(l=0, r=0, t=0, b=0),
+                                    xaxis=dict(visible=False),
+                                    yaxis=dict(visible=False),
+                                    paper_bgcolor="rgba(0,0,0,0)",
+                                    plot_bgcolor="rgba(0,0,0,0)",
+                                ),
+                                theme=None,
+                                alt=f"Sparkline de L_inf de {etiqueta} a lo largo de los ciclos.",
+                            )
                         if pd.isna(tarjeta["lower"]):
                             _primer_ciclo_u = int(curva["cycle"].min())
                             st.caption(
@@ -322,10 +347,16 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
                                     "en vigor en «Gemelos registrados», bajo el muro."
                                 )
                             else:
+                                # app-ux-bundle-fix: «Ver gemelo» apunta al tab Motor
+                                # con `selected_unit`; el dashboard lo consume con
+                                # escritura diferida (clave `unit` del sidebar).
+                                st.session_state["selected_unit"] = int(tarjeta["unidad"])
+                                st.session_state["_ver_gemelo_pendiente"] = int(tarjeta["unidad"])
                                 st.session_state["_escenario_pendiente"] = (
                                     tarjeta["unidad"], tarjeta["ciclo_tarjeta"])
                                 st.session_state["_toast_pendiente"] = (
-                                    f"{etiqueta} seleccionada. Abre su ficha en la "
+                                    f"{etiqueta} seleccionada (selected_unit="
+                                    f"{int(tarjeta['unidad'])}). Abre su ficha en la "
                                     "pestaña «Motor · qué le pasa a este»."
                                 )
                             st.rerun()
@@ -741,6 +772,16 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
                 f"{len(blocked)} unidad(es) bloqueada(s) en el ciclo {cycle}. El documento lleva "
                 "el hash del artefacto y los umbrales en vigor."
             )
+            # app-ux-bundle-fix: vista previa de la orden antes de descargar.
+            st.dataframe(
+                pd.DataFrame(blocked),
+                hide_index=True,
+                column_config={
+                    "limite_inferior": st.column_config.NumberColumn(
+                        "L_inf", format="%.2f"),
+                },
+                alt="Vista previa de la orden de trabajo: unidades bloqueadas con su límite inferior y acción.",
+            )
             with st.container(horizontal=True):
                 st.download_button(
                     "Descargar orden (JSON)",
@@ -788,6 +829,21 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
                     mime="text/csv",
                     icon=":material/table_view:",
                 )
+
+    # app-ux-bundle-fix: contraste crudo vs corregido (CSV por ventana).
+    with st.container(border=True):
+        st.subheader("Contraste crudo vs corregido", icon=":material/compare_arrows:")
+        st.caption(
+            "Por ventana: límite inferior de la caché (crudo) frente al de la capa "
+            "de reglas (corregido), con la decisión final."
+        )
+        st.download_button(
+            "Descargar contraste (CSV)",
+            data=DH.contraste_csv(windows, frame_cache),
+            file_name=f"contraste_crudo_corregido_ciclo{cycle}.csv",
+            mime="text/csv",
+            icon=":material/table_view:",
+        )
 
 
     # ------------------------------------------------------ gemelos y hangar
@@ -1081,8 +1137,18 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
                 "historia."
             )
         else:
+            # app-ux-bundle-fix: filtro de estado sobre la cola del hangar.
+            _filtro_cola = st.multiselect(
+                "Filtrar cola por estado",
+                [HGR.ETIQUETAS[e] for e in HGR.ESTADOS],
+                default=[HGR.ETIQUETAS[e] for e in HGR.ESTADOS],
+                key="cola_filtro_estado",
+                help="Restringe la tabla a los estados elegidos.",
+            )
+            _estados_filtro = {e for e in HGR.ESTADOS
+                               if HGR.ETIQUETAS[e] in _filtro_cola}
             filas_hangar = []
-            for registro in HGR.cola(registros):
+            for registro in DH.cola_filtrada(registros, _estados_filtro):
                 decision_hoy = UR.traza_decision(registro["entrada"]["lower"], umbrales)["decision"]
                 revision = HGR.revision(registro, umbrales, decision_hoy)
                 filas_hangar.append({

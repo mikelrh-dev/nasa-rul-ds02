@@ -33,6 +33,11 @@ except ImportError:  # pragma: no cover - import-style fallback
     from app import flota as F  # type: ignore[no-redef]
 
 try:
+    import dashboard_helpers as DH  # noqa: E402
+except ImportError:  # pragma: no cover - import-style fallback
+    from app import dashboard_helpers as DH  # type: ignore[no-redef]
+
+try:
     import hangar as HGR  # noqa: E402
 except ImportError:  # pragma: no cover - import-style fallback
     from app import hangar as HGR  # type: ignore[no-redef]
@@ -284,6 +289,26 @@ def _tab_motor(snapshot=None, unit=None, etiqueta_unidad=None, registro=None,
                 "Radiografía de sensores (presiones) respecto a la línea base sana del "
                 "propio motor: la señal física bruta, antes de que el modelo la lea."
             )
+        # app-ux-bundle-fix: radiografía de temperaturas T24 · T2 · T50.
+        _temp_clave = ["T24", "T2", "T50"]
+        _per_cycle_t = (
+            telemetry[telemetry["unit"] == unit]
+            .groupby("cycle", as_index=False)[_temp_clave]
+            .mean(numeric_only=True)
+        )
+        if not _per_cycle_t.empty:
+            st.plotly_chart(
+                fig_deriva(_per_cycle_t, _temp_clave,
+                           int(_per_cycle_t["cycle"].max()),
+                           critical_start, threshold_aog, height=220),
+                theme=None,
+                alt=f"Radiografía de temperaturas T24, T2 y T50 de {_etiqueta_g}: "
+                    "deriva porcentual frente a la línea base sana.",
+            )
+            st.caption(
+                "Radiografía de temperaturas T24 (salida LPC) · T2 (entrada del fan) · "
+                "T50 (salida LPT): estaciones físicas del dataset N-CMAPSS."
+            )
             with st.expander("Mapa de calor · degradación sensorial (z-score)",
                              expanded=False):
                 st.caption(
@@ -315,6 +340,19 @@ def _tab_motor(snapshot=None, unit=None, etiqueta_unidad=None, registro=None,
                                         f"del motor {unit} a lo largo de su vida.")
 
     # -------------------- comparador: 2-3 motores superpuestos
+    with st.container(border=True):
+        st.subheader("Trayectoria del motor", icon=":material/download:")
+        st.caption(
+            f"Trayectoria de {_etiqueta_g} por ciclo (RUL predicha, banda y decisión)."
+        )
+        st.download_button(
+            "Descargar trayectoria (CSV)",
+            data=DH.trayectoria_csv(curve),
+            file_name=f"trayectoria_{_etiqueta_g.replace(' ', '_')}.csv",
+            mime="text/csv",
+            icon=":material/table_view:",
+        )
+
     with st.container(border=True):
         st.subheader("Comparador · superpone trayectorias",
                      icon=":material/compare_arrows:")
