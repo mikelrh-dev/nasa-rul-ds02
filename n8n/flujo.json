@@ -410,7 +410,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/n8n-decision",
+        "url": "http://127.0.0.1:8000/n8n-decision",
         "authentication": "genericHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
@@ -418,16 +418,12 @@
             {
               "name": "Content-Type",
               "value": "application/json"
-            },
-            {
-              "name": "X-DS02-Token",
-              "value": "={{ $vars.N8N_WEBHOOK_TOKEN }}"
             }
           ]
         },
         "sendBody": true,
         "contentType": "json",
-        "body": "={{ JSON.stringify({ decision: ($json.body.decision || $json.decision || 'HANGAR'), fingerprint: ($json.body.fingerprint || $json.fingerprint || $json.body.idempotency_key || $json.idempotency_key || ''), artefacto_sha256: ($json.body.artefacto_sha256 || $json.artefacto_sha256 || ''), unidad: ($json.body.unidad ?? $json.unidad ?? null) }) }}",
+        "body": "={{ JSON.stringify({ decision: ($('Webhook ds02/decision').first().json.body.decision || 'HANGAR'), fingerprint: ($('Webhook ds02/decision').first().json.body.fingerprint || ''), artefacto_sha256: ($('Webhook ds02/decision').first().json.body.artefacto_sha256 || ''), unidad: ($('Webhook ds02/decision').first().json.body.unidad ?? null) }) }}",
         "options": {}
       },
       "id": "api_propia_hangar",
@@ -438,17 +434,18 @@
         1712,
         512
       ],
-      "notes": "HANGAR paso 4 (accion novedosa, no vista en clase): registra la decision en la API del propio proyecto (POST /n8n-decision). El token viaja en X-DS02-Token y la API es idempotente por fingerprint: un reintento no duplica la fila.",
+      "notes": "HANGAR paso 4 (accion novedosa, no vista en clase): registra la decision en la API del propio proyecto (POST /n8n-decision). El token viaja en X-DS02-Token (credencial de header) y la API es idempotente por fingerprint: un reintento no duplica la fila.",
+      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REEMPLAZAR_CREDENCIAL",
+          "id": "LtD02epzwA6YQDol",
           "name": "DS02 Webhook Header Auth"
         }
       }
     },
     {
       "parameters": {
-        "content": "## Credenciales por revisar\n- Google Sheets (INSPECCION)\n- Postgres (HANGAR)\n- Google Calendar (HANGAR)\n- Gmail (HANGAR)\n- API propia (HANGAR): token N8N_WEBHOOK_TOKEN en X-DS02-Token\nEl repo no guarda secretos.",
+        "content": "## Credenciales por revisar\n- Google Sheets (INSPECCION)\n- Postgres (HANGAR)\n- Google Calendar (HANGAR)\n- Gmail (HANGAR)\n- API propia (HANGAR): credencial de header X-DS02-Token (DS02 Webhook Header Auth)\nEl repo no guarda secretos.",
         "height": 140,
         "width": 620
       },

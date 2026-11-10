@@ -213,7 +213,10 @@ class N8NDecisionRequest(BaseModel):
     fingerprint: str = Field(..., description="idempotency key de la traza")
     artefacto_sha256: str = Field("", description="SHA-256 del artefacto")
     unidad: int | None = Field(None, description="motor, si se conoce")
-    token: str = Field(..., description="N8N_WEBHOOK_TOKEN compartido")
+    # El token puede venir en el body (contrato original, cubierto por tests) o
+    # en la cabecera X-DS02-Token, que es como lo envian la app (src/n8n.py) y
+    # el nodo n8n. La cabecera manda si esta presente.
+    token: str = Field("", description="N8N_WEBHOOK_TOKEN compartido (body o X-DS02-Token)")
 
 
 class N8NDecisionResponse(BaseModel):
@@ -260,13 +263,18 @@ def _guardar_n8n_registros(filas: list) -> None:
 
 
 @app.post("/n8n-decision", response_model=N8NDecisionResponse)
-def n8n_decision(req: N8NDecisionRequest) -> N8NDecisionResponse:
+def n8n_decision(
+    req: N8NDecisionRequest,
+    x_ds02_token: str | None = Header(default=None, alias="X-DS02-Token"),
+) -> N8NDecisionResponse:
     """Registra una decision vinda del flujo n8n (accion novedosa MIA-3).
 
     Auth por token compartido (`hmac.compare_digest`, igual que el webhook de
-    n8n y `X-DS02-Token` de `src/n8n.py`). Sin token configurado, 503: el
-    endpoint degrada de forma visible y no rompe el arranque del servicio.
-    Idempotente por `fingerprint`: un reintento de n8n no duplica la fila.
+    n8n y `X-DS02-Token` de `src/n8n.py`). El token se acepta en la cabecera
+    `X-DS02-Token` (como lo envian la app y el nodo n8n) o en el body.
+    Sin token configurado, 503: el endpoint degrada de forma visible y no
+    rompe el arranque del servicio. Idempotente por `fingerprint`: un
+    reintento de n8n no duplica la fila.
     """
     if _N8N_TOKEN is None:
         raise HTTPException(
@@ -274,7 +282,8 @@ def n8n_decision(req: N8NDecisionRequest) -> N8NDecisionResponse:
             detail="N8N_WEBHOOK_TOKEN no esta configurado en el servidor; "
                    "el endpoint /n8n-decision no puede autenticar la peticion",
         )
-    if not req.token or not hmac.compare_digest(req.token, _N8N_TOKEN):
+    token = x_ds02_token or req.token
+    if not token or not hmac.compare_digest(token, _N8N_TOKEN):
         raise HTTPException(status_code=401, detail="invalid or missing n8n token")
     if req.decision not in _N8N_DECISIONES:
         raise HTTPException(

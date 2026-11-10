@@ -145,8 +145,11 @@ def test_flujo_tiene_accion_novedosa_en_rama_hangar():
     nodo = nodos["HANGAR API propia"]
     assert nodo["type"] == "n8n-nodes-base.httpRequest"
     url = json.dumps(nodo["parameters"])
-    assert "http://localhost:8000/n8n-decision" in url
-    assert "X-DS02-Token" in url
+    assert "http://127.0.0.1:8000/n8n-decision" in url
+    # El token ya no va en headerParameters: viaja en la credencial de header
+    # (genericHeaderAuth), asi el JSON exportado no guarda el secreto.
+    assert nodo["parameters"]["authentication"] == "genericHeaderAuth"
+    assert nodo["credentials"]["httpHeaderAuth"]["name"] == "DS02 Webhook Header Auth"
     # Conexion: Gmail -> API propia, y Postgres/Calendar/Gmail intactos.
     assert flujo["connections"]["HANGAR Gmail"]["main"][0][0]["node"] == "HANGAR API propia"
     assert flujo["connections"]["HANGAR Google Calendar"]["main"][0][0]["node"] == "HANGAR Gmail"

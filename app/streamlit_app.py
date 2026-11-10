@@ -25,8 +25,25 @@ from __future__ import annotations
 
 import os
 import sys
+import tomllib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Carga .streamlit/secrets.toml en os.environ si no vienen por entorno.
+# Asi N8N_WEBHOOK_URL (y N8N_WEBHOOK_TOKEN si existe) quedan disponibles
+# para src/n8n y app/dashboard_ds02 sin tocar los tests, que siguen usando
+# os.environ directamente.
+_secrets_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                             ".streamlit", "secrets.toml")
+if os.path.exists(_secrets_path):
+    try:
+        with open(_secrets_path, "rb") as _f:
+            _secrets = tomllib.load(_f)
+        for _k in ("N8N_WEBHOOK_URL", "N8N_WEBHOOK_TOKEN"):
+            if _k in _secrets and not os.environ.get(_k):
+                os.environ[_k] = str(_secrets[_k])
+    except (OSError, tomllib.TOMLDecodeError):
+        pass
 
 # Forzar re-ejecución en cada rerun (ver docstring): un `import` a secas solo
 # ejecuta el módulo la primera vez en el proceso del servidor.
