@@ -45,12 +45,33 @@ N_RUNS = 13
 
 EXPORT_FIELDS = [
     "run_key", "run_id", "run_name", "grano", "familia", "rol", "seleccion",
-    "origen", "params_summary", "params_json",
+    "origen", "fuente", "params_summary", "params_json",
     "rmse_train", "mae_train", "r2_train",
     "rmse_val", "mae_val", "r2_val",
     "rmse_test", "mae_test", "r2_test", "nasa_test",
     "tiempo_s", "t_lgb_s", "t_bilstm_s", "macro_rmse",
 ]
+
+FUENTE_HISTORICO = "historico"
+FUENTE_LIVE = "live_notebook"
+
+
+def _is_historic(run) -> bool:
+    """Historic backfill run: fuente=historico, or legacy run with a known
+    historic run_key and no fuente tag yet (pre mlflow-live-notebooks)."""
+    fuente = run.data.tags.get("fuente") if run.data.tags else None
+    if fuente is not None:
+        return fuente == FUENTE_HISTORICO
+    return run.data.tags.get("run_key") in {
+        f"clasico__{name}" for name in ("regresion", "knn", "rf", "svm", "xgb")
+    } | {
+        f"mlp__{name}" for name in ("base", "E1_capacidad", "E2_reg_lr", "E3_batch")
+    } | {"bundle__lgbm_c", "bundle__bilstm_c", "bundle__bilstm_ema5", "prod__bundle_c"}
+
+
+def historic_runs(client: MlflowClient, exp_id: str) -> list:
+    """Only the historic backfill runs; live notebook runs are ignored."""
+    return [r for r in client.search_runs([exp_id], max_results=100) if _is_historic(r)]
 
 DESCRIPTION = (
     "Reto 1 — 13 runs medidos: 9 de grano fila (5 clásicos + 4 MLP) y 4 de grano "
@@ -150,6 +171,7 @@ def _common_tags(grano: str, familia: str, origen: str, extra: dict[str, Any]) -
         "grano": grano,
         "familia": familia,
         "origen": origen,
+        "fuente": FUENTE_HISTORICO,
         "dataset": "DS02",
         "dataset_variant": "DS02-adaptada (MAR T30 + ffill, medianas fit-units)",
         "job": "reto-1-saa-pia-mia",
@@ -412,6 +434,7 @@ def _window_specs() -> list[dict[str, Any]]:
 
 
 def build_specs() -> list[dict[str, Any]]:
+    """Devuelve las 13 especificaciones historicas (params, metricas, tags) del backfill."""
     specs = _row_specs() + _window_specs()
     keys = [spec["run_key"] for spec in specs]
     if len(specs) != N_RUNS:
@@ -435,6 +458,7 @@ def _experiment_tags() -> dict[str, str]:
 
 
 def ensure_experiment(client: MlflowClient) -> str:
+    """Crea el experimento ds02-clase si no existe y devuelve su id."""
     exp = client.get_experiment_by_name(EXPERIMENT)
     exp_id = exp.experiment_id if exp is not None else client.create_experiment(EXPERIMENT)
     for key, value in _experiment_tags().items():
@@ -444,15 +468,13 @@ def ensure_experiment(client: MlflowClient) -> str:
 
 
 def write_runs(client: MlflowClient, exp_id: str) -> None:
+    """Crea o reemplaza los runs historicos de forma idempotente por run_key."""
     specs = build_specs()
     for spec in specs:
-        existing = client.search_runs(
-            [exp_id],
-            filter_string=f"tags.run_key = '{spec['run_key']}'",
-            max_results=100,
-        )
+        existing = historic_runs(client, exp_id)
         for old in existing:
-            client.delete_run(old.info.run_id)
+            if old.data.tags.get("run_key") == spec["run_key"]:
+                client.delete_run(old.info.run_id)
         tags = dict(spec["tags"])
         tags["run_key"] = spec["run_key"]
         run = client.create_run(exp_id, run_name=spec["run_name"], tags=tags)
@@ -474,7 +496,8 @@ def _metric_text(data: Any, key: str) -> str:
 
 
 def export_csv(client: MlflowClient, exp_id: str) -> None:
-    runs = client.search_runs([exp_id], max_results=100)
+    """Exporta el store a docs/evidencia/mlflow/comparativa.csv."""
+    runs = historic_runs(client, exp_id)
     rows = []
     for run in runs:
         data = run.data
@@ -487,6 +510,7 @@ def export_csv(client: MlflowClient, exp_id: str) -> None:
             "rol": data.tags.get("rol", ""),
             "seleccion": data.tags.get("seleccion", ""),
             "origen": data.tags.get("origen", ""),
+            "fuente": data.tags.get("fuente", FUENTE_HISTORICO),
             "params_summary": data.tags.get("params_summary", ""),
             "params_json": json.dumps(data.params, sort_keys=True, ensure_ascii=False),
             "rmse_train": _metric_text(data, "rmse_train"),
@@ -514,9 +538,10 @@ def export_csv(client: MlflowClient, exp_id: str) -> None:
 
 
 def check(client: MlflowClient, exp_id: str) -> int:
+    """Comprueba store y export (13 runs, sin artefactos) y devuelve 0 si cuadra."""
     specs = build_specs()
     expected = {spec["run_key"]: spec for spec in specs}
-    runs = client.search_runs([exp_id], max_results=100)
+    runs = historic_runs(client, exp_id)
     errors: list[str] = []
 
     if len(runs) != N_RUNS:
@@ -546,7 +571,7 @@ def check(client: MlflowClient, exp_id: str) -> int:
             got = run.data.metrics.get(name)
             if got is None or abs(float(got) - float(value)) > 1e-9:
                 errors.append(f"{key}: métrica {name}={got!r} != {value!r}")
-        for name in ("grano", "familia", "origen", "rol", "seleccion"):
+        for name in ("grano", "familia", "origen", "rol", "seleccion", "fuente"):
             want = spec["tags"].get(name)
             if want is not None and run.data.tags.get(name) != want:
                 errors.append(f"{key}: tag {name}={run.data.tags.get(name)!r} != {want!r}")
@@ -590,6 +615,7 @@ def check(client: MlflowClient, exp_id: str) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Punto de entrada CLI: --write, --check o --live."""
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--write", action="store_true", help="crear/reemplazar los 13 runs")

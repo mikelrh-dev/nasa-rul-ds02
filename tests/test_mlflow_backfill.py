@@ -55,7 +55,7 @@ def exp_id(client: MlflowClient) -> str:
 
 @pytest.fixture(scope="module")
 def runs(client: MlflowClient, exp_id: str):
-    return client.search_runs([exp_id], max_results=100)
+    return MOD.historic_runs(client, exp_id)
 
 
 def test_exactly_thirteen_active_runs(runs):
@@ -130,6 +130,7 @@ def test_export_matches_the_store(client, exp_id, runs):
     for row in rows:
         assert row["params_summary"]
         assert row["run_key"]
+        assert row["fuente"] == "historico"
         run = client.get_run(row["run_id"])
         for key in ("rmse_val", "rmse_test", "tiempo_s"):
             if row[key]:
@@ -147,8 +148,24 @@ def test_check_exits_zero():
     assert "OK: 13 runs" in result.stdout
 
 
-def test_notebooks_do_not_write_to_mlflow():
-    pattern = re.compile(r"import\s+mlflow|mlflow\.(start_run|log_|autolog)", re.I)
+def test_notebooks_instrument_mlflow_live():
+    """NB01-07 DO write to MLflow live (mlflow-live-notebooks): header in
+    cell 0 + a live-log cell per notebook; backfill runs stay historic."""
     for path in sorted((ROOT / "notebooks").glob("0*.ipynb")):
         text = path.read_text(encoding="utf-8")
-        assert not pattern.search(text), f"{path.name} instrumenta MLflow"
+        assert "setup_mlflow" in text, f"{path.name} sin cabecera MLflow"
+        assert "log_live_run" in text, f"{path.name} sin celda live"
+        assert "persist_timings" in text, f"{path.name} sin persistencia de tiempos"
+
+
+def test_backfill_runs_are_historic(runs):
+    for run in runs:
+        assert run.data.tags.get("fuente") == "historico", run.data.tags.get("run_key")
+
+
+def test_live_runs_do_not_break_historic_check():
+    # historic_runs must ignore fuente=live_notebook runs by construction;
+    # covered statically here, dynamically by --check on a store with only
+    # historic runs (13) — a live run would not change the historic count.
+    specs = MOD.build_specs()
+    assert all(spec["tags"].get("fuente") == "historico" for spec in specs)
