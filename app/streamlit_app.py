@@ -23,6 +23,7 @@ por un proxy inverso que termine TLS.
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 import tomllib
@@ -42,8 +43,15 @@ if os.path.exists(_secrets_path):
         for _k in ("N8N_WEBHOOK_URL", "N8N_WEBHOOK_TOKEN"):
             if _k in _secrets and not os.environ.get(_k):
                 os.environ[_k] = str(_secrets[_k])
-    except (OSError, tomllib.TOMLDecodeError):
-        pass
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        # No se puede usar `st.warning` aqui: `set_page_config` vive en
+        # dashboard_ds02.py:510 y debe ser el primer comando de Streamlit. El
+        # aviso visible es otra tarea; esto deja rastro y un flag consultable.
+        logging.getLogger("ds02.streamlit_app").warning(
+            "no se pudo leer %s (%s): N8N_WEBHOOK_URL queda sin cargar",
+            _secrets_path, exc,
+        )
+        os.environ.setdefault("DS02_SECRETS_ERROR", f"{type(exc).__name__}: {exc}")
 
 # Forzar re-ejecución en cada rerun (ver docstring): un `import` a secas solo
 # ejecuta el módulo la primera vez en el proceso del servidor.
