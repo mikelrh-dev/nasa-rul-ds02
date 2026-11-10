@@ -151,6 +151,48 @@ def test_sin_decision_nunca_notifica():
     assert UN.debe_notificar("SIN_DECISION", "fp9", set()) is False
 
 
+# --------------------------------------------------------- reintentos / auth
+def test_enviar_5xx_reintenta_y_acaba_bien(monkeypatch):
+    """Un 5xx se reintenta: el segundo intento puede salvar la notificacion."""
+    fallo = urllib.error.HTTPError("http://n8n.invalid/hook", 503, "boom", {}, None)
+    monkeypatch.setattr(N8N.time, "sleep", lambda *_: None)
+    with mock.patch("urllib.request.urlopen", side_effect=[fallo, _Resp()]) as m:
+        r = N8N.enviar_decision("HANGAR", _payload(),
+                                webhook_url="http://n8n.invalid/hook")
+    assert m.call_count == 2
+    assert r == {"ok": True, "status": 200, "decision": "HANGAR"}
+
+
+def test_enviar_4xx_no_reintenta(monkeypatch):
+    """Un 4xx no mejora reenviando: se devuelve con su status al primer intento."""
+    fallo = urllib.error.HTTPError("http://n8n.invalid/hook", 400, "bad", {}, None)
+    monkeypatch.setattr(N8N.time, "sleep", lambda *_: None)
+    with mock.patch("urllib.request.urlopen", side_effect=fallo) as m:
+        r = N8N.enviar_decision("HANGAR", _payload(),
+                                webhook_url="http://n8n.invalid/hook")
+    assert m.call_count == 1
+    assert r == {"ok": False, "status": 400, "decision": "HANGAR"}
+
+
+def test_enviar_manda_token_si_esta_configurado(monkeypatch):
+    """Header Auth: el secreto de entorno viaja en X-DS02-Token, nunca en el repo."""
+    monkeypatch.setenv("N8N_WEBHOOK_TOKEN", "secreto-de-prueba")
+    with mock.patch("urllib.request.urlopen", return_value=_Resp()) as m:
+        N8N.enviar_decision("HANGAR", _payload(),
+                            webhook_url="http://n8n.invalid/hook")
+    req = m.call_args[0][0]
+    assert req.get_header("X-ds02-token") == "secreto-de-prueba"
+
+
+def test_enviar_sin_token_no_manda_header(monkeypatch):
+    monkeypatch.delenv("N8N_WEBHOOK_TOKEN", raising=False)
+    with mock.patch("urllib.request.urlopen", return_value=_Resp()) as m:
+        N8N.enviar_decision("HANGAR", _payload(),
+                            webhook_url="http://n8n.invalid/hook")
+    req = m.call_args[0][0]
+    assert req.get_header("X-ds02-token") is None
+
+
 def test_apto_tambien_notifica():
     # APTO también notifica: llega a la rama Set log de n8n.
     assert UN.debe_notificar("APTO", "fpA", set()) is True
@@ -169,6 +211,12 @@ def test_flujo_json_valido_con_3_ramas():
     path = os.path.join(ROOT, "n8n", "flujo.json")
     with open(path, encoding="utf-8") as fh:
         flujo = json.load(fh)
+    # Exportado inactivo y con Header Auth: no se promete una instancia viva.
+    assert flujo["active"] is False
+    webhooks = [n for n in flujo["nodes"] if "webhook" in n["type"].lower()]
+    assert webhooks and all(
+        n["parameters"].get("authentication") == "headerAuth" for n in webhooks
+    )
     nodos = flujo["nodes"]
     tipos = [n["type"].lower() for n in nodos]
     assert any("webhook" in t for t in tipos)
