@@ -111,17 +111,17 @@ holds no row above 62 cycles, so no quantile fitted there can cover high life.
 
 ---
 
-## MLflow — 13 historic runs (PIA-4)
+## MLflow — 17 historic runs (PIA-4)
 
 Tracking lives in `mlruns/` (text file store, no server, no SQLite) and is rebuilt from the measured CSVs:
 
 ```bash
-python scripts/backfill_mlflow.py --write   # 13 historic runs; idempotent by run_key
+python scripts/backfill_mlflow.py --write   # 17 historic runs; idempotent by run_key
 python scripts/backfill_mlflow.py --check   # store + export, zero artifacts
 MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
 
-MLflow 3.18 requires `MLFLOW_ALLOW_FILE_STORE=true` for the filesystem backend; the script and the test set it. The API-exported comparison is [`docs/evidencia/mlflow/comparativa.csv`](docs/evidencia/mlflow/comparativa.csv). **The two grains are not mixed**: 9 row runs (one reading) and 4 window runs (50 readings).
+MLflow 3.18 requires `MLFLOW_ALLOW_FILE_STORE=true` for the filesystem backend; the script and the test set it. The API-exported comparison is [`docs/evidencia/mlflow/comparativa.csv`](docs/evidencia/mlflow/comparativa.csv). **The three grains are not mixed**: 9 row runs (one reading), 4 window runs (50 readings) and 4 ablation runs of `cyc_norm` (2×2 grid over BiLSTM+EMA5).
 
 ### Row grain — 9 runs (GroupKFold by engine)
 
@@ -149,6 +149,19 @@ The row test is read **once and only for the selected model**: XGB 11.034 and ML
 | `prod__bundle_c` | Hybrid-C + EMA5 (bundle C) | — | 4.338 | 447 | production |
 
 No comparable `rmse_val` exists for the window grain: the protocol is grouped OOF and the reference is the manifest test. Production: MAE 3.227 · R² 0.9461 · NASA 2336.2; `beta=1.0`, EMA 5, window 50, 93 LGBM features, 18 scaler features and the four manifest SHAs. `v3_bundle=archivado` is a tag, not a parameter.
+
+### `cyc_norm` ablation — 4 runs (2×2 over BiLSTM+EMA5)
+
+The four variants are registered **on the same model** (BiLSTM+EMA5, the best in all four) so the MLflow comparison isolates the `cyc_norm` factor and the baseline delta. Protocol: test 11/14/15, seed 42, the same session as the rest of the table; nothing is retrained.
+
+| run_key | Variant | RMSE test | MAE | R² | NASA score |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `ablacion__off__bilstm_ema5` | cyc_norm OFF | 5.878 | 3.740 | 0.9010 | 3281.4 |
+| `ablacion__off_delta__bilstm_ema5` | OFF + baseline delta | 5.896 | 3.830 | 0.9004 | 3393.8 |
+| `ablacion__on__bilstm_ema5` | ON (baseline) | 5.910 | 4.793 | 0.9000 | 4060.3 |
+| `ablacion__on_delta__bilstm_ema5` | ON + baseline delta | 5.974 | 4.706 | 0.8978 | 4257.8 |
+
+The full 4×3 grid (three models per variant) is in [`resultados/ablacion_cycnorm.csv`](resultados/ablacion_cycnorm.csv) and in the [cyc_norm ablation](#cyc_norm-ablation) section. In MLflow the 4 sequential-model cells are registered; the rest is filtered by `familia=ablacion_cycnorm`.
 
 ### MLflow captures
 
@@ -417,7 +430,7 @@ scripts/               builder, migration, ablation, CLI, probes
 app/                   FastAPI service, Streamlit dashboards, live-evaluation seam
 tests/                 pytest suite: artifact contract, DSS, rules layer
 openspec/              SDD: deployed spec, change proposal, tasks
-mlruns/                text-only MLflow store (13 historic runs + live; no artifacts)
+mlruns/                text-only MLflow store (17 curated runs + live; no artifacts)
 docs/evidencia/mlflow/ API-exported comparison CSV + MLflow captures
 docs/                  spec, decisions/ (ADR-001…009), informes/ (measurements), plans/
 models/                artifacts + manifest + ablation results

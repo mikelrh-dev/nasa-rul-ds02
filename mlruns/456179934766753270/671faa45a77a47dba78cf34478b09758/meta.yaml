@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/mikel/Desktop/Pruebas/nasa/mlruns/456179934766753270/671faa45a77a47dba78cf34478b09758/artifacts
+end_time: 1794315124486
+entry_point_name: ''
+experiment_id: '456179934766753270'
+lifecycle_stage: active
+run_id: 671faa45a77a47dba78cf34478b09758
+run_name: bundle__lgbm_c
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1794315124231
+status: 3
+tags: []
+user_id: unknown

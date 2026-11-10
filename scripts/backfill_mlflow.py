@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Backfill the 13 measured runs into the `ds02-clase` MLflow experiment.
+"""Backfill the 17 measured runs into the `ds02-clase` MLflow experiment.
 
 PIA-4 (20 % of PIA) asks for every model and experiment with hyperparameters,
 metrics and a comparison; SAA asks for a table "taken from MLflow". This script
@@ -8,13 +8,20 @@ It never trains, never writes `models/`, and never calls `log_model`/`autolog`.
 
 Usage
 -----
-    python scripts/backfill_mlflow.py --write   # create/replace the 13 runs
+    python scripts/backfill_mlflow.py --write   # create/replace the 17 runs
     python scripts/backfill_mlflow.py --check   # verify the store and the export
     python scripts/backfill_mlflow.py --export  # regenerate the CSV from the store
 
 The store is `./mlruns` (text-only file store). `--write` is idempotent by the
 `run_key` tag: it deletes an existing active run with the same key and creates it
-again from the CSV. Re-running it never creates a 14th run.
+again from the CSV. Re-running it never creates an 18th run.
+
+The 17 runs are: 9 row-grain models (5 classic + 4 MLP), 4 window-grain models
+(LGBM, BiLSTM, BiLSTM+EMA5 and the deployed bundle C) and the 4 `cyc_norm`
+ablation variants in `resultados/ablacion_cycnorm.csv` (one run per variant,
+always the BiLSTM+EMA5, which is the best model in all four). The full 4 x 3
+grid stays in the notebook output and in that CSV. Nothing here re-executes a
+notebook.
 """
 from __future__ import annotations
 
@@ -41,11 +48,12 @@ ROOT = Path(__file__).resolve().parents[1]
 EXPERIMENT = "ds02-clase"
 STORE = ROOT / "mlruns"
 EXPORT = ROOT / "docs" / "evidencia" / "mlflow" / "comparativa.csv"
-N_RUNS = 13
+ABLATION = ROOT / "resultados" / "ablacion_cycnorm.csv"
+N_RUNS = 17
 
 EXPORT_FIELDS = [
     "run_key", "run_id", "run_name", "grano", "familia", "rol", "seleccion",
-    "origen", "fuente", "params_summary", "params_json",
+    "origen", "fuente", "params_summary", "params_json", "metrics_json",
     "rmse_train", "mae_train", "r2_train",
     "rmse_val", "mae_val", "r2_val",
     "rmse_test", "mae_test", "r2_test", "nasa_test",
@@ -74,10 +82,14 @@ def historic_runs(client: MlflowClient, exp_id: str) -> list:
     return [r for r in client.search_runs([exp_id], max_results=100) if _is_historic(r)]
 
 DESCRIPTION = (
-    "Reto 1 — 13 runs medidos: 9 de grano fila (5 clásicos + 4 MLP) y 4 de grano "
-    "ventana (LGBM, BiLSTM, BiLSTM+EMA5 y el bundle C desplegado). Los dos granos "
-    "NO son comparables entre sí: fila = una lectura, ventana = 50 lecturas. "
-    "El store es texto; los binarios siguen en models/ y se identifican por SHA."
+    "Reto 1 — 17 runs medidos: 9 de grano fila (5 clásicos + 4 MLP), 4 de grano "
+    "ventana (LGBM, BiLSTM, BiLSTM+EMA5 y el bundle C desplegado) y 4 de la "
+    "ablación de cyc_norm (OFF / OFF+delta / ON / ON+delta sobre BiLSTM+EMA5). "
+    "Los granos fila y ventana NO son comparables entre sí: fila = una lectura, "
+    "ventana = 50 lecturas. Las 4 runs de ablación filtran la variante con el tag "
+    "`familia=ablacion_cycnorm`; el grid 4x3 completo está en "
+    "`resultados/ablacion_cycnorm.csv`. El store es texto; los binarios siguen en "
+    "models/ y se identifican por SHA."
 )
 
 CLASSIC_EXTRAS: dict[str, dict[str, Any]] = {
@@ -433,9 +445,88 @@ def _window_specs() -> list[dict[str, Any]]:
     return specs
 
 
+ABLATION_MODEL_KEY = {"LGBM": "lgbm", "BiLSTM": "bilstm", "BiLSTM+EMA": "bilstm_ema5"}
+
+ABLATION_VARIANT_KEY = {
+    "cyc_norm OFF": "off",
+    "cyc_norm OFF + baseline delta": "off_delta",
+    "cyc_norm ON (baseline)": "on",
+    "cyc_norm ON + baseline delta": "on_delta",
+}
+
+ABLATION_METRIC_KEYS = (
+    "rmse_test", "mae_test", "r2_test", "nasa_test",
+    "tiempo_s", "t_lgb_s", "t_bilstm_s",
+)
+
+
+def _ablation_specs() -> list[dict[str, Any]]:
+    """Las 4 variantes de cyc_norm, una run por variante con el mejor modelo.
+
+    El grid completo (4 variantes x 3 modelos) se mide en nb03 y queda en
+    `resultados/ablacion_cycnorm.csv`. Aqui se registra una run por variante con
+    el modelo de menor RMSE de esa variante (BiLSTM+EMA5 gana las cuatro), para
+    que la comparacion en MLflow aisele el efecto de cyc_norm sin mezclar
+    familias dentro de la misma grafica.
+    """
+    rows = _read_csv(ABLATION)
+    if not rows:
+        raise SystemExit(f"{ABLATION.relative_to(ROOT)} esta vacio")
+
+    best: dict[str, dict[str, str]] = {}
+    for row in rows:
+        variant = " ".join(row["variant"].split())
+        if variant not in ABLATION_VARIANT_KEY:
+            raise SystemExit(f"variante desconocida en el CSV: {variant!r}")
+        model = row["model"]
+        if model not in ABLATION_MODEL_KEY:
+            raise SystemExit(f"modelo desconocido en el CSV: {model!r}")
+        current = best.get(variant)
+        if current is None or float(row["rmse_test"]) < float(current["rmse_test"]):
+            best[variant] = row
+
+    missing = set(ABLATION_VARIANT_KEY) ^ set(best)
+    if missing:
+        raise SystemExit(f"faltan variantes en el CSV: {sorted(missing)}")
+
+    specs: list[dict[str, Any]] = []
+    for variant, row in best.items():
+        model = row["model"]
+        run_key = f"ablacion__{ABLATION_VARIANT_KEY[variant]}__{ABLATION_MODEL_KEY[model]}"
+        params: dict[str, Any] = {
+            "variant": variant, "model": model, "window": 50, "seed": 42,
+        }
+        if model == "BiLSTM+EMA":
+            params["ema_span"] = 5
+        metrics = {
+            key: float(row[key])
+            for key in ABLATION_METRIC_KEYS
+            if row.get(key) not in (None, "", "nan")
+        }
+        specs.append({
+            "run_key": run_key,
+            "run_name": run_key,
+            "params": params,
+            "metrics": metrics,
+            "tags": _common_tags("ablacion", "ablacion_cycnorm",
+                                 "ablacion_cycnorm.csv", {
+                                     "run_key": run_key,
+                                     "rol": "ablacion",
+                                     "variant": variant,
+                                     "params_summary": f"{variant}; {model}; test 11/14/15",
+                                 }),
+            "note": (
+                f"Ablacion cyc_norm, variante '{variant}' con {model}. Medida "
+                "sobre test 11/14/15 (semilla 42) en nb03; no se reentrena. El "
+                "grid 4x3 completo esta en resultados/ablacion_cycnorm.csv."
+            ),
+        })
+    return specs
+
+
 def build_specs() -> list[dict[str, Any]]:
-    """Devuelve las 13 especificaciones historicas (params, metricas, tags) del backfill."""
-    specs = _row_specs() + _window_specs()
+    """Devuelve las 17 especificaciones historicas (params, metricas, tags) del backfill."""
+    specs = _row_specs() + _window_specs() + _ablation_specs()
     keys = [spec["run_key"] for spec in specs]
     if len(specs) != N_RUNS:
         raise SystemExit(f"Esperaba {N_RUNS} runs, construí {len(specs)}")
@@ -513,6 +604,7 @@ def export_csv(client: MlflowClient, exp_id: str) -> None:
             "fuente": data.tags.get("fuente", FUENTE_HISTORICO),
             "params_summary": data.tags.get("params_summary", ""),
             "params_json": json.dumps(data.params, sort_keys=True, ensure_ascii=False),
+            "metrics_json": json.dumps(data.metrics, sort_keys=True, ensure_ascii=False),
             "rmse_train": _metric_text(data, "rmse_train"),
             "mae_train": _metric_text(data, "mae_train"),
             "r2_train": _metric_text(data, "r2_train"),
@@ -538,7 +630,7 @@ def export_csv(client: MlflowClient, exp_id: str) -> None:
 
 
 def check(client: MlflowClient, exp_id: str) -> int:
-    """Comprueba store y export (13 runs, sin artefactos) y devuelve 0 si cuadra."""
+    """Comprueba store y export (17 runs, sin artefactos) y devuelve 0 si cuadra."""
     specs = build_specs()
     expected = {spec["run_key"]: spec for spec in specs}
     runs = historic_runs(client, exp_id)
@@ -609,7 +701,8 @@ def check(client: MlflowClient, exp_id: str) -> int:
         return 2
 
     print(f"OK: {N_RUNS} runs ({sum(1 for s in specs if s['tags']['grano'] == 'fila')} fila + "
-          f"{sum(1 for s in specs if s['tags']['grano'] == 'ventana')} ventana), "
+          f"{sum(1 for s in specs if s['tags']['familia'] == 'bundle_c')} ventana + "
+          f"{sum(1 for s in specs if s['tags']['familia'] == 'ablacion_cycnorm')} ablacion), "
           f"export y store coinciden, sin artefactos.")
     return 0
 
@@ -618,7 +711,7 @@ def main(argv: list[str] | None = None) -> int:
     """Punto de entrada CLI: --write, --check o --live."""
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--write", action="store_true", help="crear/reemplazar los 13 runs")
+    group.add_argument("--write", action="store_true", help="crear/reemplazar los 17 runs")
     group.add_argument("--check", action="store_true", help="verificar store y export")
     group.add_argument("--export", action="store_true", help="regenerar el CSV desde el store")
     args = parser.parse_args(argv)

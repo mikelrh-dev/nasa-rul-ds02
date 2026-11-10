@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/mikel/Desktop/Pruebas/nasa/mlruns/456179934766753270/7bb8c36c4b3f41c5a0494e3fb8303a80/artifacts
+end_time: 1794315125371
+entry_point_name: ''
+experiment_id: '456179934766753270'
+lifecycle_stage: active
+run_id: 7bb8c36c4b3f41c5a0494e3fb8303a80
+run_name: bundle__bilstm_c
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1794315125158
+status: 3
+tags: []
+user_id: unknown

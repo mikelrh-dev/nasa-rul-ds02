@@ -1,0 +1,13 @@
+variant,model,rmse_test,mae_test,r2_test,nasa_test,t_lgb_s,t_bilstm_s,tiempo_s,run_id_origen
+cyc_norm OFF,LGBM,6.297,4.953,0.8864,4600.9,0.301028,,0.301028,220a32b3ebcc4e339074ea40a9db57a3
+cyc_norm OFF,BiLSTM,5.946,3.782,0.8988,3333.1,,514.894,514.894,5cba5d85fd5743f1a49b42a5f12f3433
+cyc_norm OFF,BiLSTM+EMA,5.878,3.74,0.901,3281.4,,,,e16ae3477c6a4e62aa3033e9cd62d929
+cyc_norm OFF + baseline delta,LGBM,8.765,7.117,0.7799,8450,0.326819,,0.326819,ae628229d2eb419fba4ae3950ba93be7
+cyc_norm OFF + baseline delta,BiLSTM,5.939,3.848,0.899,3422.1,,535.724,535.724,69edc6fbaa4f4f8ba1fd587d96633795
+cyc_norm OFF + baseline delta,BiLSTM+EMA,5.896,3.83,0.9004,3393.8,,,,85c82c3fd64747f18c899e2c47db3455
+cyc_norm ON (baseline),LGBM,7.067,5.545,0.857,5731.3,0.331261,,0.331261,eb25b9ea185143e19b6434c2a8716a27
+cyc_norm ON (baseline),BiLSTM,5.939,4.8,0.899,4071.3,,224.206,224.206,fc5ef218cdb34a139359a552810963c9
+cyc_norm ON (baseline),BiLSTM+EMA,5.91,4.793,0.9,4060.3,,,,f5a52b5bc4e34420807e636756950708
+cyc_norm ON + baseline delta,LGBM,8.547,7.14,0.7908,8037.9,0.385222,,0.385222,8ba4f31a33264a2cab9558b3101d9d77
+cyc_norm ON + baseline delta,BiLSTM,5.985,4.721,0.8974,4264.7,,286.52,286.52,c71c559c98854a08a741ce55b60949ba
+cyc_norm ON + baseline delta,BiLSTM+EMA,5.974,4.706,0.8978,4257.8,,,,953e601b37b349c9bf2e39b914c17788

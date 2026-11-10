@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/mikel/Desktop/Pruebas/nasa/mlruns/456179934766753270/d00bc35aa4fc4d70a094824eda85499c/artifacts
+end_time: 1794315128301
+entry_point_name: ''
+experiment_id: '456179934766753270'
+lifecycle_stage: active
+run_id: d00bc35aa4fc4d70a094824eda85499c
+run_name: ablacion__off__bilstm_ema5
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1794315128042
+status: 3
+tags: []
+user_id: unknown

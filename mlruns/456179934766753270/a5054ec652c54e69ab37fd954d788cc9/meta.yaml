@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/mikel/Desktop/Pruebas/nasa/mlruns/456179934766753270/a5054ec652c54e69ab37fd954d788cc9/artifacts
+end_time: 1794315120890
+entry_point_name: ''
+experiment_id: '456179934766753270'
+lifecycle_stage: active
+run_id: a5054ec652c54e69ab37fd954d788cc9
+run_name: mlp__base
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1794315120674
+status: 3
+tags: []
+user_id: unknown

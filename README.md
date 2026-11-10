@@ -26,7 +26,7 @@ Taller MRO con flota DS02: un motor parado en pista (AOG) cuesta del orden de 10
 
 ## Qué hemos construido
 
-**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer), MLflow (13 runs históricos del backfill + runs live de notebooks; PIA-4).
+**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer), MLflow (17 runs históricos curados: 9 fila + 4 ventana + 4 ablación; PIA-4).
 
 Predicción de vida útil restante en el dataset turbofán N-CMAPSS DS02, empaquetado
 para que **cargue, sirva y sea honesto sobre lo que mide**.
@@ -158,17 +158,17 @@ U14 8.5761 · U15 2.8371. El error no está repartido: la unidad 14 concentra el
 
 El híbrido de clase **es** el modelo desplegado: mismo `run_seed`, mismo contrato de 93 features y sin `fase_vuelo`, entrenado sobre la base con nulos MAR tratados (patrón físico + ffill causal con medianas de fit-units).
 
-## MLflow — 13 runs históricos (PIA-4)
+## MLflow — 17 runs históricos (PIA-4)
 
 El tracking vive en `mlruns/` (file store de texto, sin servidor ni SQLite) y se regenera desde los CSV medidos:
 
 ```bash
-python scripts/backfill_mlflow.py --write   # 13 runs históricos; idempotente por run_key
+python scripts/backfill_mlflow.py --write   # 17 runs históricos; idempotente por run_key
 python scripts/backfill_mlflow.py --check   # store + export, 0 artefactos
 MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
 
-MLflow 3.18 exige `MLFLOW_ALLOW_FILE_STORE=true` para el backend de ficheros; el script y el test lo activan. La comparativa exportada por la API es [`docs/evidencia/mlflow/comparativa.csv`](docs/evidencia/mlflow/comparativa.csv). **Los dos granos no se mezclan**: 9 runs de fila (una lectura) y 4 de ventana (50 lecturas).
+MLflow 3.18 exige `MLFLOW_ALLOW_FILE_STORE=true` para el backend de ficheros; el script y el test lo activan. La comparativa exportada por la API es [`docs/evidencia/mlflow/comparativa.csv`](docs/evidencia/mlflow/comparativa.csv). El store commiteado tiene exactamente 17 runs activas y ninguna `live__*`: **los granos no se mezclan** — 9 runs de fila (una lectura), 4 de ventana (50 lecturas) y 4 de la ablación de `cyc_norm`.
 
 ### Grano fila — 9 runs (GroupKFold por motor)
 
@@ -196,6 +196,19 @@ El test de fila se lee **una sola vez y solo para el elegido**: XGB 11.034 y MLP
 | `prod__bundle_c` | Híbrido-C + EMA5 (bundle C) | — | 4.338 | 447 | producción |
 
 No hay `rmse_val` de ventana comparable: el protocolo es OOF agrupado y la referencia es el test del manifiesto. Producción: MAE 3.227 · R² 0.9461 · NASA 2336.2; `beta=1.0`, EMA 5, ventana 50, 93 features LGBM, 18 scaler y los cuatro SHA del manifiesto. `v3_bundle=archivado` es un tag, no un parámetro.
+
+### Ablación de `cyc_norm` — 4 runs (2×2 sobre BiLSTM+EMA5)
+
+Las cuatro variantes de la ablación se registran **sobre el mismo modelo** (BiLSTM+EMA5, el mejor en las cuatro) para que la comparación de MLflow aísle solo el factor `cyc_norm` y el baseline delta. Protocolo: test 11/14/15, semilla 42, la misma sesión de `nb03` que el resto de la tabla; no se reentrena nada.
+
+| run_key | Variante | RMSE test | MAE | R² | NASA score |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `ablacion__off__bilstm_ema5` | cyc_norm OFF | 5.878 | 3.740 | 0.9010 | 3281.4 |
+| `ablacion__off_delta__bilstm_ema5` | OFF + baseline delta | 5.896 | 3.830 | 0.9004 | 3393.8 |
+| `ablacion__on__bilstm_ema5` | ON (baseline) | 5.910 | 4.793 | 0.9000 | 4060.3 |
+| `ablacion__on_delta__bilstm_ema5` | ON + baseline delta | 5.974 | 4.706 | 0.8978 | 4257.8 |
+
+El grid 4×3 completo (tres modelos por variante) está en [`resultados/ablacion_cycnorm.csv`](resultados/ablacion_cycnorm.csv) y en la sección [Ablación de cyc_norm](#ablación-de-cyc_norm). En MLflow se registran las 4 celdas del modelo secuencial; el resto se filtra por `familia=ablacion_cycnorm`.
 
 ### Capturas MLflow
 
@@ -285,13 +298,18 @@ SHAP TreeExplainer intacto (`resultados/shap_importancia.*`).
 
 ## Ablación de cyc_norm
 
-| Configuración | BiLSTM RMSE | Meta RMSE |
-| --- | --- | --- |
-| cyc_norm ON (BiLSTM) + OFF (meta) | 5.419 | 4.338 |
-| cyc_norm OFF (BiLSTM) + OFF (meta) | 6.513 | — |
+Medida sobre test 11/14/15 (semilla 42) en `notebooks/03_feature_engineering_secuencial.ipynb`. RMSE por variante y modelo; las cuatro variantes se registran en MLflow sobre el BiLSTM+EMA5 (`ablacion__*`).
 
-Conclusión: cyc_norm se mantiene en el BiLSTM (canal 19) y se elimina del
-meta-learner para evitar fuga del contador.
+| Variante | LGBM | BiLSTM | BiLSTM+EMA5 |
+| --- | ---: | ---: | ---: |
+| cyc_norm OFF | **6.297** | 5.946 | **5.878** |
+| cyc_norm OFF + baseline delta | 8.765 | 5.939 | 5.896 |
+| cyc_norm ON (baseline) | 7.067 | 5.939 | 5.910 |
+| cyc_norm ON + baseline delta | 8.547 | 5.985 | 5.974 |
+
+Lectura: en el secuencial las cuatro variantes caen en 5,878–5,974 (0,10 de horquilla), así que `cyc_norm` no cambia el resultado. En el LGBM sí: activarlo cuesta +0,77 RMSE y añadir el baseline delta +2,47, así que ambos se quedan fuera del modelo tabular.
+
+Conclusión: `cyc_norm` se mantiene como canal 19 del BiLSTM (no cuesta) y no entra en el LGBM ni en el meta-learner (cuesta). Fuente completa de las 12 celdas: [`resultados/ablacion_cycnorm.csv`](resultados/ablacion_cycnorm.csv).
 
 ---
 
@@ -346,7 +364,7 @@ src/utils.py            fachada rúbrica (re-exporta pipeline_clase + métricas)
 src/reglas.py           fachada rúbrica sobre src.mia/ (6+ reglas, prioridad, seguridad)
 src/n8n.py              envío de la decisión a n8n (MIA-3)
 src/ds02_rul/           data, features, model, pipeline, stacking, metrics, ...
-mlruns/                 store MLflow de texto (13 runs históricos + live; sin artefactos)
+mlruns/                 store MLflow de texto (17 runs curados + live; sin artefactos)
 docs/evidencia/mlflow/  comparativa.csv + capturas de MLflow
 models/mejor_modelo.joblib  alias del mejor clasico (copia de mejor_modelo_clase.joblib, XGB)
 models/                 bundle desplegado (C): ensemble.joblib, bilstm_ds02.keras,

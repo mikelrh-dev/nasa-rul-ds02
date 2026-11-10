@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/mikel/Desktop/Pruebas/nasa/mlruns/456179934766753270/331cdc1a616c41c7b2e9b7ba5744552a/artifacts
+end_time: 1794315127270
+entry_point_name: ''
+experiment_id: '456179934766753270'
+lifecycle_stage: active
+run_id: 331cdc1a616c41c7b2e9b7ba5744552a
+run_name: prod__bundle_c
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1794315126816
+status: 3
+tags: []
+user_id: unknown

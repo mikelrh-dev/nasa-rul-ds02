@@ -8,7 +8,7 @@ Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a part
 
 *Real vs predicho en test (2.000 puntos) del mejor clásico elegido por validación: la fila ordena el desgaste, pero se dispersa en RUL alta. Es la evidencia didáctica de por qué el track necesita ventanas; la app de producción usa el bundle C.*
 
-**Herramientas:** Python · pandas · matplotlib · scikit-learn · XGBoost · LightGBM · Streamlit · SHAP · MLflow (13 runs en `mlruns/`; PIA-4); n8n implementado en `src/n8n.py` y `n8n/flujo.json`.
+**Herramientas:** Python · pandas · matplotlib · scikit-learn · XGBoost · LightGBM · Streamlit · SHAP · MLflow (17 runs curados en `mlruns/`; PIA-4); n8n implementado en `src/n8n.py` y `n8n/flujo.json`.
 
 ---
 

@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/mikel/Desktop/Pruebas/nasa/mlruns/456179934766753270/2d5b5df1c7ef47ffb3eec7174ed6a95e/artifacts
+end_time: 1794315119035
+entry_point_name: ''
+experiment_id: '456179934766753270'
+lifecycle_stage: active
+run_id: 2d5b5df1c7ef47ffb3eec7174ed6a95e
+run_name: clasico__svm
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1794315118861
+status: 3
+tags: []
+user_id: unknown

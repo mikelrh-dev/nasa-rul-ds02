@@ -1,0 +1,1 @@
+Ablacion cyc_norm, variante 'cyc_norm OFF' con BiLSTM+EMA. Medida sobre test 11/14/15 (semilla 42) en nb03; no se reentrena. El grid 4x3 completo esta en resultados/ablacion_cycnorm.csv.
