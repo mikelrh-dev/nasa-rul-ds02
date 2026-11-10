@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "generated_at": "2026-11-05T10:05:21+00:00",
+  "generated_at": "2026-11-09T23:29:55+00:00",
   "dataset": "DS02",
   "source": {
     "base": "adaptada (MAR T30 + ffill causal, medianas de fit-units)",
@@ -38,7 +38,7 @@
     "ensemble": "models\\ensemble.joblib",
     "ensemble_sha256": "d6c701429eed8623a9d900d922aca1922427d08ff8b4ec00604b8116c1a952dd",
     "manifest": "models\\ds02_manifest.json",
-    "manifest_sha256": "1085dd67aed8179174996f3939bd7715f757f954a822d440a093dd847d3eb8c9",
+    "manifest_sha256": "6089457c772f8cb947ed58172703043a2c6b149f2bdde0ca71599a19ec83ea40",
     "paradigm": "Hybrid Stacking (BiLSTM triple-pooling + LGBM residualizado + RidgeCV/LGBM meta + EMA5)",
     "beta": 1.0,
     "ema_span": 5,
@@ -74,8 +74,8 @@
       }
     },
     "fit_engine_rows_per_cycle": 118.23,
-    "windows_sha256": "8e0ba2666ada1a2cb007a57bcf3583f3b0a76d648cdc4733a01d9387513af352",
-    "rows_sha256": "0008bca480ab72edd8b9c76e2c7a97ea1a99b7129f82169e88dd0f21f58f7597"
+    "windows_sha256": "beedfd1d75f058c2ec70353163944bf685ce57b5235ed553703465796cc05294",
+    "rows_sha256": "cd8087655518b23967d65908c98ce947ac4f56da873afd465008c68713dae374"
   },
   "metrics": {
     "rmse": 4.3382,
