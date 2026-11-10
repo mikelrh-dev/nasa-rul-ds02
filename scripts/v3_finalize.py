@@ -21,6 +21,7 @@ VERSION = 'v3.0.0'
 
 
 def main():
+    """Cierra la cadena v3: evalua, escribe el informe y los checksums."""
     tr, te, rul = c.load_fd('FD001')
     _, f_tr = c.add_health_features(tr)
     _, f_te = c.add_health_features(te)
@@ -31,6 +32,7 @@ def main():
     real = mt['RUL_real'].values
 
     def mk(alpha=None):
+        """Construye un DataFrame de metricas con columnas homogeneas."""
         kw = {'objective': 'quantile', 'alpha': alpha} if alpha is not None else {}
         return LGBMRegressor(n_estimators=300, learning_rate=0.05, max_depth=8,
                              random_state=42, n_jobs=-1, verbose=-1, **kw)
@@ -73,11 +75,10 @@ def main():
                                                    ('AMARILLO' if v < T_warn else 'VERDE') for v in p]}
                  ).to_csv(ROOT / 'models' / 'v3_quantile_FD001.csv', index=False)
 
-    bundle = {'version': VERSION, 'dataset': 'FD001', 'window': c.WINDOW, 'features': F,
-              'model': model, 'q10': q10, 'q90': q90, 'T_crit': T_crit, 'T_warn': T_warn,
-              'regla_alarma': elegida,
-              'rmse_test': c.rmse(real, p), 'mae_test': c.mae(real, p)}
-    joblib.dump(bundle, ROOT / 'models' / 'v3_bundle.joblib')
+    # FD001 v3 queda fuera de servicio (auditoria 2026-11-10, C-01): el bundle
+    # se archivo y `scripts/predict.py` lo declara no disponible. Se retira el
+    # escritor para no volver a crear `models/v3_bundle.joblib`, que el
+    # manifiesto conserva solo como referencia historica (v3_bundle_sha256).
 
     policy = {
         'version': VERSION, 'modelo': 'LightGBM + features de salud',
