@@ -1,8 +1,0 @@
-flowchart LR
-    LSTM[p_lstm] --> META[Ridge + LGBM 50/50]
-    LGB[p_lgb] --> META
-    META --> PMETA[p_meta]
-    PMETA --> BLEND[lstm + beta x meta-lstm]
-    BLEND --> EMA5[EMA5]
-    EMA5 --> PT[punto 4.275]
-    PT --> CONF[Banda 90%]

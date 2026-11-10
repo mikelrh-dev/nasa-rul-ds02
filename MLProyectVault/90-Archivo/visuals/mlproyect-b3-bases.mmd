@@ -1,9 +1,0 @@
-flowchart LR
-    SEQ[X_seq 50x19] --> B1[BiLSTM 64]
-    B1 --> B2[BiLSTM 64]
-    B2 --> P[last + avg + max]
-    P --> D[Dense 32]
-    D --> RUL[RUL]
-    TAB[X_tab 93] --> LGBM[LGBM cuantil 0.35]
-    RUL --> EMA[EMA5 causal por motor]
-    LGBM --> EMA

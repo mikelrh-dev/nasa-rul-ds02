@@ -121,3 +121,7 @@ resultados/*
 !resultados/*.png
 resultados/*.log
 track_clase/models/
+
+# documentacion local: se queda en disco, no se versiona
+MLProyectVault/
+/costes_reales_aeronauticos.md
