@@ -6,7 +6,8 @@
 > `src/clase/` (código), `notebooks/01–06` (relato), `data/processed/`
 > (dataset con nulos MAR + `fase_vuelo`) y `resultados/` (métricas y figuras).
 > Punto de entrada: [`src/clase/README.md`](src/clase/README.md) (6 apartados),
-> app de producción: `streamlit run app/dashboard_ds02.py` (bundle C + SHAP).
+> app de producción: `streamlit run app/dashboard_ds02.py` (bundle C + SHAP); el
+> entry-point que pide la rúbrica, `app/streamlit_app.py`, solo la delega.
 > Lo de abajo es el sistema desplegado (bundle C congelado, RMSE 4.338).
 
 ![RMSE por motor del bundle C](docs/assets/bundle_c_rmse_por_motor.png)
@@ -26,7 +27,7 @@ Taller MRO con flota DS02: un motor parado en pista (AOG) cuesta del orden de 10
 
 ## Qué hemos construido
 
-**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer), MLflow (17 runs históricos curados: 9 fila + 4 ventana + 4 ablación; PIA-4).
+**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción), SHAP (TreeExplainer sobre el LightGBM del bundle C; PermutationExplainer sobre el MLP E2 en el track de clase), MLflow (17 runs históricos curados: 9 fila + 4 ventana + 4 ablación; PIA-4).
 
 Predicción de vida útil restante en el dataset turbofán N-CMAPSS DS02, empaquetado
 para que **cargue, sirva y sea honesto sobre lo que mide**.
@@ -145,6 +146,28 @@ Desplegado (bundle C): RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2 (sem
 **Macro-RMSE por motor (el número que esconde la media):** 5.0153 — U11 3.6328 ·
 U14 8.5761 · U15 2.8371. El error no está repartido: la unidad 14 concentra el fallo.
 
+### Coste del error
+
+El error del bundle C no es abstracto: se traduce en decisiones de taller. La tabla no
+inventa una cifra única — deja la conversión ciclos→horas como **supuesto declarado**,
+porque el DS02 no la publica.
+
+| Concepto | Fórmula | Valor |
+| --- | --- | --- |
+| Coste AOG (fuente externa, credibilidad Media) | rango Boeing | 10.000–15.000 USD/h |
+| Horas por ciclo de vuelo | **supuesto**, no medido en el DS02 | 1–2 h |
+| Coste por ciclo de error | h/ciclo × AOG | 10.000–30.000 USD |
+| Error del bundle C | RMSE test del manifiesto | 4.338 ciclos |
+| Coste si todo el error cae en AOG, motor medio | RMSE × coste/ciclo | ≈ 43.000–130.000 USD |
+| Peor unidad (U14) | 8.5761 × coste/ciclo | ≈ 86.000–257.000 USD |
+| Inspección preventiva | una parada programada | una fracción del AOG |
+
+Lectura honesta: con umbrales `hangar` 25 y `apto` 30 ciclos (`src/mia/reglas.py`,
+ADR-008), un RMSE de 4.338 es ≈17 % del umbral de hangar; el error se convierte en
+dinero solo si se traduce en AOG. La fuente detallada (`costes_reales_aeronauticos.md`
+§1) es local y **no está versionada**: el rango se declara como supuesto, no como
+medición, y cada fila admite recalcularse cambiando `h/ciclo`.
+
 
 ### Track de clase (modelos de la asignatura)
 
@@ -184,7 +207,7 @@ MLflow 3.18 exige `MLFLOW_ALLOW_FILE_STORE=true` para el backend de ficheros; el
 | `mlp__E2_reg_lr` | MLP E2 | 7.3404 | 7.7211 | 33.3 | `mejor_mlp,campeon_fila` |
 | `mlp__E3_batch` | MLP E3 | 7.3554 | — | 38.6 | — |
 
-El test de fila se lee **una sola vez y solo para el elegido**: XGB 11.034 y MLP-E2 7.7211. No se usa para seleccionar.
+El test de fila se lee **una sola vez por familia y nunca para seleccionar**: XGB 11.034 y MLP-E2 7.7211 son lecturas de test publicadas; la elección se hizo por `rmse_val`.
 
 ### Grano ventana — 4 runs (grouped out-of-fold; test 6.196 ventanas, uds 11/14/15)
 
