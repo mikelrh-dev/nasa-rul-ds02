@@ -114,5 +114,9 @@ notebooks/ds02_ensemble/RequisitosClase/Ejemplos/
 # resultados/ (CSV/PNG) is rebuilt by src/clase/train_*.py, shap_*.py and the
 # notebooks. Both are build output, like notebooksMD/*.md from the .ipynb files.
 data/
-resultados/
+# resultados/: se versionan los CSV/PNG citados por README y tests; los logs no.
+resultados/*
+!resultados/*.csv
+!resultados/*.png
+resultados/*.log
 track_clase/models/

@@ -1,0 +1,6 @@
+modelo,mejores_params,tiempo_s,rmse_train,mae_train,r2_train,rmse_val,mae_val,r2_val,rmse_test,mae_test,r2_test
+knn,{'reg__n_neighbors': 31},9.1,6.984,5.3739,0.9025,9.4092,8.1856,0.8181,,,
+regresion,{'reg__alpha': 10.0},3.5,8.2004,6.9054,0.8656,8.2762,7.6611,0.8502,,,
+rf,{'reg__max_depth': 8},79.6,7.1572,5.7492,0.8977,9.0704,8.1534,0.827,,,
+svm,"{'reg__C': 10.0, 'reg__epsilon': 1.0}",2.7,7.5251,5.8227,0.8869,8.2927,7.5299,0.8565,,,
+xgb,{'reg__max_depth': 4},7.2,7.1887,5.9025,0.8968,8.2173,7.4688,0.8543,11.034,9.9098,0.6616

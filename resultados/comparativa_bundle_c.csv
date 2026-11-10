@@ -1,0 +1,5 @@
+Modelo,RMSE,MAE,R2,NASA_Score,grano
+LGBM-C (cuantil 0.35),7.067,5.545,0.857,5731.3,ventana
+BiLSTM-C,5.654,4.295,0.9084,3674.0,ventana
+BiLSTM-C + EMA5,5.618,4.268,0.9096,3649.4,ventana
+Híbrido-C (beta=1.00) + EMA5,4.338,3.227,0.9461,2336.2,ventana

@@ -1,0 +1,4 @@
+seed,RMSE,MAE,R2,NASA_Score,origen
+42,4.338,3.227,0.9461,2336.2,manifest
+7,4.429,3.272,0.9438,2382.9,bundle_c_multiseed.csv
+123,4.336,3.242,0.9462,2346.4,bundle_c_multiseed.csv

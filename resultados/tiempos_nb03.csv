@@ -1,0 +1,13 @@
+run_key,t_lgb_s,t_bilstm_s,tiempo_s,fuente
+live__nb03_LGBM_6616,0.33126119999906223,nan,0.33126119999906223,live_notebook
+live__nb03_BiLSTM_6616,nan,224.2061902000005,224.2061902000005,live_notebook
+live__nb03_BiLSTM+EMA_6616,nan,nan,nan,live_notebook
+live__nb03_LGBM_2944,0.3010278000001563,nan,0.3010278000001563,live_notebook
+live__nb03_BiLSTM_2944,nan,514.8935121000013,514.8935121000013,live_notebook
+live__nb03_BiLSTM+EMA_2944,nan,nan,nan,live_notebook
+live__nb03_LGBM_2984,0.3268190999988292,nan,0.3268190999988292,live_notebook
+live__nb03_BiLSTM_2984,nan,535.7242951000007,535.7242951000007,live_notebook
+live__nb03_BiLSTM+EMA_2984,nan,nan,nan,live_notebook
+live__nb03_LGBM_4053,0.3852221000015561,nan,0.3852221000015561,live_notebook
+live__nb03_BiLSTM_4053,nan,286.5199270000012,286.5199270000012,live_notebook
+live__nb03_BiLSTM+EMA_4053,nan,nan,nan,live_notebook

@@ -1,0 +1,5 @@
+experimento,hipotesis,params,tiempo_s,rmse_train,mae_train,r2_train,rmse_val,mae_val,r2_val,rmse_test,mae_test,r2_test
+base,"MLP medio: RUL no lineal por régimen, 2 capas bastan sin memorizar.","{'hidden_layer_sizes': (128, 64), 'alpha': 0.001}",27.5,5.7128,4.0254,0.9348,7.358,5.6405,0.8918,,,
+E1_capacidad,Más capacidad capta interacción régimen-degradación hasta overfit.,"{'hidden_layer_sizes': (256, 128, 64), 'alpha': 0.001}",70.7,5.2291,3.5858,0.9454,7.4808,5.7735,0.8882,,,
+E2_reg_lr,Más regularización frena memorización de 22 feats transformadas ruidosas.,"{'hidden_layer_sizes': (128, 64), 'alpha': 0.01}",33.3,5.7249,4.0399,0.9345,7.3404,5.6481,0.8924,7.7211,5.8132,0.8343
+E3_batch,Batch grande estabiliza gradiente en ventanas correladas.,"{'hidden_layer_sizes': (128, 64), 'alpha': 0.001, 'batch_size': 1024}",38.6,5.7856,4.121,0.9331,7.3554,5.7035,0.8919,,,

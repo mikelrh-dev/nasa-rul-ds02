@@ -1,0 +1,10 @@
+run_key,t_lgb_s,t_bilstm_s,tiempo_s,fuente
+live__nb02_knn,,,9.1,live_notebook
+live__nb02_regresion,,,3.5,live_notebook
+live__nb02_rf,,,79.6,live_notebook
+live__nb02_svm,,,2.7,live_notebook
+live__nb02_xgb,,,7.2,live_notebook
+live__nb02_mlp_base,,,27.5,live_notebook
+live__nb02_mlp_E1_capacidad,,,70.7,live_notebook
+live__nb02_mlp_E2_reg_lr,,,33.3,live_notebook
+live__nb02_mlp_E3_batch,,,38.6,live_notebook

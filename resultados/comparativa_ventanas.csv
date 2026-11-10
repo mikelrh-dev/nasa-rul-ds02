@@ -1,0 +1,2 @@
+modelo,grano,tiempo_s,rmse_test,mae_test,r2_test,nasa_test,n_test
+lgbm_adaptada,ventana,0.4,7.067,5.545,0.857,5731.3,6196

@@ -1,0 +1,14 @@
+modelo,familia,grano,rmse_val,rmse_test,mae_test,r2_test,nasa_test,tiempo_s,n_test
+knn,clasicos,fila,9.4092,,,,,9.1,12538
+regresion,clasicos,fila,8.2762,,,,,3.5,12538
+rf,clasicos,fila,9.0704,,,,,79.6,12538
+svm,clasicos,fila,8.2927,,,,,2.7,12538
+xgb,clasicos,fila,8.2173,11.034,9.9098,0.6616,,7.2,12538
+MLP-base,mlp,fila,7.358,,,,,27.5,12538
+MLP-E1_capacidad,mlp,fila,7.4808,,,,,70.7,12538
+MLP-E2_reg_lr,mlp,fila,7.3404,7.7211,5.8132,0.8343,,33.3,12538
+MLP-E3_batch,mlp,fila,7.3554,,,,,38.6,12538
+lgbm_adaptada,lgbm_adaptada,ventana,,7.067,5.545,0.857,5731.3,0.4,6196
+BiLSTM-C,bundle_c,ventana,,5.654,4.295,0.9084,3674.0,,6196
+BiLSTM-C + EMA5,bundle_c,ventana,,5.618,4.268,0.9096,3649.4,,6196
+Híbrido-C (beta=1.00) + EMA5,bundle_c,ventana,,4.338,3.227,0.9461,2336.2,,6196
