@@ -391,7 +391,11 @@ instalación; el dry-run de `mlflow==3.18.0` no mueve numpy/pandas/sklearn/TF).
 
 ---
 
-## 18. Inventario cerrado de MLflow (sustituye §4: 13 runs)
+## 18. Inventario cerrado de MLflow (sustituye §4: 17 runs)
+
+> **Cierre 2026-11-10.** Este inventario recoge los 13 runs originales (9 fila + 4 ventana);
+> el cierre de PIA-4 añadió 4 runs de ablación de `cyc_norm`, así que el store final tiene
+> **17 runs** (9 fila + 4 ventana + 4 ablación).
 
 **Experimento:** `ds02-clase`, con descripción y tags de entorno/datos a nivel de
 experimento. **Nada de binarios, registry ni servidor.**
@@ -479,7 +483,7 @@ train y test), `job=reto-1-saa-pia-mia`.
 | Firma de modelo / input example | **No (deuda)** | Requiere cargar el modelo y escribir artefacto; no lo pide la rúbrica |
 | `mlflow.data` con copia del dataset | **No** | 8 MB; el hash da la trazabilidad sin duplicar |
 | Nested runs para el bundle | **No** | Complica export y comparación; `rol` + `base` tags bastan |
-| Servidor MLflow / backend SQLite | **No** | 13 runs en file store; un proceso más no aporta |
+| Servidor MLflow / backend SQLite | **No** | 17 runs en file store; un proceso más no aporta |
 | Figuras por run | **No** | Duplican `docs/assets` y engordan el store |
 
 ---
@@ -491,7 +495,7 @@ train y test), `job=reto-1-saa-pia-mia`.
 | **0. Preflight** | Rama, backups de `resultados/` y `artifacts_c`, snapshot de hashes, baseline de suite | — | 345 passed; `models/*` y manifiesto sin tocar | 15 min |
 | **1. Dependencia** | `mlflow==3.18.0`, cabecera de requirements, `uv lock`, instalar, `pip check` | `requirements.txt`, `pyproject.toml`, `uv.lock` | 0 downgrades de numpy/pandas/sklearn/TF; 345 passed | 30 min |
 | **2. Store** | Política de store y experimento | `.gitignore`, `scripts/backfill_mlflow.py` | `git status` sin binarios; `mlruns/` de texto | 10 min |
-| **3. Backfill** | 9 runs fila + 3 componentes + 1 producción; `--write/--check` | `scripts/backfill_mlflow.py` | 13 runs con params/métricas/tiempo; `--check` exit 0 | 2–3 h |
+| **3. Backfill** | 9 runs fila + 3 componentes + 1 producción + 4 ablación; `--write/--check` | `scripts/backfill_mlflow.py` | 17 runs con params/métricas (y tiempo cuando se midió); `--check` exit 0 | 2–3 h |
 | **4. Export + capturas** | CSV desde la API + 2 capturas de comparación + run de producción | `docs/evidencia/mlflow/` | CSV == store; `run_id` presentes; capturas con tiempo | 45 min |
 | **5. README** | Captura de app, tabla MLflow etiquetada, elección y captura | `README.md`, `README.en.md` | PIA-1 y PIA-4; tabla separada de la de test | 45–60 min |
 | **6. Superficies** | Quitar «MLflow fuera» de 7 sitios; rúbrica v4→v5 | `docs/chuleta`, `guiones`, `presentacion`, `c27`, `s14`, `openspec/config` | Ninguna superficie activa dice «fuera» | 30–45 min |

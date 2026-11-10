@@ -68,15 +68,15 @@ Acceptance: the experiment exists once; no duplicate experiment is created.
 
 ---
 
-## Phase 3 — Backfill and 13 runs
+## Phase 3 — Backfill and 17 runs
 
 ### [x] 3.1 Implement `scripts/backfill_mlflow.py`
-Read the two class CSVs, the bundle CSV, `bundle_c_train.log` and the manifest.
-Define the 13 run specs with `run_key`, params, metrics and tags. Implement
-`--write` (idempotent by `run_key`), `--check` (13 active runs, params/metrics/tags)
-and `--export` (API-generated CSV).
-Acceptance: `--write` exits 0 and creates exactly 13 active runs; `--check`
-exits 0; a second `--write` still leaves 13.
+Read the two class CSVs, the bundle CSV, `bundle_c_train.log`, the manifest and
+`resultados/ablacion_cycnorm.csv`. Define the 17 run specs with `run_key`, params,
+metrics and tags. Implement `--write` (idempotent by `run_key`), `--check` (17 active
+runs, params/metrics/tags) and `--export` (API-generated CSV).
+Acceptance: `--write` exits 0 and creates exactly 17 active runs; `--check`
+exits 0; a second `--write` still leaves 17.
 
 ### [x] 3.2 Log the production run from the manifest
 Log seed 42, beta 1.0, EMA 5, window 50, 93 LGBM features, 18 scaler features,
@@ -90,8 +90,8 @@ Acceptance: the production run has 4 SHA params and the `reference_row` metrics
 Write `docs/evidencia/mlflow/comparativa.csv` with one row per run, `run_id`,
 `grano`, `familia`, `rol`, `seleccion`, `params_summary`, `params_json`,
 train/val/test metrics, `nasa_test`, `tiempo_s`, `macro_rmse`.
-Acceptance: 13 rows; the row-grain block has 9 and the window-grain block 4;
-`run_id` is present in every row.
+Acceptance: 17 rows; the row-grain block has 9, the window-grain block 4 and the
+ablation block 4; `run_id` is present in every row.
 
 ---
 
@@ -128,7 +128,7 @@ is linked.
 
 ### [x] 5.2 English README
 Mirror the same section and labels in `README.en.md`.
-Acceptance: same 13 runs and same metric labels; no “MLflow out” claim.
+Acceptance: same 17 runs and same metric labels; no “MLflow out” claim.
 
 ---
 
@@ -155,7 +155,7 @@ Acceptance: the header is present; the file is not cited as current.
 
 ### [x] 7.1 Store test
 `tests/test_mlflow_backfill.py` reads the store from disk (no server), asserts
-13 active runs, 9/4 by grain, unique `run_key`, the production SHAs, the absence
+17 active runs, 9/4/4 by grain, unique `run_key`, the production SHAs, the absence
 of `tiempo_s` for EMA5, the export/store agreement and the absence of artifacts.
 Acceptance: `python -m pytest tests/test_mlflow_backfill.py -q -rs` → 0 failed,
 0 skipped.
@@ -180,9 +180,9 @@ change. The user runs it separately. This change closes at phase 7.
 
 ---
 
-## Verification (2026-11-09)
+## Verification (2026-11-09, store extended 2026-11-10)
 
-- `python scripts/backfill_mlflow.py --check`: 13 runs (9 fila + 4 ventana), export == store, no artifacts.
+- `python scripts/backfill_mlflow.py --check`: 17 runs (9 fila + 4 ventana + 4 ablación), export == store, no artifacts.
 - `python -m pytest tests/test_mlflow_backfill.py -q -rs`: 11 passed.
 - `python -m pytest tests -q -rs`: **406 passed** in 212.12 s.
 - `python scripts/freeze_rules_evidence.py`: exit 0; coverage **0.901643**; 14 915 pure OOF rows.

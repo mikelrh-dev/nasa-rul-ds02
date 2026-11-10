@@ -15,7 +15,7 @@
   Unico hero full bleed en portada s01 (stitch-turbofan.jpg, velo navy 40%).
   Resto de slides en blanco limpio, sin fondos grises ni degrade de tabla.
   Uso: flechas / espacio / click izq-der para navegar. Export PDF: Chrome headless --print-to-pdf (@media print: 1 slide = 1 pagina).
-  Cifras: bundle C oficial seed 42 = 4.338 / 3.227 / 0.9461 / 2336.2 . B solo historico. MLflow: 13 runs (9 fila + 4 ventana) en mlruns/. Sin coste AOG en euros.
+  Cifras: bundle C oficial seed 42 = 4.338 / 3.227 / 0.9461 / 2336.2 . B solo historico. MLflow: 17 runs (9 fila + 4 ventana + 4 ablacion) en mlruns/. Sin coste AOG en euros.
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -647,7 +647,7 @@ h1 .hl{color:#FFFFFF;}
         <div class="panel"><div class="panel-t"><span>Lectura</span><b>4 balas</b></div>
           <ul class="b">
             <li>Dos ligas: <strong>MLP-E2 fila 7.7211</strong> vs <strong>ventana C 4.338</strong>. Misma tarea, distinto grano (fila = 1 dato, ventana = 50).</li>
-            <li>Ancla: <strong>manifiesto oficial seed 42</strong> (C 4.338/3.227/0.9461/2336.2). B solo histórico · MLflow: 13 runs (9 fila / 4 ventana).</li>
+            <li>Ancla: <strong>manifiesto oficial seed 42</strong> (C 4.338/3.227/0.9461/2336.2). B solo histórico · MLflow: 17 runs (9 fila / 4 ventana / 4 ablación).</li>
             <li>Empresa: pasar de fila a ventana es pasar de «cada lectura» a «la historia reciente del motor»: la que decide en hangar.</li>
             <li>Comparar 7.72 contra 4.34 sin decir el grano es comparar peras con racimos: siempre con la liga declarada.</li>
           </ul>
@@ -749,7 +749,7 @@ h1 .hl{color:#FFFFFF;}
             <li><strong>8 reglas L_inf 30/25</strong> — R1 seguridad; Streamlit: caso nuevo → <strong>p + decisión</strong>. Sin N8N, la app ya decide local.</li>
             <li>N8n webhook <strong>ds02/decision</strong>: APTO → log INSPECCION → Sheets HANGAR → Postgres+Calendar+Gmail. <span class="dim">Flujo versionado inactivo por diseño; la instancia local lo ejecutó 29 veces (2026-11-07).</span></li>
             <li>Matiz: el JSON versionado está inactivo por diseño y un test lo exige así; la instancia local sí ejecutó el flujo (29 veces, 25 success / 4 error). No hay ejecución atribuible a la app Streamlit.</li>
-            <li>MLflow: 13 runs en <code>mlruns/</code> (9 fila / 4 ventana). Sin coste AOG en euros — no se afirma cifra económica. «Aviso» ≠ «ahorro».</li>
+            <li>MLflow: 17 runs en <code>mlruns/</code> (9 fila / 4 ventana / 4 ablación). Sin coste AOG en euros — no se afirma cifra económica. «Aviso» ≠ «ahorro».</li>
           </ul>
         </div>
       </div>
@@ -761,7 +761,7 @@ h1 .hl{color:#FFFFFF;}
             <div class="step"><small>Apto</small>INSPECCION<br>Sheets · HANGAR</div><span class="arrow">→</span>
             <div class="step"><small>Destino</small>Postgres<br>Calendar + Gmail</div>
           </div>
-          <p class="note"><b>Nota:</b> MLflow: 13 runs (9 fila / 4 ventana). Sin coste AOG en euros — no se afirma cifra económica.</p>
+          <p class="note"><b>Nota:</b> MLflow: 17 runs (9 fila / 4 ventana / 4 ablación). Sin coste AOG en euros — no se afirma cifra económica.</p>
         </div>
       </div>
     </div>
@@ -788,7 +788,7 @@ h1 .hl{color:#FFFFFF;}
           </ul>
         </div>
         <div class="panel" style="margin-top:14px"><div class="panel-t"><span>Ancla</span><b>Seed 42</b></div>
-          <p>Bundle C oficial: <span style="color:#1763A9;font-weight:800;font-size:26px">4.338 / 3.227 / 0.9461 / 2336.2</span><br><span style="font-size:15px;color:#9CA3AF">B solo histórico · MLflow: 13 runs · manda el manifiesto SHA</span></p>
+          <p>Bundle C oficial: <span style="color:#1763A9;font-weight:800;font-size:26px">4.338 / 3.227 / 0.9461 / 2336.2</span><br><span style="font-size:15px;color:#9CA3AF">B solo histórico · MLflow: 17 runs · manda el manifiesto SHA</span></p>
         </div>
       </div>
       <div class="col-fig">

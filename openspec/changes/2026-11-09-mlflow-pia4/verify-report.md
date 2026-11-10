@@ -3,6 +3,7 @@
 **Change:** `2026-11-09-mlflow-pia4`  
 **Branch:** `mlflow-pia4`  
 **Date:** 2026-11-09  
+**Updated:** 2026-11-10 — 4 `cyc_norm` ablation runs added; store now has 17 runs  
 **Scope:** phases 0–7. No notebook was executed or modified.
 
 ## Result
@@ -11,7 +12,7 @@ All gates pass.
 
 | Check | Command | Result |
 |---|---|---|
-| Store/export/check | `python scripts/backfill_mlflow.py --check` | `OK: 13 runs (9 fila + 4 ventana), export y store coinciden, sin artefactos` |
+| Store/export/check (2026-11-09) | `python scripts/backfill_mlflow.py --check` | `OK: 13 runs (9 fila + 4 ventana), export y store coinciden, sin artefactos` |
 | MLflow tests | `pytest tests/test_mlflow_backfill.py -q -rs` | **11 passed** |
 | Full suite | `pytest tests -q -rs` | **406 passed** in 212.12 s |
 | Rules freeze | `python scripts/freeze_rules_evidence.py` | exit 0; OOF coverage **0.901643**; pure OOF rows **14 915** |
@@ -19,11 +20,12 @@ All gates pass.
 | Contract hashes | `sha256sum -c .pytest_cache/hashes-pre-notebooks.txt` | 5/5 **OK** |
 | Notebooks | `git status --short -- '*.ipynb'` | empty |
 | MLflow artifacts | `find mlruns -path '*/artifacts/*' -type f` | empty |
+| Store/export/check (2026-11-10 update) | `python scripts/backfill_mlflow.py --check` | `OK: 17 runs (9 fila + 4 ventana + 4 ablacion), export y store coinciden, sin artefactos` |
 
 ## What was produced
 
-- `mlruns/` — text-only MLflow file store; 13 active runs in `ds02-clase`.
-- `docs/evidencia/mlflow/comparativa.csv` — API export, 13 rows.
+- `mlruns/` — text-only MLflow file store, versioned in git; 17 active runs in `ds02-clase` (9 row + 4 window + 4 ablation).
+- `docs/evidencia/mlflow/comparativa.csv` — API export, 17 rows.
 - `docs/evidencia/mlflow/compare_fila.png` — 9 row runs with `rmse_val`, `rmse_test`, `tiempo_s`.
 - `docs/evidencia/mlflow/compare_ventana.png` — 4 window runs with `rmse_val`, `rmse_test`, `tiempo_s`.
 - `docs/evidencia/mlflow/run_prod.png` — `prod__bundle_c` with the 8 metrics and the 4 SHA parameters.
@@ -32,6 +34,7 @@ All gates pass.
 ## Decisions confirmed by the run
 
 - Nine row runs and four window runs are kept separate; no shared comparison table mixes grains.
+- The 4 ablation runs (`familia=ablacion_cycnorm`) are the 2×2 of `cyc_norm` ON/OFF × baseline delta over BiLSTM+EMA5, measured in `nb03` on test 11/14/15 (seed 42) and registered without retraining; the full 4×3 grid is in `resultados/ablacion_cycnorm.csv`.
 - The row test is read once and only for the selected model: XGB `11.034`, MLP-E2 `7.7211`.
 - Window production reference is the manifest: **4.338 / 3.227 / 0.9461 / 2336.2**.
 - `bundle__lgbm_c` and `lgbm_adaptada` are the same model; one run, tag `alias=lgbm_adaptada`.

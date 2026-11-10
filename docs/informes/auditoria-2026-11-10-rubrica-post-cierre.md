@@ -70,6 +70,12 @@ Escala 0/3/7/10. Evidencia = `path:línea` o comando.
 
 ### PIA — 9,4
 
+> **Actualización 2026-11-10 (cierre PIA-4).** El store `mlruns/` está versionado en git con
+> **17 runs** (9 fila + 4 ventana + 4 ablación) y la ablación de `cyc_norm` está registrada como
+> 4 runs comparables. `backfill_mlflow.py --check` imprime
+> `OK: 17 runs (9 fila + 4 ventana + 4 ablacion), export y store coinciden, sin artefactos.`
+> El hallazgo de abajo se conserva como foto del momento de la auditoría.
+
 | # | Criterio (peso) | Nota | Evidencia | Qué falta para el 10 |
 | --- | --- | --- | --- | --- |
 | 1 | README + docstrings (10 %) | 10 | 6 apartados + captura + extras; **0 funciones públicas sin docstring** en `src/` y `app/` (AST) | — |

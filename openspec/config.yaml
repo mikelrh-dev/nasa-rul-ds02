@@ -10,9 +10,10 @@ context: |
   Stack:   Python 3.12 virtualenv (`.venv`), TensorFlow 2.21.0, LightGBM 4.7.0,
            scikit-learn 1.9.1, numpy 2.5.4, pandas 3.0.6, h5py, joblib, nbformat,
            matplotlib, MLflow 3.18.0.
-  Tracking: text-only MLflow file store in `mlruns/` (13 runs: 9 row + 4 window;
-           `MLFLOW_ALLOW_FILE_STORE=true` because 3.18 refuses the file backend by
-           default). No model binaries in the store. Rebuild with
+  Tracking: text-only MLflow file store in `mlruns/`, versioned in git (17 runs:
+           9 row + 4 window + 4 `cyc_norm` ablation; zero `live__*`, zero
+           tombstones; `MLFLOW_ALLOW_FILE_STORE=true` because 3.18 refuses the file
+           backend by default). No model binaries in the store. Rebuild with
            `python scripts/backfill_mlflow.py --write`, verify with `--check`.
   Env caveat: the committed DS02 notebook outputs were produced under the SYSTEM
            Python 3.10.0 (TensorFlow 2.21.0, LightGBM 4.6.0, scikit-learn 1.5.1),

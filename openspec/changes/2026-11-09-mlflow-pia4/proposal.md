@@ -1,7 +1,7 @@
 # Proposal: MLflow experiment tracking for PIA-4
 
 **Change:** `2026-11-09-mlflow-pia4`
-**Status:** Implemented — verified 2026-11-09
+**Status:** Implemented — verified 2026-11-09; extended 2026-11-10 with the 4 `cyc_norm` ablation runs
 **Capability:** `rul-prediction-ds02` (ADDED: experiment tracking)
 **Branch:** `mlflow-pia4`
 **Date:** 2026-11-09
@@ -24,17 +24,21 @@ approach that satisfies both the rubric and the byte-compatibility contract.
 
 **In scope**
 
-- One experiment, `ds02-clase`, with **13 runs**:
+- One experiment, `ds02-clase`, with **17 runs**:
   - `grano=fila` (9): 5 classical models (`regresion`, `knn`, `rf`, `svm`, `xgb`)
     and 4 MLPs (`base`, `E1_capacidad`, `E2_reg_lr`, `E3_batch`).
   - `grano=ventana` (4): `bundle__lgbm_c`, `bundle__bilstm_c`,
     `bundle__bilstm_ema5`, `prod__bundle_c`.
+  - `familia=ablacion_cycnorm` (4): `ablacion__off__bilstm_ema5`,
+    `ablacion__off_delta__bilstm_ema5`, `ablacion__on__bilstm_ema5` and
+    `ablacion__on_delta__bilstm_ema5` (2×2 over BiLSTM+EMA5, test 11/14/15, seed 42,
+    registered without retraining from `resultados/ablacion_cycnorm.csv`).
 - A text-only file store under `mlruns/`, versioned; artifacts and `.trash/` ignored.
 - `scripts/backfill_mlflow.py` with `--write`, `--check` and `--export`.
-  `--write` is idempotent by the `run_key` tag; `--check` asserts exactly 13 active
+  `--write` is idempotent by the `run_key` tag; `--check` asserts exactly 17 active
   runs, one per key, with the expected params, metrics and tags.
 - `docs/evidencia/mlflow/comparativa.csv`, generated from the MLflow API, with
-  `run_id` per row.
+  `run_id` per row (17 rows).
 - Two comparison captures (one per grain) and one production-run capture in
   `docs/evidencia/mlflow/`; one dashboard capture in `docs/assets/`.
 - README / README.en: the MLflow table with explicit `rmse_val` and `rmse_test`
@@ -88,13 +92,14 @@ Coverage of the R6 band MUST remain `0.901643`.
 
 ## Success criteria
 
-- [x] Exactly 13 active runs in `ds02-clase`: 9 `grano=fila`, 4 `grano=ventana`.
+- [x] Exactly 17 active runs in `ds02-clase`: 9 `grano=fila`, 4 `grano=ventana`
+      and 4 `familia=ablacion_cycnorm`.
 - [x] Every run has a unique `run_key`, a `grano`, a `familia`, an `origen` and its
       measured params/metrics; `tiempo_s` is present except for `bundle__bilstm_ema5`,
       which was never timed (blank, not zero).
 - [x] `scripts/backfill_mlflow.py --check` exits 0; the pytest test reads the store
       from disk with 0 skips.
-- [x] `docs/evidencia/mlflow/comparativa.csv` has 13 rows, one `run_id` per row, and
+- [x] `docs/evidencia/mlflow/comparativa.csv` has 17 rows, one `run_id` per row, and
       matches the store.
 - [x] README / README.en contain the two separated tables, with `rmse_val` and
       `rmse_test` explicitly labelled, and the captures.

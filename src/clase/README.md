@@ -40,7 +40,7 @@ graph LR
 
 El modelo estima ciclos restantes. Las reglas (`src/mia/`, 6 con prioridad + seguridad R1) deciden sobre la estimación. n8n (MIA 3, flujo incluido; el JSON versionado está inactivo por diseño, aunque la instancia local lo ha ejecutado) lleva cada decisión a su acción (HANGAR → Postgres+Calendar+correo, INSPECCIÓN → Sheets, APTO → log).
 
-**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer), MLflow (tracking de 13 runs; PIA-4). n8n ya está incluido (`src/n8n.py` + `n8n/flujo.json`).
+**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer), MLflow (tracking de 17 runs; PIA-4). n8n ya está incluido (`src/n8n.py` + `n8n/flujo.json`).
 
 ## Los datos
 
@@ -150,7 +150,7 @@ que entra en producción, y el que defiende el reto, es el bundle C (4.338), no 
 BiLSTM y meta) sobre 200 filas de validación del fold-0, con aditividad comprobada
 a ~1e-6. Es el SHAP que se defiende; el de XGB de arriba describe el track de clase.
 
-**MLflow (PIA-4):** 13 runs en `mlruns/` (9 fila + 4 ventana), export en [`docs/evidencia/mlflow/comparativa.csv`](../../docs/evidencia/mlflow/comparativa.csv) y capturas `compare_fila.png`, `compare_ventana.png` y `run_prod.png`. El store es texto; los binarios siguen en `models/` y se identifican por SHA. El flujo n8n ya está incluido en `n8n/flujo.json`. La tabla comparativa sigue en `resultados/comparativa.csv` (pandas).
+**MLflow (PIA-4):** 17 runs en `mlruns/` (9 fila + 4 ventana + 4 ablación), export en [`docs/evidencia/mlflow/comparativa.csv`](../../docs/evidencia/mlflow/comparativa.csv) y capturas `compare_fila.png`, `compare_ventana.png` y `run_prod.png`. El store es texto, está versionado en git y no guarda binarios; los binarios siguen en `models/` y se identifican por SHA. El flujo n8n ya está incluido en `n8n/flujo.json`. La tabla comparativa sigue en `resultados/comparativa.csv` (pandas).
 
 ## Tests
 
@@ -169,7 +169,7 @@ notebooks/              01_eda_y_contexto.ipynb, 02_modelos_clasicos_y_mlp.ipynb
                         (todos con outputs; corresponden al `notebooks/` pedido en la spec del reto)
 models/                 bundle desplegado (C): ensemble.joblib, bilstm_ds02.keras, scaler.joblib,
                         ds02_manifest.json (+ mejor_modelo_clase.joblib, el elegido de clase)
-mlruns/                 store MLflow de texto (13 runs; sin artefactos)
+mlruns/                 store MLflow de texto (17 runs; sin artefactos)
 docs/evidencia/mlflow/  comparativa.csv + capturas MLflow (comparaciones y producción)
 n8n/                    flujo.json (flujo MIA 3: webhook → switch APTO/INSPECCION/HANGAR)
 resultados/             eda_*.png, comparativa.csv, mlp_*.png/csv, importancia_*.png/csv, shap_*.png/csv
@@ -188,12 +188,12 @@ python -m src.clase.train_clasicos     # 5 modelos + comparativa.csv + joblib (~
 python -m src.clase.train_mlp           # MLP base+3 + importancia (~8 min con validación OOF)
 python -m src.clase.shap_clase          # SHAP TreeExplainer + PNG/CSV
 python -m src.clase.evaluar_c_multisemilla  # seeds 42/7/123 -> resultados/comparativa_c_multisemilla.csv
-python scripts/backfill_mlflow.py --check    # 13 runs + export; sin artefactos
+python scripts/backfill_mlflow.py --check    # 17 runs + export; sin artefactos
 streamlit run app/dashboard_ds02.py        # app de producción (bundle C + SHAP)
 python -m pytest tests/test_clase_*.py tests/test_live_eval.py -q
 ```
 
-`requirements.txt` pinnea todo lo importado (numpy → shap, streamlit, fpdf2…) e incluye `mlflow==3.18.0` para el store de texto (PIA-4); ningún notebook lo importa. El backfill es el único que escribe los 13 runs.
+`requirements.txt` pinnea todo lo importado (numpy → shap, streamlit, fpdf2…) e incluye `mlflow==3.18.0` para el store de texto (PIA-4); ningún notebook lo importa. El backfill es el único que escribe los 17 runs.
 
 ## Acción propia en n8n (MIA-3)
 

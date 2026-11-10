@@ -2,7 +2,7 @@
 
 > **SUPERSEDED (2026-11-09).** Este plan queda cerrado como histórico: MLflow
 > (PIA-4) ya está implementado en `openspec/changes/2026-11-09-mlflow-pia4/` y
-> `docs/plans/plan-mlflow-pia4-10.md` (13 runs en `mlruns/`, export y capturas).
+> `docs/plans/plan-mlflow-pia4-10.md` (17 runs en `mlruns/`, export y capturas).
 > No usar sus cifras de techo ni su lista de tareas excluidas como estado actual.
 
 Documento de trabajo para un agente que cierre las lagunas menores identificadas

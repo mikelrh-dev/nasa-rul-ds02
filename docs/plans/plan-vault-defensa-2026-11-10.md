@@ -135,7 +135,7 @@ Si recortan: `01-guion-3-min.md` = apertura → cascada → reglas → límite.
 | PIA-1 | README + docstrings | 80 | 6 apartados obligatorios; 0 funciones públicas sin docstring | 10 |
 | PIA-2 | Estructura | 81 | `src/`, `app/`, `models/`, `n8n/`, `resultados/`, `data/` | 10 |
 | PIA-3 | Pipeline sklearn | 82 | `src/clase/pipeline_clase.py:27`; joblib incluye pipeline | 10 |
-| PIA-4 | MLflow | 83 | 13 runs + `comparativa.csv` + capturas | **7** |
+| PIA-4 | MLflow | 83 | 17 runs (9 fila + 4 ventana + 4 ablación) + `comparativa.csv` + capturas | 10 |
 | PIA-5 | Streamlit | 84 | test + caso nuevo + `L_inf` junto a la decisión | 10 |
 | PIA-6 | Pregunta individual | 100 | — | — |
 | MIA-1 | Negocio con dato | 90 | macro 5,0153 · motor 14 8,576 · lead time 9/23/17 | 10 |
@@ -145,8 +145,8 @@ Si recortan: `01-guion-3-min.md` = apertura → cascada → reglas → límite.
 
 ## 6. Huecos que el vault debe declarar (no maquillar)
 
-1. **PIA-4 = 7.** La ablación `cyc_norm` no es una run de MLflow y el store no está
-   completo en git. Cerrable: registrar la run y versionar los 13.
+1. **PIA-4 = 10 (cerrado 2026-11-10).** La ablación `cyc_norm` son 4 runs registradas y el
+   store de 17 runs viaja en git. El hueco que este plan declaraba ya está cerrado.
    → `111-huecos-declarados.md` + `112-como-subir-de-7-a-10.md`.
 2. **PIA-2 y la estructura prescrita.** La rúbrica dibuja `src/utils.py`, `src/reglas.py`,
    `src/n8n.py`, `app/streamlit_app.py`, `models/mejor_modelo.joblib`. Nuestro repo usa

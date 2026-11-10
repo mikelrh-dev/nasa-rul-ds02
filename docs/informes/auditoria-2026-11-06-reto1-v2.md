@@ -2,7 +2,7 @@
 
 > **Actualización 2026-11-09 — PIA-4.** La ausencia de MLflow que puntúa esta
 > auditoría queda cubierta por `openspec/changes/2026-11-09-mlflow-pia4/`:
-> 13 runs en `mlruns/` (9 fila + 4 ventana), export en
+> 17 runs en `mlruns/` (9 fila + 4 ventana + 4 ablación), export en
 > `docs/evidencia/mlflow/comparativa.csv` y capturas. Las notas y puntuaciones
 > de este informe son históricas (2026-11-06); no se reescriben.
 

@@ -73,8 +73,8 @@ false comparison.
 MLflow parameters are immutable after a run is created. `--write` searches for
 active runs with the same `run_key`; if found, it deletes them and creates the
 run again from the CSV. This is deterministic and avoids duplicate metric steps.
-`--check` asserts exactly 13 active runs, one per key, with no duplicates.
-Re-running `--write` never creates a 14th run.
+`--check` asserts exactly 17 active runs, one per key, with no duplicates.
+Re-running `--write` never creates an 18th run.
 
 ### D5 — No model binaries, registry, autolog or signature
 
@@ -93,8 +93,8 @@ one row per run.
 ### D7 — No notebook instrumentation
 
 The notebooks are evidence, not loggers. Adding `mlflow.start_run` to a notebook
-would create a new run on every execution and could duplicate the 13 runs. The
-backfill is the only writer; the test asserts 13. Re-executing notebooks cannot
+would create a new run on every execution and could duplicate the 17 runs. The
+backfill is the only writer; the test asserts 17. Re-executing notebooks cannot
 duplicate the store.
 
 ### D8 — Time is measured or absent, never invented
@@ -111,7 +111,7 @@ absent, not zero. The production run logs `tiempo_s=447` plus `t_lgb_s=0.3` and
 | A run without params reads as level 7 | Low | Every run has measured params; multiseed and table rows are excluded |
 | Mixing grains in one table | Medium | `grano` tag, two README tables, two captures |
 | `run_id` orphans in a clone | High if the store is not versioned | Store versioned; test reads it from disk |
-| `--write` duplicates runs | Medium if naive | `run_key` search + delete + recreate; `--check` asserts 13 |
+| `--write` duplicates runs | Medium if naive | `run_key` search + delete + recreate; `--check` asserts 17 |
 | A surface still says “MLflow fuera” | Medium | Grep gate in phase 6 and in the final report |
 | Re-running a notebook duplicates runs | Low | No notebook imports MLflow; only the backfill writes |
 | `uv lock` moves a pinned version | Low | `pip check` + explicit version assertions; rollback is removing one line |
@@ -132,9 +132,9 @@ absent, not zero. The production run logs `tiempo_s=447` plus `t_lgb_s=0.3` and
 
 - **Retrain to log live**: TensorFlow is not bit-for-bit deterministic; it would
   move the 4.338 and break `test_cache_drift`.
-- **16 or 13 runs with multiseed**: the multiseed rows have only a seed, not
+- **20 or 17 runs with multiseed**: the multiseed rows have only a seed, not
   hyperparameters; they are evidence of variance, not of model configuration.
-- **`mlflow server` / SQLite**: one more process and a binary DB for 13 runs.
+- **`mlflow server` / SQLite**: one more process and a binary DB for 17 runs.
 - **`log_model` / registry**: binaries and backend, no rubric gain.
 - **Export to `resultados/`**: git-ignored; it would not survive a clone.
 - **One combined comparison capture**: would mix grains and assert comparability

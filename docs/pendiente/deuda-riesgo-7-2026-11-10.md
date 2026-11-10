@@ -58,15 +58,16 @@ criterio en `models/README.md` y en `README.md`, y se fijó por test en
 
 ## B5 — Desversionar `mlruns/`
 
-**Qué cambiaría.** Hoy hay 28 `meta.yaml` versionados en `mlruns/` (109 en disco).
-B5 propone `git rm -r --cached mlruns` + añadir `mlruns/` a `.gitignore`, dejando la
-evidencia MLflow fuera del repo.
+**Qué cambiaría.** Hoy el store tiene 17 runs versionados en `mlruns/` (9 fila +
+4 ventana + 4 ablación; sin `live__*` ni tombstones). B5 proponía `git rm -r --cached mlruns`
++ añadir `mlruns/` a `.gitignore`, dejando la evidencia MLflow fuera del repo. **No se
+ejecutó:** el 2026-11-10 se eligió la opción contraria, versionar el store de texto.
 
 **Por qué riesgo 7.**
 
 - `tests/test_mlflow_backfill.py` espera runs
-  versionados; `scripts/backfill_mlflow.py --check` reporta hoy 13 runs por
-  `fuente=historico`. Desversionar los deja en 0 y esos tests fallan en rojo.
+  versionados; `scripts/backfill_mlflow.py --check` reporta hoy 17 runs (9 fila + 4 ventana +
+  4 ablación) por `fuente=historico`. Desversionar los dejaría en 0 y esos tests fallarían.
 - La evidencia de tracking es parte del entregable de la defensa (comparativa de
   experimentos en `docs/evidencia/mlflow/comparativa.csv`); sacarla del repo
   obliga a definir dónde vive (artefacto comprimido, release, Drive) antes de

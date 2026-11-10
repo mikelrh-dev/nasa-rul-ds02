@@ -679,15 +679,15 @@ and `.csv` with `run_key`, `t_lgb_s`, `t_bilstm_s`, `tiempo_s`, `fuente`.
 
 ### Requirement: Historic backfill is historic-only
 
-The 13 backfill runs SHALL carry tag `fuente=historico`. Backfill
+The 17 backfill runs SHALL carry tag `fuente=historico`. Backfill
 `--write`/`--check`/`--export` SHALL manage only historic runs and MUST NOT
 count, delete or overwrite live runs (`fuente=live_notebook`).
 
 #### Scenario: Backfill check ignores live runs
 
-- GIVEN the store has 13 historic + any live runs
+- GIVEN the store has 17 historic + any live runs
 - WHEN `scripts/backfill_mlflow.py --check` runs
-- THEN it exits 0 counting exactly the 13 historic runs
+- THEN it exits 0 counting exactly the 17 historic runs
 
 #### Scenario: `STEP_TRAIN_OOF` does not shadow the protocol
 

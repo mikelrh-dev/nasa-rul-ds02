@@ -74,7 +74,7 @@ sha256sum models/ensemble.joblib models/bilstm_ds02.keras models/scaler.joblib \
 | `docs/assets` versionados | **10 PNG** | `git ls-files docs/assets \| wc -l` |
 | `resultados` versionados | **36** (16 CSV + 20 PNG) | `git ls-files resultados \| wc -l` |
 | `resultados` en disco | 37 (17 CSV + 20 PNG); `tiempos_nb01.csv` sin seguimiento | `ls resultados/*.csv \| wc -l` |
-| `mlruns` versionados | **1010 ficheros** (28 `meta.yaml`); **109 `meta.yaml` en disco**; 81 dirs sin seguimiento | `git ls-files mlruns \| wc -l; find mlruns -name meta.yaml \| wc -l` |
+| `mlruns` versionados | **17 runs** (9 fila + 4 ventana + 4 ablación); sin `live__*` ni tombstones | `git ls-files mlruns \| wc -l`; `python scripts/backfill_mlflow.py --check` |
 | PNG totales versionados | 87 | `git ls-files \| grep -c '\.png$'` |
 | Tests | 47 ficheros `tests/test_*.py` | `ls tests/test_*.py \| wc -l` |
 | `app/dashboard_ds02.py` | 2197 líneas, 4 pestañas | `wc -l < app/dashboard_ds02.py`; `st.tabs` en `:1176` |
@@ -83,7 +83,7 @@ sha256sum models/ensemble.joblib models/bilstm_ds02.keras models/scaler.joblib \
 
 - **Reglas:** `REGLAS_DECISION` 6 + `REGLAS_CORRECCION` 2 = **8**. Prioridades: R1_SEGURIDAD 10, R10_DATOS_INSUFICIENTES 9, R11_UMBRALES_INCOHERENTES 8, R9_HANGAR 3, R8_INSPECCION 2, R7_APTO 1; corrección R2b_ISOTONICO_CAUSAL 2, R6_BANDA 1. Fuente: `src/mia/reglas.py:246-270`.
 - **n8n:** `n8n/flujo.json` — 14 nodos, `active: false`, webhook `POST ds02/decision` con `authentication: headerAuth`, switch de 3 salidas (APTO → Set log; INSPECCIÓN → Google Sheets; HANGAR → Postgres → Calendar → Gmail). **Modificado y sin commitear** (L-01).
-- **MLflow:** `requirements.txt:19 mlflow==3.18.0`; `src/ds02_rul/mlflow_live.py` importa `mlflow`; 13 runs (9 fila + 4 ventana); `docs/evidencia/mlflow/comparativa.csv` (13 filas) + 3 PNG. `scripts/backfill_mlflow.py --check` → `OK: 13 runs (9 fila + 4 ventana), export y store coinciden, sin artefactos.`
+- **MLflow:** `requirements.txt:19 mlflow==3.18.0`; `src/ds02_rul/mlflow_live.py` importa `mlflow`; 17 runs (9 fila + 4 ventana + 4 ablación); `docs/evidencia/mlflow/comparativa.csv` (17 filas) + 3 PNG. `scripts/backfill_mlflow.py --check` → `OK: 17 runs (9 fila + 4 ventana + 4 ablacion), export y store coinciden, sin artefactos.`
 
 ### 2.6 Memoria del proyecto (Engram) — contraste
 
@@ -150,7 +150,7 @@ sha256sum models/ensemble.joblib models/bilstm_ds02.keras models/scaler.joblib \
 | 1 | README + docstrings (10 %) | 6 apartados + apartados propios + funciones documentadas | `README.md`, `tests/test_docstrings*` | 0 públicas sin docstring y README con extras | **10** | README con 6 apartados + captura (`:16`) + extras (Arquitectura, MLflow, Estabilidad…); 268/268 docstrings (v2) |
 | 2 | Carpetas y funciones (10 %) | Estructura del reto + `requirements.txt` | árbol, `requirements.txt` | Estructura reconocible y deps pinneadas | **10** | `data/`, `notebooks/`, `src/`, `app/`, `models/`, `n8n/`, `resultados/`; `requirements.txt` pineado |
 | 3 | Pipeline sklearn (20 %) | `ColumnTransformer` compartido y guardado en el joblib | `src/clase/pipeline_clase.py`, `models/mejor_modelo.joblib` | Carga y predice un caso nuevo con el pipeline dentro | **10** | `pipeline_clase.py:27` (`StandardScaler` + `OneHotEncoder`); joblib cargado y predice (v2) |
-| 4 | MLflow (20 %) | Runs con params/métricas/tiempo + capturas | `requirements.txt:19`, `mlruns/`, `docs/evidencia/mlflow/` | Compara en MLflow y lo enseña con capturas | **10** (reserva) | 13 runs (9 fila + 4 ventana); `comparativa.csv` 13 filas; 3 PNG. **Reserva:** la ablación `cyc_norm` no aparece como run; store con 81 dirs sin seguimiento. |
+| 4 | MLflow (20 %) | Runs con params/métricas/tiempo + capturas | `requirements.txt:19`, `mlruns/`, `docs/evidencia/mlflow/` | Compara en MLflow y lo enseña con capturas | **10** | 17 runs (9 fila + 4 ventana + 4 ablación); `comparativa.csv` 17 filas; 3 PNG. Ablación registrada y store versionado (cierre 2026-11-10). |
 | 5 | App Streamlit (25 %) | Métricas test + caso nuevo + reglas + n8n + control de errores | `app/dashboard_ds02.py`, `app/ui_*.py` | Muestra la p del caso nuevo junto a la decisión | **10** | 4 pestañas (`:1176`); métricas test; `st.metric("RUL p35 (conservadora)", …)` (`:1975`) junto a `L_inf`/decisión (`:1977`); envío n8n (`:1951-1956`) |
 | 6 | Pregunta individual de código (15 %) | Respuesta con archivo:línea | `docs/defensa/guiones-15min.md` §2 | Enseña el código y explica el porqué | **10** (no verificable desde repo) | `guiones-15min.md` §2 con `pipeline_clase.py:27` |
 
@@ -177,7 +177,7 @@ MIA = (10·20 + 10·30 +  7·35 + 10·15) / 100
 | Asignatura | Nota ponderada (est.) | Techo declarado | Qué lo limita |
 | --- | --- | --- | --- |
 | **SAA** | **10,0** | 10 | Reserva A3 (tabla final ordena por test) y la contradicción 4.368 (bloque G) si el tribunal la lee como «métrica engañosa». |
-| **PIA** | **10,0** | 10 | Reserva PIA-4: la ablación `cyc_norm` no está como run; store con 81 dirs sin seguimiento. |
+| **PIA** | **10,0** | 10 | PIA-4 cerrado 2026-11-10: ablación registrada como 4 runs y store de 17 runs versionado. |
 | **MIA** | **9,0** | **9,0** | MIA-3 techado en **7**: las acciones son las vistas en clase + flujo no ejecutado + credencial placeholder. |
 | **Global** | la peor puerta manda | — | Árbol sucio (203 rutas) → ninguna cifra es reproducible desde un clon limpio; G3 falla en la 4.368. |
 
@@ -297,7 +297,7 @@ ls docs/evidencia/mlflow/*.png
 grep -n "st.tabs\|st.metric\|enviar_decision\|L_inf" app/dashboard_ds02.py | head -20
 ```
 
-**Salida esperada:** 6 apartados + captura; pipeline con `StandardScaler`+`OneHotEncoder`; joblib con pipeline; 13 filas en `comparativa.csv`; 3 PNG; app con p + decisión + n8n.
+**Salida esperada:** 6 apartados + captura; pipeline con `StandardScaler`+`OneHotEncoder`; joblib con pipeline; 17 filas en `comparativa.csv`; 3 PNG; app con p + decisión + n8n.
 
 ### 6.6 F4 — MIA 1-4 (Onda 2, agente MIA, 90 min)
 
@@ -419,7 +419,7 @@ git ls-files mlruns | wc -l
 | **H-01** | H | **B** | Las mismas métricas viven en dos precisiones: manifiesto 4.338 / 3.227 vs caché 4.3382 / 3.2266. | `models/ds02_manifest.json` `metrics.reference_row` vs `app/cache/cache_manifest.json` `metrics` |
 | **N-01** | N | **B** | `docs/assets/` duplica 9 PNG de `resultados/`; 7 son byte-idénticos y **2 han divergido** (`real_vs_predicho_bundle_c.png`, `shap_importancia.png`). | `cmp` entre ambos árboles |
 | **MIA-3** | L | **A** | MIA-3 está **techado en 7**: las 4 acciones del flujo (Sheets, Postgres, Calendar, Gmail) son las vistas en clase; el 10 exige una distinta. | `n8n/flujo.json` nodos; rúbrica pág. 9 |
-| **PIA-4** | PIA | **M** | Reserva: la ablación `cyc_norm` no aparece como run en MLflow; el store tiene 81 dirs sin seguimiento y el export está modificado. | `cat docs/evidencia/mlflow/comparativa.csv`; `git status --porcelain docs/evidencia/mlflow/comparativa.csv` |
+| **PIA-4** | PIA | **M** | Cerrado 2026-11-10: la ablación `cyc_norm` son 4 runs en MLflow, el store de 17 runs está versionado y el export de 17 filas coincide. | `python scripts/backfill_mlflow.py --check`; `cat docs/evidencia/mlflow/comparativa.csv` |
 | **MEM-01** | — | **B** | La memoria Engram #3006 («406 passed») y #3001 («78 passed, 3 skipped») están **obsoletas**; hoy 435 passed / 1 skipped. No existe memoria sobre «bundle B 4.251» ni «cuatro tests fallos». | `mem_get_observation(3006)`; suite de hoy |
 
 ---

@@ -13,8 +13,9 @@
 
 ### Requirement: Experiment tracking
 
-The system SHALL record every model of the class track and every component of the
-deployed bundle C as an MLflow run in the `ds02-clase` experiment. Each run SHALL
+The system SHALL record every model of the class track, every component of the
+deployed bundle C and the 4 `cyc_norm` ablation variants of the BiLSTM+EMA5
+model as an MLflow run in the `ds02-clase` experiment. Each run SHALL
 carry its measured hyperparameters, its train / validation / test metrics and its
 training time when one was measured. The run SHALL be identified by a unique
 `run_key` tag and SHALL carry `grano`, `familia`, `origen` and `rol` tags.
@@ -28,18 +29,19 @@ and are identified by their SHA-256 parameters.
 The comparison table SHALL be generated from the MLflow API and SHALL carry the
 `run_id` of every run. A hand-written CSV MUST NOT be presented as an MLflow table.
 
-#### Scenario: Thirteen runs, two grains
+#### Scenario: Seventeen runs, three grains
 
 - GIVEN the backfill has completed
 - WHEN the active runs of `ds02-clase` are counted
-- THEN there are exactly 13 runs
+- THEN there are exactly 17 runs
 - AND 9 have `grano=fila` (5 classical + 4 MLP)
 - AND 4 have `grano=ventana` (LGBM, BiLSTM, BiLSTM+EMA5, production bundle C)
+- AND 4 have `familia=ablacion_cycnorm` (cyc_norm ON/OFF × baseline delta over BiLSTM+EMA5)
 - AND every `run_key` is unique
 
 #### Scenario: Every run carries measured parameters
 
-- GIVEN any of the 13 runs
+- GIVEN any of the 17 runs
 - WHEN its parameters are read
 - THEN it has at least one measured hyperparameter
 - AND its `rmse_val` or `rmse_test` metric is present
@@ -69,9 +71,9 @@ The comparison table SHALL be generated from the MLflow API and SHALL carry the
 
 #### Scenario: The backfill is idempotent
 
-- GIVEN a store with the 13 runs
+- GIVEN a store with the 17 runs
 - WHEN `scripts/backfill_mlflow.py --write` runs again
-- THEN the active run count remains 13
+- THEN the active run count remains 17
 - AND each `run_key` still has exactly one active run
 - AND `--check` exits 0
 
@@ -96,4 +98,4 @@ The comparison table SHALL be generated from the MLflow API and SHALL carry the
 - GIVEN the seven notebooks, which do not import MLflow
 - WHEN any notebook is re-executed
 - THEN no run is created in `ds02-clase`
-- AND the active run count remains 13
+- AND the active run count remains 17
