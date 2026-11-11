@@ -23,10 +23,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-try:
-    import _paths
-except ImportError:  # imported as app.ui_data_loader (tests)
-    from app import _paths
+from app import _paths
 
 APP_DIR = str(_paths.APP_DIR)
 ROOT = str(_paths.ROOT)

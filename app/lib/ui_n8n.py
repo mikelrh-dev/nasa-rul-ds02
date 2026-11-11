@@ -8,10 +8,7 @@ de n8n); SIN_DECISION nunca notifica.
 """
 from __future__ import annotations
 
-try:
-    import ui_data_loader as L  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import ui_data_loader as L  # type: ignore[no-redef]
+from app.lib import ui_data_loader as L
 
 UMBRALES_DEFECTO = {"apto": L.DEFAULT_AIRWORTHY, "hangar": L.DEFAULT_AOG}
 DECISIONES_QUE_NOTIFICAN = ("HANGAR", "INSPECCION", "APTO")

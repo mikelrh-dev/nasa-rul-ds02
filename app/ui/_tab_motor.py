@@ -27,51 +27,17 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-try:
-    import flota as F  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import flota as F  # type: ignore[no-redef]
-
-try:
-    import dashboard_helpers as DH  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import dashboard_helpers as DH  # type: ignore[no-redef]
-
-try:
-    import hangar as HGR  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import hangar as HGR  # type: ignore[no-redef]
-
-try:
-    import ui_data_loader as L  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import ui_data_loader as L  # type: ignore[no-redef]
-
-try:
-    import ui_rules as UR  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import ui_rules as UR  # type: ignore[no-redef]
-
-try:
-    from src.mia import reglas as R_REGLAS  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    import os as _os
-    import sys as _sys
-    _ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
-    if _ROOT not in _sys.path:
-        _sys.path.insert(0, _ROOT)
-    from src.mia import reglas as R_REGLAS  # type: ignore[no-redef]
+from app.lib import flota as F
+from app.lib import dashboard_helpers as DH
+from app.lib import hangar as HGR
+from app.lib import ui_data_loader as L
+from app.lib import ui_rules as UR
+from src.mia import reglas as R_REGLAS
 
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
-try:  # noqa: E402
-    from theme import INK, MUTED, GRID, SURFACE, SKY, ROSE  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app.theme import INK, MUTED, GRID, SURFACE, SKY, ROSE  # type: ignore[no-redef]
+from app.lib.theme import INK, MUTED, GRID, SURFACE, SKY, ROSE
 
-try:  # noqa: E402
-    from context import AppCtx  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app.context import AppCtx  # type: ignore[no-redef]
+from app.lib.context import AppCtx
 
 __all__ = ["_tab_motor"]
 

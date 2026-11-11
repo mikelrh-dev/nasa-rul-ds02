@@ -15,7 +15,6 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(ROOT, "app")
 sys.path.insert(0, ROOT)
-sys.path.insert(0, APP)
 
 
 # ---------------------------------------------------------- URL guard
@@ -34,7 +33,7 @@ def test_no_app_terminal_under_app():
 # ---------------------------------------------------------- presets
 def test_presets_conservador_agresivo_ordered():
     import re
-    src = open(os.path.join(APP, "dashboard_ds02.py"), encoding="utf-8").read()
+    src = open(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), encoding="utf-8").read()
     m = re.search(r"_PRESETS\s*=\s*\{([^}]*)\}", src)
     assert m, "_PRESETS not found"
     block = m.group(1)
@@ -48,7 +47,7 @@ def test_presets_conservador_agresivo_ordered():
 
 # ---------------------------------------------------------- helpers puros
 def test_contrast_csv_columns():
-    from dashboard_helpers import contraste_csv  # imported below; defined in app
+    from app.lib.dashboard_helpers import contraste_csv
     raw = pd.DataFrame({"unit": [14, 14], "cycle": [25, 26],
                         "lower": [24.0, 23.0]})
     corr = pd.DataFrame({"unit": [14, 14], "cycle": [25, 26],
@@ -61,7 +60,7 @@ def test_contrast_csv_columns():
 
 
 def test_queue_filter_helper():
-    from dashboard_helpers import cola_filtrada
+    from app.lib.dashboard_helpers import cola_filtrada
     registros = {
         "a": {"unidad": "U14", "estado": "AOG_DERIVADO", "entrada": {"lower": 20.0}},
         "b": {"unidad": "U11", "estado": "EN_TALLER", "entrada": {"lower": 21.0}},
@@ -74,7 +73,7 @@ def test_queue_filter_helper():
 
 
 def test_trajectory_csv_parse():
-    from dashboard_helpers import trayectoria_csv
+    from app.lib.dashboard_helpers import trayectoria_csv
     curva = pd.DataFrame({"cycle": [1, 2, 3], "pred": [30.0, 28.0, 26.0],
                           "lower": [27.0, 25.0, 23.0], "upper": [33.0, 31.0, 29.0],
                           "decision": ["APTO", "INSPECCION", "HANGAR"]})
@@ -86,7 +85,7 @@ def test_trajectory_csv_parse():
 
 def test_six_decision_rules():
     from src.mia.reglas import REGLAS_DECISION
-    from dashboard_helpers import reglas_decision_vista
+    from app.lib.dashboard_helpers import reglas_decision_vista
     vista = reglas_decision_vista()
     assert len(REGLAS_DECISION) == 6
     assert len(vista) == 6
@@ -94,7 +93,7 @@ def test_six_decision_rules():
 
 
 def test_sandbox_helper_includes_sensor():
-    src = open(os.path.join(APP, "dashboard_ds02.py"), encoding="utf-8").read()
+    src = open(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), encoding="utf-8").read()
     assert "sensor" in src
     # the cached helper signature carries the sensor so the key changes with it
     assert "sensor" in src.split("def _sandbox_puntua_cached")[1].split(")")[0]
@@ -102,9 +101,9 @@ def test_sandbox_helper_includes_sensor():
 
 def test_n8n_panel_button_via_helper():
     # El botón vive en `_tab_casos.py` y la sonda en `_sidebar.py`.
-    rutas = [os.path.join(APP, "dashboard_ds02.py"),
-             os.path.join(APP, "ui_modulos", "_sidebar.py"),
-             os.path.join(APP, "ui_modulos", "_tab_casos.py")]
+    rutas = [os.path.join(APP, "entrypoints", "dashboard_ds02.py"),
+             os.path.join(APP, "ui", "_sidebar.py"),
+             os.path.join(APP, "ui", "_tab_casos.py")]
     src = "".join(open(p, encoding="utf-8").read() for p in rutas)
     assert src.count("enviar_decision(") == 1
     assert "DH.probar_n8n()" in src
@@ -120,7 +119,7 @@ pytestmark = pytest.mark.skipif(
 def test_app_renders_n8n_panel_without_env(monkeypatch):
     from streamlit.testing.v1 import AppTest
     monkeypatch.delenv("N8N_WEBHOOK_URL", raising=False)
-    dash = os.path.join(APP, "dashboard_ds02.py")
+    dash = os.path.join(APP, "entrypoints", "dashboard_ds02.py")
     app = AppTest.from_file(dash, default_timeout=180).run()
     assert not app.exception, app.exception
     texts = " ".join(getattr(e, "value", "") or "" for e in app.caption) \
@@ -137,7 +136,7 @@ def test_n8n_caption_se_refresca_con_el_mismo_clic(monkeypatch):
     from streamlit.testing.v1 import AppTest
 
     monkeypatch.delenv("N8N_WEBHOOK_URL", raising=False)
-    dash = os.path.join(APP, "dashboard_ds02.py")
+    dash = os.path.join(APP, "entrypoints", "dashboard_ds02.py")
     app = AppTest.from_file(dash, default_timeout=180).run()
     assert not app.exception, app.exception
 

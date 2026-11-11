@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-import flota as F
+from app.lib import flota as F
 
 
 def _peor_ventana(grupo: pd.DataFrame, ciclo: int) -> pd.Series | None:

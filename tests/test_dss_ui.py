@@ -22,9 +22,9 @@ import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(ROOT, "app")
-sys.path.insert(0, APP)
+sys.path.insert(0, ROOT)
 
-import ui_data_loader as L  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),
@@ -194,7 +194,8 @@ def test_empty_work_order_is_still_a_valid_document():
 # --------------------------------------------------------- dataset isolation
 def _ui_sources() -> list[str]:
     sources = []
-    for name in ("dashboard_ds02.py", "ui_data_loader.py"):
+    for name in (os.path.join("entrypoints", "dashboard_ds02.py"),
+                 os.path.join("lib", "ui_data_loader.py")):
         with open(os.path.join(APP, name), encoding="utf-8") as fh:
             sources.append(fh.read())
     return sources
@@ -306,7 +307,7 @@ def test_artifact_hash_check_no_importa_tensorflow():
     import subprocess
 
     code = (
-        "import sys; sys.path.insert(0, 'app'); import ui_data_loader; "
+        "import sys; from app.lib import ui_data_loader; "
         "print('tensorflow' in sys.modules, 'keras' in sys.modules)"
     )
     proc = subprocess.run([sys.executable, "-c", code], cwd=ROOT,
@@ -320,7 +321,7 @@ def test_artifact_hash_check_no_importa_tensorflow():
 def test_app_renders_headless_without_exception():
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=120)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=120)
     app.run()
     assert not app.exception, app.exception
     assert "DS02" in app.title[0].value
@@ -338,7 +339,7 @@ def test_every_chart_and_grid_has_an_accessible_name():
     """`alt=` is the accessible name: no chart or grid may ship without one."""
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=120)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=120)
     app.run()
     assert not app.exception, app.exception
     charts = app.get("plotly_chart")
@@ -377,7 +378,7 @@ def test_the_cycle_slider_drives_the_grounded_kpi():
     """The simulator is interactive: moving the clock changes the fleet state."""
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=120)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=120)
     app.run()
     # Por etiqueta, no por índice: el reloj se movió a la barra lateral y el
     # índice 0 pasó a ser el slider del sandbox.

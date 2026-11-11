@@ -12,17 +12,17 @@ import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(ROOT, "app")
-sys.path.insert(0, APP)
+sys.path.insert(0, ROOT)
 
-import flota as F  # noqa: E402
-import ui_data_loader as L  # noqa: E402
-import ui_shap as USH  # noqa: E402
+from app.lib import flota as F  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
+from app.lib import ui_shap as USH  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),
     reason="app/cache missing",
 )
-DASHBOARD = os.path.join(APP, "dashboard_ds02.py")
+DASHBOARD = os.path.join(APP, "entrypoints", "dashboard_ds02.py")
 
 
 def test_waterfall_builds_with_data(monkeypatch):

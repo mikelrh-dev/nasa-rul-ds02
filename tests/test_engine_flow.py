@@ -17,13 +17,13 @@ import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(ROOT, "app")
-sys.path.insert(0, APP)
+sys.path.insert(0, ROOT)
 
-import hangar as HGR  # noqa: E402
-import twin as T  # noqa: E402
-import ui_alta as AL  # noqa: E402
-import ui_data_loader as L  # noqa: E402
-import ui_inference as INF  # noqa: E402
+from app.lib import hangar as HGR  # noqa: E402
+from app.lib import twin as T  # noqa: E402
+from app.lib import ui_alta as AL  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
+from app.lib import ui_inference as INF  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),
@@ -82,7 +82,7 @@ def _boton(app, etiqueta: str):
 def test_el_gemelo_entra_en_la_flota_y_recorre_el_hangar():
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=240)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=240)
     app.session_state["twins"] = {"ESN-TEST": _gemelo()}
     app.run()
     assert not app.exception, app.exception
@@ -128,7 +128,7 @@ def test_el_muro_muestra_el_motor_registrado():
     """
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=240)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=240)
     app.session_state["twins"] = {"ESN-MURO": _gemelo("ESN-MURO")}
     app.run()
     assert not app.exception, app.exception
@@ -158,7 +158,7 @@ def test_el_gemelo_registrado_tiene_detalle_abierto():
     """
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=240)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=240)
     app.session_state["twins"] = {"ESN-DETA": _gemelo("ESN-DETA")}
     app.run()
     assert not app.exception, app.exception
@@ -262,7 +262,7 @@ def test_el_panel_de_gemelos_documenta_y_elimina():
     """El panel construye la orden de cada gemelo y permite borrarlo."""
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=240)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=240)
     app.session_state["twins"] = {"ESN-TEST": _gemelo()}
     app.session_state["hangar"] = {
         "ESN-TEST": HGR.abrir("ESN-TEST", 41, 8.0, UMBRALES, "R9_HANGAR"),
@@ -284,7 +284,7 @@ def test_reemplazar_el_gemelo_desde_la_pestana_en_vivo():
     """Repuntuar el mismo motor pide confirmación y conserva la RUL real."""
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=240)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=240)
     app.session_state["twins"] = {"ESN-TEST": T.con_verdad(_gemelo(), 12.0, 41.0)}
     app.session_state["live_result"] = _resultado_live()
     app.session_state["live_meta"] = {"source": "test"}
@@ -318,8 +318,8 @@ def test_el_hangar_rechaza_un_movimiento_ilegal():
 def test_el_pre_vuelo_no_carga_tensorflow():
     """La validación de una tabla inválida no debe arrastrar Keras."""
     codigo = (
-        "import sys; sys.path.insert(0, 'app'); pass  # (src.mia va por ROOT, ya en path)\n"
-        "import pandas as pd, ui_inference as INF\n"
+        "import sys; pass  # (src.mia va por ROOT, ya en path)\n"
+        "import pandas as pd; from app.lib import ui_inference as INF\n"
         "tabla = pd.DataFrame({'cycle': [1, 2], 'alt': [1.0, 2.0]})\n"
         "print('ok', INF.preflight(tabla)['ok'])\n"
         "print('tensorflow', 'tensorflow' in sys.modules,\n"

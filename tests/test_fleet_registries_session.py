@@ -8,10 +8,10 @@ import threading
 
 import pytest
 
-APP = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app")
-sys.path.insert(0, APP)
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
 
-import hangar as HGR  # noqa: E402
+from app.lib import hangar as HGR  # noqa: E402
 
 
 def _reg(twins=None, hangar=None, altas=None):

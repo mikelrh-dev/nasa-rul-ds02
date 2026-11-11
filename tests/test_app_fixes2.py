@@ -12,16 +12,16 @@ import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(ROOT, "app")
-sys.path.insert(0, APP)
+sys.path.insert(0, ROOT)
 
-import flota as F  # noqa: E402
-import ui_data_loader as L  # noqa: E402
+from app.lib import flota as F  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),
     reason="app/cache missing",
 )
-DASHBOARD = os.path.join(APP, "dashboard_ds02.py")
+DASHBOARD = os.path.join(APP, "entrypoints", "dashboard_ds02.py")
 
 
 def _app():
@@ -90,7 +90,7 @@ def test_incorporar_no_duplica_muro():
 @needs_cache
 def test_preset_muestra_umbrales_y_banda_en_una_pasada():
     # Estructural: callbacks full-scope en _tab_flota (sin quitar fragment).
-    src = open(os.path.join(APP, "ui_modulos", "_tab_flota.py"), encoding="utf-8").read()
+    src = open(os.path.join(APP, "ui", "_tab_flota.py"), encoding="utf-8").read()
     assert "on_change" in src, "preset/toggle sin on_change: banda stale en navegador"
     assert 'scope="app"' in src or "scope='app'" in src, "rerun debe ser full-scope"
     assert "@st.fragment" in src, "no se puede quitar el fragment (paginar el muro)"

@@ -19,9 +19,8 @@ import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-sys.path.insert(0, os.path.join(ROOT, "app"))
 
-import ui_n8n as UN  # noqa: E402
+from app.lib import ui_n8n as UN  # noqa: E402
 from src import n8n as N8N  # noqa: E402
 
 CLAVES_PAYLOAD = {
@@ -199,8 +198,8 @@ def test_apto_tambien_notifica():
 
 
 def test_dashboard_llama_una_vez_tras_decision_en_vivo():
-    # La sala de casos se extrajo a `ui_modulos/_tab_casos.py` (B1).
-    src = open(os.path.join(ROOT, "app", "ui_modulos", "_tab_casos.py"),
+    # La sala de casos se extrajo a `ui/_tab_casos.py` (B1).
+    src = open(os.path.join(ROOT, "app", "ui", "_tab_casos.py"),
                encoding="utf-8").read()
     assert "payload_desde_traza" in src
     assert "enviar_decision" in src

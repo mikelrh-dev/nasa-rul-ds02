@@ -19,7 +19,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-import app.api as api  # noqa: E402
+import app.services.api as api  # noqa: E402
 
 _SECRET = "test-secret-key"
 

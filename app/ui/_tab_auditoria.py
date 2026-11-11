@@ -28,21 +28,12 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-try:
-    import ui_data_loader as L  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import ui_data_loader as L  # type: ignore[no-redef]
+from app.lib import ui_data_loader as L
 
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
-try:  # noqa: E402
-    from theme import INK, SKY, GREEN, ROSE  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app.theme import INK, SKY, GREEN, ROSE  # type: ignore[no-redef]
+from app.lib.theme import INK, SKY, GREEN, ROSE
 
-try:  # noqa: E402
-    from context import AppCtx  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app.context import AppCtx  # type: ignore[no-redef]
+from app.lib.context import AppCtx
 
 __all__ = ["_tab_auditoria"]
 
@@ -409,7 +400,7 @@ def _tab_auditoria(ctx: AppCtx) -> None:
             "gana la de mayor prioridad que se cumple."
         )
         try:
-            import dashboard_helpers as _DH_A
+            from app.lib import dashboard_helpers as _DH_A
             _vista_reglas = pd.DataFrame(_DH_A.reglas_decision_vista())
         except Exception:
             _vista_reglas = pd.DataFrame()

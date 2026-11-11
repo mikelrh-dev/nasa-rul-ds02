@@ -21,7 +21,7 @@ import re as _re
 import shutil as _shutil
 import threading as _threading
 
-import _paths
+from app import _paths
 
 EN_SERVICIO = "EN_SERVICIO"
 INSPECCION = "INSPECCION_PROGRAMADA"

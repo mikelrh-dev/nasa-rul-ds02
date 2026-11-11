@@ -6,7 +6,7 @@
 > `src/clase/` (código), `notebooks/01–07` (relato), `data/processed/`
 > (dataset con nulos MAR + `fase_vuelo`) y `resultados/` (métricas y figuras).
 > Punto de entrada: [`src/clase/README.md`](src/clase/README.md) (6 apartados),
-> app desplegada: `streamlit run app/dashboard_ds02.py` (bundle C + SHAP).
+> app desplegada: `streamlit run app/entrypoints/dashboard_ds02.py` (bundle C + SHAP).
 > Lo de abajo es el sistema desplegado (bundle C congelado, RMSE 4.338).
 
 Predicting remaining useful life on the N-CMAPSS DS02 turbofan dataset, packaged
@@ -21,8 +21,8 @@ a factor `beta`, and smoothed with a causal per-unit EMA.
 *DS02 control centre: ensemble SHA-256 `d6c70142…`, 6,196 windows and a 90 % band. The app serves the frozen bundle C.*
 
 ```bash
-uvicorn app.api:app --host 127.0.0.1 --port 8000    # http://localhost:8000/docs
-streamlit run app/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
+uvicorn app.services.api:app --host 127.0.0.1 --port 8000    # http://localhost:8000/docs
+streamlit run app/entrypoints/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
 ```
 
 ---
@@ -312,9 +312,9 @@ ValueError: bad marshal data (unknown type code)     # even with the shim
 ```bash
 python scripts/operativo/predict_ds02.py --unit 11 --window 0        # RUL 60.27 ciclos
 python scripts/operativo/predict_ds02.py --unit 11 --all --json      # full trajectory
-uvicorn app.api:app --port 8000                            # POST /predict, GET /health
+uvicorn app.services.api:app --port 8000                            # POST /predict, GET /health
 python scripts/build/build_ui_cache.py                           # once: app/cache for the DSS
-streamlit run app/dashboard_ds02.py                        # fleet hangar + conformal band
+streamlit run app/entrypoints/dashboard_ds02.py                        # fleet hangar + conformal band
 ```
 
 The DSS reads `app/cache/` only — no HDF5, no TensorFlow at render time — and
@@ -446,7 +446,7 @@ root filenames.
   by purpose — the contract is `models/ensemble.joblib` + `models/bilstm_ds02.keras`.
 - **Legacy, do not run as the challenge.** `notebook_nasa_fd001.ipynb` (C-MAPSS
   FD001) and `app/dashboard.py` (loads the 2.3 GB HDF5 + Keras at render) are
-  superseded by `notebooks/ds02_ensemble/01→02→03` and `app/dashboard_ds02.py`.
+  superseded by `notebooks/ds02_ensemble/01→02→03` and `app/entrypoints/dashboard_ds02.py`.
 - **14915 vs 17450, both correct.** The R6 band in src/mia/calibracion_banda.json
   is calibrated on 14 915 pure out-of-fold rows (fit units 2/5/10/18/20, unit 16
   excluded); the shipped split-conformal band in the manifest on 17 450 dev rows.

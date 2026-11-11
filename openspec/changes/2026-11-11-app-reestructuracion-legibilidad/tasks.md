@@ -23,11 +23,11 @@
 | 4.1 | Create `app/_paths.py` with `ROOT`, `APP_DIR`, `CACHE_DIR`, registry paths and the secrets path | Done | `app/_paths.py` anchors on `Path(__file__).resolve().parents[1]`; the absolute-path fingerprint before/after is byte-identical (empty `diff`) |
 | 4.2 | Point `ui_data_loader`, `ui_inference`, `ui_rules`, `ui_shap`, `api`, `dashboard_ds02`, `hangar` and `streamlit_app` at `_paths.py` | Done | `grep -rn "__file__" app/` finds it only in `_paths.py` (plus a docstring mention); the 20-file app suite passes `250 passed, 1 skipped` |
 | 5 | **Phase 4 — package move** | | |
-| 5.1 | Create `app/__init__.py` and the `app/entrypoints/`, `app/ui/`, `app/lib/`, `app/services/` packages | Pending | `app.lib.ui_data_loader`, `app.ui._tab_flota` and `app.services.api` import |
-| 5.2 | Move the entrypoints, UI, lib and API modules | Pending | no module left at the old `app/` root except `_paths.py` |
-| 5.3 | Replace the flat imports with package imports | Pending | `grep -rn "sys.path.insert" app/` finds no library module; no flat app import remains |
-| 5.4 | Update the 32 `AppTest.from_file` paths and the 12 structural `ui_modulos` references | Pending | suite green |
-| 5.5 | Update the `README.md` start commands | Pending | `streamlit run app/entrypoints/dashboard_ds02.py` and `uvicorn app.services.api:app` |
+| 5.1 | Create `app/__init__.py` and the `app/entrypoints/`, `app/ui/`, `app/lib/`, `app/services/` packages | Done | `app.lib.ui_data_loader`, `app.ui._tab_flota` and `app.services.api` import |
+| 5.2 | Move the entrypoints, UI, lib and API modules | Done | no module left at the old `app/` root except `_paths.py` |
+| 5.3 | Replace the flat imports with package imports | Done | `grep -rn "sys.path.insert" app/` finds no library module; no flat app import remains |
+| 5.4 | Update the 32 `AppTest.from_file` paths and the 12 structural `ui_modulos` references | Done | suite green |
+| 5.5 | Update the `README.md` start commands | Done | `streamlit run app/entrypoints/dashboard_ds02.py` and `uvicorn app.services.api:app` |
 | 6 | **Verification** | | |
 | 6.1 | Run the full suite and a headless render | Pending | `python -m pytest tests -q` green; dashboard renders without exception |
 | 6.2 | Hash `models/`, `app/cache/` and `src/mia/` before and after | Pending | every SHA-256 unchanged and no new file under `models/` |

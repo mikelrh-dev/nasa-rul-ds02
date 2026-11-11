@@ -20,22 +20,13 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
-try:
-    import ui_data_loader as L  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import ui_data_loader as L  # type: ignore[no-redef]
+from app.lib import ui_data_loader as L
 
-try:  # noqa: E402
-    from context import AppCtx  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app.context import AppCtx  # type: ignore[no-redef]
+from app.lib.context import AppCtx
 
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
 # `theme` no importa el dashboard: no hay ciclo en el import.
-try:  # noqa: E402
-    from theme import SKY, AMBER, GREEN, ROSE  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app.theme import SKY, AMBER, GREEN, ROSE  # type: ignore[no-redef]
+from app.lib.theme import SKY, AMBER, GREEN, ROSE
 
 __all__ = ["_sandbox_estres"]
 

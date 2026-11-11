@@ -26,15 +26,14 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(ROOT, "app")
 SCRIPTS = os.path.join(ROOT, "scripts", "auditoria")
-sys.path.insert(0, APP)
 sys.path.insert(0, SCRIPTS)
 sys.path.insert(0, ROOT)
 
 import freeze_rules_evidence as G  # noqa: E402
 from src.mia import reglas as R  # noqa: E402
-import ui_data_loader as L  # noqa: E402
-import ui_inference as INF  # noqa: E402
-import ui_rules as UR  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
+from app.lib import ui_inference as INF  # noqa: E402
+from app.lib import ui_rules as UR  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),
@@ -233,7 +232,7 @@ def test_el_tramo_bien_poblado_sigue_siendo_el_suyo():
 def test_la_ui_declara_la_banda_en_uso():
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=180)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=180)
     app.run()
     assert not app.exception, app.exception
     apagado = " ".join((e.value or "") for e in app.caption)
@@ -268,7 +267,7 @@ def test_el_macro_rmse_sigue_a_la_lectura_en_uso():
                 return float(str(metrica.value).split()[0])
         raise AssertionError("no hay tarjeta Macro-RMSE")
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=180)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=180)
     app.run()
     assert not app.exception, app.exception
     crudo = L.get_windows()

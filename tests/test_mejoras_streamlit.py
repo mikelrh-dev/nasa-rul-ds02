@@ -5,7 +5,8 @@ import re
 import sys
 
 APP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "app")
-DASH = os.path.join(APP, "dashboard_ds02.py")
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DASH = os.path.join(APP, "entrypoints", "dashboard_ds02.py")
 
 
 def read_dash() -> str:
@@ -16,11 +17,12 @@ def test_hash_cached_with_cache_data():
     src = read_dash()
     assert "@st.cache_data" in src
     assert "_sha256_cached" in src
-    # PR1/PR2 (dashboard-split-monolito): dueño único `ui_data_loader`
-    # (re-export en `ui_modulos`); el dashboard ya no define
+    # PR1/PR2 (dashboard-split-monolito): dueño único `app.lib.ui_data_loader`
+    # (re-export en `app.ui`); el dashboard ya no define
     # `def _sha256_cached`, lo re-exporta para compat.
     owners = ""
-    for fn in ("ui_data_loader.py", os.path.join("ui_modulos", "__init__.py")):
+    for fn in (os.path.join("lib", "ui_data_loader.py"),
+               os.path.join("ui", "__init__.py")):
         path = os.path.join(APP, fn)
         if os.path.exists(path):
             owners += open(path, encoding="utf-8").read()
@@ -37,17 +39,17 @@ def test_pdf_cached_with_cache_data():
 def test_tabs_fragmented():
     src = read_dash()
     # PR2 (dashboard-split-monolito): `_sandbox_estres` vive en
-    # `ui_modulos/_sandbox_estres.py`; el conteo incluye los módulos
+    # `ui/_sandbox_estres.py`; el conteo incluye los módulos
     # extraídos, no solo el dashboard.
     blob = src
-    mod_dir = os.path.join(APP, "ui_modulos")
+    mod_dir = os.path.join(APP, "ui")
     if os.path.isdir(mod_dir):
         for fn in os.listdir(mod_dir):
             if fn.endswith(".py"):
                 blob += open(os.path.join(mod_dir, fn), encoding="utf-8").read()
     assert blob.count("@st.fragment") >= 6, blob.count("@st.fragment")
     # each tab has a fragment-defined function
-    # Las pestañas viven en `ui_modulos/`; el dashboard solo las invoca.
+    # Las pestañas viven en `ui/`; el dashboard solo las invoca.
     for name in ("_tab_flota", "_tab_motor", "_tab_auditoria", "_tab_casos"):
         assert f"def {name}" in blob, name
 
@@ -60,16 +62,17 @@ def test_single_shap_panel():
 
 def test_no_tmp_waterfall_path():
     blob = ""
-    for fn in ("dashboard_ds02.py", "ui_shap.py"):
+    for fn in (os.path.join("entrypoints", "dashboard_ds02.py"),
+               os.path.join("lib", "ui_shap.py")):
         blob += open(os.path.join(APP, fn), encoding="utf-8").read()
     assert "/tmp/shap_waterfall.png" not in blob
     assert "tempfile" in blob
 
 
 def test_shap_waterfall_png_uses_tempfile():
-    sys.path.insert(0, APP)
+    sys.path.insert(0, ROOT)
     import inspect
-    import ui_shap
+    from app.lib import ui_shap
 
     sig = inspect.signature(ui_shap.shap_waterfall_png)
     # default must not be the fixed /tmp path
@@ -90,10 +93,10 @@ def test_every_slider_multiselect_selectbox_has_help():
 
 
 def test_score_table_has_timeout():
-    sys.path.insert(0, APP)
+    sys.path.insert(0, ROOT)
     import inspect
 
-    import ui_inference as INF
+    from app.lib import ui_inference as INF
 
     assert "timeout_s" in inspect.signature(INF.score_table).parameters
 
@@ -118,10 +121,10 @@ def test_banner_aligned_no_pruebahangar():
 def test_pdf_generated_on_demand():
     src = read_dash()
     # PR5 (dashboard-split-monolito): el informe vive en
-    # `ui_modulos/_tab_auditoria.py`; la búsqueda incluye los módulos
+    # `ui/_tab_auditoria.py`; la búsqueda incluye los módulos
     # extraídos, no solo el dashboard.
     blob = src
-    mod_dir = os.path.join(APP, "ui_modulos")
+    mod_dir = os.path.join(APP, "ui")
     if os.path.isdir(mod_dir):
         for fn in os.listdir(mod_dir):
             if fn.endswith(".py"):

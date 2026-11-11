@@ -20,7 +20,7 @@ def test_src_utils_reexporta_y_documenta():
 
 def test_streamlit_app_delega_en_dashboard():
     import pathlib
-    p = pathlib.Path("app/streamlit_app.py")
+    p = pathlib.Path("app/entrypoints/streamlit_app.py")
     assert p.exists()
     texto = p.read_text(encoding="utf-8")
     assert "dashboard_ds02" in texto  # router fino, sin lógica duplicada

@@ -7,15 +7,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-try:
-    import hangar as HGR  # noqa: E402
-except ImportError:  # pragma: no cover
-    from app import hangar as HGR  # type: ignore[no-redef]
-
-try:
-    import ui_data_loader as L  # noqa: E402
-except ImportError:  # pragma: no cover
-    from app import ui_data_loader as L  # type: ignore[no-redef]
+from app.lib import hangar as HGR
+from app.lib import ui_data_loader as L
 
 
 def contraste_csv(raw: pd.DataFrame, corrected: pd.DataFrame) -> str:
@@ -67,10 +60,7 @@ def probar_n8n() -> dict:
 
     from src import n8n as N8N
 
-    try:
-        import ui_n8n as UN  # noqa: E402
-    except ImportError:  # pragma: no cover
-        from app import ui_n8n as UN  # type: ignore[no-redef]
+    from app.lib import ui_n8n as UN
 
     prueba = UN.payload_desde_traza(
         {"ventana": pd.Series({"unit": 14.0, "cycle": 25.0,

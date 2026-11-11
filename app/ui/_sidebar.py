@@ -11,12 +11,12 @@ from datetime import datetime, timezone
 
 import streamlit as st
 
-import dashboard_helpers as DH
-import flota as F
-import twin as T
-import ui_alta as A
-import ui_data_loader as L
-import ui_inference as INF
+from app.lib import dashboard_helpers as DH
+from app.lib import flota as F
+from app.lib import twin as T
+from app.lib import ui_alta as A
+from app.lib import ui_data_loader as L
+from app.lib import ui_inference as INF
 
 
 @dataclass

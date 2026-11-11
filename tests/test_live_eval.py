@@ -21,11 +21,11 @@ import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(ROOT, "app")
-sys.path.insert(0, APP)
+sys.path.insert(0, ROOT)
 
-import ui_data_loader as L  # noqa: E402
-import ui_inference as INF  # noqa: E402
-import ui_rules as UR  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
+from app.lib import ui_inference as INF  # noqa: E402
+from app.lib import ui_rules as UR  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),
@@ -36,7 +36,7 @@ needs_cache = pytest.mark.skipif(
 # ------------------------------------------------------------------ imports
 def test_importing_the_module_does_not_load_tensorflow():
     code = (
-        "import sys; sys.path.insert(0, 'app'); import ui_inference; "
+        "import sys; from app.lib import ui_inference; "
         "print('tensorflow' in sys.modules, 'keras' in sys.modules)"
     )
     proc = subprocess.run([sys.executable, "-c", code], cwd=ROOT,
@@ -242,7 +242,7 @@ def test_the_app_does_not_load_the_model_until_asked():
     code = (
         "import sys, os\n"
         "from streamlit.testing.v1 import AppTest\n"
-        "app = AppTest.from_file('app/dashboard_ds02.py', default_timeout=120)\n"
+        "app = AppTest.from_file('app/entrypoints/dashboard_ds02.py', default_timeout=120)\n"
         "app.run()\n"
         "assert not app.exception, app.exception\n"
         "print(len(app.tabs), 'tensorflow' in sys.modules, 'keras' in sys.modules)\n"
@@ -257,7 +257,7 @@ def test_the_app_does_not_load_the_model_until_asked():
 def test_pressing_evaluate_renders_a_live_result():
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=180)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=180)
     app.run()
     button = next(b for b in app.button if b.label == "Evaluar unidad")
     button.click().run()
@@ -346,7 +346,7 @@ def test_the_template_has_the_contract_shape_and_no_invented_data():
 def test_the_tab_explains_the_columns_and_offers_a_template():
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=180)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=180)
     app.run()
     assert not app.exception, app.exception
     labels = [expander.label for expander in app.expander]
@@ -384,7 +384,7 @@ def test_the_paste_grid_carries_the_glossary_and_a_row_counter():
     """The editable grid must not ask for 19 acronyms with no explanation."""
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=180)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=180)
     app.run()
     # Se elige por etiqueta, no por índice: la sala de incorporación añadió un
     # `segmented_control` delante y el índice dejó de ser estable.
@@ -414,7 +414,7 @@ def test_the_paste_grid_carries_the_glossary_and_a_row_counter():
 def test_the_sidebar_explains_the_vocabulary_of_the_screen():
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=180)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=180)
     app.run()
     assert not app.exception, app.exception
     labels = [expander.label for expander in app.expander]
@@ -430,7 +430,7 @@ def _sandbox_app():
     """Renders the live tab once and returns the handle to the sandbox widgets."""
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=300)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=300)
     app.run()
     assert not app.exception, app.exception
     return app
@@ -616,7 +616,7 @@ def test_el_preset_demo_pinta_el_estado_que_promete():
     """
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"),
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"),
                             default_timeout=300)
     app.run()
     assert not app.exception, app.exception
@@ -672,7 +672,7 @@ def test_cada_preset_cae_en_el_estado_que_dice_su_nombre():
     """
     import unicodedata
 
-    import ui_alta as A
+    from app.lib import ui_alta as A
 
     def sin_acentos(texto: str) -> str:
         """El estado vive en ASCII (`INSPECCION`) y el nombre no (`INSPECCIÓN`)."""
@@ -719,7 +719,7 @@ def test_recortar_la_rejilla_no_rompe_la_app():
     while len(grande) <= INF.UMBRAL_RECORTE_EDITOR:
         grande = pd.concat([grande, base], ignore_index=True)
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"),
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"),
                             default_timeout=300)
     app.session_state["_editor_value"] = grande
     app.run()
@@ -751,7 +751,7 @@ def test_el_preset_demo_funciona_tambien_en_modo_editar():
     from streamlit.testing.v1 import AppTest
 
     base, _meta = INF.example_window(14, 0.55)
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"),
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"),
                             default_timeout=300)
     app.session_state["_editor_value"] = pd.concat([base] * 3, ignore_index=True)
     app.run()
@@ -775,7 +775,7 @@ def test_explorar_por_ciclo_genera_tabla_valida():
     """El bloque genera una tabla válida sin puntuar."""
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"),
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"),
                             default_timeout=180)
     app.run()
     assert not app.exception, app.exception
@@ -801,7 +801,7 @@ def test_explorar_por_ciclo_evaluar_funciona():
     """Pulsar 'Evaluar este tramo' produce un resultado."""
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"),
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"),
                             default_timeout=300)
     app.run()
     assert not app.exception, app.exception

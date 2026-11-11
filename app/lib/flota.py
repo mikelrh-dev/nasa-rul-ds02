@@ -20,11 +20,11 @@ from __future__ import annotations
 
 import os
 
-import hangar as HGR
-import twin as T
-import ui_alta as A
-from ui_alta import PREFIJO_ALTA
-import ui_data_loader as L
+from app.lib import hangar as HGR
+from app.lib import twin as T
+from app.lib import ui_alta as A
+from app.lib.ui_alta import PREFIJO_ALTA
+from app.lib import ui_data_loader as L
 
 ALTAS_KEY = "altas"
 # PREFIJO_ALTA is owned by ui_alta (single definition); re-exported here

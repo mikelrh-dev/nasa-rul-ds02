@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-import app.api as api
+import app.services.api as api
 
 _SECRET = "test-secret-key"
 
@@ -103,8 +103,8 @@ def test_rate_limit_applies_even_with_valid_api_key(client, monkeypatch):
 
 def test_api_key_comparison_uses_compare_digest():
     """`_protect` must compare keys with hmac.compare_digest, not `!=`."""
-    src_path = os.path.join(os.path.dirname(os.path.dirname(api.__file__)), "app", "api.py")
+    src_path = api.__file__
     with open(src_path, encoding="utf-8") as fh:
         src = fh.read()
     assert "compare_digest" in src, "hmac.compare_digest not used for API key check"
-    assert "import hmac" in src, "hmac module not imported in app/api.py"
+    assert "import hmac" in src, "hmac module not imported in app/services/api.py"

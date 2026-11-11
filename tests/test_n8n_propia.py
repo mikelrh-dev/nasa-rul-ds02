@@ -19,7 +19,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-import app.api as api  # noqa: E402
+import app.services.api as api  # noqa: E402
 
 _TOKEN = "test-n8n-token"
 _PAYLOAD = {
@@ -128,7 +128,7 @@ def test_todas_las_decisiones_validas_se_aceptan(client):
 
 def test_el_token_se_compara_con_compare_digest():
     """El token MUST compararse con hmac.compare_digest (patron de src/n8n.py)."""
-    src = os.path.join(ROOT, "app", "api.py")
+    src = os.path.join(ROOT, "app", "services", "api.py")
     with open(src, encoding="utf-8") as fh:
         texto = fh.read()
     assert "compare_digest" in texto

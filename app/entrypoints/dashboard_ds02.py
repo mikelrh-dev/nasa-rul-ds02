@@ -1,6 +1,6 @@
 """DS02 maintenance decision-support surface.
 
-    streamlit run app/dashboard_ds02.py
+    streamlit run app/entrypoints/dashboard_ds02.py
 
 Five tabs over one cached frame: fleet hangar, RUL with its conformal band,
 physical sensor radiography, the engine-14 audit, and the live evaluation of a
@@ -23,25 +23,26 @@ from __future__ import annotations
 import os
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 
-import _paths
+# Bootstrap de paquete: este entrypoint vive en app/entrypoints/, asi que
+# parents[2] es la raiz del repo. Es el UNICO sys.path.insert de app/.
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
 
-sys.path.insert(0, str(_paths.APP_DIR))
-
-import hangar as HGR  # noqa: E402
-import twin as T  # noqa: E402
-import ui_alta as A  # noqa: E402
-import ui_data_loader as L  # noqa: E402
-import ui_inference as INF  # noqa: E402
-import ui_rules as UR  # noqa: E402
-import flota as F  # noqa: E402
-import ui_modulos as UM  # noqa: E402
-
-sys.path.insert(0, str(_paths.ROOT))
+from app import _paths  # noqa: E402
+from app.lib import flota as F  # noqa: E402
+from app.lib import hangar as HGR  # noqa: E402
+from app.lib import twin as T  # noqa: E402
+from app.lib import ui_alta as A  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
+from app.lib import ui_inference as INF  # noqa: E402
+from app.lib import ui_rules as UR  # noqa: E402
+from app.ui import _sha256_cached  # noqa: E402
 
 # Estado de sesión en un solo sitio: gemelos y registros de hangar.
 # Se cargan de disco una sola vez: recargar la página ya no borra la flota.
@@ -245,7 +246,7 @@ def _preflight_panel(pf: dict) -> None:
         st.warning(aviso, icon=":material/find_in_page:")
 
 # Design tokens y helpers de Plotly: dueno `theme.py`.
-from theme import (  # noqa: E402
+from app.lib.theme import (  # noqa: E402
     BADGE_COLOR, BADGE_ICON, chart_layout, style_axes, fig_deriva,
 )
 
@@ -259,47 +260,35 @@ def st_badge_estado(estado: str) -> None:
     )
 
 
-# Helper único de SHA-256: dueño `ui_data_loader` (único `def` en `app/`);
-# aquí se re-exporta para compat. Digest y `OSError -> None` intactos.
-_sha256_cached = UM._sha256_cached
+# Helper único de SHA-256: dueño `app.lib.ui_data_loader` (único `def` en `app/`);
+# re-exportado desde `app.ui` e importado arriba para compat. Digest y
+# `OSError -> None` intactos.
 
 # Flota (PR3, dashboard-split-monolito 2.2): dueño
-# `ui_modulos._tab_flota`; aquí se delega desde el wrapper `_tab_flota`
+# `app.ui._tab_flota`; aquí se delega desde el wrapper `_tab_flota`
 # (la pestaña sigue llamándose `_tab_flota()` con los globales del
 # dashboard: `frame_cache` ttl=3600, SHAP cache y PDF
 # `artefacto_sha256` intactos en este fichero).
-try:
-    from ui_modulos._tab_flota import _tab_flota as _tab_flota_impl
-except ImportError:  # pragma: no cover - import-style fallback
-    from app.ui_modulos._tab_flota import _tab_flota as _tab_flota_impl  # type: ignore[no-redef]
+from app.ui._tab_flota import _tab_flota as _tab_flota_impl
 
 # Motor (PR4, dashboard-split-monolito 2.3): dueno
-# `ui_modulos._tab_motor`; aqui se delega desde el wrapper `_tab_motor`
+# `app.ui._tab_motor`; aqui se delega desde el wrapper `_tab_motor`
 # (la pestana sigue llamandose `_tab_motor()` con los globales del
 # dashboard: `frame_cache` ttl=3600, SHAP cache y PDF
 # `artefacto_sha256` intactos en este fichero).
-try:
-    from ui_modulos._tab_motor import _tab_motor as _tab_motor_impl
-except ImportError:  # pragma: no cover - import-style fallback
-    from app.ui_modulos._tab_motor import _tab_motor as _tab_motor_impl  # type: ignore[no-redef]
+from app.ui._tab_motor import _tab_motor as _tab_motor_impl
 
 # Auditoria (PR5, dashboard-split-monolito 2.4): dueno
-# `ui_modulos._tab_auditoria`; aqui se delega desde el wrapper
+# `app.ui._tab_auditoria`; aqui se delega desde el wrapper
 # `_tab_auditoria` (la pestana sigue llamandose `_tab_auditoria()` con los
 # globales del dashboard: `frame_cache` ttl=3600, SHAP cache y PDF
 # `artefacto_sha256` intactos en este fichero).
-try:
-    from ui_modulos._tab_auditoria import _tab_auditoria as _tab_auditoria_impl
-except ImportError:  # pragma: no cover - import-style fallback
-    from app.ui_modulos._tab_auditoria import _tab_auditoria as _tab_auditoria_impl  # type: ignore[no-redef]
+from app.ui._tab_auditoria import _tab_auditoria as _tab_auditoria_impl
 
 
-# Casos nuevos (B1): dueno `ui_modulos._tab_casos`; el dashboard solo
+# Casos nuevos (B1): dueno `app.ui._tab_casos`; el dashboard solo
 # construye el contexto y lo pasa.
-try:
-    from ui_modulos._tab_casos import _tab_casos as _tab_casos_impl
-except ImportError:  # pragma: no cover - import-style fallback
-    from app.ui_modulos._tab_casos import _tab_casos as _tab_casos_impl  # type: ignore[no-redef]
+from app.ui._tab_casos import _tab_casos as _tab_casos_impl
 
 def shap_panel(unit: int, suffix: str = "motor") -> None:
     """Panel SHAP unificado: top features + waterfall Plotly.
@@ -308,10 +297,10 @@ def shap_panel(unit: int, suffix: str = "motor") -> None:
     sola definición, dos call sites con claves de botón distintas.
     """
     try:
-        import ui_shap as USH
+        from app.lib import ui_shap as USH
     except ImportError:
         st.info(
-            "SHAP no instalado: `ui_shap` no está en el entorno. Instala el "
+            "SHAP no instalado: `app.lib.ui_shap` no está en el entorno. Instala el "
             "paquete con `pip install shap` y recarga. El resto de la app "
             "sigue funcionando sin explicabilidad.",
             icon=":material/info:",
@@ -498,11 +487,8 @@ correccion_en_uso = (
 )
 
 # ------------------------------------------------------------------- sidebar
-# Barra lateral (B3): dueno `ui_modulos._sidebar`; devuelve el estado.
-try:
-    from ui_modulos._sidebar import _sidebar
-except ImportError:  # pragma: no cover - import-style fallback
-    from app.ui_modulos._sidebar import _sidebar  # type: ignore
+# Barra lateral (B3): dueno `app.ui._sidebar`; devuelve el estado.
+from app.ui._sidebar import _sidebar
 
 _sb = _sidebar(
     windows=windows, provenance=provenance, units=units, max_life=max_life,
@@ -775,7 +761,7 @@ def _informe_auditoria_pdf(
 
     # Dueño unico de la traduccion latin-1: `pdf_partes`. Import local para que
     # la funcion siga siendo autocontenida (los tests la extraen con `exec`).
-    from pdf_partes import _latin1
+    from app.lib.pdf_partes import _latin1
 
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -873,7 +859,7 @@ _vista_tribunal = str(st.session_state.get("vista_modo", "Tribunal")) == "Tribun
 
 # Contexto unico de la app: las pestanas reciben un objeto en vez de 18-29
 # parametros. Se construye una sola vez, tras calcular todos los globales.
-from context import AppCtx  # noqa: E402
+from app.lib.context import AppCtx  # noqa: E402
 
 ctx = AppCtx(
     frame=frame, frame_cache=frame_cache, snapshot=snapshot, curves=curves,

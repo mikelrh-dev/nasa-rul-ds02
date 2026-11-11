@@ -11,23 +11,18 @@ do not recompute.
 """
 from __future__ import annotations
 
-import sys
-
 import numpy as np
 import pandas as pd
 import streamlit as st
 
-import _paths
+from app import _paths
 
 APP_DIR = str(_paths.APP_DIR)
 ROOT = str(_paths.ROOT)
 SRC = str(_paths.SRC_DIR)
 
-if SRC not in sys.path:
-    sys.path.insert(0, SRC)
-
-import ui_data_loader as L  # noqa: E402
-import ui_inference as INF  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
+from app.lib import ui_inference as INF  # noqa: E402
 
 
 def _derive_tabular_features(table: pd.DataFrame, ensemble) -> np.ndarray:

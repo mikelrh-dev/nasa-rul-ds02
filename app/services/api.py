@@ -37,7 +37,6 @@ import json
 import logging
 import math
 import os
-import sys
 import threading
 import time
 from contextlib import asynccontextmanager
@@ -48,12 +47,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 
-try:
-    import _paths
-except ImportError:  # imported as app.api (tests, uvicorn app.api:app)
-    from app import _paths
-
-sys.path.insert(0, str(_paths.SRC_DIR))
+from app import _paths
 
 from ds02_rul.data import load_ds02  # noqa: E402
 from ds02_rul.inference import windows_for_unit  # noqa: E402

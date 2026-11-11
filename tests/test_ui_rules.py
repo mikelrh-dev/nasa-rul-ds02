@@ -25,11 +25,10 @@ import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(ROOT, "app")
-sys.path.insert(0, APP)
 sys.path.insert(0, ROOT)
 
-import ui_data_loader as L  # noqa: E402
-import ui_rules as UR  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
+from app.lib import ui_rules as UR  # noqa: E402
 from src.mia import reglas as R  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
@@ -100,7 +99,7 @@ def test_el_resumen_informa_lo_movido():
 def test_el_tablero_rendea_con_la_correccion_activada():
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=180)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=180)
     app.run()
     assert not app.exception, app.exception
     assert app.toggle, "el interruptor de corrección tiene que existir"
@@ -146,7 +145,8 @@ def _infracciones(texto: str) -> list[str]:
 
 def test_la_copia_no_dice_monotonia_estricta():
     """Los textos de la app y las seis frases vivas no sobreafirman."""
-    for nombre in ("dashboard_ds02.py", "ui_rules.py"):
+    for nombre in (os.path.join("entrypoints", "dashboard_ds02.py"),
+                   os.path.join("lib", "ui_rules.py")):
         with open(os.path.join(APP, nombre), encoding="utf-8") as fh:
             assert not _infracciones(fh.read()), nombre
 
@@ -190,7 +190,7 @@ def test_el_interruptor_arranca_apagado():
     """Una sesión nueva muestra la lectura cruda, sin tocar el interruptor."""
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=180)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=180)
     app.run()
     assert not app.exception, app.exception
     assert app.toggle, "el interruptor de corrección tiene que existir"
@@ -250,7 +250,7 @@ def test_la_ui_muestra_el_sha_completo():
 
     sha = L.get_provenance()["artifact"]["ensemble_sha256"]
     assert len(sha) == 64
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=180)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=180)
     app.run()
     assert not app.exception, app.exception
     codigos = [(element.value or "") for element in app.get("code")]

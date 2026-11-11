@@ -23,11 +23,11 @@ import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(ROOT, "app")
-sys.path.insert(0, APP)
+sys.path.insert(0, ROOT)
 
-import ui_data_loader as L  # noqa: E402
-import ui_inference as INF  # noqa: E402
-import ui_batch as B  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
+from app.lib import ui_inference as INF  # noqa: E402
+from app.lib import ui_batch as B  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),
@@ -157,7 +157,7 @@ def test_el_tope_se_aplica_con_aviso():
 def test_la_sala_de_incorporacion_ofrece_el_lote():
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"), default_timeout=180)
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=180)
     app.run()
     assert not app.exception, app.exception
 

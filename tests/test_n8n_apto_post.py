@@ -12,10 +12,9 @@ from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-sys.path.insert(0, os.path.join(ROOT, "app"))
 
 from src import n8n as N8N  # noqa: E402
-import ui_n8n as UN  # noqa: E402
+from app.lib import ui_n8n as UN  # noqa: E402
 
 URL = "http://n8n.invalid/hook"
 PAYLOAD = {"decision": "APTO", "unidad": 11.0}

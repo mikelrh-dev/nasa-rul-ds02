@@ -6,8 +6,8 @@
 > `src/clase/` (código), `notebooks/01–07` (relato), `data/processed/`
 > (dataset con nulos MAR + `fase_vuelo`) y `resultados/` (métricas y figuras).
 > Punto de entrada: [`src/clase/README.md`](src/clase/README.md) (6 apartados),
-> app de producción: `streamlit run app/dashboard_ds02.py` (bundle C + SHAP); el
-> entry-point que pide la rúbrica, `app/streamlit_app.py`, solo la delega.
+> app de producción: `streamlit run app/entrypoints/dashboard_ds02.py` (bundle C + SHAP); el
+> entry-point que pide la rúbrica, `app/entrypoints/streamlit_app.py`, solo la delega.
 > Lo de abajo es el sistema desplegado (bundle C congelado, RMSE 4.338).
 
 ![RMSE por motor del bundle C](docs/assets/bundle_c_rmse_por_motor.png)
@@ -37,8 +37,8 @@ tabulares residualizadas se reconcilian por un meta-learner aprendido, encogido
 hacia el campeón por un factor `beta`, y suavizado con una EMA causal por motor.
 
 ```bash
-uvicorn app.api:app --host 127.0.0.1 --port 8000    # http://localhost:8000/docs
-streamlit run app/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
+uvicorn app.services.api:app --host 127.0.0.1 --port 8000    # http://localhost:8000/docs
+streamlit run app/entrypoints/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
 ```
 
 ---
@@ -291,7 +291,7 @@ flowchart TD
 
 ---
 
-El dashboard de producción (`app/dashboard_ds02.py`) incluye una sección de SHAP
+El dashboard de producción (`app/entrypoints/dashboard_ds02.py`) incluye una sección de SHAP
 (TreeExplainer exacto sobre el LightGBM del híbrido):
 
 - **Global:** top-10 features por mean |SHAP| para el motor seleccionado.
@@ -363,7 +363,7 @@ el notebook corra perfectamente.
 
 ```bash
 # App de producción (bundle C + SHAP)
-streamlit run app/dashboard_ds02.py
+streamlit run app/entrypoints/dashboard_ds02.py
 
 # Tests
 python -m pytest tests/ -q
@@ -382,8 +382,8 @@ MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ## Estructura del proyecto
 
 ```
-app/streamlit_app.py    entry-point rúbrica (delega en dashboard_ds02.py)
-app/                    dashboard_ds02.py (producción), ui_shap.py (SHAP), ...
+app/entrypoints/         streamlit_app.py (rúbrica, delega) y dashboard_ds02.py (producción)
+app/                     lib/ (datos, inferencia, reglas), ui/ (pestañas), services/ (API)
 src/utils.py            fachada rúbrica (re-exporta pipeline_clase + métricas)
 src/reglas.py           fachada rúbrica sobre src.mia/ (6+ reglas, prioridad, seguridad)
 src/n8n.py              envío de la decisión a n8n (MIA-3)

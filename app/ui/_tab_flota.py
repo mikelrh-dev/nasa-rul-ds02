@@ -32,77 +32,26 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-try:
-    import flota as F  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import flota as F  # type: ignore[no-redef]
-
-try:
-    import hangar as HGR  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import hangar as HGR  # type: ignore[no-redef]
-
-try:
-    import dashboard_helpers as DH  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import dashboard_helpers as DH  # type: ignore[no-redef]
-
-try:
-    import pdf_partes as PP  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import pdf_partes as PP  # type: ignore[no-redef]
-
-try:
-    import simulacion as S  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import simulacion as S  # type: ignore[no-redef]
-
-try:
-    import twin as T  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import twin as T  # type: ignore[no-redef]
-
-try:
-    import ui_data_loader as L  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import ui_data_loader as L  # type: ignore[no-redef]
-
-try:
-    import ui_inference as INF  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import ui_inference as INF  # type: ignore[no-redef]
-
-try:
-    import ui_rules as UR  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app import ui_rules as UR  # type: ignore[no-redef]
-
-try:
-    import ui_alta as A  # noqa: E402
-except ImportError:  # pragma: no cover
-    from app import ui_alta as A  # type: ignore[no-redef]
+from app.lib import flota as F
+from app.lib import hangar as HGR
+from app.lib import dashboard_helpers as DH
+from app.lib import pdf_partes as PP
+from app.lib import simulacion as S
+from app.lib import twin as T
+from app.lib import ui_data_loader as L
+from app.lib import ui_inference as INF
+from app.lib import ui_rules as UR
+from app.lib import ui_alta as A
 
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
 # Aliases con prefijo para conservar los nombres historicos del modulo.
-try:  # noqa: E402
-    from theme import (  # noqa: E402
-        INK, SKY, ROSE,
-        SLATE as _SLATE, GREEN as _GREEN, AMBER as _AMBER,
-        STATE_COLORS, STATE_BG, STATE_WORD, RANGO_ESTADO,
-        BADGE_COLOR, BADGE_ICON,
-    )
-except ImportError:  # pragma: no cover - import-style fallback
-    from app.theme import (  # type: ignore[no-redef]
-        INK, SKY, ROSE,
-        SLATE as _SLATE, GREEN as _GREEN, AMBER as _AMBER,
-        STATE_COLORS, STATE_BG, STATE_WORD, RANGO_ESTADO,
-        BADGE_COLOR, BADGE_ICON,
-    )
-
-try:  # noqa: E402
-    from context import AppCtx  # noqa: E402
-except ImportError:  # pragma: no cover - import-style fallback
-    from app.context import AppCtx  # type: ignore[no-redef]
+from app.lib.theme import (
+    INK, SKY, ROSE,
+    SLATE as _SLATE, GREEN as _GREEN, AMBER as _AMBER,
+    STATE_COLORS, STATE_BG, STATE_WORD, RANGO_ESTADO,
+    BADGE_COLOR, BADGE_ICON,
+)
+from app.lib.context import AppCtx
 
 __all__ = ["_tab_flota"]
 

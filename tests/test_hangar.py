@@ -13,10 +13,10 @@ import sys
 
 import pytest
 
-APP = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app")
-sys.path.insert(0, APP)
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
 
-import hangar as H  # noqa: E402
+from app.lib import hangar as H  # noqa: E402
 
 UMBRALES = {"apto": 30.0, "hangar": 25.0}
 

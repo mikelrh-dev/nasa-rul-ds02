@@ -12,26 +12,19 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-import twin as T
-import ui_alta as A
-import ui_batch as B
-import ui_data_loader as L
-import ui_inference as INF
-import ui_n8n as UN
-import ui_rules as UR
+from app.lib import twin as T
+from app.lib import ui_alta as A
+from app.lib import ui_batch as B
+from app.lib import ui_data_loader as L
+from app.lib import ui_inference as INF
+from app.lib import ui_n8n as UN
+from app.lib import ui_rules as UR
 from src import n8n as N8N
 
-from theme import ROSE, SKY, chart_layout, style_axes
+from app.lib.theme import ROSE, SKY, chart_layout, style_axes
 
-try:
-    from ui_modulos._sandbox_estres import _sandbox_estres
-except ImportError:
-    from app.ui_modulos._sandbox_estres import _sandbox_estres  # type: ignore
-
-try:
-    from context import AppCtx
-except ImportError:
-    from app.context import AppCtx  # type: ignore
+from app.ui._sandbox_estres import _sandbox_estres
+from app.lib.context import AppCtx
 
 
 @st.fragment

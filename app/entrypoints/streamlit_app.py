@@ -1,40 +1,45 @@
-"""Entry-point de la app con el nombre que pide la rúbrica (`app/streamlit_app.py`).
+"""Entry-point de la app con el nombre que pide la rúbrica (`app/entrypoints/streamlit_app.py`).
 
 Uso::
 
-    streamlit run app/streamlit_app.py
+    streamlit run app/entrypoints/streamlit_app.py
 
-La app real vive en `app/dashboard_ds02.py` (producción: bundle C + reglas MIA);
+La app real vive en `app/entrypoints/dashboard_ds02.py` (producción: bundle C + reglas MIA);
 este módulo solo la importa y la ejecuta, sin duplicar lógica. Funciona porque
-`dashboard_ds02.py` añade su propio directorio al `sys.path` y todo su código
+el entrypoint añade la raiz del repo al `sys.path` y todo su código
 de interfaz corre a nivel de módulo, como en cualquier script de Streamlit.
 
 Un rerun re-ejecuta este entrypoint, NO los módulos que importa: sin más,
 el segundo rerun (F5, o cualquier interacción) devuelve el objeto ya cacheado
 en `sys.modules` y el código de interfaz no corre — página en blanco, sin
-excepción. Por eso se saca `dashboard_ds02` de `sys.modules` antes de
+excepción. Por eso se saca `app.entrypoints.dashboard_ds02` de `sys.modules` antes de
 importarlo: cada pasada lo ejecuta de nuevo, como si fuera el script directo.
 
 Despliegue: el proyecto no lleva imagen de contenedor. En local:
-`streamlit run app/streamlit_app.py --server.address 127.0.0.1 --server.port 8501`.
+`streamlit run app/entrypoints/streamlit_app.py --server.address 127.0.0.1 --server.port 8501`.
 No publicar 0.0.0.0:8501 con HTTP plano; cualquier exposición externa debe pasar
 por un proxy inverso que termine TLS.
 """
 
 from __future__ import annotations
 
+import importlib
 import logging
 import os
 import sys
 import tomllib
+from pathlib import Path
 
-import _paths
+# Bootstrap de paquete: este entrypoint vive en app/entrypoints/, asi que
+# parents[2] es la raiz del repo. Es el UNICO sys.path.insert de app/.
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
 
-sys.path.insert(0, str(_paths.APP_DIR))
+from app import _paths  # noqa: E402
 
 # Carga .streamlit/secrets.toml en os.environ si no vienen por entorno.
 # Asi N8N_WEBHOOK_URL (y N8N_WEBHOOK_TOKEN si existe) quedan disponibles
-# para src/n8n y app/dashboard_ds02 sin tocar los tests, que siguen usando
+# para src/n8n y app.entrypoints.dashboard_ds02 sin tocar los tests, que siguen usando
 # os.environ directamente.
 _secrets_path = str(_paths.SECRETS_PATH)
 if os.path.exists(_secrets_path):
@@ -46,7 +51,7 @@ if os.path.exists(_secrets_path):
                 os.environ[_k] = str(_secrets[_k])
     except (OSError, tomllib.TOMLDecodeError) as exc:
         # No se puede usar `st.warning` aqui: `set_page_config` vive en
-        # dashboard_ds02.py:510 y debe ser el primer comando de Streamlit. El
+        # app/entrypoints/dashboard_ds02.py:510 y debe ser el primer comando de Streamlit. El
         # aviso visible es otra tarea; esto deja rastro y un flag consultable.
         logging.getLogger("ds02.streamlit_app").warning(
             "no se pudo leer %s (%s): N8N_WEBHOOK_URL queda sin cargar",
@@ -56,6 +61,6 @@ if os.path.exists(_secrets_path):
 
 # Forzar re-ejecución en cada rerun (ver docstring): un `import` a secas solo
 # ejecuta el módulo la primera vez en el proceso del servidor.
-sys.modules.pop("dashboard_ds02", None)
+sys.modules.pop("app.entrypoints.dashboard_ds02", None)
 
-import dashboard_ds02  # noqa: E402,F401  (el import EJECUTA la app)
+dashboard_ds02 = importlib.import_module("app.entrypoints.dashboard_ds02")  # noqa: E402,F401  (el import EJECUTA la app)

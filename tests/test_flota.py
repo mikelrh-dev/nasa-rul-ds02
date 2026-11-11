@@ -13,10 +13,11 @@ from __future__ import annotations
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "app"))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
 
-import flota as M  # noqa: E402
-import ui_data_loader as L  # noqa: E402
+from app.lib import flota as M  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
 
 
 def test_cada_motor_tiene_una_clave_y_una_etiqueta():

@@ -9,7 +9,7 @@ from __future__ import annotations
 import pandas as pd
 import plotly.graph_objects as go
 
-import ui_data_loader as L
+from app.lib import ui_data_loader as L
 
 # ---------------------------------------------------------------- design tokens
 INK = "#e8eef7"

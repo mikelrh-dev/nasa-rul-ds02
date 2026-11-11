@@ -1,12 +1,13 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "app"))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
 
 import pytest
 
-import ui_alta as A
-import ui_data_loader as L
+from app.lib import ui_alta as A
+from app.lib import ui_data_loader as L
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),

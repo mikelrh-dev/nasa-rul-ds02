@@ -20,7 +20,7 @@ import shutil
 
 import pytest
 
-from app import ui_data_loader as L
+from app.lib import ui_data_loader as L
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REAL_CACHE = os.path.join(ROOT, "app", "cache")

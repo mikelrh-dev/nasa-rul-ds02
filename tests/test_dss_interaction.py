@@ -17,16 +17,16 @@ import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(ROOT, "app")
-sys.path.insert(0, APP)
+sys.path.insert(0, ROOT)
 
-import ui_data_loader as L  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),
     reason="app/cache missing — run `python scripts/build/build_ui_cache.py`",
 )
 
-DASHBOARD = os.path.join(APP, "dashboard_ds02.py")
+DASHBOARD = os.path.join(APP, "entrypoints", "dashboard_ds02.py")
 
 
 def _app():
@@ -335,9 +335,7 @@ def test_el_modo_historia_carga_el_paso_3_en_la_app():
         pytest.fail("no está el paso 3 del modo historia")
 
     assert not app.exception, app.exception
-    import sys as _sys, os as _os
-    _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "..", "app"))
-    import ui_alta as _A, ui_data_loader as _L
+    from app.lib import ui_alta as _A, ui_data_loader as _L
     _paso3 = [p for p in _A.estado_historia(_L.get_windows(), {"apto": 30.0, "hangar": 25.0}) if p["paso"] == 3][0]
     assert _selector_unidad(app).value == _paso3["unidad"]
     assert _slider_ciclo(app).value == _paso3["ciclo"]

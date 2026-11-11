@@ -11,22 +11,21 @@ Nothing is written: the model is read from `models/`, the example comes from
 from __future__ import annotations
 
 import os
-import sys
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 
-import _paths
+from app import _paths
 
 APP_DIR = str(_paths.APP_DIR)
 ROOT = str(_paths.ROOT)
 SRC = str(_paths.SRC_DIR)
 ARTIFACT = str(_paths.ARTIFACT_PATH)
 
-import twin as T  # noqa: E402
-import ui_data_loader as L  # noqa: E402
-import ui_rules as UR  # noqa: E402
+from app.lib import twin as T  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
+from app.lib import ui_rules as UR  # noqa: E402
 
 LIVE_UNIT = -1.0  # a DS02 unit can never take this value, so EMA never mixes
 
@@ -406,8 +405,6 @@ def get_ensemble():
     `models/ds02_manifest.json` / `app/cache/cache_manifest.json` and raises
     `RuntimeError` without deserializing on mismatch. No `eval` is used.
     """
-    if SRC not in sys.path:
-        sys.path.insert(0, SRC)
     from ds02_rul.persistence import load_ensemble
 
     return load_ensemble(ARTIFACT)
@@ -479,8 +476,6 @@ def score_table(table: pd.DataFrame, unit_id: float = LIVE_UNIT,
     if len(frame) > MAX_FILAS:
         raise ValueError(_mensaje_limite(len(frame)))
     _t0 = time.monotonic()
-    if SRC not in sys.path:
-        sys.path.insert(0, SRC)
     from ds02_rul.inference import raw_windows
 
     order = channel_order()

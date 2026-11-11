@@ -12,16 +12,16 @@ import sys
 import pandas as pd
 import pytest
 
-APP = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app")
-sys.path.insert(0, APP)
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
 
-import ui_data_loader as L  # noqa: E402
-import ui_inference as INF  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
+from app.lib import ui_inference as INF  # noqa: E402
 
 
 # ------------------------------------------------------- persistencia
 def test_gemelos_sobreviven_a_un_reinicio(tmp_path):
-    import twin as T
+    from app.lib import twin as T
 
     registro = {}
     gemelo = {
@@ -44,7 +44,7 @@ def test_gemelos_sobreviven_a_un_reinicio(tmp_path):
 
 
 def test_hangar_sobrevive_a_un_reinicio(tmp_path):
-    import hangar as HGR
+    from app.lib import hangar as HGR
 
     registros = {"U1": HGR.abrir("U1", 40, 20.0, {"apto": 30.0, "hangar": 25.0}, "R9")}
     ruta = str(tmp_path / "hangar.json")
@@ -53,8 +53,8 @@ def test_hangar_sobrevive_a_un_reinicio(tmp_path):
 
 
 def test_cargar_sin_fichero_devuelve_vacio(tmp_path):
-    import hangar as HGR
-    import twin as T
+    from app.lib import hangar as HGR
+    from app.lib import twin as T
 
     assert T.cargar_disco(str(tmp_path / "nope.json")) == {}
     assert HGR.cargar_disco(str(tmp_path / "nope.json")) == {}
@@ -105,7 +105,7 @@ def test_cada_estado_tiene_simbolo_y_etiqueta():
 def test_restablecer_demo_existe_y_no_rompe_el_render():
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"),
+    app = AppTest.from_file(os.path.join(ROOT, "app", "entrypoints", "dashboard_ds02.py"),
                             default_timeout=120)
     app.run()
     assert not app.exception, app.exception
@@ -115,7 +115,7 @@ def test_restablecer_demo_existe_y_no_rompe_el_render():
 def test_todo_grafico_y_tabla_nuevos_tienen_nombre_accesible():
     from streamlit.testing.v1 import AppTest
 
-    app = AppTest.from_file(os.path.join(APP, "dashboard_ds02.py"),
+    app = AppTest.from_file(os.path.join(ROOT, "app", "entrypoints", "dashboard_ds02.py"),
                             default_timeout=120)
     app.run()
     assert not app.exception, app.exception

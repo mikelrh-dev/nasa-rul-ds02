@@ -8,8 +8,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-import ui_data_loader as L
-import ui_rules as UR
+from app.lib import ui_data_loader as L
+from app.lib import ui_rules as UR
 
 # Rango negativo reservado: nunca colisiona con caché (11/14/15),
 # evaluación en vivo (-1) ni gemelos (0).

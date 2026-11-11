@@ -17,10 +17,10 @@ import os
 
 import pandas as pd
 
-import ui_data_loader as L
-import ui_inference as INF
-import ui_rules as UR
-import twin as T
+from app.lib import ui_data_loader as L
+from app.lib import ui_inference as INF
+from app.lib import ui_rules as UR
+from app.lib import twin as T
 
 # Tope duro por memoria del portátil: cada motor son ~50 muestras remuestreadas
 # (~0,4 ciclos de vuelo) y una llamada al modelo. 25 es interactivo; 250 no lo es.
