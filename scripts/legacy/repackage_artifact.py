@@ -24,11 +24,14 @@ import numpy as np
 
 LEGACY = "ensemble.joblib"
 LEGACY_DIR = os.path.join("models", "legacy")
+# Los dos .npy de referencia y_lstm/y_ens no tienen ningun consumidor vivo
+# (solo este script, que ya no corre): se archivaron fuera del árbol activo.
+ARCHIVED_DIR = os.path.join("archive", "models_legacy")
 OUT_DIR = "models"
 REF_JSON = os.path.join(LEGACY_DIR, "ensemble_reference.json")
 X_RAW_NPY = os.path.join(LEGACY_DIR, "ensemble_x_raw.npy")
-Y_LSTM_NPY = os.path.join(LEGACY_DIR, "ensemble_y_lstm.npy")
-Y_ENS_NPY = os.path.join(LEGACY_DIR, "ensemble_y_ens.npy")
+Y_LSTM_NPY = os.path.join(ARCHIVED_DIR, "ensemble_y_lstm.npy")
+Y_ENS_NPY = os.path.join(ARCHIVED_DIR, "ensemble_y_ens.npy")
 
 
 class _Bootstrap:
