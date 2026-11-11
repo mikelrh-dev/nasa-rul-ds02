@@ -16,9 +16,9 @@
 | 2.4 | Unify the 30/25 thresholds on `L.DEFAULT_AIRWORTHY` / `L.DEFAULT_AOG` | Done | `_sidebar`, `_sandbox_estres`, `ui_alta`, `ui_n8n` and `dashboard_helpers` read the constants |
 | 2.5 | Refresh `app/README.md` and `app/ui_modulos/__init__.py` | Done | docs match the code; suite green |
 | 3 | **Phase 2 — close the `AppCtx` cycle** | | |
-| 3.1 | `_sandbox_estres` receives `AppCtx`; delete the 8 optional parameters and the `sys.modules.get` fallback | Pending | `_tab_casos.py:943` passes `ctx`; no dashboard import in the module |
-| 3.2 | Drop the `if ctx is None` fallback in the four tabs | Pending | no `ctx_from_dashboard` call sites remain |
-| 3.3 | Delete `ctx_from_dashboard()` from `app/context.py` | Pending | `context.py` is a dataclass only; suite green |
+| 3.1 | `_sandbox_estres` receives `AppCtx`; delete the 8 optional parameters and the `sys.modules.get` fallback | Done | `_tab_casos.py:943` passes `ctx`; no dashboard import in the module |
+| 3.2 | Drop the `if ctx is None` fallback in the four tabs | Done | no `ctx_from_dashboard` call sites remain |
+| 3.3 | Delete `ctx_from_dashboard()` from `app/context.py` | Done | `context.py` is a dataclass only; suite green |
 | 4 | **Phase 3 — path owner** | | |
 | 4.1 | Create `app/_paths.py` with `ROOT`, `APP_DIR`, `CACHE_DIR`, registry paths and the secrets path | Pending | every constant resolves to the same absolute path as before the move |
 | 4.2 | Point `ui_data_loader`, `ui_inference`, `ui_rules`, `ui_shap`, `api`, `dashboard_ds02`, `hangar` and `streamlit_app` at `_paths.py` | Pending | no `__file__`-based path math outside `_paths.py`; suite green |

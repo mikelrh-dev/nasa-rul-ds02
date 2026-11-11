@@ -28,29 +28,23 @@ try:
 except ImportError:
     from app.ui_modulos._sandbox_estres import _sandbox_estres  # type: ignore
 
+try:
+    from context import AppCtx
+except ImportError:
+    from app.context import AppCtx  # type: ignore
+
 
 @st.fragment
-def _tab_casos(ctx=None) -> None:
+def _tab_casos(ctx: AppCtx) -> None:
     """Sala «Casos nuevos»: incorporar motores en lote y registrarlos."""
-    if ctx is None:
-        try:
-            from context import ctx_from_dashboard
-        except ImportError:
-            from app.context import ctx_from_dashboard
-        ctx = ctx_from_dashboard()
-    _cache_sha = ctx.cache_sha
     _guardar_registros = ctx.guardar_registros
     _log = ctx.log
     _preflight_panel = ctx.preflight_panel
-    _sandbox_puntua_cached = ctx.sandbox_puntua_cached
     _vista_tribunal = ctx.vista_tribunal
     shap_panel = ctx.shap_panel
-    st_badge_estado = ctx.st_badge_estado
-    telemetry = ctx.telemetry
     threshold_aog = ctx.threshold_aog
     threshold_apto = ctx.threshold_apto
     umbrales = ctx.umbrales
-    units = ctx.units
     windows = ctx.windows
     # Los avisos `live_flash`/`twin_flash` se consumen a nivel de módulo
     # en `_mostrar_toast_pendiente()` (antes de los tabs): aquí solo se
@@ -940,9 +934,7 @@ def _tab_casos(ctx=None) -> None:
             "artefacto congelado y re-decide con el motor oficial. No se reentrena "
             "nada: lo que cambia es la entrada."
         )
-        _sandbox_estres(windows, telemetry, units, _cache_sha,
-                        _sandbox_puntua_cached, chart_layout, style_axes,
-                        st_badge_estado)
+        _sandbox_estres(ctx)
 
 
     with st.expander("Demo en vivo", icon=":material/movie:", expanded=_vista_tribunal):

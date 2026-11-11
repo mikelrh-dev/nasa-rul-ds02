@@ -68,18 +68,17 @@ try:  # noqa: E402
 except ImportError:  # pragma: no cover - import-style fallback
     from app.theme import INK, MUTED, GRID, SURFACE, SKY, ROSE  # type: ignore[no-redef]
 
+try:  # noqa: E402
+    from context import AppCtx  # noqa: E402
+except ImportError:  # pragma: no cover - import-style fallback
+    from app.context import AppCtx  # type: ignore[no-redef]
+
 __all__ = ["_tab_motor"]
 
 
 @st.fragment
-def _tab_motor(ctx=None) -> None:
+def _tab_motor(ctx: AppCtx) -> None:
     """Cuerpo de la pestaña Motor; recibe el contexto de la app."""
-    if ctx is None:
-        try:
-            from context import ctx_from_dashboard
-        except ImportError:
-            from app.context import ctx_from_dashboard
-        ctx = ctx_from_dashboard()
     snapshot = ctx.snapshot
     unit = ctx.unit
     etiqueta_unidad = ctx.etiqueta_unidad

@@ -4,17 +4,15 @@ Pure structural move: the body of `_sandbox_estres` is byte-identical to the
 pre-split dashboard version except for the parameter list and the
 dashboard-globals resolution below. No behavior, metric or threshold change.
 
-`_sandbox_puntua_cached` stays single-owner in `dashboard_ds02.py` (one
-`def` in `app/`); this module reuses it via the `puntua_cached` argument
-passed by the dashboard, with a lazy fallback import of `dashboard_ds02`
-inside the fragment (never at import time, so there is no circular
-import). The scoring/preflight logic is not duplicated here.
+Receives the single `AppCtx` built by the dashboard: `windows`, `telemetry`,
+`units`, `cache_sha`, `sandbox_puntua_cached`, `chart_layout`, `style_axes`
+and `st_badge_estado` are read from it. `_sandbox_puntua_cached` stays
+single-owner in `dashboard_ds02.py` (one `def` in `app/`); this module only
+reuses it through the context, so the scoring/preflight logic is not
+duplicated here and the module never imports the dashboard.
 
-Dashboard-owned globals (`windows`/`telemetry`/`units`/`_cache_sha`,
-`chart_layout`/`style_axes`/`st_badge_estado`) are likewise passed by the
-dashboard; the fallback import only fills in what a standalone caller
-omitted. `frame_cache` (ttl=3600), the SHAP cache and the PDF
-`artefacto_sha256` signature are untouched.
+`frame_cache` (ttl=3600), the SHAP cache and the PDF `artefacto_sha256`
+signature are untouched.
 """
 from __future__ import annotations
 
@@ -27,6 +25,11 @@ try:
 except ImportError:  # pragma: no cover - import-style fallback
     from app import ui_data_loader as L  # type: ignore[no-redef]
 
+try:  # noqa: E402
+    from context import AppCtx  # noqa: E402
+except ImportError:  # pragma: no cover - import-style fallback
+    from app.context import AppCtx  # type: ignore[no-redef]
+
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
 # `theme` no importa el dashboard: no hay ciclo en el import.
 try:  # noqa: E402
@@ -38,46 +41,15 @@ __all__ = ["_sandbox_estres"]
 
 
 @st.fragment
-def _sandbox_estres(windows=None, telemetry=None, units=None, cache_sha=None,
-                     puntua_cached=None, chart_layout=None, style_axes=None,
-                     st_badge_estado=None) -> None:
-    if (windows is None or telemetry is None or units is None
-            or cache_sha is None or puntua_cached is None
-            or chart_layout is None or style_axes is None
-            or st_badge_estado is None):
-        # Fallback import (PR2): dashboard_ds02 owns _sandbox_puntua_cached,
-        # windows/telemetry/units/_cache_sha and the chart/badge helpers.
-        # Lazy, inside the fragment, to avoid a circular top-level import:
-        # the dashboard imports this module, so this module must not import
-        # the dashboard at import time.
-        import sys as _sys
-        _dash = _sys.modules.get("dashboard_ds02") or _sys.modules.get("app.dashboard_ds02")
-        _main = _sys.modules.get("__main__")
-        if _dash is None and _main is not None and hasattr(_main, "windows"):
-            _dash = _main
-        if _dash is None:
-            try:
-                import dashboard_ds02 as _dash  # type: ignore
-            except ImportError:  # pragma: no cover - import-style fallback
-                from app import dashboard_ds02 as _dash  # type: ignore
-        if windows is None:
-            windows = _dash.windows
-        if telemetry is None:
-            telemetry = _dash.telemetry
-        if units is None:
-            units = _dash.units
-        if cache_sha is None:
-            cache_sha = _dash._cache_sha
-        if puntua_cached is None:
-            puntua_cached = _dash._sandbox_puntua_cached
-        if chart_layout is None:
-            chart_layout = _dash.chart_layout
-        if style_axes is None:
-            style_axes = _dash.style_axes
-        if st_badge_estado is None:
-            st_badge_estado = _dash.st_badge_estado
-    _cache_sha = cache_sha
-    _sandbox_puntua_cached = puntua_cached
+def _sandbox_estres(ctx: AppCtx) -> None:
+    windows = ctx.windows
+    telemetry = ctx.telemetry
+    units = ctx.units
+    _cache_sha = ctx.cache_sha
+    _sandbox_puntua_cached = ctx.sandbox_puntua_cached
+    chart_layout = ctx.chart_layout
+    style_axes = ctx.style_axes
+    st_badge_estado = ctx.st_badge_estado
     """Sandbox de estrés: perturbar la caché y ver el pipeline reaccionar en vivo.
 
     El tribunal mueve el deslizador y la app re-puntúa el tramo con el artefacto
