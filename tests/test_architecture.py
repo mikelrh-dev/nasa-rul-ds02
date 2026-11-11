@@ -46,6 +46,18 @@ def test_los_tres_modulos_del_bundle_ya_no_viven_en_clase():
     assert not (CLASE / "evaluar_c_multisemilla.py").exists()
 
 
+def test_las_fachadas_de_rubrica_no_vuelven():
+    """`src/reglas.py` y `src/utils.py` se eliminaron: eran dos nombres, no lógica.
+
+    La lógica vive en `src/mia/` y `src/clase/`, y el gate de reglas importa
+    `src.mia.reglas` por ruta canónica. Reintroducir una fachada vuelve a dar
+    dos nombres para el mismo módulo, y el import desnudo `reglas` se vuelve
+    ambiguo según el orden de `sys.path`.
+    """
+    assert not (ROOT / "src" / "reglas.py").exists()
+    assert not (ROOT / "src" / "utils.py").exists()
+
+
 def test_el_bundle_c_tiene_un_solo_escritor():
     assert (DS02 / "bundle_c.py").exists()
     assert (DS02 / "puente_c.py").exists()

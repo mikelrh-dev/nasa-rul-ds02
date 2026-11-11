@@ -24,7 +24,7 @@ solo lo escribe `src/ds02_rul/bundle_c.py:entrenar`.
 | # | Notebook | Pregunta que responde | Módulos `.py` que usa | Artefactos que escribe |
 |---|---|---|---|---|
 | 01 | `01_eda_y_contexto.ipynb` | ¿Cómo son los datos, las fases y las ventanas? | `ds02_rul/data.py`, `ds02_rul/features.py`, `clase/dataset_clase.py`, `clase/ventanas_adaptadas.py`, `ds02_rul/mlflow_live.py` | `resultados/eda_*.png` |
-| 02 | `02_modelos_clasicos_y_mlp.ipynb` | ¿Qué rinden los 5 clásicos y los 4 MLP de la rúbrica? | `clase/train_clasicos.py`, `clase/train_mlp.py`, `clase/pipeline_clase.py`, `clase/shap_clase.py`, `ds02_rul/persistence.py`, `src/utils.py`, `ds02_rul/mlflow_live.py` | `resultados/clasicos_real_vs_pred.png`, `resultados/mlp_real_vs_pred.png`, `resultados/shap_importancia.png` |
+| 02 | `02_modelos_clasicos_y_mlp.ipynb` | ¿Qué rinden los 5 clásicos y los 4 MLP de la rúbrica? | `clase/train_clasicos.py`, `clase/train_mlp.py`, `clase/pipeline_clase.py`, `clase/shap_clase.py`, `ds02_rul/persistence.py`, `ds02_rul/mlflow_live.py` | `resultados/clasicos_real_vs_pred.png`, `resultados/mlp_real_vs_pred.png`, `resultados/shap_importancia.png` |
 | 03 | `03_feature_engineering_secuencial.ipynb` | ¿Qué aporta `cyc_norm` y cómo se mide la ablación? | `ds02_rul/puente_c.py`, `ds02_rul/pipeline.py`, `ds02_rul/data.py`, `ds02_rul/mlflow_live.py` | `resultados/ablacion_cycnorm_rmse.png` |
 | 04 | `04_arquitectura_bilstm_oof.ipynb` | ¿Cómo es el BiLSTM y cómo se generan las predicciones OOF? | `ds02_rul/puente_c.py`, `ds02_rul/pipeline.py`, `ds02_rul/stacking.py`, `ds02_rul/conformal.py`, `ds02_rul/smoothing.py`, `ds02_rul/ensemble.py`, `ds02_rul/viz.py`, `ds02_rul/mlflow_live.py` | `notebooks/artifacts_c/*.joblib` + `*.npy`, `resultados/ridge_meta_pesos_04.png` |
 | 05 | `05_meta_ensemble_y_conformal.ipynb` | ¿Cómo se combinan las ramas, se elige beta y se calibra la banda? | `ds02_rul/puente_c.py`, `ds02_rul/pipeline.py`, `ds02_rul/stacking.py`, `ds02_rul/conformal.py`, `ds02_rul/ensemble.py`, `ds02_rul/smoothing.py`, `ds02_rul/viz.py`, `ds02_rul/metrics.py`, `ds02_rul/data.py`, `clase/ventanas_adaptadas.py`, `ds02_rul/mlflow_live.py` | `resultados/lgbm_adapt_real_vs_pred.png` |
@@ -50,7 +50,7 @@ solo lo escribe `src/ds02_rul/bundle_c.py:entrenar`.
 
 - **Módulos directos:** `clase.train_clasicos`, `clase.train_mlp`,
   `clase.pipeline_clase`, `clase.shap_clase`, `ds02_rul.persistence.verify_artifact_sha256`,
-  `src.utils.make_pipeline`.
+  `clase.pipeline_clase.make_pipeline`.
 - **Qué no hace:** no entrena el bundle C; no escribe `models/ensemble.joblib`.
   Los joblib de clase los escriben los scripts `train_clasicos.py` /
   `train_mlp.py`, no el notebook.

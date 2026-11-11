@@ -384,8 +384,6 @@ MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
 app/entrypoints/         streamlit_app.py (rúbrica, delega) y dashboard_ds02.py (producción)
 app/                     lib/ (datos, inferencia, reglas), ui/ (pestañas), services/ (API)
-src/utils.py            fachada rúbrica (re-exporta pipeline_clase + métricas)
-src/reglas.py           fachada rúbrica sobre src.mia/ (6+ reglas, prioridad, seguridad)
 src/n8n.py              envío de la decisión a n8n (MIA-3)
 src/ds02_rul/           data, features, model, pipeline, stacking, metrics, ...
 mlruns/                 store MLflow de texto (17 runs curados + live; sin artefactos)

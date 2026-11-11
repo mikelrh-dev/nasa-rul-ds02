@@ -172,10 +172,19 @@ def _submodule(name: str):
 
 
 def _import_mia():
-    """Load `mia/reglas.py` through the same seam the app and tests use."""
-    if MIA not in sys.path:
-        sys.path.insert(0, MIA)
-    return importlib.import_module("reglas")
+    """Load `mia/reglas.py` by its canonical dotted path, from the repo root.
+
+    This used to insert `src/mia` on `sys.path` and import the bare name
+    `reglas`. That name is ambiguous: whichever of `src` and `src/mia` sits
+    first wins, so the gate could measure a different module depending on the
+    import order (it did, through a facade that has since been deleted).
+    Importing `src.mia.reglas` makes the canonical module win regardless of
+    `sys.path` order, and keeps one module object per process instead of one
+    per import style.
+    """
+    if ROOT not in sys.path:
+        sys.path.insert(0, ROOT)
+    return importlib.import_module("src.mia.reglas")
 
 
 STACKING = _submodule("stacking")

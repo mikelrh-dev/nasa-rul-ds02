@@ -11,9 +11,10 @@ import sys
 
 import numpy as np
 
+# Solo la raíz: los imports van por `src.mia.*`. Añadir `src/mia` aquí haría
+# ambiguo el nombre desnudo `reglas`, que ya no tiene fachada en `src/`.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-sys.path.insert(0, os.path.join(ROOT, "src", "mia"))
 
 from src.mia import reglas as R  # noqa: E402
 from src.mia.motor import motor  # noqa: E402

@@ -540,7 +540,7 @@ Rutas que el framework debe mirar aquí, sin sustituir los bloques:
 | A | `git ls-files`, `app/`, `src/{clase,ds02_rul,mia}`, `tests/`, `scripts/`, `notebooks/`, `docs/`, `MLProyectVault/`, `archive/` |
 | B | `pyproject.toml`, `requirements.txt`, `.python-version`, `.venv`, `.github/workflows/ci.yml` |
 | C | n/a: el proyecto no llevará contenedores (decisión 2026-11-07); mirar `.github/workflows/ci.yml` |
-| D | `src/ds02_rul/*`, `src/clase/*`, `app/ui/*`, `src/utils.py`, `src/reglas.py` |
+| D | `src/ds02_rul/*`, `src/clase/*`, `app/ui/*` |
 | E | `src/clase/dataset_clase.py`, `src/ds02_rul/{data,features,residualizer,pipeline}.py`, `data/processed/auditoria_nulos.json` |
 | F | `src/ds02_rul/{model,stacking,ensemble,smoothing,conformal,metrics}.py`, `src/clase/train_*` |
 | G | `models/ds02_manifest.json`, `resultados/*.csv`, `README.md`, `docs/informes/`, `MLProyectVault/50-Evidencia/e00-cifras-autoritativas.md` |

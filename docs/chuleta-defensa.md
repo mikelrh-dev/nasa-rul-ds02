@@ -20,7 +20,7 @@
 | SHAP + permutación | NB02, celdas 23–28 | `src/clase/shap_clase.py` (`top_shap`) |
 | Pipeline sin fuga | NB02, celda 4 | `src/clase/pipeline_clase.py` (`make_pipeline`) |
 | Reglas R1/R9/R8/R7 | App demo + NB06 | `src/mia/motor.py`, `src/mia/reglas.py` |
-| RMSE/MAE qué significan | README + NB02 | `src/utils.py` (`evaluate_predictions`) |
+| RMSE/MAE qué significan | README + NB02 | `src/ds02_rul/metrics.py` (`evaluate_predictions`) |
 
 ## Cifras (solo 6, el resto está en los CSVs)
 

@@ -18,9 +18,10 @@ import sys
 import numpy as np
 import pytest
 
+# Solo la raíz: los imports van por `src.mia.*`. Añadir `src/mia` aquí haría
+# ambiguo el nombre desnudo `reglas`, que ya no tiene fachada en `src/`.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-sys.path.insert(0, os.path.join(ROOT, "src", "mia"))
 
 from src.mia import reglas as R  # noqa: E402
 from src.mia.casos import CASOS, ficha_invalida, hay_cache, probar_casos  # noqa: E402
@@ -83,7 +84,7 @@ def test_el_motor_devuelve_decision_usadas_y_porque():
 # --------------------------------------------------------------- casos
 @needs_cache
 def test_todos_los_casos_salen_BIEN():
-    from modelo import predecir
+    from src.mia.modelo import predecir
 
     filas = probar_casos(R.REGLAS_CORRECCION, R.REGLAS_DECISION, predecir, motor)
     assert len(filas) == len(CASOS)
@@ -93,7 +94,7 @@ def test_todos_los_casos_salen_BIEN():
 
 @needs_cache
 def test_hay_casos_para_cada_estado_y_para_sin_decision():
-    from modelo import predecir
+    from src.mia.modelo import predecir
 
     decisiones = {f["decision"] for f in probar_casos(
         R.REGLAS_CORRECCION, R.REGLAS_DECISION, predecir, motor)}

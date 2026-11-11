@@ -177,7 +177,6 @@ mlruns/                 store MLflow de texto (17 runs; sin artefactos)
 docs/evidencia/mlflow/  comparativa.csv + capturas MLflow (comparaciones y producción)
 n8n/                    flujo.json (flujo MIA 3: webhook → switch APTO/INSPECCION/HANGAR)
 resultados/             eda_*.png, comparativa.csv, mlp_*.png/csv, importancia_*.png/csv, shap_*.png/csv
-src/reglas.py           re-export de src.mia.reglas (6 reglas + seguridad)
 src/n8n.py              cliente del webhook n8n (urllib, timeout 5 s, nunca lanza a la UI)
 app/ui_shap.py          SHAP en la app de producción (TreeExplainer, global + waterfall)
 app/dashboard_ds02.py   app de producción: evalúa el modelo desplegado (bundle C) en test, predice casos nuevos

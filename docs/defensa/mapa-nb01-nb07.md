@@ -88,7 +88,7 @@ para anclarlos contra el CSV archivado; el entreno oficial vive en el `.py`.»
 | Celda (0idx) | Hace (1 línea) | `.py` / función real | Frase de 20 s |
 |---|---|---|---|
 | c3 (`exec=2`) | Lee `comparativa.csv`, elige menor `rmse_val` | Solo lectura (escritor: `train_clasicos.entrenar_todo`) | «Leo la comparativa archivada y elijo por `rmse_val`; el CSV lo escribió el `.py`.» |
-| **c5 (`exec=None`)** | **ENTRENO VIVO clásicos:** GridSearch `GroupKFold(3)` sobre `ESPEC`, SVM submuestra 5k; assert `<0.01` vs CSV; **no escribe** | **DUPLICA, no invoca** `train_clasicos.entrenar_todo:108` (importa `ESPEC`/`CV`/`SCORING`/`_metricas_*` privadas + `make_pipeline` de `src.utils`) | «Entreno en vivo ancla: mismo loop que `train_clasicos.py:108`, sin escribir, y exige que coincida con el CSV.» + follow-up: «No llamo a `entrenar_todo()` porque reescribiría CSV/joblib y cambiaría `tiempo_s`; eso es Grupo ALTO, no demo de hoy.» |
+| **c5 (`exec=None`)** | **ENTRENO VIVO clásicos:** GridSearch `GroupKFold(3)` sobre `ESPEC`, SVM submuestra 5k; assert `<0.01` vs CSV; **no escribe** | **DUPLICA, no invoca** `train_clasicos.entrenar_todo:108` (importa `ESPEC`/`CV`/`SCORING`/`_metricas_*` privadas + `make_pipeline` de `src.clase.pipeline_clase`) | «Entreno en vivo ancla: mismo loop que `train_clasicos.py:108`, sin escribir, y exige que coincida con el CSV.» + follow-up: «No llamo a `entrenar_todo()` porque reescribiría CSV/joblib y cambiaría `tiempo_s`; eso es Grupo ALTO, no demo de hoy.» |
 | c7 (`exec=4`) | CV XGB `cross_val_score` | Duplica params XGB inline + `make_pipeline` | «Mido el CV del ya elegido XGB; los params inline copian `ESPEC`.» |
 | c11 (`exec=5`) | Real vs predicho clásico test (2000 filas) → `clasicos_real_vs_pred.png` | Carga `models/mejor_modelo.joblib` (**copia manual**, sin escritor) | «Pinto el mejor clásico desde el joblib ya guardado; `mejor_modelo.joblib` es copia manual, no regenerable.» |
 | c15 (`exec=6`) | Por motor `groupby unit` | Usa `pipeline_clase.FEATURE_COLS` vía `src.clase.*` | «Desgloso por motor con las `FEATURE_COLS` oficiales.» |
@@ -253,7 +253,7 @@ escribe solo `resultados/shap_bundle_C/` (explicación, no modelo).»
 | Grafía | Ejemplo en notebooks | Cuándo se elige |
 |---|---|---|
 | Ruta corta `from ds02_rul.*` (resuelve vía `_ROOT/src`) | NB01 c27, NB03 c9, NB04 c4/c8/c15/c19, NB05 c4/c6, NB06 c19/c43 | Celdas de `ds02_rul` paquete |
-| Con prefijo `from src.*` (resuelve vía `_ROOT`) | NB02 todo (`src.utils`, `src.clase.*`), NB05 c30/c32/c33/c38, NB06 c10/c43/c52/c53, NB07 c3 (`src.ds02_rul.shap_c`) | Celdas de `src/clase` y track de clase |
+| Con prefijo `from src.*` (resuelve vía `_ROOT`) | NB02 todo (`src.clase.*`), NB05 c30/c32/c33/c38, NB06 c10/c43/c52/c53, NB07 c3 (`src.ds02_rul.shap_c`) | Celdas de `src/clase` y track de clase |
 
 Si preguntan «¿por qué dos grafías y cuál uso?»: la dualidad viene de
 `pyproject.toml` `packages.find where=src` + pickle calificado de

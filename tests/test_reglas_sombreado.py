@@ -1,18 +1,15 @@
-"""Regresión: el shim `src/reglas.py` debe sobrevivir al sombreado de imports.
+"""Regresión: el gate mide `src.mia.reglas`, no un nombre que decida `sys.path`.
 
-`scripts/auditoria/freeze_rules_evidence.py` carga las reglas con
-`_import_mia()`, que solo inserta `src/mia` en `sys.path` si no está ya. Cuando
-un test anterior insertó `src/mia` y otro posterior insertó `src` delante, el
-`import reglas` del gate resuelve al shim `src/reglas.py` en vez de
-`src/mia/reglas.py`. Si al shim le falta un nombre que el gate usa —como
-`pava_causal_no_creciente`— el gate falla con `AttributeError` en tiempo de
-ejecución, no al importar.
+Historia: `freeze_rules_evidence._import_mia()` insertaba `src/mia` en
+`sys.path` e importaba el nombre desnudo `reglas`. Cuando un import anterior
+dejaba `src` delante, ese nombre resolvía a la fachada `src/reglas.py` y el
+gate medía un alias en vez del módulo que posee las reglas. La fachada se
+eliminó y el gate importa `src.mia.reglas` por ruta canónica, así que el orden
+de `sys.path` dejó de ser parte del contrato.
 
-El test simula ese orden de `sys.path` de forma determinista (no depende del
-orden de ficheros de pytest), fuerza un import nuevo y afirma que el shim
-expone el nombre. Antes del fix reproducía el fallo: 5 tests del gate rojos
-solo cuando `test_mia_reglas_directas.py` y `test_api_limites.py` corrían
-antes.
+Este test fija las dos mitades: el gate carga el módulo canónico bajo el orden
+de `sys.path` que producía el sombreado, y su código no vuelve al import
+desnudo.
 """
 from __future__ import annotations
 
@@ -23,37 +20,49 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "src")
 MIA = os.path.join(SRC, "mia")
+SCRIPTS = os.path.join(ROOT, "scripts", "auditoria")
+
+CANONICO = os.path.join(MIA, "reglas.py")
+GATE = os.path.join(SCRIPTS, "freeze_rules_evidence.py")
+
+sys.path.insert(0, ROOT)
 
 
-def test_el_shim_reglas_expone_pava_causal_bajo_sombreado():
-    """Con `src` delante de `src/mia`, `import reglas` da el shim y este basta."""
+def _real(path: str) -> str:
+    return os.path.realpath(path)
+
+
+def test_el_gate_importa_el_modulo_canonico_bajo_sombreado():
+    """Con `src` delante de `src/mia`, el gate sigue cargando el canónico."""
     path_original = list(sys.path)
-    en_cache = sys.modules.pop("reglas", None)
+    if SCRIPTS not in sys.path:
+        sys.path.insert(0, SCRIPTS)
     try:
-        # El orden exacto de las inserciones que producen el sombreado:
-        # `test_mia_reglas_directas.py` inserta ROOT y `src/mia`; después
-        # `test_api_limites.py` inserta ROOT y `src` delante de ambos.
+        # Orden exacto que producía el sombreado: `src` delante de `src/mia`.
         sys.path.insert(0, ROOT)
         sys.path.insert(0, MIA)
         sys.path.insert(0, ROOT)
         sys.path.insert(0, SRC)
 
-        reglas = importlib.import_module("reglas")
+        import freeze_rules_evidence as G
 
-        # El sombreado es real: resuelve al shim, no al módulo de verdad.
-        assert reglas.__file__ is not None
-        assert os.path.realpath(reglas.__file__) == os.path.realpath(
-            os.path.join(SRC, "reglas.py")
-        ), f"el sombreado no ocurrió: {reglas.__file__}"
-        assert hasattr(reglas, "pava_causal_no_creciente"), (
-            "el shim src/reglas.py no re-exporta pava_causal_no_creciente"
+        canonico = G._import_mia()
+        assert canonico.__file__ is not None
+        assert _real(canonico.__file__) == _real(CANONICO), (
+            f"el gate cargó {canonico.__file__}, no el módulo canónico"
         )
-
-        # Y es la misma función congelada, no una copia.
-        from src.mia import reglas as reales
-        assert reglas.pava_causal_no_creciente is reales.pava_causal_no_creciente
+        assert canonico is importlib.import_module("src.mia.reglas")
     finally:
         sys.path[:] = path_original
-        sys.modules.pop("reglas", None)
-        if en_cache is not None:
-            sys.modules["reglas"] = en_cache
+
+
+def test_el_gate_no_importa_reglas_por_nombre_desnudo():
+    """Guarda: el gate no vuelve a depender de `sys.path` para hallar reglas."""
+    with open(GATE, encoding="utf-8") as fh:
+        fuente = fh.read()
+
+    assert 'import_module("reglas")' not in fuente, (
+        "el gate volvió al import desnudo: una entrada de sys.path decide qué módulo mide"
+    )
+    assert "import_module('reglas')" not in fuente
+    assert 'import_module("src.mia.reglas")' in fuente

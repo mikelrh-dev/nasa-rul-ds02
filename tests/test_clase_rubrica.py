@@ -1,4 +1,4 @@
-"""PIA-2: los alias con nombres de rúbrica existen, funcionan y no divergen."""
+"""Contratos del track de clase: campeón desplegado, alias del bundle y paridad."""
 
 import os
 
@@ -6,16 +6,6 @@ import pytest
 
 import numpy as np
 import pandas as pd
-
-
-def test_src_utils_reexporta_y_documenta():
-    import src.utils as U
-    from src.clase.pipeline_clase import FEATURE_COLS, make_pipeline
-    assert U.FEATURE_COLS == FEATURE_COLS
-    assert U.make_pipeline is make_pipeline
-    assert U.__doc__ and "rúbrica" in U.__doc__
-    assert callable(U.make_pre) and callable(U.predict_caso_nuevo)
-    assert callable(U.evaluate_predictions)
 
 
 def test_streamlit_app_delega_en_dashboard():
