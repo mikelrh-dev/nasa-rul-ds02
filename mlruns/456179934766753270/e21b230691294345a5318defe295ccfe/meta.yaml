@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/mikel/Desktop/Pruebas/nasa/mlruns/456179934766753270/e21b230691294345a5318defe295ccfe/artifacts
+deleted_time: 1794435260465
+end_time: 1794417583120
+entry_point_name: ''
+experiment_id: '456179934766753270'
+lifecycle_stage: deleted
+run_id: e21b230691294345a5318defe295ccfe
+run_name: live__nb02_xgb
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1794417583043
+status: 3
+tags: []
+user_id: unknown

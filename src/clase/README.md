@@ -2,7 +2,7 @@
 
 > **Español** | [English](../../README.en.md)
 
-Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir de telemetría y propone APTO / INSPECCIÓN / HANGAR. **El mejor MLP de clase (E2, elegido por validación) logra RMSE 7.72 en test (val 7.34; uds 11/14/15); el híbrido desplegado (BiLSTM + LightGBM + stacking sobre la base con nulos tratados) está en 4.338 (media multiseed 4.322+-0.064 en NB06; NB05: 4.330+-0.053).**
+Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir de telemetría y propone APTO / INSPECCIÓN / HANGAR. **El mejor MLP de clase (E2, elegido por validación) logra RMSE 7.72 en test (val 7.34; uds 11/14/15); el híbrido desplegado (BiLSTM + LightGBM + stacking sobre la base con nulos tratados) está en 4.338. La media multisemilla vigente es 4.324 ± 0.107 sobre el CSV versionado (42/7/123); las medias 4.322 (NB06) y 4.330 (NB05) son histórico no regenerable.**
 
 ![Real vs predicho del mejor clásico](../../docs/assets/clasicos_real_vs_pred.png)
 
@@ -38,7 +38,7 @@ graph LR
     D --> E[Orden de taller]
 ```
 
-El modelo estima ciclos restantes. Las reglas (`src/mia/`, 6 con prioridad + seguridad R1) deciden sobre la estimación. n8n (MIA 3, flujo incluido; el JSON versionado está inactivo por diseño, aunque la instancia local lo ha ejecutado) lleva cada decisión a su acción (HANGAR → Postgres+Calendar+correo, INSPECCIÓN → Sheets, APTO → log).
+El modelo estima ciclos restantes. Las reglas (`src/mia/`, 8 en total: 2 de corrección + 6 de decisión; R1 seguridad prioridad 10) deciden sobre la estimación. n8n (MIA 3, flujo incluido; el JSON versionado está inactivo por diseño, aunque la instancia local lo ha ejecutado) lleva cada decisión a su acción (HANGAR → Postgres+Calendar+correo, INSPECCIÓN → Sheets, APTO → log).
 
 **Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su telemetría; no sabría fijar precios ni atender llamadas. Frente a una IA fuerte (AGI capaz de razonar en cualquier dominio, inexistente aquí), la nuestra no transfiere nada fuera de DS02 — y por eso es barata, rápida y auditable. Aprendizaje **supervisado** (cada fila lleva su RUL real) de **regresión** (valor continuo, no clase); se diferencia del no supervisado en que hay etiqueta y métrica contra verdad (RMSE/MAE/R²). Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost (uno de los 5), LightGBM (componente del híbrido), Streamlit (app de producción con SHAP), SHAP (explicabilidad TreeExplainer), MLflow (tracking de 17 runs; PIA-4). n8n ya está incluido (`src/n8n.py` + `n8n/flujo.json`).
 
@@ -128,15 +128,13 @@ flowchart LR
 
 **MLP (elegido: E2 regularización, 33 s):** base 7.36 → E1 7.48 → E2 7.34 → E3 7.36 (RMSE val). E1 memoriza train (5.23, el mejor train) y pierde en val: overfit; la regularización vence a la capacidad bruta.
 
-**Modelo elegido del track de clase: MLP E2 (val 7.34; test 7.72 en lectura única).** No es el más rápido (XGB entrena en 7 s frente a 33 s) y se elige igualmente: RMSE manda porque un fallo gordo (motor parado) cuesta órdenes de magnitud más que segundos de CPU; a igualdad de RMSE se preferiría el más simple. Ese es el campeón **de clase**; el modelo
-que entra en producción, y el que defiende el reto, es el bundle C (4.338), no E2.
+**Modelo elegido del track de clase: MLP E2 (val 7.34; test 7.72 en lectura única).** No es el más rápido (XGB entrena en 7 s frente a 33 s) y se elige igualmente: RMSE manda porque un fallo gordo (motor parado) cuesta órdenes de magnitud más que segundos de CPU; a igualdad de RMSE se preferiría el más simple. Ese es el campeón **de clase**; el modelo que entra en producción, y el que defiende el reto, es el bundle C (4.338), no E2.
 
-**Modelo desplegado (bundle C):** híbrido BiLSTM + LightGBM + stacking + EMA sobre la base adaptada (MAR T30 + ffill con medianas de fit-units), RMSE 4.338 / NASA 2336.2 (test uds 11/14/15), media multiseed 4.322+-0.064 en NB06 (grano ventana test 6196; NB05 protocolo OOF da 4.330+-0.053). El híbrido es el "extra no visto en clase" del criterio SAA 6. El manifiesto declara la variante de datos, la partición de motores y las huellas SHA: el despliegue se audita desde el artefacto.
+**Modelo desplegado (bundle C):** híbrido BiLSTM + LightGBM + stacking + EMA sobre la base adaptada (MAR T30 + ffill con medianas de fit-units), RMSE 4.338 / NASA 2336.2 (test uds 11/14/15), media multiseed 4.324 ± 0.107 sobre el CSV versionado (42/7/123; NB06 4.322 y NB05 4.330 son histórico no regenerable). El híbrido es el "extra no visto en clase" del criterio SAA 6. El manifiesto declara la variante de datos, la partición de motores y las huellas SHA: el despliegue se audita desde el artefacto.
 
 **Test (una lectura, solo el elegido):** MLP E2 RMSE 7.72 · MAE 5.81 · R² 0.83. Híbrido desplegado RMSE 4.338 · MAE 3.227 · R² 0.9461.
 
-**Estabilidad entre semillas:** 42, 7 y 123 dan RMSE 4.322+-0.064 y NASA 2342.3+-43.4 en NB06 (NB05: 4.330+-0.053 / 2343.2+-24.1)
-(`resultados/comparativa_c_multisemilla.csv`); la 42 es la del bundle desplegado, así que ese ± es la cota de ruido para leer cualquier diferencia. Evidencia: `resultados/bundle_c_multiseed.csv`, `resultados/comparativa_bundle_c.csv`.
+**Estabilidad entre semillas:** 42, 7 y 123 dan, sobre el CSV versionado, RMSE 4.324 ± 0.107 y NASA 2341.0 ± 54.1; NB06 (4.322 ± 0.064 / 2342.3 ± 43.4) y NB05 (4.330 ± 0.053 / 2343.2 ± 24.1) son histórico no regenerable. La semilla 42 es la del bundle desplegado, así que el ± es la cota de ruido para leer diferencias. Evidencia: `resultados/bundle_c_multiseed.csv` versionado y `resultados/comparativa_bundle_c.csv`.
 
 ![Real vs predicho](../../docs/assets/mlp_real_vs_pred.png)
 

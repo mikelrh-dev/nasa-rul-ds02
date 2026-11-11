@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/mikel/Desktop/Pruebas/nasa/mlruns/456179934766753270/41066139fa0c4c71863d6779b40f6c08/artifacts
+deleted_time: 1794435260518
+end_time: 1794424276403
+entry_point_name: ''
+experiment_id: '456179934766753270'
+lifecycle_stage: deleted
+run_id: 41066139fa0c4c71863d6779b40f6c08
+run_name: live__nb05_LightGBM_solo
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1794424276304
+status: 3
+tags: []
+user_id: unknown

@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/mikel/Desktop/Pruebas/nasa/mlruns/456179934766753270/d8ee5d725e604bff89ee8831f0f5f591/artifacts
+end_time: 1794419852089
+entry_point_name: ''
+experiment_id: '456179934766753270'
+lifecycle_stage: active
+run_id: d8ee5d725e604bff89ee8831f0f5f591
+run_name: live__nb03_BiLSTM_736
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1794419851995
+status: 3
+tags: []
+user_id: unknown
