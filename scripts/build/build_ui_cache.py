@@ -1,7 +1,7 @@
 """Precompute the telemetry cache the Streamlit DSS reads at render time.
 
-    python scripts/build_ui_cache.py                 # base imputada (por defecto)
-    python scripts/build_ui_cache.py --base limpia   # HDF5 sin imputar (histórico)
+    python scripts/build/build_ui_cache.py                 # base imputada (por defecto)
+    python scripts/build/build_ui_cache.py --base limpia   # HDF5 sin imputar (histórico)
 
 One offline pass over the frozen bundle (`models/ensemble.joblib` +
 `models/bilstm_ds02.keras`) and the DS02 test split. **La fuente por defecto es
@@ -36,7 +36,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ds02_rul.data import load_ds02  # noqa: E402
 from ds02_rul.inference import raw_windows  # noqa: E402
@@ -56,7 +56,7 @@ def _raw_adaptada() -> dict:
     """Dict raw desde la base imputada (misma forma que devuelve `load_ds02`)."""
     if ROOT not in sys.path:
         sys.path.insert(0, ROOT)
-    from src.clase.train_ensemble_adaptado import construir_raw_adaptado
+    from ds02_rul.data import construir_raw_adaptado
 
     return construir_raw_adaptado()
 

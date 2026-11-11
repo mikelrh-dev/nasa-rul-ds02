@@ -11,8 +11,12 @@ import os
 
 import h5py
 import numpy as np
+import pandas as pd
 
 logger = logging.getLogger(__name__)
+
+# Repo root: src/ds02_rul/data.py -> repo root is three levels up.
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 DS02_CANDIDATE_PATHS = (
     # archive/ (y su CCMaps/) se retiro el 2026-11-09 a un backup externo:
@@ -23,6 +27,19 @@ DS02_CANDIDATE_PATHS = (
 
 DEV_KEYS = ("A_dev", "W_dev", "X_s_dev", "Y_dev")
 TEST_KEYS = ("A_test", "W_test", "X_s_test", "Y_test")
+
+# Contrato compartido por el bundle C y la evidencia de clase. El dueño es
+# este módulo: ni `clase` ni `ds02_rul` vuelven a definir estas listas.
+OP_COLS = ["alt", "Mach", "TRA", "T2"]
+SENSOR_COLS = [
+    "T24", "T30", "T48", "T50", "P15", "P2", "P21", "P24",
+    "Ps30", "P40", "P50", "Nf", "Nc", "Wf",
+]
+
+FIT_UNITS = [2.0, 5.0, 10.0, 18.0, 20.0]
+HOLDOUT_UNITS = [16.0]
+TEST_UNITS = [11.0, 14.0, 15.0]
+TRAIN_UNITS = FIT_UNITS + HOLDOUT_UNITS
 
 
 def resolve_ds02(path: str | None = None) -> str:
@@ -100,4 +117,69 @@ def load_ds02(path: str | None = None, stride: int = 100) -> dict:
         "W_test": data["W_test"],
         "Xs_test": data["X_s_test"],
         "y_test": data["Y_test"].ravel(),
+    }
+
+
+def medianas_train(df_train: pd.DataFrame, columnas: list[str] | None = None) -> pd.Series:
+    """Medianas calculadas SOLO en train (sin fuga)."""
+    cols = list(columnas) if columnas else list(SENSOR_COLS)
+    return df_train[cols].median(numeric_only=True)
+
+
+def imputar_ffill(
+    df: pd.DataFrame,
+    medianas: pd.Series | None = None,
+    columnas: list[str] | None = None,
+) -> tuple[pd.DataFrame, pd.Series]:
+    """ffill causal por unidad en orden temporal + mediana de train.
+
+    Si `medianas` es None se calculan sobre el propio df (SOLO válido para
+    train; en test DEBEN pasarse las de train).
+    """
+    cols = list(columnas) if columnas else list(SENSOR_COLS)
+    orden = df.sort_values(["unit", "cycle"]).reset_index(drop=True)
+    if medianas is None:
+        medianas = medianas_train(orden, cols)
+    out = orden.copy()
+    out[cols] = out.groupby("unit", sort=False)[cols].ffill()
+    out[cols] = out[cols].fillna(medianas)
+    return out, medianas
+
+
+def construir_raw_adaptado() -> dict:
+    """Parquet MAR-imputado -> dict raw alineado (mismo shape que `load_ds02`).
+
+    Re-imputa con medianas SOLO de fit-units (no las de dev-completo del
+    track de clase): es lo que mantiene el protocolo honesto del bundle C.
+    Vive aquí porque es el contrato de entrada del bundle, no lógica de clase.
+    """
+    train_con = pd.read_parquet(
+        os.path.join(REPO_ROOT, "data", "processed", "train_con_nulos.parquet")
+    )
+    test_con = pd.read_parquet(
+        os.path.join(REPO_ROOT, "data", "processed", "test_con_nulos.parquet")
+    )
+    fit_mask = train_con["unit"].isin(FIT_UNITS)
+    medianas_fit = medianas_train(train_con.loc[fit_mask], SENSOR_COLS)
+
+    train_imp, _ = imputar_ffill(train_con, medianas_fit, SENSOR_COLS)
+    test_imp, _ = imputar_ffill(test_con, medianas_fit, SENSOR_COLS)
+
+    def bloque(df: pd.DataFrame) -> dict:
+        """Convierte un parquet imputado al formato crudo adaptado de DS02."""
+        df = df.sort_values(["unit", "cycle"]).reset_index(drop=True)
+        return {
+            "A": df[["unit", "cycle"]].to_numpy(dtype=float),
+            "W": df[OP_COLS].to_numpy(dtype=np.float64),
+            "Xs": df[SENSOR_COLS].to_numpy(dtype=np.float64),
+            "y": df["RUL"].to_numpy(dtype=float),
+        }
+
+    tr, te = bloque(train_imp), bloque(test_imp)
+    return {
+        "A_train": tr["A"], "W_train": tr["W"], "Xs_train": tr["Xs"],
+        "y_train": tr["y"], "A_test": te["A"], "W_test": te["W"],
+        "Xs_test": te["Xs"], "y_test": te["y"],
+        "op_names": list(OP_COLS), "sensor_names": list(SENSOR_COLS),
+        "medianas_fit": medianas_fit,
     }

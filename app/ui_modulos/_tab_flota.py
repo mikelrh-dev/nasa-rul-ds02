@@ -151,106 +151,44 @@ def _rerun_app() -> None:
 
 
 @st.fragment
-def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
-               unidades_vistas=None, tarjetas_cache=None, tarjetas_gemelos=None,
-               gemelos=None, registros=None, order=None, correccion=None,
-               windows=None, provenance=None, unit=None, cycle=None,
-               threshold_apto=None, threshold_aog=None, umbrales=None,
-               preset=None, presets=None, preset_vals=None,
-               banda_en_uso=None, correccion_en_uso=None,
-               vista_tribunal=None, etiqueta_unidad=None, registro=None,
-               slug_motor=None, guardar_registros=None, chart_layout=None,
-               style_axes=None) -> None:
-    if (frame is None or frame_cache is None or snapshot is None
-            or curves is None or unidades_vistas is None
-            or tarjetas_cache is None or tarjetas_gemelos is None
-            or gemelos is None or registros is None or order is None
-            or windows is None or provenance is None or unit is None
-            or cycle is None or threshold_apto is None
-            or threshold_aog is None or umbrales is None or preset is None
-            or presets is None or preset_vals is None
-            or banda_en_uso is None or correccion_en_uso is None
-            or vista_tribunal is None or etiqueta_unidad is None
-            or registro is None or slug_motor is None
-            or guardar_registros is None or chart_layout is None
-            or style_axes is None):
-        # Fallback import (PR3): dashboard_ds02 owns the frame/snapshot/curve
-        # globals, the preset/threshold state and the chart/badge helpers.
-        # Lazy, inside the fragment, to avoid a circular top-level import:
-        # the dashboard imports this module, so this module must not import
-        # the dashboard at import time. `correccion` is deliberately not in
-        # the check: None is its legitimate "no correction" value, and the
-        # dashboard's value is the same None in that state.
-        import sys as _sys
-        _dash = _sys.modules.get("dashboard_ds02") or _sys.modules.get("app.dashboard_ds02")
-        _main = _sys.modules.get("__main__")
-        if _dash is None and _main is not None and hasattr(_main, "frame"):
-            _dash = _main
-        if _dash is None:
-            try:
-                import dashboard_ds02 as _dash  # type: ignore
-            except ImportError:  # pragma: no cover - import-style fallback
-                from app import dashboard_ds02 as _dash  # type: ignore
-        if frame is None:
-            frame = _dash.frame
-        if frame_cache is None:
-            frame_cache = _dash.frame_cache
-        if snapshot is None:
-            snapshot = _dash.snapshot
-        if curves is None:
-            curves = _dash.curves
-        if unidades_vistas is None:
-            unidades_vistas = _dash.unidades_vistas
-        if tarjetas_cache is None:
-            tarjetas_cache = _dash.tarjetas_cache
-        if tarjetas_gemelos is None:
-            tarjetas_gemelos = _dash.tarjetas_gemelos
-        if gemelos is None:
-            gemelos = _dash.gemelos
-        if registros is None:
-            registros = _dash.registros
-        if order is None:
-            order = _dash.order
-        if correccion is None and getattr(_dash, "correccion", None) is not None:
-            correccion = _dash.correccion
-        if windows is None:
-            windows = _dash.windows
-        if provenance is None:
-            provenance = _dash.provenance
-        if unit is None:
-            unit = _dash.unit
-        if cycle is None:
-            cycle = _dash.cycle
-        if threshold_apto is None:
-            threshold_apto = _dash.threshold_apto
-        if threshold_aog is None:
-            threshold_aog = _dash.threshold_aog
-        if umbrales is None:
-            umbrales = _dash.umbrales
-        if preset is None:
-            preset = _dash.preset
-        if presets is None:
-            presets = _dash._PRESETS
-        if preset_vals is None:
-            preset_vals = _dash._preset_vals
-        if banda_en_uso is None:
-            banda_en_uso = _dash.banda_en_uso
-        if correccion_en_uso is None:
-            correccion_en_uso = _dash.correccion_en_uso
-        if vista_tribunal is None:
-            vista_tribunal = _dash._vista_tribunal
-        if etiqueta_unidad is None:
-            etiqueta_unidad = _dash._etiqueta_unidad
-        if registro is None:
-            registro = _dash._registro
-        if slug_motor is None:
-            slug_motor = _dash._slug_motor
-        if guardar_registros is None:
-            guardar_registros = _dash._guardar_registros
-        if chart_layout is None:
-            chart_layout = _dash.chart_layout
-        if style_axes is None:
-            style_axes = _dash.style_axes
+def _tab_flota(ctx=None) -> None:
+    """Cuerpo de la pestaña Flota; recibe el contexto de la app."""
+    if ctx is None:
+        try:
+            from context import ctx_from_dashboard
+        except ImportError:
+            from app.context import ctx_from_dashboard
+        ctx = ctx_from_dashboard()
+    frame = ctx.frame
+    frame_cache = ctx.frame_cache
+    snapshot = ctx.snapshot
+    curves = ctx.curves
+    unidades_vistas = ctx.unidades_vistas
+    tarjetas_cache = ctx.tarjetas_cache
+    tarjetas_gemelos = ctx.tarjetas_gemelos
+    gemelos = ctx.gemelos
+    registros = ctx.registros
+    order = ctx.order
+    correccion = ctx.correccion
+    windows = ctx.windows
+    provenance = ctx.provenance
+    unit = ctx.unit
+    cycle = ctx.cycle
+    threshold_apto = ctx.threshold_apto
+    threshold_aog = ctx.threshold_aog
+    umbrales = ctx.umbrales
+    preset = ctx.preset
+    presets = ctx.presets
+    preset_vals = ctx.preset_vals
+    banda_en_uso = ctx.banda_en_uso
+    correccion_en_uso = ctx.correccion_en_uso
+    vista_tribunal = ctx.vista_tribunal
+    etiqueta_unidad = ctx.etiqueta_unidad
+    registro = ctx.registro
+    slug_motor = ctx.slug_motor
+    guardar_registros = ctx.guardar_registros
+    chart_layout = ctx.chart_layout
+    style_axes = ctx.style_axes
     _PRESETS = presets
     _preset_vals = preset_vals
     _vista_tribunal = vista_tribunal
@@ -258,10 +196,7 @@ def _tab_flota(frame=None, frame_cache=None, snapshot=None, curves=None,
     _registro = registro
     _slug_motor = slug_motor
     _guardar_registros = guardar_registros
-    # Onboarding eliminado: el modo historia ("La narrativa en cuatro pasos") es
-    # el único punto de entrada narrativa. El muro y "El taller" arrancan aquí.
 
-    # El muro: una tarjeta por motor. Es lo que un operador de taller reconoce.
     with st.container(border=True):
         st.subheader("Muro del hangar", icon=":material/grid_view:")
         st.caption(

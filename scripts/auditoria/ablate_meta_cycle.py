@@ -17,7 +17,7 @@ number instead of an argument:
     meta-features;
   * two trivial baselines — OLS on `cycle` alone, and a constant — as the floor.
 
-    python scripts/ablate_meta_cycle.py
+    python scripts/auditoria/ablate_meta_cycle.py
 """
 from __future__ import annotations
 

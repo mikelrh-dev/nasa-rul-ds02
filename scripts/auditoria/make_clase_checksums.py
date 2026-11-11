@@ -14,7 +14,7 @@ formato CRLF/indent-2 del manifiesto canónico para no inflar el diff.
 
 Uso (desde la raíz del repo)::
 
-    .venv/Scripts/python.exe scripts/make_clase_checksums.py
+    .venv/Scripts/python.exe scripts/auditoria/make_clase_checksums.py
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ import os
 
 from ds02_rul.persistence import sha256_of  # noqa: E402
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MANIFEST = os.path.join(ROOT, "models", "ds02_manifest.json")
 
 # artefacto relativo a la raíz -> clave en manifest["artifacts"]

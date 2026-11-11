@@ -23,7 +23,7 @@ if _ROOT not in sys.path:
 if os.path.join(_ROOT, "src") not in sys.path:
     sys.path.insert(0, os.path.join(_ROOT, "src"))
 
-from src.clase.ventanas_adaptadas import FIT_UNITS  # noqa: E402
+from ds02_rul.data import FIT_UNITS  # noqa: E402
 from src.clase.ventanas_adaptadas import ventanas_adaptadas  # noqa: E402
 from ds02_rul.metrics import evaluate_predictions  # noqa: E402
 from ds02_rul.pipeline import make_lgbm  # noqa: E402
@@ -58,7 +58,9 @@ def entrenar(verbose: bool = True) -> pd.DataFrame:
         "nasa_test": 5772.5, "n_test": 6196,
     }])], ignore_index=True)
     comp.to_csv(os.path.join(_ROOT, "resultados", "comparativa_ventanas.csv"), index=False)
-    joblib.dump(lgbm, os.path.join(_ROOT, "src.clase", "models", "lgbm_adaptada.joblib"))
+    out_dir = os.path.join(_ROOT, "src", "clase", "models")
+    os.makedirs(out_dir, exist_ok=True)
+    joblib.dump(lgbm, os.path.join(out_dir, "lgbm_adaptada.joblib"))
     if verbose:
         print(comp.to_string(index=False))
     return comp

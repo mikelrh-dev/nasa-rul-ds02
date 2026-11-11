@@ -23,11 +23,12 @@ SRC = os.path.join(RAIZ, "src")
 
 # Orden de canales del dataset DS02: 4 condiciones de operación + 14 sensores.
 # Es el orden que `ds02_rul.inference.raw_windows` espera (`hstack([W, Xs])`).
-COLUMNAS = [
-    "alt", "Mach", "TRA", "T2",
-    "T24", "T30", "T48", "T50", "P15", "P2", "P21", "P24",
-    "Ps30", "P40", "P50", "Nf", "Nc", "Wf",
-]
+# El dueño del esquema es `ds02_rul.data`: aquí solo se compone.
+if SRC not in sys.path:
+    sys.path.insert(0, SRC)
+from ds02_rul.data import OP_COLS, SENSOR_COLS  # noqa: E402
+
+COLUMNAS = list(OP_COLS) + list(SENSOR_COLS)
 
 _ensemble = None
 

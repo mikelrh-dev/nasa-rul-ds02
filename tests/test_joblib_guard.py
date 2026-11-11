@@ -27,8 +27,8 @@ SITIOS = {
     "src/clase/shap_clase.py": "clase_xgb_sha256",
     "src/clase/shap_clase_e2.py": "clase_e2_sha256",
     "src/clase/train_mlp.py": "clase_xgb_sha256",
-    "scripts/predict.py": "v3_bundle_sha256",
-    "scripts/repackage_artifact.py": "ensemble_sha256",
+    "scripts/legacy/predict.py": "v3_bundle_sha256",
+    "scripts/legacy/repackage_artifact.py": "ensemble_sha256",
 }
 
 
@@ -122,7 +122,7 @@ def test_train_mlp_rechaza_sin_checksum(tmp_path, monkeypatch):
 
 
 def test_predict_rechaza_sin_checksum(tmp_path, monkeypatch):
-    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    sys.path.insert(0, os.path.join(ROOT, "scripts", "legacy"))
     import predict as P
 
     victim = _veneno(str(tmp_path / "v3_bundle.joblib"))

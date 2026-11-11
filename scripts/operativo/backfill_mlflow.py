@@ -8,9 +8,9 @@ It never trains, never writes `models/`, and never calls `log_model`/`autolog`.
 
 Usage
 -----
-    python scripts/backfill_mlflow.py --write   # create/replace the 17 runs
-    python scripts/backfill_mlflow.py --check   # verify the store and the export
-    python scripts/backfill_mlflow.py --export  # regenerate the CSV from the store
+    python scripts/operativo/backfill_mlflow.py --write   # create/replace the 17 runs
+    python scripts/operativo/backfill_mlflow.py --check   # verify the store and the export
+    python scripts/operativo/backfill_mlflow.py --export  # regenerate the CSV from the store
 
 The store is `./mlruns` (text-only file store). `--write` is idempotent by the
 `run_key` tag: it deletes an existing active run with the same key and creates it
@@ -44,7 +44,7 @@ os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
 
 from mlflow.tracking import MlflowClient  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 EXPERIMENT = "ds02-clase"
 STORE = ROOT / "mlruns"
 EXPORT = ROOT / "docs" / "evidencia" / "mlflow" / "comparativa.csv"

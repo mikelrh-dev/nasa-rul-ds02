@@ -2,7 +2,7 @@
 
 These tests read `mlruns/` from disk with a file tracking URI: no server, no
 network, no notebook execution. The store is produced by
-`scripts/backfill_mlflow.py --write` and must contain exactly the 17 measured
+`scripts/operativo/backfill_mlflow.py --write` and must contain exactly the 17 measured
 runs (9 row grain, 4 window grain and the 4 cyc_norm ablation variants). A
 missing or duplicated run fails the test; nothing is skipped.
 """
@@ -30,7 +30,7 @@ EXPORT = ROOT / "docs" / "evidencia" / "mlflow" / "comparativa.csv"
 
 
 def _load_backfill():
-    path = ROOT / "scripts" / "backfill_mlflow.py"
+    path = ROOT / "scripts" / "operativo" / "backfill_mlflow.py"
     spec = importlib.util.spec_from_file_location("backfill_mlflow_test", path)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
@@ -172,7 +172,7 @@ def test_export_matches_the_store(client, exp_id, runs):
 
 def test_check_exits_zero():
     result = subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / "backfill_mlflow.py"), "--check"],
+        [sys.executable, str(ROOT / "scripts" / "operativo" / "backfill_mlflow.py"), "--check"],
         cwd=ROOT,
         capture_output=True,
         text=True,

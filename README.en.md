@@ -3,7 +3,7 @@
 > **English** | [Español](README.md)
 
 > **Entrega de clase (Reto 1 SAA + PIA + MIA):** el track académico vive en
-> `src/clase/` (código), `notebooks/01–06` (relato), `data/processed/`
+> `src/clase/` (código), `notebooks/01–07` (relato), `data/processed/`
 > (dataset con nulos MAR + `fase_vuelo`) y `resultados/` (métricas y figuras).
 > Punto de entrada: [`src/clase/README.md`](src/clase/README.md) (6 apartados),
 > app desplegada: `streamlit run app/dashboard_ds02.py` (bundle C + SHAP).
@@ -116,8 +116,8 @@ holds no row above 62 cycles, so no quantile fitted there can cover high life.
 Tracking lives in `mlruns/` (text file store, no server, no SQLite) and is rebuilt from the measured CSVs:
 
 ```bash
-python scripts/backfill_mlflow.py --write   # 17 historic runs; idempotent by run_key
-python scripts/backfill_mlflow.py --check   # store + export, zero artifacts
+python scripts/operativo/backfill_mlflow.py --write   # 17 historic runs; idempotent by run_key
+python scripts/operativo/backfill_mlflow.py --check   # store + export, zero artifacts
 MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
 
@@ -199,7 +199,7 @@ three orders of magnitude less than the 13.349 that had been asserted, and it
 *improves* LightGBM by 0.82. The counter is a genuinely valuable input for the
 BiLSTM, which is why the fix removes it from the stacking layer only.
 
-### Where the cycle counter really acts (seed 42, `scripts/ablate_meta_cycle.py`)
+### Where the cycle counter really acts (seed 42, `scripts/auditoria/ablate_meta_cycle.py`)
 
 With `beta = 1.0` the final prediction **is** the meta-learner output, and the
 meta-learner *as shipped until this revision* put all of its weight on the clock:
@@ -234,7 +234,7 @@ Four conclusions, all measured:
    more than the stacking layer gains.
 
 The shipped artifact carries the clock in both base models and **not** in the
-meta-learner. `models/ablation_meta_cycle.json` and `scripts/ablate_meta_cycle.py`
+meta-learner. `models/ablation_meta_cycle.json` and `scripts/auditoria/ablate_meta_cycle.py`
 make the alternative reproducible.
 
 ---
@@ -266,12 +266,12 @@ three folds selected `beta = 0` — i.e. that fold saw no value in the meta-lear
 | C-mean (NB05 printed, OOF) — historical | 4.330+-0.053 | 2343.2+-24.1 | 42, 7, 123, not regenerable |
 
 Seed 42 is the shipped bundle (`models/ds02_manifest.json`); seeds 7 and 123 are
-retrained under the same protocol by `src/clase/evaluar_c_multisemilla.py`. The ± is
+retrained under the same protocol by `scripts/operativo/evaluate_bundle_stability.py`. The ± is
 the noise floor every difference should be read against: two means closer than that
 ± are a tie.
 
 **Evidence:** `resultados/bundle_c_multiseed.csv`, `resultados/comparativa_bundle_c.csv`,
-`src/clase/evaluar_c_multisemilla.py`, `notebooks/06_evaluacion_produccion_comparativa.ipynb`.
+`scripts/operativo/evaluate_bundle_stability.py`, `notebooks/06_evaluacion_produccion_comparativa.ipynb`.
 
 
 ---
@@ -310,10 +310,10 @@ ValueError: bad marshal data (unknown type code)     # even with the shim
 ## Interfaces
 
 ```bash
-python scripts/predict_ds02.py --unit 11 --window 0        # RUL 60.27 ciclos
-python scripts/predict_ds02.py --unit 11 --all --json      # full trajectory
+python scripts/operativo/predict_ds02.py --unit 11 --window 0        # RUL 60.27 ciclos
+python scripts/operativo/predict_ds02.py --unit 11 --all --json      # full trajectory
 uvicorn app.api:app --port 8000                            # POST /predict, GET /health
-python scripts/build_ui_cache.py                           # once: app/cache for the DSS
+python scripts/build/build_ui_cache.py                           # once: app/cache for the DSS
 streamlit run app/dashboard_ds02.py                        # fleet hangar + conformal band
 ```
 
@@ -381,7 +381,7 @@ test panel, with the point inside its band on all 6 196 windows.
 Re-check it — the figures are recomputed from `_p1_oof_cache.npz`, not quoted:
 
 ```bash
-python scripts/freeze_rules_evidence.py
+python scripts/auditoria/freeze_rules_evidence.py
 ```
 
 It prints the monotonicity table and exits non-zero on drift; the measurement is
@@ -389,36 +389,31 @@ written up in [`docs/informes/informe-2026-10-21-reglas-oof.md` §13](docs/infor
 
 ---
 
-## Reproduce
-
-```bash
+## Reproduce```bash
 python -m pip install -r requirements.txt && pip install -e .
 
-# Fase 0 — make the legacy artifact portable, no training (~2 min)
-python scripts/extract_legacy_artifact.py     # must run under Python 3.10
-python scripts/repackage_artifact.py          # must run under Python 3.10
+# data/processed/ is not tracked: expected inputs and the 01 -> 07 order live in
+# docs/plans/regeneracion-notebooks-2026-11-11.md
 
-# Fase 1 — retrain with the honest protocol (~30 min on CPU)
-python scripts/build_02_notebook.py
-jupyter nbconvert --to notebook --execute 02_DS02_ensemble_RUL.ipynb --inplace
+# gates and suite
+python scripts/auditoria/freeze_rules_evidence.py --check
+python -m pytest tests -q
 
-# measurements and checks
-python scripts/ablate_meta_cycle.py
-python -m pytest -q
-python scripts/backfill_mlflow.py --check
+# the seven notebooks are the deliverable: execute them in order
+jupyter nbconvert --to notebook --execute notebooks/01_eda_y_contexto.ipynb --inplace
+# ... 02 -> 07, same order
+
 MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
 
-The notebook is a **build output**. Edit `scripts/build_02_notebook.py` and
-regenerate; never hand-edit the `.ipynb`.
+The notebooks are **hand-written deliverables**, not build outputs;
+`scripts/build/build_07_shap_c_notebook.py` only regenerates notebook 07 when its
+SHAP section changes.
 
-`pyproject.toml` pins `testpaths = ["tests"]` because `scripts/` holds four
-FD001-era scripts whose names match pytest's default globs
-(`recalcular_test.py`, `test_fixed_pipeline.py`, `test_lstm_clean.py`,
-`test_xgb_rolling.py`). They run a full pipeline at import time — and the FD001
-loader clamps at 125 cycles, which the DS02 path must never do —so they are scripts, not tests, and a bare `pytest` collects only the real suite.
-Run it with `python -m pytest tests -q`; the count is not written here because it
-changes with every change.
+`pyproject.toml` pins `testpaths = ["tests"]` so a bare `pytest` only collects the
+real suite; `scripts/` holds probes whose names can match pytest's default globs
+(and some run work at import time). Run it with `python -m pytest tests -q`; the
+count is not written here because it changes with every change.
 
 ---
 

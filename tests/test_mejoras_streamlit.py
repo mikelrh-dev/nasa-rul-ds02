@@ -47,8 +47,9 @@ def test_tabs_fragmented():
                 blob += open(os.path.join(mod_dir, fn), encoding="utf-8").read()
     assert blob.count("@st.fragment") >= 6, blob.count("@st.fragment")
     # each tab has a fragment-defined function
+    # Las pestañas viven en `ui_modulos/`; el dashboard solo las invoca.
     for name in ("_tab_flota", "_tab_motor", "_tab_auditoria", "_tab_casos"):
-        assert f"def {name}" in src, name
+        assert f"def {name}" in blob, name
 
 
 def test_single_shap_panel():

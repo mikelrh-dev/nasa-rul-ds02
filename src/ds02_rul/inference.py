@@ -63,15 +63,3 @@ def windows_for_unit(W, Xs, units, cycles, unit: float, window: int = 50, step: 
     order = np.argsort(cyc[mask], kind="stable")
     return X[mask][order], cyc[mask][order], uni[mask][order], meta[mask].reset_index(drop=True)
 
-
-def validate_window(X, window: int = 50) -> np.ndarray:
-    """Reject a short or malformed window before it reaches the model."""
-    arr = np.asarray(X)
-    if arr.ndim != 3:
-        raise ValueError(f"expected (n, window, channels), got shape {arr.shape}")
-    if arr.shape[1] != window:
-        raise ValueError(
-            f"window length {arr.shape[1]} is invalid; this artifact requires {window} "
-            "sampled rows (STRIDE=100 over DS02), not cycles"
-        )
-    return arr

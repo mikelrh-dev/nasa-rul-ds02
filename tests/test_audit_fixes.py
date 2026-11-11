@@ -25,7 +25,7 @@ import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(ROOT, "app")
-SCRIPTS = os.path.join(ROOT, "scripts")
+SCRIPTS = os.path.join(ROOT, "scripts", "auditoria")
 sys.path.insert(0, APP)
 sys.path.insert(0, SCRIPTS)
 sys.path.insert(0, ROOT)
@@ -38,7 +38,7 @@ import ui_rules as UR  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),
-    reason="app/cache missing — run `python scripts/build_ui_cache.py`",
+    reason="app/cache missing — run `python scripts/build/build_ui_cache.py`",
 )
 needs_oof = pytest.mark.skipif(
     not os.path.exists(os.path.join(ROOT, "_p1_oof_cache.npz")),

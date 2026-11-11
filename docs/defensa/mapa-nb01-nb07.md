@@ -14,7 +14,7 @@
 > en NB02 c5/c20 y NB05 c30 lo *duplican sin escribir* (ver filas marcadas
 > con «DUPLICA, no invoca»).
 
-#### Numeración 0idx/1idx + ruta literal `src.clase/models` (léeme en vivo)
+#### Numeración 0idx/1idx + ruta de `models` (corregida 2026-11-10)
 
 - **0idx vs 1idx:** este mapa cita `0idx` (índice literal en el `.ipynb`).
   En Jupyter el contador visible es `1idx = 0idx + 1`. Si alguien dice
@@ -23,13 +23,11 @@
   de LGBM; NB02 c5 0idx / c6 1idx y c20 0idx / c21 1idx son los entrenos
   en vivo. Los pies Markdown junto a cada code (NB02 c5/c20, NB05 c30)
   repiten esta numeración en el punto de error.
-- **Ruta literal `src.clase/models` vs real `src/clase/models`:**
-  `src/clase/train_lgbm_adaptada.py:61` escribe
-  `os.path.join(_ROOT, "src.clase", "models", ...)` (con punto, carpeta
-  inexistente en disco), mientras el joblib oficial real cargado en NB05 c38
-  vive en `src/clase/models/lgbm_adaptada.joblib`. No re-ejecutar
-  `entrenar()` en vivo: crearía la carpeta fantasma `src.clase/models` y
-  no sobrescribiría el real. La misma nota vive en el pie de NB05 c30.
+- **Ruta de `lgbm_adaptada.joblib` (corregida 2026-11-10):**
+  `src/clase/train_lgbm_adaptada.py:61` ya escribe en
+  `src/clase/models/lgbm_adaptada.joblib` (con `/`, no `src.clase`). No queda
+  carpeta fantasma; NB05 c38 carga el joblib real. La misma nota vive en el pie
+  de NB05 c30.
 
 ## 0 · Escritores oficiales (la enciclopedia de procedencia)
 
@@ -37,8 +35,8 @@
 |---|---|---|---|
 | `resultados/comparativa.csv` + `models/mejor_modelo_clase.joblib` | `src/clase/train_clasicos.py:108` `entrenar_todo()` (escribe `to_csv:157`, `joblib.dump:158`) | CSV + joblib | NB02 c3 (ancla), c11/c15/c32 (carga) |
 | `resultados/mlp_comparativa.csv` + `models/mejor_modelo_clase_E2.joblib` (E2) | `src/clase/train_mlp.py:107` `entrenar_mlp()` (escribe `to_csv:137`, `joblib.dump E2:142`, `E2_MODEL_PATH:50`) | CSV + joblib | NB02 c17 (ancla), c25 (re-fit, no carga) |
-| `resultados/comparativa_ventanas.csv` + `src/clase/models/lgbm_adaptada.joblib` | `src/clase/train_lgbm_adaptada.py:34` `entrenar()` (escribe `to_csv:60`, `joblib.dump:61` **con ruta literal `src.clase/models`** ) | CSV + joblib | NB05 c28 (ancla), c38 (carga joblib oficial) |
-| **Bundle C** `models/ensemble.joblib` + `bilstm_ds02.keras` + `scaler.joblib` + `models/ds02_manifest.json` + `resultados/comparativa_bundle_c.csv` + `bundle_c_por_motor.csv` + `real_vs_predicho_bundle_c.png` | **`src/clase/train_ensemble_adaptado.py:183-222` `entrenar()`** → **`src/ds02_rul/persistence.py:202` `save_ensemble()`** (`OUT_DIR = _ROOT/models:64`; también escribe CSV:188-189 y PNG:202) | 7 artefactos | NB03–NB07 vía `puente_c()` / `load_ensemble` (NB06 c19/c53/c56, NB07 c3 vía `shap_c`) |
+| `resultados/comparativa_ventanas.csv` + `src/clase/models/lgbm_adaptada.joblib` | `src/clase/train_lgbm_adaptada.py:34` `entrenar()` (escribe `to_csv:60`, `joblib.dump:61` en `src/clase/models` ) | CSV + joblib | NB05 c28 (ancla), c38 (carga joblib oficial) |
+| **Bundle C** `models/ensemble.joblib` + `bilstm_ds02.keras` + `scaler.joblib` + `models/ds02_manifest.json` + `resultados/comparativa_bundle_c.csv` + `bundle_c_por_motor.csv` + `real_vs_predicho_bundle_c.png` | **`src/ds02_rul/bundle_c.py:entrenar`** → **`src/ds02_rul/persistence.py:202` `save_ensemble()`** (`OUT_DIR = _ROOT/models:64`; también escribe CSV:188-189 y PNG:202) | 7 artefactos | NB03–NB07 vía `puente_c()` / `load_ensemble` (NB06 c19/c53/c56, NB07 c3 vía `shap_c`) |
 | `resultados/tabla_final_clase.csv` | `src/clase/tabla_final.py:22` `construir_tabla()` + `:68` `main()` (`to_csv:76`) | CSV | NB06 c49 (lee), c52 (reconstruye y exige igualdad, **no** escribe) |
 | `resultados/shap_bundle_C/` (3 CSV + 3 PNG + `metadata.json`) | `src/ds02_rul/shap_c.py` `ejecutar_shap_c` (llamada única desde NB07 c3) | Explicación, no modelo | NB07 c4/c5 |
 | `notebooks/artifacts_c/nb2_*` (3 joblib + 3 npy) | **NB04 c31** (`joblib.dump`/`np.save` propios) | Estado intermedio ignorado por git | NB05 c6 (recarga, sin re-entrenar NB04) |
@@ -49,7 +47,7 @@
 >
 > Cita corta para el bundle C (defender en 20 s):
 > «El bundle C no se entrena en notebooks: lo escribe
-> `train_ensemble_adaptado.entrenar()` 183-222 en `models/` vía
+> `bundle_c.entrenar()` 183-222 en `models/` vía
 > `save_ensemble` `persistence.py:202` y los notebooks solo lo leen.»
 
 ---
@@ -68,7 +66,7 @@ solo presentación.» `execution_count` 1-13 en todo el code (ejecutado).
 | c13 (`exec=5`) | Fig.2 hist RUL + Fig.3 box T48 por fase → 2 PNG | Ninguna (display) | «Solo presentación: dos figuras, sin lógica.» |
 | c15 (`exec=6`) | Fig.4 scatter alt vs Mach por fase → `eda_scatter_alt_mach.png` | Lee `fase_vuelo` del parquet (no llama `asignar_fase_vuelo`) | «El scatter usa la fase ya venida en el parquet; los umbrales 18k/26k+0.65 viven en `dataset_clase.asignar_fase_vuelo`.» |
 | c17 (`exec=7`) | Fig.5 heatmap correlación → `eda_heatmap_corr.png` | Ninguna (display) | «Solo presentación: heatmap con columnas inline.» |
-| c21 (`exec=8`) | Dos ligas fila vs ventana + unidades fit/hold/test | Literales que duplican `FIT_UNITS` de `train_ensemble_adaptado` / `ventanas_adaptadas` | «Explico las dos ligas con literales que copian `FIT_UNITS`; el contrato oficial vive en `ventanas_adaptadas`.» |
+| c21 (`exec=8`) | Dos ligas fila vs ventana + unidades fit/hold/test | Literales que duplican `FIT_UNITS` de `data.py` / `ventanas_adaptadas` | «Explico las dos ligas con literales que copian `FIT_UNITS`; el contrato oficial vive en `data.py`.» |
 | c23 (`exec=9`) | Recalcula MAR en vivo con `elegibles_mar` | **Sí usa** `dataset_clase.elegibles_mar` | «Recalculo el MAR con la función oficial `elegibles_mar`, no a mano.» |
 | c25 (`exec=10`) | Imputación en vivo (medianas fit-units + ffill) | **Sí usa** `dataset_clase.imputar_ffill` + `SENSOR_COLS` | «Imputo con la función oficial `imputar_ffill`; las medianas inline anticipan `medianas_train` del `.py`.» |
 | c27 (`exec=11`) | Residualización en vivo (14 Ridge por sensor) | **Sí usa** `ds02_rul/features.fit_preprocessing` (Ridge **físico**) | «Residualizo con la función oficial `fit_preprocessing`; este Ridge limpia sensores, no predice RUL.» |
@@ -122,12 +120,12 @@ el bundle C solo se lee, no se entrena aquí.» `c9 exec=None` (no ejecutada).
 | Celda (0idx) | Hace (1 línea) | `.py` / función real | Frase de 20 s |
 |---|---|---|---|
 | c4 (`exec=1`) | Print alias «listos» sin importar | Menciona `viz.evaluar_clase` sin uso | «La celda 4 solo menciona los alias en un print; no los importa ni los usa.» |
-| c6 (`exec=3`) | Puente C `raw/dev/test/prep` + bundle preentrenado | **Sí usa** `puente_c` (`src/clase/puente_c.py`; `dev/test` se construyen dentro, no aquí) | «Cargo base adaptada y bundle con `puente_c`; `dev/test` vienen de dentro del puente, no los construyo yo.» |
+| c6 (`exec=3`) | Puente C `raw/dev/test/prep` + bundle preentrenado | **Sí usa** `puente_c` (`src/ds02_rul/puente_c.py`; `dev/test` se construyen dentro, no aquí) | «Cargo base adaptada y bundle con `puente_c`; `dev/test` vienen de dentro del puente, no los construyo yo.» |
 | c9 (`exec=None`) | Ablación en vivo `ablation_table` 4 variantes × 3 modelos, semilla 42 | **Sí usa** `ds02_rul/pipeline.py` `ablation_table` (bien delegado) | «Mido la ablación en vivo con la función oficial `ablation_table`; `abl` queda en memoria, no en CSV.» |
 | **c14 (`exec=4`)** | **Figura barras RMSE; si `abl` no está en memoria, dibuja con 12 literales copiados** | **Literales duplicados (12 filas)** | «Si `abl` está en memoria, pinto la tabla calculada; si no —p. ej. kernel limpio— pinto 12 literales copiados a mano de la salida impresa: 6.563, 6.499, 6.297, 6.394, 6.324, 8.765, 5.796, 5.771, 7.067, 5.512, 5.490, 8.547 (BiLSTM/BiLSTM+EMA/LGBM × OFF/Baseline/ON/ON+delta). Es la única figura indefendible sin `abl`.» |
 
 **Entreno oficial:** «El bundle C vive en
-`train_ensemble_adaptado.entrenar:183-222`; NB03 **no lo invoca**: la ablación
+`bundle_c.entrenar`; NB03 **no lo invoca**: la ablación
 c9 se mide en vivo y la figura c14 reutiliza `abl` (o literales si falta). La
 corrección (leer `resultados/ablacion_cycnorm.csv` + assert) es Grupo MEDIO,
 no tocada aquí.»
@@ -157,7 +155,7 @@ bundle desplegado; mi único `joblib.dump` es el estado para NB05.»
 | c31 (`exec=15`) | **Guarda `artifacts_c/nb2_*`** (3 joblib + 3 npy) | Escritor propio NB04 | «Mi único `dump` es `notebooks/artifacts_c/` para NB05; el bundle de `models/` no lo toco.» |
 
 **Entreno oficial:** «El bundle C vive en
-`train_ensemble_adaptado.entrenar:183-222` vía `save_ensemble`
+`bundle_c.entrenar` vía `save_ensemble`
 `persistence.py:202`; **NB04 no lo invoca**: mide OOF/meta en vivo y solo
 escribe `notebooks/artifacts_c/` (ignorado por git, cadena NB04→NB05).»
 
@@ -180,7 +178,7 @@ escribe el `.py`.»
 | c11 (`exec=8`) | Cobertura por motor `empirical_coverage` | `conformal` | «Repito la cobertura de NB04 por motor; duplica, no contradice.» |
 | c16 (`exec=15`) | Figura dispersión por semilla | `viz.dispersion_por_semilla` | «Pinto media ± std con la función oficial de viz.» |
 | c28 (`exec=10`) | Ancla `comparativa_ventanas.csv` filtrada | Lectura (escritor: `train_lgbm_adaptada.entrenar`) | «Leo el CSV oficial de LGBM adaptada; el filtro histórico es inline.» |
-| **c30 (`exec=11`, 1idx 31)** | **ENTRENO VIVO LGBM adaptada:** `make_lgbm(42).fit` sobre ventanas fit-units, assert `RMSE<0.01` vs CSV; **no escribe** | **DUPLICA, no invoca** `train_lgbm_adaptada.entrenar:34` (mismo código, sin `to_csv`/`joblib.dump`) | «LGBM adaptada en vivo: mismo código que `train_lgbm_adaptada.py:34-61` pero sin escribir; el modelo vive solo en esta celda y se ancla contra el CSV.» + follow-up: «Si te piden el joblib oficial, vive en `src/clase/models/lgbm_adaptada.joblib` y lo escribió el `.py` con ruta literal `src.clase/models:61`; aquí no se escribe.» |
+| **c30 (`exec=11`, 1idx 31)** | **ENTRENO VIVO LGBM adaptada:** `make_lgbm(42).fit` sobre ventanas fit-units, assert `RMSE<0.01` vs CSV; **no escribe** | **DUPLICA, no invoca** `train_lgbm_adaptada.entrenar:34` (mismo código, sin `to_csv`/`joblib.dump`) | «LGBM adaptada en vivo: mismo código que `train_lgbm_adaptada.py:34-61` pero sin escribir; el modelo vive solo en esta celda y se ancla contra el CSV.» + follow-up: «Si te piden el joblib oficial, vive en `src/clase/models/lgbm_adaptada.joblib` y lo escribió el `.py` en `src/clase/models:61`; aquí no se escribe.» |
 | c32 (`exec=12`) | Mecanismo `ventanas_adaptadas` shapes 93 | `src/clase/ventanas_adaptadas` | «Verifico las 93 columnas con la función oficial de ventanas.» |
 | c33 (`exec=13`) | CV `GroupKFold` fit-units `make_lgbm` | Duplica parcial `make_lgbm` | «CV diagnóstica en vivo; la media esconde la heterogeneidad entre motores.» |
 | c38 (`exec=14`) | Real vs predicho LGBM **joblib oficial** → PNG | Carga `src/clase/models/lgbm_adaptada.joblib` | «Pinto con el joblib oficial escrito por el `.py`; nótese que el vivo de c30 y el oficial de c38 se llaman igual pero son dos objetos.» |
@@ -207,12 +205,12 @@ desplegado solo se lee y la tabla solo se verifica.»
 | c21 (`exec=6`) | Fig. pesos instalado → `ridge_meta_pesos_06.png` | Display | «Solo presentación: pesos del artefacto, no del vivo.» |
 | c24 (`exec=7`) | Banda `fit_conformal` `oof_calib` | `fit_conformal` | «Re-calibro la banda en vivo; no coincide con la del manifiesto.» |
 | c26 (`exec=8`) | Residuos numpy | Ninguna (no usa `viz.residuos`) | «Residuos con numpy a mano.» |
-| c30 (`exec=9`) | Lee `comparativa_bundle_c.csv` | Lectura (escritor: `train_ensemble_adaptado.entrenar`) | «Leo la cascada 7.067→4.338 del CSV archivado.» |
+| c30 (`exec=9`) | Lee `comparativa_bundle_c.csv` | Lectura (escritor: `bundle_c.entrenar`) | «Leo la cascada 7.067→4.338 del CSV archivado.» |
 | c32 (`exec=19`) | Fig. cascada desde CSV → `bundle_c_cascada_rmse.png` | Display CSV | «Solo presentación: la cascada sale del CSV, no del vivo.» |
 | c34 (`exec=10`) | **ANCLA** manifiesto vs CSV assert | `json.load` manifiesto | «Anclo: el manifiesto coincide con la fila Híbrido-C del CSV.» |
 | c37 (`exec=11`) | Lee `bundle_c_por_motor.csv` + PNG | Lectura | «Leo la tabla por motor ya guardada.» |
 | c39 (`exec=20`) | Fig. RMSE por motor CSV → PNG | Display CSV | «Solo presentación: U14 8.576 n760 se lee del CSV.» |
-| c43 (`exec=12`) | Multiseed 7/123 `run_seed`+meta+`Ensemble` → `bundle_c_multiseed.csv` | **Escribe CSV desde el notebook**, NO llama `evaluar_c_multisemilla` | «Multiseed en vivo que sí escribe su CSV; es doble escritor con `evaluar_c_multisemilla.py` (beta 1.00 a mano).» |
+| c43 (`exec=12`) | Multiseed 7/123 `run_seed`+meta+`Ensemble` → `bundle_c_multiseed.csv` | **Escribe CSV desde el notebook**, NO llama `scripts/evaluate_bundle_stability` | «Multiseed en vivo que sí escribe su CSV; es doble escritor con `scripts/evaluate_bundle_stability.py` (beta 1.00 a mano).» |
 | c45 (`exec=13`) | Media multiseed lee base+ms | Agregación | «Mi media 4.322 es agregación manual, distinta de la de NB05.» |
 | c49 (`exec=22`) | Lee `tabla_final_clase.csv`, elige campeón por grano | Lectura `tabla_final.py` | «En fila manda MLP-E2 (7.72); en ventana, C (4.338). No los mezclo.» |
 | c52 (`exec=16`, 1idx 53) | **TABLA VIVA** `construir_tabla` 4 CSV + `assert_frame_equal` | **Sí usa** `tabla_final.construir_tabla` (bien) | «Reconstruyo la tabla con la función oficial `construir_tabla` y exijo igualdad con el CSV; no escribo.» |
@@ -221,7 +219,7 @@ desplegado solo se lee y la tabla solo se verifica.»
 | c59 (`exec=18`) | Lee manifiesto, imprime versión/seed/dataset | `json.load` | «Leo versión/seed del manifiesto; no verifica SHA de artefactos.» |
 
 **Entreno oficial:** «El bundle C vive en
-`train_ensemble_adaptado.entrenar:183-222` y la tabla final en
+`bundle_c.entrenar` y la tabla final en
 `tabla_final.py:76`; **NB06 no los invoca**: lee en c19/c53/c56, verifica en
 c34/c52 y solo escribe el multiseed c43, los PNG y nada de `models/`.»
 
@@ -240,7 +238,7 @@ congelado en solo lectura y vuelca la explicación.» 8/10, el más defendible.
 | c5 (`exec=4`) | Display 3 barras `bar_*.png` | Display | «Solo presentación: las barras ya calculadas; BiLSTM agrega por canal y pierde los 50 pasos.» |
 
 **Entreno oficial:** «El bundle C vive en
-`train_ensemble_adaptado.entrenar:183-222` vía `save_ensemble`
+`bundle_c.entrenar` vía `save_ensemble`
 `persistence.py:202`; el SHAP vive en `shap_c.ejecutar_shap_c`. **NB07 no
 entrena ninguno de los dos**: carga `models/ensemble.joblib` en lectura y
 escribe solo `resultados/shap_bundle_C/` (explicación, no modelo).»

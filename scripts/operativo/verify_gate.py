@@ -10,9 +10,9 @@ The suite takes about 3.5 minutes. Use --only for a targeted check while
 you work, and the full gate before you close.
 
 Usage:
-    python scripts/verify_gate.py                 # full suite (~3.5 min)
-    python scripts/verify_gate.py --only tests/test_flota.py
-    python scripts/verify_gate.py --list          # show collected tests
+    python scripts/operativo/verify_gate.py                 # full suite (~3.5 min)
+    python scripts/operativo/verify_gate.py --only tests/test_flota.py
+    python scripts/operativo/verify_gate.py --list          # show collected tests
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ import os
 import subprocess
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def main() -> int:

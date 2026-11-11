@@ -11,7 +11,7 @@ import numpy as np
 
 
 def test_raw_adaptado_alineado_sin_nulos():
-    from src.clase.train_ensemble_adaptado import construir_raw_adaptado
+    from ds02_rul.data import construir_raw_adaptado
     raw = construir_raw_adaptado()
     n_tr = len(raw["y_train"])
     assert raw["A_train"].shape == (n_tr, 2)
@@ -28,7 +28,7 @@ def test_raw_adaptado_alineado_sin_nulos():
 
 
 def test_raw_adaptado_particiones_congeladas():
-    from src.clase.train_ensemble_adaptado import construir_raw_adaptado
+    from ds02_rul.data import construir_raw_adaptado
     raw = construir_raw_adaptado()
     assert set(np.unique(raw["A_train"][:, 0])) <= {2.0, 5.0, 10.0, 18.0, 20.0, 16.0}
     assert {2.0, 5.0, 10.0, 18.0, 20.0, 16.0} <= set(np.unique(raw["A_train"][:, 0]))
@@ -37,8 +37,7 @@ def test_raw_adaptado_particiones_congeladas():
 
 def test_raw_adaptado_medianas_solo_fit_units():
     import pandas as pd
-    from src.clase.dataset_clase import SENSOR_COLS
-    from src.clase.train_ensemble_adaptado import construir_raw_adaptado
+    from ds02_rul.data import SENSOR_COLS, construir_raw_adaptado
     raw = construir_raw_adaptado()
     train_con = pd.read_parquet("data/processed/train_con_nulos.parquet")
     fit = train_con[train_con["unit"].isin([2.0, 5.0, 10.0, 18.0, 20.0])]

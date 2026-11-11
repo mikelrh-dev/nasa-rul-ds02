@@ -11,13 +11,20 @@ nuevo con `predict_caso_nuevo`.
 
 from __future__ import annotations
 
+import os
+import sys
+
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from src.clase.dataset_clase import SENSOR_COLS
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if os.path.join(_ROOT, "src") not in sys.path:
+    sys.path.insert(0, os.path.join(_ROOT, "src"))
+
+from ds02_rul.data import SENSOR_COLS  # noqa: E402
 
 NUM_COLS = ["cycle", "alt", "Mach", "TRA", "T2"] + list(SENSOR_COLS)
 CAT_COLS = ["fase_vuelo"]

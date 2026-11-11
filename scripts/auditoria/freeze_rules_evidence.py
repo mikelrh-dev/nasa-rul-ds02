@@ -1,6 +1,6 @@
 """Re-derive the rules-layer evidence and fail on any drift (RULES-06).
 
-    python scripts/freeze_rules_evidence.py [--check | --write] [--instrument | --cache PATH]
+    python scripts/auditoria/freeze_rules_evidence.py [--check | --write] [--instrument | --cache PATH]
 
 By default it verifies the shipped band against `mia/instrumento_oof.npz`, the
 tracked 14 915-row instrument the band was fitted on (see ADR-012): pure units
@@ -52,7 +52,7 @@ import types
 
 import numpy as np
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEFAULT_CACHE = os.path.join(ROOT, "_p1_oof_cache.npz")
 CALIBRACION = os.path.join(ROOT, "src", "mia", "calibracion_banda.json")
 SRC = os.path.join(ROOT, "src")
@@ -78,7 +78,7 @@ EXIT_INPUT = 3
 EXIT_DRIFT = 4
 EXIT_CONTRACT = 5
 
-REBUILD = "python scripts/p1_oof_cache.py   (needs the DS02 HDF5 and the base models)"
+REBUILD = "python scripts/auditoria/p1_oof_cache.py   (needs the DS02 HDF5 and the base models)"
 POLICY = "RULES-06 — a missing instrument fails the gate; it never degrades to a no-op"
 
 # Recorded evidence. The test columns are NOT recomputed: the cache holds
@@ -562,7 +562,7 @@ def run(expected: dict | None = None, cache: str | None = None,
         print("freeze-rules-evidence: frozen calibration drifted", file=stream)
         for field, want, have in drifts:
             print(f"  {field}: expected {want!r}, observed {have!r}", file=stream)
-        print(f"  re-freeze deliberately with: python scripts/freeze_rules_evidence.py --write",
+        print(f"  re-freeze deliberately with: python scripts/auditoria/freeze_rules_evidence.py --write",
               file=stream)
     if failures:
         print("", file=stream)

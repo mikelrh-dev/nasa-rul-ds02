@@ -3,9 +3,9 @@
 Loads `models/ensemble.joblib` through the importable package — no notebook, no
 `__main__` shims, no fallback to FD001.
 
-    python scripts/predict_ds02.py --unit 11 --window 0
-    python scripts/predict_ds02.py --unit 11 --all --json
-    python scripts/predict_ds02.py --list-units
+    python scripts/operativo/predict_ds02.py --unit 11 --window 0
+    python scripts/operativo/predict_ds02.py --unit 11 --all --json
+    python scripts/operativo/predict_ds02.py --list-units
 """
 from __future__ import annotations
 

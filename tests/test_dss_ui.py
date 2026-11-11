@@ -28,7 +28,7 @@ import ui_data_loader as L  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),
-    reason="app/cache missing — run `python scripts/build_ui_cache.py`",
+    reason="app/cache missing — run `python scripts/build/build_ui_cache.py`",
 )
 
 

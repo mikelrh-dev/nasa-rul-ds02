@@ -15,7 +15,7 @@ Everything else is held fixed: same scaler (fitted on the fit units at stride
 at `y > 65` is attributable to the row spacing alone. What survives at natural
 density is attributable to the engine's life length.
 
-Run:  python scripts/p0_density_control.py
+Run:  python scripts/auditoria/p0_density_control.py
 """
 from __future__ import annotations
 

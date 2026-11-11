@@ -74,7 +74,7 @@ except Exception:  # pragma: no cover
 def bilstm_feature_names(op_cols=None, sensor_cols=None) -> list:
     """19 canales en orden del scaler (4 op + 14 sensores + `cyc_norm`)."""
     if op_cols is None or sensor_cols is None:
-        from src.clase.dataset_clase import OP_COLS, SENSOR_COLS
+        from .data import OP_COLS, SENSOR_COLS
 
         op_cols, sensor_cols = OP_COLS, SENSOR_COLS
     return list(op_cols) + list(sensor_cols) + ["cyc_norm"]
@@ -83,7 +83,7 @@ def bilstm_feature_names(op_cols=None, sensor_cols=None) -> list:
 def lgb_feature_names(op_cols=None, sensor_cols=None) -> list:
     """93 features de `ensemble._tabular` en orden de bloques (D3)."""
     if op_cols is None or sensor_cols is None:
-        from src.clase.dataset_clase import OP_COLS, SENSOR_COLS
+        from .data import OP_COLS, SENSOR_COLS
 
         op_cols, sensor_cols = OP_COLS, SENSOR_COLS
     nombres = ["cyc_norm"]
@@ -226,7 +226,7 @@ def ejecutar_shap_c(
     from .persistence import load_ensemble
     from .inference import raw_windows
     from .metrics import calculate_nasa_score
-    from src.clase.train_ensemble_adaptado import construir_raw_adaptado
+    from .data import construir_raw_adaptado
 
     ensemble = load_ensemble(os.path.join("models", "ensemble.joblib"))
     bilstm_model = ensemble._resolve_model()

@@ -5,7 +5,7 @@
 
 | Artefacto | Escritor `.py` (función:línea) | Comando para regenerarlo |
 |---|---|---|
-| `models/ensemble.joblib` + `bilstm_ds02.keras` + `scaler.joblib` + `models/ds02_manifest.json` | `src/clase/train_ensemble_adaptado.py:entrenar` (183-222; `save_ensemble` en `src/ds02_rul/persistence.py:202`) | `python src/clase/train_ensemble_adaptado.py` |
+| `models/ensemble.joblib` + `bilstm_ds02.keras` + `scaler.joblib` + `models/ds02_manifest.json` | `src/ds02_rul/bundle_c.py:entrenar` (`save_ensemble` en `src/ds02_rul/persistence.py`) | `python src/ds02_rul/bundle_c.py` |
 | `resultados/comparativa_ventanas.csv` + `src/clase/models/lgbm_adaptada.joblib` | `src/clase/train_lgbm_adaptada.py:entrenar` (60-61) | `python src/clase/train_lgbm_adaptada.py` |
 | `models/mejor_modelo_clase.joblib` | `src/clase/train_clasicos.py:158` (`entrenar_todo`, `joblib.dump(best_pipe, ...)`) | `python src/clase/train_clasicos.py` |
 | `models/mejor_modelo.joblib` | **copia manual** de `mejor_modelo_clase.joblib`, **sin escritor en código** (mismo tamaño: 526049 bytes) | Copia manual — no se regenera sola |
@@ -14,6 +14,11 @@
 
 Notas:
 
+- Para un reentrenamiento de comprobación **sin tocar `models/`**, usa
+  `entrenar(out_dir="resultados/_shadow_bundle", write_results=False, write_manifest=False)`.
+  Ese modo no escribe CSV/PNG ni un segundo manifiesto; no promociones el artefacto de sombra.
+  Para predecir con él, carga el `.keras` y asígnalo a `ens.bilstm_model` antes de
+  `predict` (si no, `_resolve_model` intenta validarlo contra el manifiesto real y falla).
 - `ensemble.joblib` es el **bundle C desplegado desde 2026-11-04** (seed 42). Se carga
   siempre por `load_ensemble` (verificación SHA-256 antes de deserializar).
 - `mejor_modelo.joblib` y `mejor_modelo_clase.joblib` tienen el mismo tamaño y contenido:

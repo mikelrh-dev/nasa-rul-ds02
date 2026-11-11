@@ -1,7 +1,7 @@
-"""Presentacion (viz), residualizacion por regimen y EMA causal por unidad.
+"""Residualizacion por regimen y EMA causal por unidad.
 
-Solo formato y transformaciones puras con datos sinteticos: ninguna
-funcion entrena ni toca artefactos. `span=5` es alpha 1/3 en pandas.
+Solo transformaciones puras con datos sinteticos: ninguna funcion entrena ni
+toca artefactos. `span=5` es alpha 1/3 en pandas.
 """
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ import os
 import sys
 
 import numpy as np
-import pandas as pd
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -18,64 +17,6 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from ds02_rul.residualizer import SensorResidualizer  # noqa: E402
 from ds02_rul.smoothing import causal_ema_by_unit  # noqa: E402
-from ds02_rul.viz import (  # noqa: E402
-    comparar_con_base,
-    nombre_corto,
-    tabla_modelos,
-    tabla_por_motor,
-)
-
-
-def _summary():
-    return pd.DataFrame([
-        {"Modelo": "LightGBM solo", "RMSE_mean": 5.0, "RMSE_std": 0.2,
-         "MAE_mean": 4.0, "MAE_std": 0.1, "R2_mean": 0.90, "R2_std": 0.01,
-         "NASA_Score_mean": 100.0, "NASA_Score_std": 5.0},
-        {"Modelo": "Híbrido + EMA5", "RMSE_mean": 4.0, "RMSE_std": 0.1,
-         "MAE_mean": 3.0, "MAE_std": 0.1, "R2_mean": 0.93, "R2_std": 0.01,
-         "NASA_Score_mean": 90.0, "NASA_Score_std": 3.0},
-        {"Modelo": "BiLSTM solo", "RMSE_mean": 4.5, "RMSE_std": 0.3,
-         "MAE_mean": 3.5, "MAE_std": 0.2, "R2_mean": 0.91, "R2_std": 0.02,
-         "NASA_Score_mean": 95.0, "NASA_Score_std": 4.0},
-    ])
-
-
-def test_nombre_corto_mapea_etiquetas_de_ejes():
-    """`LightGBM solo` -> `LightGBM`; lo no mapeado pasa tal cual."""
-    assert nombre_corto("LightGBM solo") == "LightGBM"
-    assert nombre_corto("BiLSTM solo") == "BiLSTM"
-    assert nombre_corto("Híbrido + EMA5") == "Híbrido + EMA5"
-
-
-def test_tabla_modelos_ordena_por_rmse_y_formatea_media_mas_desv():
-    """Mejor RMSE arriba y celdas como `media ± desv` en texto."""
-    tabla = tabla_modelos(_summary())
-    assert list(tabla["Modelo"]) == ["Híbrido + EMA5", "BiLSTM solo", "LightGBM solo"]
-    assert tabla.iloc[0]["RMSE"] == "4.000 ± 0.100"
-    assert tabla.iloc[0]["R2"] == "0.9300 ± 0.0100"
-
-
-def test_comparar_con_base_calcula_deltas_y_mejora_en_positivo():
-    """Delta negativo en RMSE es mejora y `mejora %` sale en positivo."""
-    tabla = comparar_con_base(_summary(), "LightGBM solo")
-    fila = tabla.loc[tabla["Modelo"] == "Híbrido + EMA5"].iloc[0]
-    assert fila["frente a"] == "LightGBM solo"
-    assert fila["delta RMSE"] == -1.0
-    assert fila["mejora RMSE %"] == 20.0
-    base = tabla.loc[tabla["Modelo"] == "LightGBM solo"].iloc[0]
-    assert base["delta RMSE"] == 0.0 and base["mejora RMSE %"] == 0.0
-
-
-def test_tabla_por_motor_desglosa_rmse_mae_y_sesgo_por_unidad():
-    """Cada motor da su RMSE/MAE/sesgo: un promedio no esconde un motor malo."""
-    y_real = np.array([10.0, 12.0, 20.0, 22.0, 30.0])
-    y_pred = np.array([11.0, 13.0, 18.0, 24.0, 30.0])
-    unidades = np.array([11, 11, 14, 14, 15])
-    tabla = tabla_por_motor(y_real, y_pred, unidades)
-    assert list(tabla["Motor"]) == [11, 14, 15]
-    assert list(tabla["Ventanas"]) == [2, 2, 1]
-    assert tabla.iloc[0]["RMSE"] == 1.0
-    assert tabla.iloc[2]["Sesgo"] == 0.0
 
 
 def test_residualizer_resta_el_regimen_y_estandariza():

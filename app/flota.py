@@ -18,7 +18,6 @@ convention as `twin.py`, `hangar.py` and `ui_alta.py`.
 """
 from __future__ import annotations
 
-import json
 import os
 
 import hangar as HGR
@@ -138,10 +137,6 @@ def quitar_alta(registro: dict, matricula: str) -> dict:
         nuevo["hangar"] = {k: v for k, v in (registro.get("hangar") or {}).items() if k != clave}
     return nuevo
 
-
-def serializar(registro: dict) -> str:
-    """JSON text, so the dashboard writes the same shape it reads."""
-    return json.dumps(registro, ensure_ascii=False, indent=1)
 
 
 def cargar(ruta: str) -> dict:

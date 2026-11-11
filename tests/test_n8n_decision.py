@@ -199,7 +199,8 @@ def test_apto_tambien_notifica():
 
 
 def test_dashboard_llama_una_vez_tras_decision_en_vivo():
-    src = open(os.path.join(ROOT, "app", "dashboard_ds02.py"),
+    # La sala de casos se extrajo a `ui_modulos/_tab_casos.py` (B1).
+    src = open(os.path.join(ROOT, "app", "ui_modulos", "_tab_casos.py"),
                encoding="utf-8").read()
     assert "payload_desde_traza" in src
     assert "enviar_decision" in src

@@ -18,7 +18,7 @@ de deserializar, así que un bundle manipulado no se carga.
 
 Uso típico en un cuaderno:
 
-    from src.clase.puente_c import puente_c
+    from ds02_rul.puente_c import puente_c
     P = puente_c()
     raw, dev, test = P["raw"], P["dev"], P["test"]
     result = P["result"]              # mismas claves que devolvía el NB1 de B
@@ -40,33 +40,21 @@ if os.path.join(_ROOT, "src") not in sys.path:
 
 from ds02_rul.features import build_windows  # noqa: E402
 from ds02_rul.persistence import load_ensemble  # noqa: E402
-from src.clase.train_ensemble_adaptado import (  # noqa: E402
+from ds02_rul.data import (  # noqa: E402
     FIT_UNITS,
     HOLDOUT_UNITS,
     TEST_UNITS,
     construir_raw_adaptado,
 )
+# Re-export: la implementacion vive en mlflow_live (una sola). Los cuadernos
+# siguen haciendo `from ds02_rul.puente_c import clean_timing_value`.
+from ds02_rul.mlflow_live import clean_timing_value  # noqa: E402,F401
 
 BUNDLE = os.path.join(_ROOT, "models", "ensemble.joblib")
 WINDOW = 50
 STEP_TRAIN = 3
 STEP_TEST = 2
 
-
-def clean_timing_value(value: Any) -> float | None:
-    """Finite timing value, or None for NaN/inf/non-numeric.
-
-    Frozen-bundle timings are NaN by design (nothing was retrained); callers
-    MUST route them through here (or ``mlflow_live.clean_metric``) instead of
-    logging the raw NaN as a metric.
-    """
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None
-    import math
-
-    return number if math.isfinite(number) else None
 
 
 def _prep_del_bundle(ens) -> dict[str, Any]:

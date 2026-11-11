@@ -21,8 +21,8 @@ bin 0; the reduction and then the smoothing gives `[5125, 6094, 3135, 561]` and
 `-4.3621`, which is what `calibracion_banda.json` records. Only the second
 reproduces the frozen band at its committed 4 decimals.
 
-    python scripts/freeze_oof_instrument.py --write   # derive and write the npz
-    python scripts/freeze_oof_instrument.py --check   # verify it against the JSON
+    python scripts/auditoria/freeze_oof_instrument.py --write   # derive and write the npz
+    python scripts/auditoria/freeze_oof_instrument.py --check   # verify it against the JSON
 
 Exit codes: `0` the band reproduces; `2` usage; `3` input (joblib or npz absent);
 `4` the derived band disagrees with `calibracion_banda.json`.
@@ -38,8 +38,8 @@ import joblib
 import numpy as np
 import pandas as pd
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "scripts"))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(ROOT, "scripts", "auditoria"))
 
 import freeze_rules_evidence as G  # noqa: E402  (same band code the gate runs)
 

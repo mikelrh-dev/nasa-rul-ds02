@@ -21,20 +21,15 @@ if _ROOT not in sys.path:
 if os.path.join(_ROOT, "src") not in sys.path:
     sys.path.insert(0, os.path.join(_ROOT, "src"))
 
-from src.clase.dataset_clase import OP_COLS, SENSOR_COLS  # noqa: E402
+from ds02_rul.data import (  # noqa: E402
+    FIT_UNITS,
+    HOLDOUT_UNITS,
+    OP_COLS,
+    SENSOR_COLS,
+    TEST_UNITS,
+    imputar_ffill,
+)
 from ds02_rul.features import build_windows, fit_preprocessing  # noqa: E402
-
-FIT_UNITS = [2.0, 5.0, 10.0, 18.0, 20.0]
-HOLDOUT_UNITS = [16.0]
-TEST_UNITS = [11.0, 14.0, 15.0]
-
-
-def _imputar_con_medianas(df: pd.DataFrame, medianas: pd.Series) -> pd.DataFrame:
-    orden = df.sort_values(["unit", "cycle"]).reset_index(drop=True)
-    out = orden.copy()
-    out[SENSOR_COLS] = out.groupby("unit", sort=False)[SENSOR_COLS].ffill()
-    out[SENSOR_COLS] = out[SENSOR_COLS].fillna(medianas)
-    return out
 
 
 def ventanas_adaptadas(window: int = 50, step_train: int = 3,
@@ -46,8 +41,8 @@ def ventanas_adaptadas(window: int = 50, step_train: int = 3,
     fit_mask = train_con["unit"].isin(FIT_UNITS)
     medianas_fit = train_con.loc[fit_mask, SENSOR_COLS].median(numeric_only=True)
 
-    train_imp = _imputar_con_medianas(train_con, medianas_fit)
-    test_imp = _imputar_con_medianas(test_con, medianas_fit)
+    train_imp, _ = imputar_ffill(train_con, medianas_fit, SENSOR_COLS)
+    test_imp, _ = imputar_ffill(test_con, medianas_fit, SENSOR_COLS)
     assert int(train_imp[SENSOR_COLS].isna().sum().sum()) == 0
     assert int(test_imp[SENSOR_COLS].isna().sum().sum()) == 0
 

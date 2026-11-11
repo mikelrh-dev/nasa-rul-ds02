@@ -52,11 +52,15 @@ from ds02_rul.stacking import (  # noqa: E402
     fit_meta_learners,
     select_beta_grouped,
 )
-from src.clase.dataset_clase import OP_COLS, SENSOR_COLS, imputar_ffill  # noqa: E402
+from ds02_rul.data import (  # noqa: E402
+    FIT_UNITS,
+    HOLDOUT_UNITS,
+    OP_COLS,
+    SENSOR_COLS,
+    TEST_UNITS,
+    construir_raw_adaptado,
+)
 
-FIT_UNITS = [2.0, 5.0, 10.0, 18.0, 20.0]
-HOLDOUT_UNITS = [16.0]
-TEST_UNITS = [11.0, 14.0, 15.0]
 SEED = 42
 EPOCHS = 22
 EPOCHS_OOF = 15
@@ -64,50 +68,12 @@ EPOCHS_OOF = 15
 OUT_DIR = os.path.join(_ROOT, "models")
 
 
-def construir_raw_adaptado() -> dict:
-    """Parquet MAR-imputado -> dict raw alineado (mismo shape que `load_ds02`).
-
-    Re-imputa con medianas SOLO de fit-units (no las de dev-completo del
-    track de clase): es lo que mantiene el protocolo honesto.
-    """
-    train_con = pd.read_parquet(
-        os.path.join(_ROOT, "data", "processed", "train_con_nulos.parquet")
-    )
-    test_con = pd.read_parquet(
-        os.path.join(_ROOT, "data", "processed", "test_con_nulos.parquet")
-    )
-    fit_mask = train_con["unit"].isin(FIT_UNITS)
-    medianas_fit = train_con.loc[fit_mask, SENSOR_COLS].median(numeric_only=True)
-
-    train_imp, _ = imputar_ffill(train_con, medianas_fit, SENSOR_COLS)
-    test_imp, _ = imputar_ffill(test_con, medianas_fit, SENSOR_COLS)
-
-    def bloque(df: pd.DataFrame) -> dict:
-        """Convierte un parquet imputado al formato crudo adaptado de DS02."""
-        df = df.sort_values(["unit", "cycle"]).reset_index(drop=True)
-        return {
-            "A": df[["unit", "cycle"]].to_numpy(dtype=float),
-            "W": df[OP_COLS].to_numpy(dtype=np.float64),
-            "Xs": df[SENSOR_COLS].to_numpy(dtype=np.float64),
-            "y": df["RUL"].to_numpy(dtype=float),
-        }
-
-    tr, te = bloque(train_imp), bloque(test_imp)
-    return {
-        "A_train": tr["A"], "W_train": tr["W"], "Xs_train": tr["Xs"],
-        "y_train": tr["y"], "A_test": te["A"], "W_test": te["W"],
-        "Xs_test": te["Xs"], "y_test": te["y"],
-        "op_names": list(OP_COLS), "sensor_names": list(SENSOR_COLS),
-        "medianas_fit": medianas_fit,
-    }
-
-
 def evaluar_semilla(seed: int = SEED, epochs: int = EPOCHS, verbose: bool = False) -> dict:
     """Entrena el ensemble completo de una semilla y lo mide. No escribe nada.
 
-    Es la pieza que reutiliza `evaluar_c_multisemilla.py`: separar el cálculo de
-    la persistencia evita que una corrida de estabilidad sobrescriba el bundle
-    desplegado.
+    Es la pieza que reutiliza `scripts/operativo/evaluate_bundle_stability.py`: separar el
+    cálculo de la persistencia evita que una corrida de estabilidad sobrescriba
+    el bundle desplegado.
     """
     t00 = time.time()
     raw = construir_raw_adaptado()
@@ -180,46 +146,60 @@ def evaluar_semilla(seed: int = SEED, epochs: int = EPOCHS, verbose: bool = Fals
     }
 
 
-def entrenar(seed: int = SEED, epochs: int = EPOCHS, verbose: bool = True) -> dict:
-    """Entrena, escribe el bundle en `models/` y deja la comparativa en `resultados/`."""
+def entrenar(
+    seed: int = SEED,
+    epochs: int = EPOCHS,
+    verbose: bool = True,
+    out_dir: str = OUT_DIR,
+    write_results: bool = True,
+    write_manifest: bool = True,
+) -> dict:
+    """Entrena y persiste el bundle.
+
+    `out_dir` permite un reentrenamiento en sombra sin tocar `models/`.
+    `write_results=False` evita sobrescribir los CSV/PNG de evidencia.
+    `write_manifest=False` evita crear un segundo `ds02_manifest.json`.
+    """
     r = evaluar_semilla(seed=seed, epochs=epochs, verbose=verbose)
     comp, rows, macro = r["comp"], r["rows"], r["macro"]
 
-    comp.to_csv(os.path.join(_ROOT, "resultados", "comparativa_bundle_c.csv"), index=False)
-    r["per_unit"].to_csv(os.path.join(_ROOT, "resultados", "bundle_c_por_motor.csv"),
-                         index=False)
+    if write_results:
+        comp.to_csv(os.path.join(_ROOT, "resultados", "comparativa_bundle_c.csv"), index=False)
+        r["per_unit"].to_csv(os.path.join(_ROOT, "resultados", "bundle_c_por_motor.csv"),
+                             index=False)
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    test = r["test"]
-    ax.scatter(test["y"], r["p_ens"], s=4, alpha=0.35)
-    lims = [float(test["y"].min()), float(test["y"].max())]
-    ax.plot(lims, lims, "r--", lw=1)
-    ax.set_xlabel("RUL real")
-    ax.set_ylabel("RUL predicho (bundle C)")
-    ax.set_title(f"Real vs predicho — bundle C seed {seed} "
-                 f"(RMSE {rows[3]['RMSE']:.3f}, NASA {rows[3]['NASA_Score']:.1f})")
-    fig.tight_layout()
-    fig.savefig(os.path.join(_ROOT, "resultados", "real_vs_predicho_bundle_c.png"), dpi=120)
-    plt.close(fig)
+        fig, ax = plt.subplots(figsize=(8, 5))
+        test = r["test"]
+        ax.scatter(test["y"], r["p_ens"], s=4, alpha=0.35)
+        lims = [float(test["y"].min()), float(test["y"].max())]
+        ax.plot(lims, lims, "r--", lw=1)
+        ax.set_xlabel("RUL real")
+        ax.set_ylabel("RUL predicho (bundle C)")
+        ax.set_title(f"Real vs predicho — bundle C seed {seed} "
+                     f"(RMSE {rows[3]['RMSE']:.3f}, NASA {rows[3]['NASA_Score']:.1f})")
+        fig.tight_layout()
+        fig.savefig(os.path.join(_ROOT, "resultados", "real_vs_predicho_bundle_c.png"), dpi=120)
+        plt.close(fig)
 
-    selection = r["selection"]
-    manifest = build_manifest(
-        r["ensemble"],
-        metrics={"reference_row": rows[3], "beta": r["beta"],
-                 "macro_rmse": macro["macro_rmse"]},
-        seed=seed, dataset="DS02", code_version="clase-bundle-C",
-        dataset_variant="DS02-adaptada (MAR T30 + ffill causal, medianas de fit-units)",
-        unit_partition={"fit": [int(u) for u in FIT_UNITS],
-                        "holdout": [int(u) for u in HOLDOUT_UNITS],
-                        "test": [int(u) for u in TEST_UNITS]},
-        meta_protocol={"fitted_on": "holdout unit 16 (adaptada)",
-                       "rows": int(len(r["out"]["hold_idx"])),
-                       "beta": "grouped out-of-fold sobre adaptada"},
-        protocol={"preprocessing": "fit units only + ffill fit-units",
-                  "seed": seed, "window": 50, "stride": "parquet-clase"},
-    )
-    os.makedirs(OUT_DIR, exist_ok=True)
-    written = save_ensemble(r["ensemble"], OUT_DIR, manifest)
+    manifest = None
+    if write_manifest:
+        manifest = build_manifest(
+            r["ensemble"],
+            metrics={"reference_row": rows[3], "beta": r["beta"],
+                     "macro_rmse": macro["macro_rmse"]},
+            seed=seed, dataset="DS02", code_version="clase-bundle-C",
+            dataset_variant="DS02-adaptada (MAR T30 + ffill causal, medianas de fit-units)",
+            unit_partition={"fit": [int(u) for u in FIT_UNITS],
+                            "holdout": [int(u) for u in HOLDOUT_UNITS],
+                            "test": [int(u) for u in TEST_UNITS]},
+            meta_protocol={"fitted_on": "holdout unit 16 (adaptada)",
+                           "rows": int(len(r["out"]["hold_idx"])),
+                           "beta": "grouped out-of-fold sobre adaptada"},
+            protocol={"preprocessing": "fit units only + ffill fit-units",
+                      "seed": seed, "window": 50, "stride": "parquet-clase"},
+        )
+    os.makedirs(out_dir, exist_ok=True)
+    written = save_ensemble(r["ensemble"], out_dir, manifest)
 
     rmse_c, nasa_c = float(rows[3]["RMSE"]), float(rows[3]["NASA_Score"])
     if verbose:

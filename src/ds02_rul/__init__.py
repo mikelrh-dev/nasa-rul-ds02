@@ -19,7 +19,13 @@ empirical_coverage      realised coverage of a band
 
 from .conformal import apply_conformal, empirical_coverage, fit_conformal
 from .ensemble import PARADIGM, HybridStackingEnsemble
-from .metrics import calculate_nasa_score, evaluate_predictions, macro_rmse
+from .metrics import (
+    aggregate_seed_metrics,
+    calculate_nasa_score,
+    evaluate_predictions,
+    macro_rmse,
+    regression_metrics,
+)
 from .pooling import LastStepPooling
 from .residualizer import SensorResidualizer
 from .smoothing import causal_ema_by_unit
@@ -29,11 +35,13 @@ __all__ = [
     "HybridStackingEnsemble",
     "LastStepPooling",
     "SensorResidualizer",
+    "aggregate_seed_metrics",
     "apply_conformal",
     "calculate_nasa_score",
     "causal_ema_by_unit",
     "empirical_coverage",
     "evaluate_predictions",
+    "regression_metrics",
     "fit_conformal",
     "macro_rmse",
 ]

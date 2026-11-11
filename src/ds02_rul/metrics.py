@@ -18,6 +18,16 @@ def calculate_nasa_score(y_true, y_pred) -> float:
     return float(np.sum(score))
 
 
+def regression_metrics(y_true, y_pred) -> dict:
+    """RMSE / MAE / R2 / NASA sin redondear, para agregar entre semillas."""
+    return {
+        "RMSE": float(np.sqrt(mean_squared_error(y_true, y_pred))),
+        "MAE": float(mean_absolute_error(y_true, y_pred)),
+        "R2": float(r2_score(y_true, y_pred)),
+        "NASA_Score": calculate_nasa_score(y_true, y_pred),
+    }
+
+
 def macro_rmse(y_true, y_pred, units) -> dict:
     """Mean of the per-engine RMSEs, each engine weighing 1/n regardless of size.
 
@@ -45,10 +55,36 @@ def macro_rmse(y_true, y_pred, units) -> dict:
 
 def evaluate_predictions(y_true, y_pred, model_name: str = "Modelo") -> dict:
     """Return RMSE / MAE / R2 / NASA as a flat dict, rounded for display."""
+    raw = regression_metrics(y_true, y_pred)
     return {
         "Modelo": model_name,
-        "RMSE": round(float(np.sqrt(mean_squared_error(y_true, y_pred))), 3),
-        "MAE": round(float(mean_absolute_error(y_true, y_pred)), 3),
-        "R2": round(float(r2_score(y_true, y_pred)), 4),
-        "NASA_Score": round(calculate_nasa_score(y_true, y_pred), 1),
+        "RMSE": round(raw["RMSE"], 3),
+        "MAE": round(raw["MAE"], 3),
+        "R2": round(raw["R2"], 4),
+        "NASA_Score": round(raw["NASA_Score"], 1),
     }
+
+
+def aggregate_seed_metrics(
+    rows: list[dict], metrics=("RMSE", "MAE", "R2", "NASA_Score")
+) -> dict:
+    """Media ± desviación muestral de las métricas entre semillas.
+
+    `rows` son dicts con `seed` y las claves de `metrics`. Es la única
+    agregación multisemilla: `scripts/operativo/evaluate_bundle_stability.py` la reutiliza.
+    """
+    if not rows:
+        raise ValueError("se necesita al menos una fila para agregar")
+    out = {
+        "n_semillas": len(rows),
+        "seeds": [int(row["seed"]) for row in rows],
+    }
+    for key in metrics:
+        values = np.asarray([row[key] for row in rows], dtype=float)
+        ddof = 1 if len(rows) > 1 else 0
+        prefix = {"RMSE": "rmse", "MAE": "mae", "R2": "r2", "NASA_Score": "nasa"}.get(
+            key, key.lower()
+        )
+        out[f"{prefix}_media"] = float(values.mean())
+        out[f"{prefix}_std"] = float(values.std(ddof=ddof))
+    return out

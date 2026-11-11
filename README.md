@@ -3,7 +3,7 @@
 > **Español** | [English](README.en.md)
 
 > **Entrega de clase (Reto 1 SAA + PIA + MIA):** el track académico vive en
-> `src/clase/` (código), `notebooks/01–06` (relato), `data/processed/`
+> `src/clase/` (código), `notebooks/01–07` (relato), `data/processed/`
 > (dataset con nulos MAR + `fase_vuelo`) y `resultados/` (métricas y figuras).
 > Punto de entrada: [`src/clase/README.md`](src/clase/README.md) (6 apartados),
 > app de producción: `streamlit run app/dashboard_ds02.py` (bundle C + SHAP); el
@@ -186,8 +186,8 @@ El híbrido de clase **es** el modelo desplegado: mismo `run_seed`, mismo contra
 El tracking vive en `mlruns/` (file store de texto, sin servidor ni SQLite) y se regenera desde los CSV medidos:
 
 ```bash
-python scripts/backfill_mlflow.py --write   # 17 runs históricos; idempotente por run_key
-python scripts/backfill_mlflow.py --check   # store + export, 0 artefactos
+python scripts/operativo/backfill_mlflow.py --write   # 17 runs históricos; idempotente por run_key
+python scripts/operativo/backfill_mlflow.py --check   # store + export, 0 artefactos
 MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
 
@@ -258,13 +258,13 @@ El grid 4×3 completo (tres modelos por variante) está en [`resultados/ablacion
 | C-media (NB05 impresa, OOF) — histórico | 4.330+-0.053 | 2343.2+-24.1 | 42, 7, 123, no regenerable |
 
 La semilla 42 es la del bundle desplegado (`models/ds02_manifest.json`); 7 y 123 se
-reentrenan con el mismo protocolo en `src/clase/evaluar_c_multisemilla.py`. El ± es
+reentrenan con el mismo protocolo en `scripts/operativo/evaluate_bundle_stability.py`. El ± es
 la cota de ruido con la que se leen las diferencias: dos medias separadas menos que
 ese ± son empate.
 
 **Evidencia:** `resultados/comparativa_c_multisemilla.csv` (la tabla de las tres semillas),
 `resultados/bundle_c_multiseed.csv`, `resultados/comparativa_bundle_c.csv`,
-`src/clase/evaluar_c_multisemilla.py`, `notebooks/06_evaluacion_produccion_comparativa.ipynb`.
+`scripts/operativo/evaluate_bundle_stability.py`, `notebooks/06_evaluacion_produccion_comparativa.ipynb`.
 
 *Nota sobre casillas vacías: NASA solo se calcula en grano ventana (pipeline
 `evaluate_predictions`); en grano fila la comparativa oficial es RMSE/MAE/R².*
@@ -372,7 +372,8 @@ python -m pytest tests/ -q
 python -m src.clase.train_clasicos
 python -m src.clase.train_mlp
 python -m src.clase.shap_clase
-python scripts/backfill_mlflow.py --check
+python scripts/operativo/evaluate_bundle_stability.py
+python scripts/operativo/backfill_mlflow.py --check
 MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
 
@@ -393,8 +394,10 @@ models/mejor_modelo.joblib  alias del mejor clasico (copia de mejor_modelo_clase
 models/                 bundle desplegado (C): ensemble.joblib, bilstm_ds02.keras,
                         scaler.joblib, ds02_manifest.json
 archive/                punto de restauración del bundle B (4 artefactos)
-src/clase/            track académico (dataset, pipeline, 5 modelos, MLP, SHAP, puente_c, multiseed)
-notebooks/              01_eda ... 06_evaluacion (con outputs)
+src/clase/            track académico (dataset, pipeline, 5 modelos, MLP, SHAP)
+src/ds02_rul/         bundle C: bundle_c.py, puente_c.py, ensemble, stacking, conformal, ...
+scripts/              evaluate_bundle_stability.py, build_ui_cache.py, backfill_mlflow.py
+notebooks/              01_eda ... 07_shap_c (con outputs)
 tests/                  tests de clase + tests de app
 data/processed/         parquet (ignorado en git, regenerable)
 resultados/             gráficas y CSVs (ignorado en git, regenerable)

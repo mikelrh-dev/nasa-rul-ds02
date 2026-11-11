@@ -76,108 +76,46 @@ __all__ = ["_tab_motor"]
 
 
 @st.fragment
-def _tab_motor(snapshot=None, unit=None, etiqueta_unidad=None, registro=None,
-               curves=None, telemetry=None, order=None, registros=None,
-               unidades_vistas=None, threshold_apto=None, threshold_aog=None,
-               umbrales=None, aplicar_reglas=None, curve=None, per_unit=None,
-               unit_metrics=None, alarm_cycle=None, truth_cycle=None,
-               current=None, wu=None, coverage=None, critical_start=None,
-               max_life=None, chart_layout=None, style_axes=None,
-               shap_panel=None, fig_deriva=None, st_badge_estado=None) -> None:
-    if (snapshot is None or unit is None or etiqueta_unidad is None
-            or registro is None or curves is None or telemetry is None
-            or order is None or registros is None or unidades_vistas is None
-            or threshold_apto is None or threshold_aog is None
-            or umbrales is None or aplicar_reglas is None or curve is None
-            or per_unit is None or unit_metrics is None
-            or alarm_cycle is None or truth_cycle is None
-            or current is None or wu is None or coverage is None
-            or critical_start is None or max_life is None
-            or chart_layout is None or style_axes is None
-            or shap_panel is None or fig_deriva is None
-            or st_badge_estado is None):
-        # Fallback import (PR4): dashboard_ds02 owns the frame/snapshot/curve
-        # globals, the per-unit metrics (coverage/curve/alarm_cycle/...),
-        # the threshold/rule state and the chart/SHAP helpers. Lazy, inside
-        # the fragment, to avoid a circular top-level import: the dashboard
-        # imports this module, so this module must not import the dashboard
-        # at import time. `unit_metrics`/`alarm_cycle`/`truth_cycle`/
-        # `critical_start` are deliberately also filled from the dashboard:
-        # None is their legitimate value there too (e.g. a unit without
-        # metrics), so filling is a no-op in that state, not a behavior
-        # change.
-        import sys as _sys
-        _dash = _sys.modules.get("dashboard_ds02") or _sys.modules.get("app.dashboard_ds02")
-        _main = _sys.modules.get("__main__")
-        if _dash is None and _main is not None and hasattr(_main, "snapshot"):
-            _dash = _main
-        if _dash is None:
-            try:
-                import dashboard_ds02 as _dash  # type: ignore
-            except ImportError:  # pragma: no cover - import-style fallback
-                from app import dashboard_ds02 as _dash  # type: ignore
-        if snapshot is None:
-            snapshot = _dash.snapshot
-        if unit is None:
-            unit = _dash.unit
-        if etiqueta_unidad is None:
-            etiqueta_unidad = _dash._etiqueta_unidad
-        if registro is None:
-            registro = _dash._registro
-        if curves is None:
-            curves = _dash.curves
-        if telemetry is None:
-            telemetry = _dash.telemetry
-        if order is None:
-            order = _dash.order
-        if registros is None:
-            registros = _dash.registros
-        if unidades_vistas is None:
-            unidades_vistas = _dash.unidades_vistas
-        if threshold_apto is None:
-            threshold_apto = _dash.threshold_apto
-        if threshold_aog is None:
-            threshold_aog = _dash.threshold_aog
-        if umbrales is None:
-            umbrales = _dash.umbrales
-        if aplicar_reglas is None:
-            aplicar_reglas = _dash.aplicar_reglas
-        if curve is None:
-            curve = _dash.curve
-        if per_unit is None:
-            per_unit = _dash.per_unit
-        if unit_metrics is None:
-            unit_metrics = _dash.unit_metrics
-        if alarm_cycle is None:
-            alarm_cycle = _dash.alarm_cycle
-        if truth_cycle is None:
-            truth_cycle = _dash.truth_cycle
-        if current is None:
-            current = _dash.current
-        if wu is None:
-            wu = _dash._wu
-        if coverage is None:
-            coverage = _dash.coverage
-        if critical_start is None:
-            critical_start = _dash.critical_start
-        if max_life is None:
-            max_life = _dash.max_life
-        if chart_layout is None:
-            chart_layout = _dash.chart_layout
-        if style_axes is None:
-            style_axes = _dash.style_axes
-        if shap_panel is None:
-            shap_panel = _dash.shap_panel
-        if fig_deriva is None:
-            fig_deriva = _dash.fig_deriva
-        if st_badge_estado is None:
-            st_badge_estado = _dash.st_badge_estado
+def _tab_motor(ctx=None) -> None:
+    """Cuerpo de la pestaña Motor; recibe el contexto de la app."""
+    if ctx is None:
+        try:
+            from context import ctx_from_dashboard
+        except ImportError:
+            from app.context import ctx_from_dashboard
+        ctx = ctx_from_dashboard()
+    snapshot = ctx.snapshot
+    unit = ctx.unit
+    etiqueta_unidad = ctx.etiqueta_unidad
+    registro = ctx.registro
+    curves = ctx.curves
+    telemetry = ctx.telemetry
+    order = ctx.order
+    registros = ctx.registros
+    unidades_vistas = ctx.unidades_vistas
+    threshold_apto = ctx.threshold_apto
+    threshold_aog = ctx.threshold_aog
+    umbrales = ctx.umbrales
+    aplicar_reglas = ctx.aplicar_reglas
+    curve = ctx.curve
+    per_unit = ctx.per_unit
+    unit_metrics = ctx.unit_metrics
+    alarm_cycle = ctx.alarm_cycle
+    truth_cycle = ctx.truth_cycle
+    current = ctx.current
+    wu = ctx.wu
+    coverage = ctx.coverage
+    critical_start = ctx.critical_start
+    max_life = ctx.max_life
+    chart_layout = ctx.chart_layout
+    style_axes = ctx.style_axes
+    shap_panel = ctx.shap_panel
+    fig_deriva = ctx.fig_deriva
+    st_badge_estado = ctx.st_badge_estado
     _etiqueta_unidad = etiqueta_unidad
     _registro = registro
     _wu = wu
-    # ------------------------------------------------------------- el gemelo
-    # Una sala, una respuesta: ¿por qué está así este motor? Su verdad estaba
-    # repartida en cuatro pestañas; aquí está junta.
+
     _fila_g = snapshot[snapshot["unit"] == unit].iloc[0]
     _etiqueta_g = _etiqueta_unidad(float(unit))
     _pred_g = float(_fila_g["pred"]) if pd.notna(_fila_g["pred"]) else 0.0

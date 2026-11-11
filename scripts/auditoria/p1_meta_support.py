@@ -10,7 +10,7 @@ the base models (they are the fit units). That is the right instrument for a
 and the candidate receive the same base predictions - but it is not a measure of
 how the base models generalise.
 
-Run:  python scripts/p1_meta_support.py [--rebuild-cache]
+Run:  python scripts/auditoria/p1_meta_support.py [--rebuild-cache]
 """
 from __future__ import annotations
 
@@ -70,7 +70,7 @@ def load_cache(rebuild: bool, source: str = "insample"):
         print(f"building {path} (one BiLSTM pass over dev) ...")
         build_cache()
     if not os.path.exists(path):
-        raise FileNotFoundError(f"{path} missing; run scripts/p1_oof_cache.py first")
+        raise FileNotFoundError(f"{path} missing; run scripts/auditoria/p1_oof_cache.py first")
     d = np.load(path)
     return {k: d[k] for k in ("y", "units", "cycles", "p_lstm", "p_lgb")}
 

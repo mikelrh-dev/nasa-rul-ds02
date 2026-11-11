@@ -24,8 +24,8 @@ Local y no versionado: `.venv/` está en `.gitignore`, y recrear el venv borra e
 `.pth` → vuelve a ejecutar el script.
 
 Uso:
-    .venv/Scripts/python scripts/anclar_raiz_pylance.py   # Windows
-    .venv/bin/python     scripts/anclar_raiz_pylance.py   # POSIX
+    .venv/Scripts/python scripts/operativo/anclar_raiz_pylance.py   # Windows
+    .venv/bin/python     scripts/operativo/anclar_raiz_pylance.py   # POSIX
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ def main() -> int:
     if sys.prefix == sys.base_prefix:
         print("ERROR: corre esto con el python del venv del proyecto, no con")
         print("       el intérprete global:")
-        print("       .venv/Scripts/python scripts/anclar_raiz_pylance.py")
+        print("       .venv/Scripts/python scripts/operativo/anclar_raiz_pylance.py")
         return 2
 
     site = sysconfig.get_paths()["purelib"]

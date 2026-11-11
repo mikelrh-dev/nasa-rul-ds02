@@ -1,19 +1,39 @@
-# scripts/ — qué es vigente y qué es legado
+# scripts/ — cuatro zonas
 
-Vigente DS02 (bundle C, clase-track):
-- `build_ui_cache.py` — construye `app/cache/` desde `models/` (fuente para la app sin TF).
-- `freeze_rules_evidence.py` — gate de la capa de reglas (RULES-06, ADR-009). Por
-  defecto verifica la banda publicada contra el instrumento versionado
-  (`src/mia/instrumento_oof.npz`); `--cache PATH` re-deriva desde el caché OOF
-  (camino de desarrollo, ADR-012).
-- `freeze_oof_instrument.py` — deriva, escribe y comprueba ese instrumento desde
-  `nb2_selection.joblib` (`--write` / `--check`).
-- `verify_gate.py` — gate full `pytest tests/` (260/16/7 baseline A6, ver verify-report).
-- `evaluate_model_quality.py`, `p0/p1_*` — sondas de medición (no reentrenan bundle).
-- `anclar_raiz_pylance.py` — helper editor (no afecta a runtime).
-- `predict_ds02.py` — CLI DS02.
+Regla para decidir dónde va un script nuevo:
 
-Legado FD001 (no tocar para DS02, solo referencia):
-- `v3_*.py`, `predict.py`, `repackage_artifact.py`.
+| Lo usa… | Dónde va |
+|---|---|
+| un notebook o `src/` | no va aquí: `src/ds02_rul/` o `src/clase/` |
+| la app o el uso diario | `operativo/` |
+| para generar notebooks o caché | `build/` |
+| para medir o congelar evidencia | `auditoria/` |
+| nadie (etapa cerrada) | `legacy/` |
 
-Generación vieja de notebooks de clase retirada el 2026-11-09 a un backup externo (ver `archive/README.md`).
+## operativo/ — lo que se ejecuta para operar
+
+- `verify_gate.py` — gate completo: lanza `pytest tests/` y resume el resultado.
+- `backfill_mlflow.py` — escribe/verifica/exporta los 17 runs curados de MLflow.
+- `evaluate_bundle_stability.py` — reentrena el bundle C con varias semillas y agrega RMSE/NASA.
+- `predict_ds02.py` — CLI de inferencia DS02 (una ventana, un motor o lista de unidades).
+- `anclar_raiz_pylance.py` — helper de editor (Pylance); no afecta al runtime.
+
+## build/ — lo que genera artefactos derivados
+
+- `build_ui_cache.py` — construye `app/cache/` desde `models/` para la app sin TensorFlow.
+- `build_07_shap_c_notebook.py` — regenera el notebook 07 cuando cambia su sección SHAP.
+
+## auditoria/ — medir y congelar evidencia
+
+- `freeze_rules_evidence.py` — gate de la capa de reglas (RULES-06, ADR-009); deriva o verifica la banda.
+- `freeze_oof_instrument.py` — deriva, escribe y comprueba `src/mia/instrumento_oof.npz`.
+- `make_clase_checksums.py` — recalcula los checksums del track de clase.
+- `p0_density_control.py` — sonda de densidad del preprocesado (P0).
+- `p1_oof_cache.py` — construye el caché OOF que consume el gate de reglas.
+- `p1_meta_support.py` — mide el soporte del meta-learner por motor (P1).
+- `ablate_meta_cycle.py` — ablación del contador de ciclos en el meta.
+- `evaluate_model_quality.py` — informe de calidad del bundle (RMSE/NASA por tramo y motor).
+
+## legacy/ — etapas cerradas
+
+No se ejecuta. Cada fichero y su sustituto están en [`legacy/README.md`](legacy/README.md).

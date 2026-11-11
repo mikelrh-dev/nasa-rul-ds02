@@ -117,11 +117,6 @@ def eliminar(registro: dict, engine_id: str) -> dict:
     return {k: v for k, v in registro.items() if k != engine_id}
 
 
-def obtener(registro: dict, engine_id: str) -> dict | None:
-    """Busca un gemelo por su identificador normalizado."""
-    return registro.get(normalizar_id(engine_id))
-
-
 def vista_resultado(twin: dict) -> dict:
     """Resultado compatible con `live_work_order` a partir de la serie guardada.
 

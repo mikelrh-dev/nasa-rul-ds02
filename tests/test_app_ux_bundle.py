@@ -101,7 +101,11 @@ def test_sandbox_helper_includes_sensor():
 
 
 def test_n8n_panel_button_via_helper():
-    src = open(os.path.join(APP, "dashboard_ds02.py"), encoding="utf-8").read()
+    # El botón vive en `_tab_casos.py` y la sonda en `_sidebar.py`.
+    rutas = [os.path.join(APP, "dashboard_ds02.py"),
+             os.path.join(APP, "ui_modulos", "_sidebar.py"),
+             os.path.join(APP, "ui_modulos", "_tab_casos.py")]
+    src = "".join(open(p, encoding="utf-8").read() for p in rutas)
     assert src.count("enviar_decision(") == 1
     assert "DH.probar_n8n()" in src
 
@@ -122,3 +126,29 @@ def test_app_renders_n8n_panel_without_env(monkeypatch):
     texts = " ".join(getattr(e, "value", "") or "" for e in app.caption) \
         + " " + " ".join(getattr(e, "value", "") or "" for e in app.markdown)
     assert "n8n" in texts.lower()
+
+
+def test_n8n_caption_se_refresca_con_el_mismo_clic(monkeypatch):
+    """Regresión: el caption «Último envío» refleja el envío del propio clic.
+
+    El caption se emite antes que el botón en la misma pasada; sin un rerun
+    tras guardar `n8n_ultimo`, quedaba descolgado hasta la pasada siguiente.
+    """
+    from streamlit.testing.v1 import AppTest
+
+    monkeypatch.delenv("N8N_WEBHOOK_URL", raising=False)
+    dash = os.path.join(APP, "dashboard_ds02.py")
+    app = AppTest.from_file(dash, default_timeout=180).run()
+    assert not app.exception, app.exception
+
+    def _caption() -> str:
+        vals = [getattr(e, "value", "") or "" for e in app.caption]
+        vals = [v for v in vals if "Último envío" in v]
+        return vals[0] if vals else ""
+
+    assert "ninguno" in _caption()
+    boton = next((b for b in app.button if b.key == "n8n_prueba"), None)
+    assert boton is not None, "no existe el botón n8n_prueba"
+    boton.click().run()
+    assert "ninguno" not in _caption()
+    assert "APTO (test)" in _caption()

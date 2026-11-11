@@ -2,7 +2,11 @@
 
 Pipeline congelado (`src/ds02_rul/`, `models/`, `app/cache/`) SOLO lectura.
 Este módulo construye el dataset tabular de clase a nivel de fila
-downsampleada (`STRIDE=100`, como `load_ds02`):
+downsampleada (`STRIDE=100`, como `load_ds02`).
+
+**Uso real:** solo `elegibles_mar` lo importa un notebook (NB01). El resto de
+funciones son el material didáctico del SAA 5 y las cubren los tests; el modelo
+C no las usa. No borrar: el README de `src/clase/` las documenta como pasos.
 
     unit, cycle, alt, Mach, TRA, T2, 14 sensores, RUL + fase_vuelo
 
@@ -24,14 +28,27 @@ conocido del motor" es lo que un ingeniero haría en pista.
 
 from __future__ import annotations
 
+import os
+import sys
+
 import numpy as np
 import pandas as pd
 
-OP_COLS = ["alt", "Mach", "TRA", "T2"]
-SENSOR_COLS = [
-    "T24", "T30", "T48", "T50", "P15", "P2", "P21", "P24",
-    "Ps30", "P40", "P50", "Nf", "Nc", "Wf",
-]
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if os.path.join(_ROOT, "src") not in sys.path:
+    sys.path.insert(0, os.path.join(_ROOT, "src"))
+
+# Reexportados desde ds02_rul.data: el dueño del esquema y de la imputación es
+# el contrato compartido, no el track de clase.
+from ds02_rul.data import (  # noqa: E402
+    OP_COLS,
+    SENSOR_COLS,
+    TEST_UNITS,
+    TRAIN_UNITS,
+    imputar_ffill,
+    medianas_train,
+)
+
 TASA_DEFECTO = 0.03  # legado MCAR; el flujo oficial usa MAR_T30_* (abajo)
 SEED_DEFECTO = 42
 MAR_SENSOR = "T30"
@@ -39,9 +56,6 @@ MAR_ALT_MIN = 27_000.0
 MAR_MACH_MIN = 0.68
 MAR_TASA_ELEGIBLE = 0.10  # ~10% de elegibles ~= ~2.1% global en T30
 MAR_SEED = 7
-
-TRAIN_UNITS = [2.0, 5.0, 10.0, 18.0, 20.0, 16.0]  # dev completo (fit + holdout 16)
-TEST_UNITS = [11.0, 14.0, 15.0]  # test congelado, se evalúa una sola vez
 
 
 def build_clase_frame(raw: dict) -> pd.DataFrame:
@@ -146,32 +160,6 @@ def inyectar_nulos_mar(
         **rachas,
     }
     return out, audit
-
-
-def medianas_train(df_train: pd.DataFrame, columnas: list[str] | None = None) -> pd.Series:
-    """Medianas calculadas SOLO en train (sin fuga)."""
-    cols = list(columnas) if columnas else list(SENSOR_COLS)
-    return df_train[cols].median(numeric_only=True)
-
-
-def imputar_ffill(
-    df: pd.DataFrame,
-    medianas: pd.Series | None = None,
-    columnas: list[str] | None = None,
-) -> tuple[pd.DataFrame, pd.Series]:
-    """ffill causal por unidad en orden temporal + mediana de train.
-
-    Si `medianas` es None se calculan sobre el propio df (SOLO válido para
-    train; en test DEBEN pasarse las de train).
-    """
-    cols = list(columnas) if columnas else list(SENSOR_COLS)
-    orden = df.sort_values(["unit", "cycle"]).reset_index(drop=True)
-    if medianas is None:
-        medianas = medianas_train(orden, cols)
-    out = orden.copy()
-    out[cols] = out.groupby("unit", sort=False)[cols].ffill()
-    out[cols] = out[cols].fillna(medianas)
-    return out, medianas
 
 
 def asignar_fase_vuelo(df: pd.DataFrame) -> pd.DataFrame:

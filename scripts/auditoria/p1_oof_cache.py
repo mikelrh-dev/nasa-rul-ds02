@@ -8,7 +8,7 @@ because the trees have memorised the scored engines.
 
 Writes `_p1_oof_cache.npz` (units, cycles, y, pred_lstm, pred_lgb, folds).
 
-Run:  python scripts/p1_oof_cache.py
+Run:  python scripts/auditoria/p1_oof_cache.py
 """
 from __future__ import annotations
 

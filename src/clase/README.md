@@ -158,10 +158,14 @@ a ~1e-6. Es el SHAP que se defiende; el de XGB de arriba describe el track de cl
 
 ## Estructura del track
 
+> El bundle C y su entrenador **ya no viven aquí**: están en `src/ds02_rul/bundle_c.py`.
+> La estabilidad multisemilla está en `scripts/operativo/evaluate_bundle_stability.py`.
+
 ```text
 src/clase/            dataset_clase.py, pipeline_clase.py, train_clasicos.py, train_mlp.py, README.md
-                        shap_clase.py, tabla_final.py, ventanas_adaptadas.py, train_ensemble_adaptado.py,
-                        evaluar_c_multisemilla.py, puente_c.py
+                        shap_clase.py, tabla_final.py, ventanas_adaptadas.py, train_lgbm_adaptada.py
+src/ds02_rul/          bundle_c.py (entrenador del bundle C), puente_c.py, data.py, metrics.py, ...
+scripts/               evaluate_bundle_stability.py
 data/raw|processed/     HDF5 fuera de git; train_con_nulos + imputados + X/y + auditoria_nulos.json
 notebooks/              01_eda_y_contexto.ipynb, 02_modelos_clasicos_y_mlp.ipynb, 03_feature_engineering_secuencial.ipynb,
                         04_arquitectura_bilstm_oof.ipynb, 05_meta_ensemble_y_conformal.ipynb,
@@ -187,8 +191,8 @@ app/dashboard_ds02.py   app de producción: evalúa el modelo desplegado (bundle
 python -m src.clase.train_clasicos     # 5 modelos + comparativa.csv + joblib (~2 min)
 python -m src.clase.train_mlp           # MLP base+3 + importancia (~8 min con validación OOF)
 python -m src.clase.shap_clase          # SHAP TreeExplainer + PNG/CSV
-python -m src.clase.evaluar_c_multisemilla  # seeds 42/7/123 -> resultados/comparativa_c_multisemilla.csv
-python scripts/backfill_mlflow.py --check    # 17 runs + export; sin artefactos
+python scripts/operativo/evaluate_bundle_stability.py  # seeds 42/7/123 -> resultados/comparativa_c_multisemilla.csv
+python scripts/operativo/backfill_mlflow.py --check    # 17 runs + export; sin artefactos
 streamlit run app/dashboard_ds02.py        # app de producción (bundle C + SHAP)
 python -m pytest tests/test_clase_*.py tests/test_live_eval.py -q
 ```

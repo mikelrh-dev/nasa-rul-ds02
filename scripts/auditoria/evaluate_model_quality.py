@@ -18,7 +18,7 @@ Aviso que se imprime y que hay que leer: las ventanas se solapan y salen de
 medida honesta de cuánto puede moverse cada cifra.
 
 Uso:
-    .venv/Scripts/python.exe scripts/evaluate_model_quality.py
+    .venv/Scripts/python.exe scripts/auditoria/evaluate_model_quality.py
 """
 
 from __future__ import annotations

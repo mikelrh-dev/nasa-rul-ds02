@@ -23,7 +23,7 @@ def _fila(seed: int, rmse: float, nasa: float) -> dict:
 
 
 def test_agregar_semillas_media_y_desviacion():
-    from src.clase.evaluar_c_multisemilla import agregar_semillas
+    from scripts.operativo.evaluate_bundle_stability import agregar_semillas
 
     r = agregar_semillas([_fila(42, 4.338, 2336.2),
                           _fila(7, 4.338, 2350.9),
@@ -38,7 +38,7 @@ def test_agregar_semillas_media_y_desviacion():
 
 
 def test_agregar_semillas_exige_al_menos_una_fila():
-    from src.clase.evaluar_c_multisemilla import agregar_semillas
+    from scripts.operativo.evaluate_bundle_stability import agregar_semillas
 
     with pytest.raises(ValueError):
         agregar_semillas([])
@@ -63,7 +63,7 @@ def test_manifest_instalado_cumple_el_contrato_ds02():
 def test_csv_multisemilla_coincide_con_el_manifest_si_existe():
     """Si el CSV está generado, su fila 42 tiene que ser la del manifiesto."""
     if not os.path.exists(CSV):
-        pytest.skip("CSV multisemilla no generado: ejecuta python -m src.clase.evaluar_c_multisemilla")
+        pytest.skip("CSV multisemilla no generado: ejecuta python scripts/operativo/evaluate_bundle_stability.py")
 
     import pandas as pd
 

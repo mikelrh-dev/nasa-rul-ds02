@@ -45,78 +45,34 @@ __all__ = ["_tab_auditoria"]
 
 
 @st.fragment
-def _tab_auditoria(per_unit=None, provenance=None, chart_layout=None,
-                   style_axes=None, windows=None, units=None, curves=None,
-                   threshold_aog=None, global_metrics=None, critical_mae=None,
-                   manifest=None, cycle=None, alarms=None,
-                   unidades_vistas=None, threshold_apto=None,
-                   aplicar_reglas=None, sha256_cached=None,
-                   informe_pdf_cached=None) -> None:
-    if (per_unit is None or provenance is None or chart_layout is None
-            or style_axes is None or windows is None or units is None
-            or curves is None or threshold_aog is None
-            or global_metrics is None or critical_mae is None
-            or manifest is None or cycle is None or alarms is None
-            or unidades_vistas is None or threshold_apto is None
-            or aplicar_reglas is None or sha256_cached is None
-            or informe_pdf_cached is None):
-        # Fallback import (PR5): dashboard_ds02 owns the frame/cache globals,
-        # the per-unit metrics (per_unit/alarms/curves/...), the threshold/
-        # rule state and the chart/PDF helpers. Lazy, inside the fragment,
-        # to avoid a circular top-level import: the dashboard imports this
-        # module, so this module must not import the dashboard at import
-        # time.
-        import sys as _sys
-        _dash = _sys.modules.get("dashboard_ds02") or _sys.modules.get("app.dashboard_ds02")
-        _main = _sys.modules.get("__main__")
-        if _dash is None and _main is not None and hasattr(_main, "per_unit"):
-            _dash = _main
-        if _dash is None:
-            try:
-                import dashboard_ds02 as _dash  # type: ignore
-            except ImportError:  # pragma: no cover - import-style fallback
-                from app import dashboard_ds02 as _dash  # type: ignore
-        if per_unit is None:
-            per_unit = _dash.per_unit
-        if provenance is None:
-            provenance = _dash.provenance
-        if chart_layout is None:
-            chart_layout = _dash.chart_layout
-        if style_axes is None:
-            style_axes = _dash.style_axes
-        if windows is None:
-            windows = _dash.windows
-        if units is None:
-            units = _dash.units
-        if curves is None:
-            curves = _dash.curves
-        if threshold_aog is None:
-            threshold_aog = _dash.threshold_aog
-        if global_metrics is None:
-            global_metrics = _dash.global_metrics
-        if critical_mae is None:
-            critical_mae = _dash.critical_mae
-        if manifest is None:
-            manifest = _dash.manifest
-        if cycle is None:
-            cycle = _dash.cycle
-        if alarms is None:
-            alarms = _dash.alarms
-        if unidades_vistas is None:
-            unidades_vistas = _dash.unidades_vistas
-        if threshold_apto is None:
-            threshold_apto = _dash.threshold_apto
-        if aplicar_reglas is None:
-            aplicar_reglas = _dash.aplicar_reglas
-        if sha256_cached is None:
-            sha256_cached = _dash._sha256_cached
-        if informe_pdf_cached is None:
-            informe_pdf_cached = _dash._informe_pdf_cached
-    # Aliases preserving the original body identifiers: the inline fragment
-    # used `_sha256_cached` and `_informe_pdf_cached` unqualified.
+def _tab_auditoria(ctx=None) -> None:
+    """Cuerpo de la pestaña Auditoría; recibe el contexto de la app."""
+    if ctx is None:
+        try:
+            from context import ctx_from_dashboard
+        except ImportError:
+            from app.context import ctx_from_dashboard
+        ctx = ctx_from_dashboard()
+    per_unit = ctx.per_unit
+    provenance = ctx.provenance
+    chart_layout = ctx.chart_layout
+    style_axes = ctx.style_axes
+    windows = ctx.windows
+    units = ctx.units
+    curves = ctx.curves
+    threshold_aog = ctx.threshold_aog
+    global_metrics = ctx.global_metrics
+    critical_mae = ctx.critical_mae
+    manifest = ctx.manifest
+    cycle = ctx.cycle
+    alarms = ctx.alarms
+    unidades_vistas = ctx.unidades_vistas
+    threshold_apto = ctx.threshold_apto
+    aplicar_reglas = ctx.aplicar_reglas
+    sha256_cached = ctx.sha256_cached
+    informe_pdf_cached = ctx.informe_pdf_cached
     _sha256_cached = sha256_cached
     _informe_pdf_cached = informe_pdf_cached
-    # ------------------------------------------------------------------- tab 4
 
     st.subheader(
         "El motor 14 concentra el error y también la evidencia",
@@ -426,7 +382,7 @@ def _tab_auditoria(per_unit=None, provenance=None, chart_layout=None,
                 f"La caché no corresponde al artefacto que hay en disco: el sello "
                 f"registrado es `{_sello['esperado'][:12]}` y el leído es "
                 f"`{_sello['leido'][:12]}`. Las cifras salen de `app/cache/`; "
-                f"reconstrúyela con `python scripts/build_ui_cache.py`.",
+                f"reconstrúyela con `python scripts/build/build_ui_cache.py`.",
                 icon=":material/warning:",
             )
         elif not _sello["checked"]:

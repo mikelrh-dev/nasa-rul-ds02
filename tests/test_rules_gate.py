@@ -1,4 +1,4 @@
-"""Tests del gate de evidencias `scripts/freeze_rules_evidence.py` (RULES-06).
+"""Tests del gate de evidencias `scripts/auditoria/freeze_rules_evidence.py` (RULES-06).
 
 Seis comprobaciones, en dos bloques:
 
@@ -27,7 +27,7 @@ import numpy as np
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCRIPTS = os.path.join(ROOT, "scripts")
+SCRIPTS = os.path.join(ROOT, "scripts", "auditoria")
 sys.path.insert(0, SCRIPTS)
 
 import freeze_rules_evidence as G  # noqa: E402
@@ -51,7 +51,7 @@ def test_el_gate_falla_sin_cache_y_no_escribe(tmp_path):
     assert G.run(cache=str(ausente), stream=salida) == 3
     texto = salida.getvalue()
     assert str(ausente) in texto
-    assert "python scripts/p1_oof_cache.py" in texto
+    assert "python scripts/auditoria/p1_oof_cache.py" in texto
     assert "RULES-06" in texto
     assert "skip" not in texto.lower()
     assert _sha256(CALIBRACION) == antes

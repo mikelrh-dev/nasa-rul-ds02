@@ -154,7 +154,7 @@ md(r"""## Lectura y limites
 - La EMA de produccion queda fuera de la atribucion y no aparece en estos CSV.
 - `resultados/shap_bundle_C/` se regenera al ejecutar la celda de SHAP;
   `models/` y NB01-06 no se tocan. Para reconstruir este cuaderno sin
-  ejecutarlo: `python scripts/build_07_shap_c_notebook.py` (con el
+  ejecutarlo: `python scripts/build/build_07_shap_c_notebook.py` (con el
   interprete del `.venv`).
 
 > SHAP describe el modelo, no el motor: asociaciones no causales.
@@ -195,7 +195,7 @@ nb.metadata = {
     },
 }
 
-destino = Path(__file__).resolve().parents[1] / "notebooks" / "07_shap_c_bundle_c.ipynb"
+destino = Path(__file__).resolve().parents[2] / "notebooks" / "07_shap_c_bundle_c.ipynb"
 with open(destino, "w", encoding="utf-8") as fh:
     nbf.write(nb, fh)
 

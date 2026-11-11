@@ -24,7 +24,7 @@ NOTEBOOKS = sorted((ROOT / "notebooks").glob("0*.ipynb"))
 
 
 def _load_backfill():
-    path = ROOT / "scripts" / "backfill_mlflow.py"
+    path = ROOT / "scripts" / "operativo" / "backfill_mlflow.py"
     spec = importlib.util.spec_from_file_location("backfill_mlflow_live", path)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
@@ -194,12 +194,12 @@ def test_ablation_table_timing_rows_with_fake_run_seed(monkeypatch):
 # --- puente_c NaN refresh -------------------------------------------------
 
 def test_puente_c_timing_dict_is_none_with_fuente():
-    from src.clase.puente_c import clean_timing_value, puente_c
+    from ds02_rul.puente_c import clean_timing_value, puente_c
 
     # clean helper contract (no bundle load needed for the pure helper)
     assert clean_timing_value(float("nan")) is None
     assert clean_timing_value(1.25) == 1.25
-    result_source = (ROOT / "src" / "clase" / "puente_c.py").read_text(encoding="utf-8")
+    result_source = (ROOT / "src" / "ds02_rul" / "puente_c.py").read_text(encoding="utf-8")
     assert '"timing"' in result_source
     assert "bundle_congelado" in result_source
     assert "timing_measured" in result_source
@@ -216,7 +216,7 @@ def test_backfill_specs_are_historic_only():
 
 
 def test_backfill_check_helper_separates_live_runs():
-    source = (ROOT / "scripts" / "backfill_mlflow.py").read_text(encoding="utf-8")
+    source = (ROOT / "scripts" / "operativo" / "backfill_mlflow.py").read_text(encoding="utf-8")
     assert "historico" in source
     assert "live_notebook" in source
 

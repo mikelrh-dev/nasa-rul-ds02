@@ -184,14 +184,6 @@ class PredictRequest(BaseModel):
         return float(value)
 
 
-class PredictResponse(BaseModel):
-    """RUL puntual junto con el contrato del artefacto que la produjo."""
-    unit: float
-    cycle: float
-    rul: float
-    window_size: int
-    beta: float
-
 
 # ----------------------------------------------------------- n8n decision
 # MIA-3: accion novedosa de la rama HANGAR. El flujo n8n llama a la API del

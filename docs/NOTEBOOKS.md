@@ -1,8 +1,11 @@
-# Notebooks — secuencia unificada (histórico 2026-11-03, ver bundle C vigente en `models/ds02_manifest.json` y `MLProyectVault/50-Evidencia/e00-cifras-autoritativas.md`)
+# Notebooks — secuencia unificada (histórico 2026-11-03; mapa autoritativo: `../notebooks/README.md`)
 
-Reestructuración completada: la secuencia `notebooks/01_eda_y_contexto.ipynb` → `06_evaluacion_produccion_comparativa.ipynb` cuenta la historia completa del modelo (datos, clásicos, MLP, feature engineering, BiLSTM/OOF, meta-ensemble/conformal, evaluación/producción), integrando la parte de clase (nulos, fase_vuelo, clásicos, MLP, LGBM adaptada, ensemble adaptado, SHAP, robustez) sin abrir `notebooks/ds02_ensemble/`.
+> Este documento conserva el relato histórico. Para saber **qué `.py` usa cada notebook**,
+> la fuente autoritativa es [`notebooks/README.md`](../notebooks/README.md).
 
-## Secuencia unificada (6 notebooks)
+Reestructuración completada: la secuencia `notebooks/01_eda_y_contexto.ipynb` → `07_shap_c_bundle_c.ipynb` cuenta la historia completa del modelo (datos, clásicos, MLP, feature engineering, BiLSTM/OOF, meta-ensemble/conformal, evaluación/producción), integrando la parte de clase (nulos, fase_vuelo, clásicos, MLP, LGBM adaptada, ensemble adaptado, SHAP, robustez) sin abrir `notebooks/ds02_ensemble/`.
+
+## Secuencia unificada (7 notebooks)
 
 | # | Notebook | Contenido | Fuente (ds02_ensemble/) | Ejecutado |
 |---|----------|-----------|------------------------|-----------|
@@ -12,10 +15,11 @@ Reestructuración completada: la secuencia `notebooks/01_eda_y_contexto.ipynb` �
 | 04 | `04_arquitectura_bilstm_oof.ipynb` | BiLSTM triple pooling + OOF agrupado por motor + arquitectura | 02 (OOF + arquitectura) | ✅ 12 celdas, 0 errores |
 | 05 | `05_meta_ensemble_y_conformal.ipynb` | Conformal + multisemilla + diagnósticos + meta-ensemble + beta + EMA | 03 (conformal + multisemilla + diagnósticos) | ✅ 20 celdas, 0 errores |
 | 06 | `06_evaluacion_produccion_comparativa.ipynb` | Ensemble con nulos + robustez 3 vías + veredicto D11 + ecuaciones + comparativa | 03 (evidencia + multisemilla) | ✅ 16 celdas, 0 errores |
+| 07 | `07_shap_c_bundle_c.ipynb` | SHAP por ramas del bundle C (BiLSTM/LGBM/meta) | 04 (SHAP del bundle) | ✅ ejecutado en la verificación |
 
 ## Notas
 
-- **Kernelspec:** `ds02-venv` en los 6 notebooks (Python 3.12.10).
+- **Kernelspec:** `ds02-venv` en los 7 notebooks (Python 3.12.10).
 - **Rutas:** descubrimiento robusto + `os.chdir(_ROOT)` (sin `../` relativo).
 - **Artefactos:** reutilizados en `notebooks/ds02_ensemble/artifacts/` (no se creó nueva carpeta).
 - **ds02_ensemble/:** no tocado (se mantiene intacto como referencia).
@@ -33,7 +37,7 @@ Esto mejora la legibilidad y la separación de concerns.
 
 ## Verificación
 
-- `nbconvert --execute --inplace` ejecutado en los 6 notebooks: 0 errores.
+- `nbconvert --execute --inplace` ejecutado en los 7 notebooks: 0 errores en la última verificación.
 - `pytest tests/`: ver resultado en `scratch/pytest.log`.
 - Modelos congelados: sha256 verificados (sin cambios).
 

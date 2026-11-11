@@ -14,8 +14,8 @@ Salida: `resultados/comparativa_c_multisemilla.csv` (una fila por semilla) y un
 resumen media ± desviación por consola.
 
 Uso:
-    python -m src.clase.evaluar_c_multisemilla
-    python -m src.clase.evaluar_c_multisemilla --reentrenar-primaria
+    python scripts/operativo/evaluate_bundle_stability.py
+    python scripts/operativo/evaluate_bundle_stability.py --reentrenar-primaria
 """
 
 from __future__ import annotations
@@ -33,6 +33,8 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 if os.path.join(_ROOT, "src") not in sys.path:
     sys.path.insert(0, os.path.join(_ROOT, "src"))
+
+from ds02_rul.metrics import aggregate_seed_metrics  # noqa: E402
 
 SEEDS = (42, 7, 123)
 MANIFEST = os.path.join(_ROOT, "models", "ds02_manifest.json")
@@ -56,7 +58,7 @@ def fila_desde_manifest() -> dict:
 
 def evaluar_seed(seed: int) -> dict:
     """Entrena y mide una semilla; no escribe artefactos."""
-    from src.clase.train_ensemble_adaptado import evaluar_semilla
+    from ds02_rul.bundle_c import evaluar_semilla
 
     r = evaluar_semilla(seed=seed, verbose=False)
     fila = r["rows"][3]
@@ -73,21 +75,10 @@ def evaluar_seed(seed: int) -> dict:
 def agregar_semillas(filas: list[dict]) -> dict:
     """Media ± desviación (muestral) de las métricas entre semillas.
 
-    Es una función pura: el test la ejercita con datos sintéticos, sin entrenar.
+    La implementación vive en `ds02_rul.metrics.aggregate_seed_metrics`; este
+    alias conserva el contrato que ya consumían los tests.
     """
-    if not filas:
-        raise ValueError("se necesita al menos una fila para agregar")
-    rmse = np.array([f["RMSE"] for f in filas], dtype=float)
-    nasa = np.array([f["NASA_Score"] for f in filas], dtype=float)
-    ddof = 1 if len(filas) > 1 else 0
-    return {
-        "n_semillas": len(filas),
-        "seeds": [int(f["seed"]) for f in filas],
-        "rmse_media": float(rmse.mean()),
-        "rmse_std": float(rmse.std(ddof=ddof)),
-        "nasa_media": float(nasa.mean()),
-        "nasa_std": float(nasa.std(ddof=ddof)),
-    }
+    return aggregate_seed_metrics(filas)
 
 
 def filas_desde_evidencia() -> list[dict]:

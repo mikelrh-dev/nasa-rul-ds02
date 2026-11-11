@@ -1,6 +1,6 @@
 """Read-only data layer for the DS02 decision-support surface.
 
-Everything the UI draws comes from `app/cache/` (`scripts/build_ui_cache.py`) and
+Everything the UI draws comes from `app/cache/` (`scripts/build/build_ui_cache.py`) and
 `models/ds02_manifest.json`. This module imports pandas and streamlit only —
 never TensorFlow — so the app starts in milliseconds and runs on a machine that
 has neither the 2.3 GB HDF5 nor a GPU.
@@ -182,7 +182,7 @@ def verify_cache_manifest(provenance_path: str | None = None,
     if not esperado:
         raise RuntimeError(
             f"cache manifest at {prov_path!r} records no artifact.manifest_sha256. "
-            "Regenerate it with scripts/build_ui_cache.py --base adaptada."
+            "Regenerate it with scripts/build/build_ui_cache.py --base adaptada."
         )
 
     try:
@@ -201,7 +201,7 @@ def verify_cache_manifest(provenance_path: str | None = None,
         raise RuntimeError(
             f"cache manifest stale: manifest_sha256 recorded={esperado} but "
             f"{man_path!r} on disk has sha256={leido}. "
-            "Regenerate the cache with scripts/build_ui_cache.py --base adaptada."
+            "Regenerate the cache with scripts/build/build_ui_cache.py --base adaptada."
         )
     return provenance
 
@@ -210,7 +210,7 @@ def cache_available() -> bool:
     """True si existen los tres ficheros de caché (ventanas, filas, provenance).
 
     La app lo consulta al arrancar para mostrar un mensaje útil en vez de
-    romper si la caché no se generó (`scripts/build_ui_cache.py`).
+    romper si la caché no se generó (`scripts/build/build_ui_cache.py`).
 
     Verificación: cuando el manifest registra hashes (source.h5_sha256 y
     counts.windows_sha256/rows_sha256), los compara con los ficheros en
@@ -327,20 +327,6 @@ def classify(lower: float, airworthy: float = DEFAULT_AIRWORTHY,
         return PREVENTIVE
     return AOG
 
-
-def classify_series(lower, airworthy: float = DEFAULT_AIRWORTHY,
-                    aog: float = DEFAULT_AOG) -> pd.Series:
-    """Vectoriza `classify()` sobre una serie de límites inferiores.
-
-    Misma semántica umbral que el caso escalar (APTO/INSPECCIÓN/HANGAR
-    sobre el lower conformal), aplicada fila a fila conservando el índice.
-    """
-    values = np.asarray(lower, dtype=float)
-    return pd.Series(
-        [classify(v, airworthy, aog) for v in values],
-        index=getattr(lower, "index", None),
-        dtype=object,
-    )
 
 
 # ---------------------------------------------------------------------- curves
