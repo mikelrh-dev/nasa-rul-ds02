@@ -1,0 +1,35 @@
+# Texto: LF en el repositorio, sea cual sea el SO desde el que se edita.
+# Sin esto conviven ficheros CRLF y LF, y cualquier herramienta que reescriba
+# un fichero entero genera un diff de mil líneas por un cambio de dos.
+#
+# El defecto es `-text`: lo que no esté declarado abajo no se normaliza. Así
+# quedan intactos los JSON que se validan por SHA-256 en disco
+# (`models/ds02_manifest.json` contra `app/cache/cache_manifest.json`,
+# CACHE-DRIFT-01), los artefactos de `mlruns/` y los binarios.
+* -text
+
+# Código y documentación (una regla por línea: gitattributes no admite listas).
+*.py     text eol=lf
+*.pyi    text eol=lf
+*.ipynb  text eol=lf
+*.md     text eol=lf
+*.txt    text eol=lf
+*.toml   text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.cfg    text eol=lf
+*.ini    text eol=lf
+*.sh     text eol=lf
+*.css    text eol=lf
+*.js     text eol=lf
+*.html   text eol=lf
+*.svg    text eol=lf
+*.csv    text eol=lf
+
+# Binarios.
+*.parquet binary
+*.joblib  binary
+*.keras   binary
+*.npy     binary
+*.png     binary
+*.pdf     binary
