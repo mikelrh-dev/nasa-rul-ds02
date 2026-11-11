@@ -20,14 +20,15 @@ UI pueda mostrar ambas lecturas sin esconder ninguna.
 """
 from __future__ import annotations
 
-import os
 import sys
 
 import numpy as np
 import pandas as pd
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(APP_DIR)
+import _paths
+
+APP_DIR = str(_paths.APP_DIR)
+ROOT = str(_paths.ROOT)
 sys.path.insert(0, ROOT)
 
 from src.mia import motor as M  # noqa: E402

@@ -21,6 +21,8 @@ import re as _re
 import shutil as _shutil
 import threading as _threading
 
+import _paths
+
 EN_SERVICIO = "EN_SERVICIO"
 INSPECCION = "INSPECCION_PROGRAMADA"
 AOG = "AOG_DERIVADO"
@@ -189,7 +191,7 @@ def validate_session_id(session_id) -> str:
 def session_registry_path(session_id) -> str:
     """Ruta del registro de una sesión, derivada solo del id validado."""
     sid = validate_session_id(session_id)
-    base = _os.path.dirname(_os.path.abspath(__file__))
+    base = _os.path.dirname(str(_paths.REGISTROS_PATH))
     return _os.path.join(base, "registros_sesiones", f"registros_flota_{sid}.json")
 
 

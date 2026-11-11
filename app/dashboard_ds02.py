@@ -28,7 +28,9 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _paths
+
+sys.path.insert(0, str(_paths.APP_DIR))
 
 import hangar as HGR  # noqa: E402
 import twin as T  # noqa: E402
@@ -39,15 +41,14 @@ import ui_rules as UR  # noqa: E402
 import flota as F  # noqa: E402
 import ui_modulos as UM  # noqa: E402
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, str(_paths.ROOT))
 
 # Estado de sesión en un solo sitio: gemelos y registros de hangar.
 # Se cargan de disco una sola vez: recargar la página ya no borra la flota.
 # Cada sesión tiene su fichero en `registros_sesiones/`; los huérfanos se
 # conservan (no hay borrado automático). El legacy `registros_flota.json` se
 # copia una vez por sesión y no se mueve ni se toca después.
-_LEGACY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                            "registros_flota.json")
+_LEGACY_PATH = str(_paths.REGISTROS_PATH)
 _REGISTROS_PATH = _LEGACY_PATH  # alias legacy
 _DEFAULT_SESSION_ID = "default"
 

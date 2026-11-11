@@ -23,14 +23,19 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(APP_DIR)
-CACHE_DIR = os.path.join(APP_DIR, "cache")
-WINDOWS_PATH = os.path.join(CACHE_DIR, "ds02_windows.parquet")
-ROWS_PATH = os.path.join(CACHE_DIR, "ds02_rows.parquet")
-PROVENANCE_PATH = os.path.join(CACHE_DIR, "cache_manifest.json")
-MANIFEST_PATH = os.path.join(ROOT, "models", "ds02_manifest.json")
-ARTIFACT_PATH = os.path.join(ROOT, "models", "ensemble.joblib")
+try:
+    import _paths
+except ImportError:  # imported as app.ui_data_loader (tests)
+    from app import _paths
+
+APP_DIR = str(_paths.APP_DIR)
+ROOT = str(_paths.ROOT)
+CACHE_DIR = str(_paths.CACHE_DIR)
+WINDOWS_PATH = str(_paths.WINDOWS_PATH)
+ROWS_PATH = str(_paths.ROWS_PATH)
+PROVENANCE_PATH = str(_paths.PROVENANCE_PATH)
+MANIFEST_PATH = str(_paths.MANIFEST_PATH)
+ARTIFACT_PATH = str(_paths.ARTIFACT_PATH)
 
 # El sello se compara en bloques: el artefacto pesa decenas de MB y leerlo entero
 # para hashearlo duplicaria la memoria del proceso.

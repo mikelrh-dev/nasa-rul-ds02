@@ -17,10 +17,12 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(APP_DIR)
-SRC = os.path.join(ROOT, "src")
-ARTIFACT = os.path.join(ROOT, "models", "ensemble.joblib")
+import _paths
+
+APP_DIR = str(_paths.APP_DIR)
+ROOT = str(_paths.ROOT)
+SRC = str(_paths.SRC_DIR)
+ARTIFACT = str(_paths.ARTIFACT_PATH)
 
 import twin as T  # noqa: E402
 import ui_data_loader as L  # noqa: E402

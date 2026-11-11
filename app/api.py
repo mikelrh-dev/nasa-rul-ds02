@@ -48,13 +48,18 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
+try:
+    import _paths
+except ImportError:  # imported as app.api (tests, uvicorn app.api:app)
+    from app import _paths
+
+sys.path.insert(0, str(_paths.SRC_DIR))
 
 from ds02_rul.data import load_ds02  # noqa: E402
 from ds02_rul.inference import windows_for_unit  # noqa: E402
 from ds02_rul.persistence import load_ensemble, resolve_within_repo  # noqa: E402
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO_ROOT = str(_paths.ROOT)
 # Allowlist: env may only point inside the repo (relative to repo root or
 # absolute-under-repo). Anything else is refused at import time.
 ARTIFACT = resolve_within_repo(
@@ -191,8 +196,7 @@ class PredictRequest(BaseModel):
 # X-DS02-Token (src/n8n.py). El registro es idempotente por fingerprint.
 _N8N_TOKEN = os.environ.get("N8N_WEBHOOK_TOKEN", "").strip() or None
 _N8N_DECISIONES = ("APTO", "INSPECCION", "HANGAR")
-_N8N_REGISTROS_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "registros_n8n.json")
+_N8N_REGISTROS_PATH = str(_paths.N8N_REGISTROS_PATH)
 # RLock: `n8n_decision` ya lo toma y despues llama a `_guardar_n8n_registros`,
 # que lo vuelve a pedir. Con `Lock` el endpoint se autobloqueaba en el primer POST.
 _N8N_LOCK = threading.RLock()

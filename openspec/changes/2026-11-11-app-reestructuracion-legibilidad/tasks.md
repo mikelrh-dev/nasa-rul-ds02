@@ -20,8 +20,8 @@
 | 3.2 | Drop the `if ctx is None` fallback in the four tabs | Done | no `ctx_from_dashboard` call sites remain |
 | 3.3 | Delete `ctx_from_dashboard()` from `app/context.py` | Done | `context.py` is a dataclass only; suite green |
 | 4 | **Phase 3 — path owner** | | |
-| 4.1 | Create `app/_paths.py` with `ROOT`, `APP_DIR`, `CACHE_DIR`, registry paths and the secrets path | Pending | every constant resolves to the same absolute path as before the move |
-| 4.2 | Point `ui_data_loader`, `ui_inference`, `ui_rules`, `ui_shap`, `api`, `dashboard_ds02`, `hangar` and `streamlit_app` at `_paths.py` | Pending | no `__file__`-based path math outside `_paths.py`; suite green |
+| 4.1 | Create `app/_paths.py` with `ROOT`, `APP_DIR`, `CACHE_DIR`, registry paths and the secrets path | Done | `app/_paths.py` anchors on `Path(__file__).resolve().parents[1]`; the absolute-path fingerprint before/after is byte-identical (empty `diff`) |
+| 4.2 | Point `ui_data_loader`, `ui_inference`, `ui_rules`, `ui_shap`, `api`, `dashboard_ds02`, `hangar` and `streamlit_app` at `_paths.py` | Done | `grep -rn "__file__" app/` finds it only in `_paths.py` (plus a docstring mention); the 20-file app suite passes `250 passed, 1 skipped` |
 | 5 | **Phase 4 — package move** | | |
 | 5.1 | Create `app/__init__.py` and the `app/entrypoints/`, `app/ui/`, `app/lib/`, `app/services/` packages | Pending | `app.lib.ui_data_loader`, `app.ui._tab_flota` and `app.services.api` import |
 | 5.2 | Move the entrypoints, UI, lib and API modules | Pending | no module left at the old `app/` root except `_paths.py` |

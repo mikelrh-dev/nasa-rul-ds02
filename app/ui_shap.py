@@ -11,16 +11,17 @@ do not recompute.
 """
 from __future__ import annotations
 
-import os
 import sys
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(APP_DIR)
-SRC = os.path.join(ROOT, "src")
+import _paths
+
+APP_DIR = str(_paths.APP_DIR)
+ROOT = str(_paths.ROOT)
+SRC = str(_paths.SRC_DIR)
 
 if SRC not in sys.path:
     sys.path.insert(0, SRC)
