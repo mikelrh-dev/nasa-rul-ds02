@@ -8,6 +8,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+import ui_data_loader as L
 import ui_rules as UR
 
 # Rango negativo reservado: nunca colisiona con caché (11/14/15),
@@ -86,7 +87,7 @@ def frame_con_altas(
 
 def estado_demo() -> dict:
     """Estado exacto desde el que se cuenta la historia: 30/25, ciclo 29, U14."""
-    return {"umbrales": (30.0, 25.0), "ciclo": 29, "unidad": 14}
+    return {"umbrales": (L.DEFAULT_AIRWORTHY, L.DEFAULT_AOG), "ciclo": 29, "unidad": 14}
 
 
 def estado_historia(windows: pd.DataFrame, umbrales: dict) -> list[dict]:

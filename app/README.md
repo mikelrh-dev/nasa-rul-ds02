@@ -18,10 +18,10 @@ Orquestador    dashboard_ds02.py      globals, cachés, montaje de las 4 pestañ
 Contexto       context.py             AppCtx: un objeto en vez de 18-29 parámetros
 Barra lateral  ui_modulos/_sidebar.py devuelve SidebarState (unidad elegida)
 Pestañas       ui_modulos/_tab_*.py   fragmentos de Streamlit
-Tema           theme.py               colores, `chart_layout`, `style_axes`, `fig_deriva`
-Estado puro    flota.py hangar.py twin.py ui_alta.py
+Tema           theme.py               dueno unico de tokens, `chart_layout`, `style_axes`, `fig_deriva`
+Estado puro    flota.py hangar.py twin.py ui_alta.py simulacion.py
 Datos/modelo   ui_data_loader.py ui_inference.py ui_shap.py ui_rules.py
-Presentación   dashboard_helpers.py pdf_partes.py ui_batch.py ui_n8n.py simulacion.py
+Presentacion   dashboard_helpers.py pdf_partes.py ui_batch.py ui_n8n.py
 Otro runtime   api.py
 ```
 
@@ -32,7 +32,7 @@ Otro runtime   api.py
 | `streamlit_app.py` | Entry point de la rúbrica: secretos, `sys.modules.pop` para el rerun y `import dashboard_ds02`. |
 | `dashboard_ds02.py` | Orquestador: carga la caché, construye `AppCtx`, monta sidebar y las 4 pestañas. |
 | `context.py` | `AppCtx`: transporte único de datos, estado y helpers hacia las pestañas. |
-| `theme.py` | Design tokens y helpers de Plotly (`chart_layout`, `style_axes`, `fig_deriva`). |
+| `theme.py` | Dueño único de los design tokens y helpers de Plotly (`chart_layout`, `style_axes`, `fig_deriva`). |
 | `ui_modulos/__init__.py` | Fachada del paquete; re-exporta `_sha256_cached`. |
 | `ui_modulos/_sidebar.py` | Barra lateral: vista, unidad de test, reloj y altas de flota. Devuelve `SidebarState`. |
 | `ui_modulos/_tab_flota.py` | Pestaña Flota: muro del hangar, tarjetas, cola y descargas. |
@@ -64,5 +64,6 @@ Otro runtime   api.py
   el dashboard.
 - **`app/` está en `sys.path`**: los imports son planos (`import flota`), no
   `app.flota`. Los tests hacen lo mismo.
-- `app/cache/` es derivado y se regenera con `scripts/build/build_ui_cache.py`;
-  `registros_*` y `registros_sesiones/` son estado runtime (ignorados en git).
+- `app/cache/` está trackeado en git (3 ficheros) y se regenera con
+  `scripts/build/build_ui_cache.py`; `registros_*` y `registros_sesiones/` son
+  estado runtime (ignorados en git).

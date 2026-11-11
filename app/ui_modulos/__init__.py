@@ -1,7 +1,8 @@
 """Facade del paquete `ui_modulos` (el split ya esta hecho).
 
-Las pestanas viven en `_tab_flota`, `_tab_motor`, `_tab_auditoria`; el sandbox de
-estres en `_sandbox_estres`. El dashboard las importa con `import ui_modulos as UM`.
+Las pestanas viven en `_tab_flota`, `_tab_motor`, `_tab_auditoria` y `_tab_casos`;
+la barra lateral en `_sidebar` y el sandbox de estres en `_sandbox_estres`. El
+dashboard las importa con `import ui_modulos as UM`.
 
 - `_sha256_cached` se re-exporta desde `ui_data_loader` (unica definicion en `app/`).
 

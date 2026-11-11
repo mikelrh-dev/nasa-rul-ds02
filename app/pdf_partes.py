@@ -10,16 +10,18 @@ from __future__ import annotations
 from typing import Any
 
 
+def _latin1(txt: str) -> str:
+    """fpdf2 con fuentes core solo codifica latin-1: traduce lo que no entra."""
+    for _a, _b in (("∞", "inf"), ("≥", ">="), ("≤", "<="), ("—", "-"),
+                   ("–", "-"), ("×", "x"), ("≈", "~"), ("→", "->"),
+                   ("·", "-"), ("…", "...")):
+        txt = str(txt).replace(_a, _b)
+    return txt.encode("latin-1", "replace").decode("latin-1")
+
+
 def parte_trabajo_pdf(order: dict[str, Any]) -> bytes:
     """Vuelca en PDF una orden ya construida, sin volver a puntuar ni decidir."""
     from fpdf import FPDF
-
-    def _latin1(txt: str) -> str:
-        for _a, _b in (("∞", "inf"), ("≥", ">="), ("≤", "<="), ("—", "-"),
-                       ("–", "-"), ("×", "x"), ("≈", "~"), ("→", "->"),
-                       ("·", "-"), ("…", "...")):
-            txt = str(txt).replace(_a, _b)
-        return txt.encode("latin-1", "replace").decode("latin-1")
 
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=True, margin=15)

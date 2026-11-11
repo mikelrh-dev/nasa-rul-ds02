@@ -62,15 +62,11 @@ except ImportError:  # pragma: no cover - import-style fallback
         _sys.path.insert(0, _ROOT)
     from src.mia import reglas as R_REGLAS  # type: ignore[no-redef]
 
-# Design tokens: same hex values as `dashboard_ds02` (see its design-tokens
-# section). Kept as literals here so this module needs no dashboard import
-# for colors; chart/badge helpers are still dashboard-owned (passed in).
-INK = "#e8eef7"
-MUTED = "#93a4bd"
-GRID = "#22304a"
-SURFACE = "#141d2e"
-SKY = "#38bdf8"
-ROSE = "#f87171"
+# Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
+try:  # noqa: E402
+    from theme import INK, MUTED, GRID, SURFACE, SKY, ROSE  # noqa: E402
+except ImportError:  # pragma: no cover - import-style fallback
+    from app.theme import INK, MUTED, GRID, SURFACE, SKY, ROSE  # type: ignore[no-redef]
 
 __all__ = ["_tab_motor"]
 

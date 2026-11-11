@@ -12,6 +12,11 @@ try:
 except ImportError:  # pragma: no cover
     from app import hangar as HGR  # type: ignore[no-redef]
 
+try:
+    import ui_data_loader as L  # noqa: E402
+except ImportError:  # pragma: no cover
+    from app import ui_data_loader as L  # type: ignore[no-redef]
+
 
 def contraste_csv(raw: pd.DataFrame, corrected: pd.DataFrame) -> str:
     """CSV de contraste crudo vs corregido (merge por unit+cycle)."""
@@ -74,5 +79,5 @@ def probar_n8n() -> dict:
          "alertas": [],
          "traza": {"decision": "APTO", "usadas": ["R7_APTO"],
                    "porque": ["test de conexión del panel n8n"]}},
-        {"apto": 30.0, "hangar": 25.0}, "", "test-panel", unidad=14)
+        {"apto": L.DEFAULT_AIRWORTHY, "hangar": L.DEFAULT_AOG}, "", "test-panel", unidad=14)
     return N8N.enviar_decision("APTO", prueba)

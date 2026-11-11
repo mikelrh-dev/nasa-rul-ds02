@@ -20,34 +20,26 @@ the same tokens so the charts sit on the same surface as the widgets.
 """
 from __future__ import annotations
 
-import json
 import os
 import sys
 from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
-from plotly.subplots import make_subplots
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import hangar as HGR  # noqa: E402
 import twin as T  # noqa: E402
 import ui_alta as A  # noqa: E402
-import ui_batch as B  # noqa: E402
 import ui_data_loader as L  # noqa: E402
 import ui_inference as INF  # noqa: E402
 import ui_rules as UR  # noqa: E402
 import flota as F  # noqa: E402
-import dashboard_helpers as DH  # noqa: E402
-import simulacion as S  # noqa: E402
 import ui_modulos as UM  # noqa: E402
-import ui_n8n as UN  # noqa: E402
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src import n8n as N8N  # noqa: E402
 
 # Estado de sesión en un solo sitio: gemelos y registros de hangar.
 # Se cargan de disco una sola vez: recargar la página ya no borra la flota.
@@ -253,8 +245,6 @@ def _preflight_panel(pf: dict) -> None:
 
 # Design tokens y helpers de Plotly: dueno `theme.py`.
 from theme import (  # noqa: E402
-    INK, MUTED, GRID, SURFACE, SKY, AMBER, GREEN, ROSE, SLATE,
-    STATE_COLORS, STATE_BG, STATE_WORD, RANGO_ESTADO,
     BADGE_COLOR, BADGE_ICON, chart_layout, style_axes, fig_deriva,
 )
 
@@ -271,16 +261,6 @@ def st_badge_estado(estado: str) -> None:
 # Helper único de SHA-256: dueño `ui_data_loader` (único `def` en `app/`);
 # aquí se re-exporta para compat. Digest y `OSError -> None` intactos.
 _sha256_cached = UM._sha256_cached
-
-# Sandbox de estrés (PR2, dashboard-split-monolito 2.1): dueño
-# `ui_modulos._sandbox_estres`; aquí se re-exporta para compat y se llama
-# con los globales del dashboard. `_sandbox_puntua_cached` sigue siendo
-# dueño único en este fichero (una sola `def` en `app/`) y se pasa como
-# helper, sin duplicar su lógica en el módulo extraído.
-try:
-    from ui_modulos._sandbox_estres import _sandbox_estres as _sandbox_estres
-except ImportError:  # pragma: no cover - import-style fallback
-    from app.ui_modulos._sandbox_estres import _sandbox_estres as _sandbox_estres  # type: ignore[no-redef]
 
 # Flota (PR3, dashboard-split-monolito 2.2): dueño
 # `ui_modulos._tab_flota`; aquí se delega desde el wrapper `_tab_flota`
@@ -792,13 +772,9 @@ def _informe_auditoria_pdf(
     """
     from fpdf import FPDF
 
-    def _latin1(txt: str) -> str:
-        """fpdf2 con fuentes core solo codifica latin-1: traduce lo que no entra."""
-        for _a, _b in (("∞", "inf"), ("≥", ">="), ("≤", "<="), ("—", "-"),
-                       ("–", "-"), ("×", "x"), ("≈", "~"), ("→", "->"),
-                       ("·", "-"), ("…", "...")):
-            txt = str(txt).replace(_a, _b)
-        return txt.encode("latin-1", "replace").decode("latin-1")
+    # Dueño unico de la traduccion latin-1: `pdf_partes`. Import local para que
+    # la funcion siga siendo autocontenida (los tests la extraen con `exec`).
+    from pdf_partes import _latin1
 
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=True, margin=15)

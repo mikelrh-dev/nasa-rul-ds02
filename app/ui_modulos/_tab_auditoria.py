@@ -33,13 +33,11 @@ try:
 except ImportError:  # pragma: no cover - import-style fallback
     from app import ui_data_loader as L  # type: ignore[no-redef]
 
-# Design tokens: same hex values as `dashboard_ds02` (see its design-tokens
-# section). Kept as literals here so this module needs no dashboard import
-# for colors; chart/badge helpers are still dashboard-owned (passed in).
-INK = "#e8eef7"
-SKY = "#38bdf8"
-GREEN = "#34d399"
-ROSE = "#f87171"
+# Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
+try:  # noqa: E402
+    from theme import INK, SKY, GREEN, ROSE  # noqa: E402
+except ImportError:  # pragma: no cover - import-style fallback
+    from app.theme import INK, SKY, GREEN, ROSE  # type: ignore[no-redef]
 
 __all__ = ["_tab_auditoria"]
 

@@ -82,61 +82,22 @@ try:
 except ImportError:  # pragma: no cover
     from app import ui_alta as A  # type: ignore[no-redef]
 
-# Design tokens: same hex values as `dashboard_ds02` (see its design-tokens
-# section). Kept as literals here so this module needs no dashboard import
-# for colors; chart/badge helpers are still dashboard-owned (passed in).
-INK = "#e8eef7"
-SKY = "#38bdf8"
-ROSE = "#f87171"
-_SLATE = "#64748b"
-_GREEN = "#34d399"
-_AMBER = "#f59e0b"
-
-# State maps: same construction as `dashboard_ds02` (keys from `L`, colors
-# from the literals above). The dashboard keeps its own copies for the
-# other tabs; values here are identical, not a second source of truth.
-STATE_COLORS = {
-    L.AIRWORTHY: _GREEN,
-    L.PREVENTIVE: _AMBER,
-    L.AOG: ROSE,
-    L.NO_DATA: _SLATE,
-    L.SIN_DECISION: _SLATE,
-}
-STATE_BG = {
-    L.AIRWORTHY: "background-color: rgba(52, 211, 153, 0.14)",
-    L.PREVENTIVE: "background-color: rgba(245, 158, 11, 0.14)",
-    L.AOG: "background-color: rgba(248, 113, 113, 0.14)",
-    L.NO_DATA: "background-color: rgba(100, 116, 139, 0.14)",
-    L.SIN_DECISION: "background-color: rgba(148, 163, 184, 0.18)",
-}
-STATE_WORD = {
-    L.AIRWORTHY: "apto",
-    L.PREVENTIVE: "inspección",
-    L.AOG: "hangar",
-    L.NO_DATA: "en espera",
-    L.SIN_DECISION: "sin decisión",
-}
-RANGO_ESTADO = {
-    L.AOG: 0,
-    L.PREVENTIVE: 1,
-    L.AIRWORTHY: 2,
-    L.NO_DATA: 3,
-    L.SIN_DECISION: 4,
-}
-BADGE_COLOR = {
-    L.AIRWORTHY: "green",
-    L.PREVENTIVE: "orange",
-    L.AOG: "red",
-    L.NO_DATA: "gray",
-    L.SIN_DECISION: "gray",
-}
-BADGE_ICON = {
-    L.AIRWORTHY: ":material/check_circle:",
-    L.PREVENTIVE: ":material/schedule:",
-    L.AOG: ":material/warning:",
-    L.NO_DATA: ":material/hourglass_empty:",
-    L.SIN_DECISION: ":material/block:",
-}
+# Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
+# Aliases con prefijo para conservar los nombres historicos del modulo.
+try:  # noqa: E402
+    from theme import (  # noqa: E402
+        INK, SKY, ROSE,
+        SLATE as _SLATE, GREEN as _GREEN, AMBER as _AMBER,
+        STATE_COLORS, STATE_BG, STATE_WORD, RANGO_ESTADO,
+        BADGE_COLOR, BADGE_ICON,
+    )
+except ImportError:  # pragma: no cover - import-style fallback
+    from app.theme import (  # type: ignore[no-redef]
+        INK, SKY, ROSE,
+        SLATE as _SLATE, GREEN as _GREEN, AMBER as _AMBER,
+        STATE_COLORS, STATE_BG, STATE_WORD, RANGO_ESTADO,
+        BADGE_COLOR, BADGE_ICON,
+    )
 
 __all__ = ["_tab_flota"]
 

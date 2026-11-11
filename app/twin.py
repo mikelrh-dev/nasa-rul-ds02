@@ -15,20 +15,16 @@ este módulo no lo importa, para poder probarlo sin levantar la app.
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
 
 import hangar as HGR
 import ui_rules as UR
+from hangar import _ahora  # dueno unico del reloj UTC
 
 REGISTRY_KEY = "twins"
 MIN_ID = 3
-
-
-def _ahora() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def fingerprint(table: pd.DataFrame) -> str:

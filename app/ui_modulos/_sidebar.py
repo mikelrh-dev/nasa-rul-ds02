@@ -110,8 +110,8 @@ def _sidebar(windows, provenance, units, max_life, altas_fn, etiqueta_unidad,
                     # El alta crea su gemelo: el motor aparece en "Gemelos
                     # registrados" con su serie guardada. No llama al modelo, toma
                     # las ventanas ya puntuadas de la caché.
-                    _umb = {"apto": float(st.session_state.get("th_apto_Normal", 30.0)),
-                            "hangar": float(st.session_state.get("th_aog_Normal", 25.0))}
+                    _umb = {"apto": float(st.session_state.get("th_apto_Normal", L.DEFAULT_AIRWORTHY)),
+                            "hangar": float(st.session_state.get("th_aog_Normal", L.DEFAULT_AOG))}
                     _ventanas_alta = A.ventanas_de_alta(windows, unidad_p, ciclo_p, _uid)
                     _gemelo = T.make_twin(
                         limpia,
