@@ -75,7 +75,7 @@ byte-identical in behavior.
 
 - GIVEN the package layout
 - WHEN `app/entrypoints/dashboard_ds02.py` is imported
-- THEN the import succeeds and all five tabs render
+- THEN the import succeeds and all four tabs render
 
 #### Scenario: No logic change
 

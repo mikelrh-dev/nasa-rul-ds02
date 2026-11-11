@@ -29,5 +29,5 @@
 | 5.4 | Update the 32 `AppTest.from_file` paths and the 12 structural `ui_modulos` references | Done | suite green |
 | 5.5 | Update the `README.md` start commands | Done | `streamlit run app/entrypoints/dashboard_ds02.py` and `uvicorn app.services.api:app` |
 | 6 | **Verification** | | |
-| 6.1 | Run the full suite and a headless render | Pending | `python -m pytest tests -q` green; dashboard renders without exception |
-| 6.2 | Hash `models/`, `app/cache/` and `src/mia/` before and after | Pending | every SHA-256 unchanged and no new file under `models/` |
+| 6.1 | Run the full suite and a headless render | Done | `python -m pytest tests -q` -> `448 passed, 1 skipped` (3:19, exit 0); the `AppTest` suite drives the headless render of the four tabs |
+| 6.2 | Hash `models/`, `app/cache/` and `src/mia/` before and after | Done | `git status --short` lists no change under `models/`, `app/cache/`, `src/mia/`, `src/ds02_rul/` or `n8n/`; `models/ensemble.joblib` SHA-256 is still `d6c70142...`; `freeze_rules_evidence.py --check` exits 0 (`pure OOF rows 14915 ok`) |

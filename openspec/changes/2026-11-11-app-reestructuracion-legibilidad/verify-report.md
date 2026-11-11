@@ -20,13 +20,13 @@ The single skip is `test_mia_rules.py:181` (pre-existing expected skip).
 |---|---|---|
 | Stable cache and registry location invariant (ADDED) | Compliant | `app/_paths.py:23` anchors `ROOT`; `app/lib/ui_data_loader.py:26-35`, `ui_inference.py:19-24`, `ui_rules.py:26-29`, `ui_shap.py:18-22`, `hangar.py:24,194-195`, `app/services/api.py:50,56,193` read from it. Resolved paths: `<repo>/app/cache`, `<repo>/models/ds02_manifest.json`, `<repo>/app/registros_flota.json`, `<repo>/app/registros_sesiones`. No other cache directory created. |
 | Package layout and import contract (ADDED) | Compliant | `app/__init__.py` plus `entrypoints/`, `ui/`, `lib/`, `services/`. `grep -rn "sys.path.insert" app/` matches only `app/entrypoints/`. `app.lib.ui_data_loader`, `app.ui._tab_flota` and `app.services.api` import; 0 flat app imports remain. |
-| Dashboard orchestrator facade (MODIFIED) | Compliant | `app/entrypoints/dashboard_ds02.py` is orchestration-only (LOC 909 -> 603); the five tabs live in `app/ui/`; the dashboard constructs `AppCtx` and passes it to every tab; `app/lib/context.py` is a pure dataclass; the hot path (`windows/telemetry/frame_cache`, corregir+decidir) is byte-identical to the pre-change code. |
+| Dashboard orchestrator facade (MODIFIED) | Compliant | `app/entrypoints/dashboard_ds02.py` is orchestration-only (LOC 909 -> 603); the four tabs live in `app/ui/`; the dashboard constructs `AppCtx` and passes it to every tab; `app/lib/context.py` is a pure dataclass; the hot path (`windows/telemetry/frame_cache`, corregir+decidir) is byte-identical to the pre-change code. |
 
 ## Design coherence
 
 | Decision | Status | Evidence |
 |---|---|---|
-| D1 - Phase 0 fixes the gate before any move | Done | `src/reglas.py:20,37` re-exports `pava_causal_no_creciente`; `tests/test_reglas_sombreado.py` reproduces the shadowing order deterministically. |
+| D1 - Phase 0 fixes the gate before any move | Done | `src/reglas.py:20,37` re-exports `pava_causal_no_creciente` (borrado después: ver nota en «Frozen artifacts»); `tests/test_reglas_sombreado.py` reproduces the shadowing order deterministically. |
 | D2 - `_paths.py` owns every repository path | Done | `app/_paths.py`; before/after absolute-path fingerprint is byte-identical (empty diff). |
 | D3 - One `AppCtx` cycle, no `ctx_from_dashboard` | Done | 0 occurrences of `ctx_from_dashboard`, `sys.modules.get` and `if ctx is None` in `app/`. |
 | D4 - Package imports, one entrypoint bootstrap | Done | 0 flat app imports; `sys.path.insert` only in the two entrypoints. |
@@ -41,7 +41,7 @@ Two independent verifier subagents (read-only) explored the whole project:
 
 ## Frozen artifacts and hashes
 
-- `git diff --name-status 298272f..HEAD` lists no change under `models/`, `app/cache/`, `src/mia/`, `src/ds02_rul/`, `notebooks/`, `scripts/` or `n8n/`. The only source change outside `app/` is the additive `src/reglas.py` re-export in Phase 0.
+- `git diff --name-status 298272f..HEAD` lists no change under `models/`, `app/cache/`, `src/mia/`, `src/ds02_rul/`, `notebooks/`, `scripts/` or `n8n/`. The only source change outside `app/` is the additive `src/reglas.py` re-export in Phase 0. Nota posterior: ese modulo se elimino en esta misma rama; hoy `scripts/auditoria/freeze_rules_evidence.py` importa `src.mia.reglas` directamente.
 - `app/cache/` keeps its three tracked files; the `cache_manifest.json` seal matches the manifest and the parquet files.
 - `models/ensemble.joblib` SHA-256 `d6c70142...` matches `models/ds02_manifest.json` and the README.
 - Threshold probe: `DEFAULT_AIRWORTHY = 30.0`, `DEFAULT_AOG = 25.0`; `classify(30)=APTO`, `classify(29.9)=INSPECCION`, `classify(25)=INSPECCION`, `classify(24.9)=HANGAR`.
