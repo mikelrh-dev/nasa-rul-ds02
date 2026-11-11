@@ -17,9 +17,9 @@ telemetry one cycle per second through an API, and the dashboard only paints
 what it receives. The proposal is read-only with respect to the model.
 
 The repository already contains the thing this proposal wants to replace: a
-pure, in-process fleet simulator (`app/simulacion.py`) that advances a shared
+pure, in-process fleet simulator (`app/lib/simulacion.py`) that advances a shared
 fleet clock over the scored cache (`app/cache/ds02_windows.parquet`). It never
-calls the model; advancing the fleet is a read. The dashboard (`app/dashboard_ds02.py`)
+calls the model; advancing the fleet is a read. The dashboard (`app/entrypoints/dashboard_ds02.py`)
 holds the clock and the held-engine set in `st.session_state`, per browser
 session.
 
@@ -29,7 +29,7 @@ Streamlit is a request/response UI server. Each browser tab owns its own
 `session_state`; there is no server-side state shared between sessions and no
 inbound channel for an external process to push telemetry into a running
 dashboard. The only HTTP surface in the repo is the FastAPI artifact API
-(`app/api.py`: `/health`, `/units`, `/predict`), which scores windows from the
+(`app/services/api.py`: `/health`, `/units`, `/predict`), which scores windows from the
 cached dataset — it does not ingest telemetry and it is not consumed by the
 dashboard.
 
@@ -61,10 +61,10 @@ Checked on 2026-10-31 against the repository tree (excluding `.venv` and `.git`)
    are those pulled by FastAPI/Streamlit themselves.
 3. No Python module imports any pub/sub, broker, websocket, or streaming
    library. The only `async def` in `app/` is FastAPI's lifespan handler.
-4. `app/dashboard_ds02.py` makes no outbound HTTP calls and exposes no
+4. `app/entrypoints/dashboard_ds02.py` makes no outbound HTTP calls and exposes no
    WebSocket or server-sent-events endpoint. The fleet clock advances through
    `st.session_state` writes, not through external messages.
-5. `app/api.py` has no telemetry-ingestion route, no `/telemetry`, no
+5. `app/services/api.py` has no telemetry-ingestion route, no `/telemetry`, no
    `/ingest`, and no subscription endpoint.
 
 Conclusion: there is no pub/sub infrastructure in this repository, so adopting
@@ -73,7 +73,7 @@ the proposal would mean building it from scratch.
 ## Decision
 
 Reject. Keep the fleet simulator in-process and cache-backed
-(`app/simulacion.py` + `st.session_state` clock), as it is today. Do not add
+(`app/lib/simulacion.py` + `st.session_state` clock), as it is today. Do not add
 an external VPS/n8n telemetry path, a polling loop, or a shared store for a
 read-only demo surface.
 

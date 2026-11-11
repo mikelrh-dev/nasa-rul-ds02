@@ -1,16 +1,17 @@
 """Payload n8n y dedupe (MIA-3) — modulo puro, sin Streamlit.
 
 `payload_desde_traza` reutiliza la traza de `decision_en_vivo`
-(`app/ui_rules.py`): NO re-clasifica (prohibido `L.classify`) y NO incluye
+(`app/lib/ui_rules.py`): NO re-clasifica (prohibido `classify`) y NO incluye
 `X_raw` (numpy, no JSON). `debe_notificar` decide el dedupe por fingerprint:
 HANGAR, INSPECCION y APTO notifican por POST (apto llega a la rama Set log
 de n8n); SIN_DECISION nunca notifica.
 """
 from __future__ import annotations
 
-from app.lib import ui_data_loader as L
+from app.lib import _constantes
 
-UMBRALES_DEFECTO = {"apto": L.DEFAULT_AIRWORTHY, "hangar": L.DEFAULT_AOG}
+UMBRALES_DEFECTO = {"apto": _constantes.DEFAULT_AIRWORTHY,
+                    "hangar": _constantes.DEFAULT_AOG}
 DECISIONES_QUE_NOTIFICAN = ("HANGAR", "INSPECCION", "APTO")
 
 

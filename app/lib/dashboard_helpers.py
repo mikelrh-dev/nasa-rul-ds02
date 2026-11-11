@@ -1,14 +1,15 @@
 """Pure helpers for the app-ux-bundle-fix (no Streamlit).
 
-Kept separate from `dashboard_ds02.py` so the CSV builders, the queue filter and
-the 6-rule view can be unit-tested without launching the app.
+Kept separate from the dashboard so the CSV builders, the queue filter and
+the 6-rule view can be unit-tested without launching the app. The thresholds
+come from `app/lib/_constantes.py`, so this module stays Streamlit-free.
 """
 from __future__ import annotations
 
 import pandas as pd
 
+from app.lib import _constantes
 from app.lib import hangar as HGR
-from app.lib import ui_data_loader as L
 
 
 def contraste_csv(raw: pd.DataFrame, corrected: pd.DataFrame) -> str:
@@ -69,5 +70,6 @@ def probar_n8n() -> dict:
          "alertas": [],
          "traza": {"decision": "APTO", "usadas": ["R7_APTO"],
                    "porque": ["test de conexión del panel n8n"]}},
-        {"apto": L.DEFAULT_AIRWORTHY, "hangar": L.DEFAULT_AOG}, "", "test-panel", unidad=14)
+        {"apto": _constantes.DEFAULT_AIRWORTHY, "hangar": _constantes.DEFAULT_AOG},
+        "", "test-panel", unidad=14)
     return N8N.enviar_decision("APTO", prueba)

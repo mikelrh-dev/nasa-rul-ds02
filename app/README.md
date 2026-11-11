@@ -19,7 +19,7 @@ Contexto       lib/context.py                  AppCtx: un objeto en vez de 18-29
 Barra lateral  ui/_sidebar.py                  devuelve SidebarState (unidad elegida)
 Pestañas       ui/_tab_*.py                    fragmentos de Streamlit
 Tema           lib/theme.py                    dueno unico de tokens, `chart_layout`, `style_axes`, `fig_deriva`
-Estado puro    lib/flota.py lib/hangar.py lib/twin.py lib/ui_alta.py lib/simulacion.py
+| Estado/registro lib/flota.py lib/hangar.py lib/twin.py lib/ui_alta.py lib/simulacion.py
 Datos/modelo   lib/ui_data_loader.py lib/ui_inference.py lib/ui_shap.py lib/ui_rules.py
 Presentacion   lib/dashboard_helpers.py lib/pdf_partes.py lib/ui_batch.py lib/ui_n8n.py
 API            services/api.py
@@ -32,8 +32,10 @@ API            services/api.py
 | `entrypoints/streamlit_app.py` | Entry point de la rúbrica: secretos, `sys.modules.pop` para el rerun y `import app.entrypoints.dashboard_ds02`. |
 | `entrypoints/dashboard_ds02.py` | Orquestador: carga la caché, construye `AppCtx`, monta sidebar y las 4 pestañas. |
 | `lib/context.py` | `AppCtx`: transporte único de datos, estado y helpers hacia las pestañas. |
+| `lib/_constantes.py` | Dueño único de los umbrales 30/25 (ADR-008), sin Streamlit. |
 | `lib/theme.py` | Dueño único de los design tokens y helpers de Plotly (`chart_layout`, `style_axes`, `fig_deriva`). |
 | `ui/__init__.py` | Fachada del paquete; re-exporta `_sha256_cached`. |
+| `ui/_paneles.py` | Paneles compartidos: `preflight_panel`, `shap_panel` y las tarjetas del muro. |
 | `ui/_sidebar.py` | Barra lateral: vista, unidad de test, reloj y altas de flota. Devuelve `SidebarState`. |
 | `ui/_tab_flota.py` | Pestaña Flota: muro del hangar, tarjetas, cola y descargas. |
 | `ui/_tab_motor.py` | Pestaña Motor: curva, banda, alarmas, SHAP y órdenes de un motor. |
@@ -51,6 +53,8 @@ API            services/api.py
 | `lib/ui_batch.py` | Ingesta por lotes desde CSV (varios motores). |
 | `lib/ui_n8n.py` | Construye el payload y llama al webhook de n8n. |
 | `lib/simulacion.py` | Simulación «qué pasaría si» sobre la flota. |
+| `lib/sandbox.py` | Puntuación del tramo del sandbox (preflight + score + decisión), cacheada. |
+| `lib/informe_auditoria.py` | Informe de auditoría en PDF: las dos tablas que pide un tribunal. |
 | `lib/pdf_partes.py` | Genera el parte de trabajo en PDF. |
 | `lib/dashboard_helpers.py` | Helpers puros sin Streamlit: CSV de contraste/trayectoria, cola filtrada, vista de reglas, sonda n8n. |
 | `services/api.py` | API FastAPI (`/predict`, `/units`) con token e idempotencia. |

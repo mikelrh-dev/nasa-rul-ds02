@@ -18,9 +18,7 @@ import streamlit as st
 
 from app import _paths
 
-APP_DIR = str(_paths.APP_DIR)
 ROOT = str(_paths.ROOT)
-SRC = str(_paths.SRC_DIR)
 ARTIFACT = str(_paths.ARTIFACT_PATH)
 
 from app.lib import twin as T  # noqa: E402

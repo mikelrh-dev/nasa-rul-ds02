@@ -23,11 +23,6 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from app import _paths
-
-APP_DIR = str(_paths.APP_DIR)
-ROOT = str(_paths.ROOT)
-
 from src.mia import motor as M  # noqa: E402
 from src.mia import reglas as R  # noqa: E402
 

@@ -9,13 +9,13 @@ Dashboard-owned globals (`snapshot`/`unit`/`curves`/`telemetry`/`order`/
 `curve`/`per_unit`/`unit_metrics`/`alarm_cycle`/`truth_cycle`/`current`/
 `_wu`/`coverage`/`critical_start`/`max_life` and the helpers
 `_etiqueta_unidad`/`_registro`/`chart_layout`/`style_axes`/`shap_panel`/
-`fig_deriva`/`st_badge_estado`) are passed by the dashboard, which keeps the
-module-level `windows`/`telemetry`/`frame_cache` hot path (ttl=3600,
-corregir+decidir) byte-identical. The fallback import of `dashboard_ds02`
-is lazy, inside the fragment, and only fills in what a standalone caller
-omitted (never at import time, so there is no circular import, and no
-TensorFlow import: every import here is pandas/plotly + the rules layer
-via `ui_*`/`flota`/`hangar`).
+`fig_deriva`/`st_badge_estado`) travel inside the `AppCtx` built by
+`app/entrypoints/dashboard_ds02.py`, which keeps the module-level
+`windows`/`telemetry`/`frame_cache` hot path (ttl=3600, corregir+decidir)
+byte-identical. There is no fallback import of the dashboard: the context is
+the only source, so there is no circular import and no TensorFlow import
+(every import here is pandas/plotly + the rules layer via
+`ui_*`/`flota`/`hangar`).
 
 `frame_cache` (ttl=3600), the ola-2 SHAP cache and the PDF
 `artefacto_sha256` signature are untouched: this module only reads the

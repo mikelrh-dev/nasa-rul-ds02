@@ -30,19 +30,28 @@ import pandas as pd
 import streamlit as st
 
 # Bootstrap de paquete: este entrypoint vive en app/entrypoints/, asi que
-# parents[2] es la raiz del repo. Es el UNICO sys.path.insert de app/.
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
+# parents[2] es la raiz del repo. Es el UNICO sys.path.insert de app/ y el
+# unico `__file__` admitido: sirve solo para poder importar `app`.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app import _paths  # noqa: E402
+
+# El ROOT que usa la app sale de `_paths`, no de la aritmetica de `__file__`.
+ROOT = _paths.ROOT
+
 from app.lib import flota as F  # noqa: E402
 from app.lib import hangar as HGR  # noqa: E402
-from app.lib import twin as T  # noqa: E402
 from app.lib import ui_alta as A  # noqa: E402
 from app.lib import ui_data_loader as L  # noqa: E402
-from app.lib import ui_inference as INF  # noqa: E402
 from app.lib import ui_rules as UR  # noqa: E402
+from app.lib.informe_auditoria import _informe_pdf_cached  # noqa: E402
+from app.lib.sandbox import _sandbox_puntua_cached  # noqa: E402
 from app.ui import _sha256_cached  # noqa: E402
+from app.ui._paneles import (  # noqa: E402
+    preflight_panel, shap_panel,
+    tarjetas_cache as _tarjetas_cache_fn,
+    tarjetas_gemelos as _tarjetas_gemelos_fn,
+)
 
 # Estado de sesión en un solo sitio: gemelos y registros de hangar.
 # Se cargan de disco una sola vez: recargar la página ya no borra la flota.
@@ -225,26 +234,6 @@ def _log(mensaje: str) -> None:
     st.session_state["_sesion_log"] = log
 
 
-def _preflight_panel(pf: dict) -> None:
-    """Resumen del pre-vuelo: lo que se sabe sin cargar el modelo.
-
-    Se pinta antes de pulsar «Evaluar» para que un CSV mal formado se vea en
-    milisegundos y no después de cargar TensorFlow.
-    """
-    if not pf["ok"]:
-        st.error(pf["error"], title="La tabla no se puede puntuar",
-                 icon=":material/rule:")
-        return
-    with st.container(horizontal=True):
-        st.metric("Filas", L.fmt_miles(pf['filas']), border=True, delta_color="off",
-                  icon=":material/table_rows:")
-        st.metric("Ventanas", L.fmt_miles(pf['ventanas']), border=True, delta_color="off",
-                  icon=":material/layers:")
-        st.metric("Huella", pf["fingerprint"][:8], "SHA-256 de la tabla",
-                  border=True, delta_color="off", icon=":material/fingerprint:")
-    for aviso in pf["avisos"]:
-        st.warning(aviso, icon=":material/find_in_page:")
-
 # Design tokens y helpers de Plotly: dueno `theme.py`.
 from app.lib.theme import (  # noqa: E402
     BADGE_COLOR, BADGE_ICON, chart_layout, style_axes, fig_deriva,
@@ -265,105 +254,27 @@ def st_badge_estado(estado: str) -> None:
 # `OSError -> None` intactos.
 
 # Flota (PR3, dashboard-split-monolito 2.2): dueño
-# `app.ui._tab_flota`; aquí se delega desde el wrapper `_tab_flota`
-# (la pestaña sigue llamándose `_tab_flota()` con los globales del
-# dashboard: `frame_cache` ttl=3600, SHAP cache y PDF
-# `artefacto_sha256` intactos en este fichero).
+# `app.ui._tab_flota`; aquí se delega desde el wrapper `_tab_flota`.
+# La caché de marco (`frame_cache`, ttl=3600) sigue aquí; los paneles y el
+# PDF viven en `app/ui/` y `app/lib/`.
 from app.ui._tab_flota import _tab_flota as _tab_flota_impl
 
 # Motor (PR4, dashboard-split-monolito 2.3): dueno
-# `app.ui._tab_motor`; aqui se delega desde el wrapper `_tab_motor`
-# (la pestana sigue llamandose `_tab_motor()` con los globales del
-# dashboard: `frame_cache` ttl=3600, SHAP cache y PDF
-# `artefacto_sha256` intactos en este fichero).
+# `app.ui._tab_motor`; aqui se delega desde el wrapper `_tab_motor`.
+# La caché de marco (`frame_cache`, ttl=3600) sigue aquí; los paneles y el
+# PDF viven en `app/ui/` y `app/lib/`.
 from app.ui._tab_motor import _tab_motor as _tab_motor_impl
 
 # Auditoria (PR5, dashboard-split-monolito 2.4): dueno
 # `app.ui._tab_auditoria`; aqui se delega desde el wrapper
-# `_tab_auditoria` (la pestana sigue llamandose `_tab_auditoria()` con los
-# globales del dashboard: `frame_cache` ttl=3600, SHAP cache y PDF
-# `artefacto_sha256` intactos en este fichero).
+# `_tab_auditoria`. La caché de marco (`frame_cache`, ttl=3600) sigue aquí;
+# el informe PDF vive en `app/lib/informe_auditoria.py`.
 from app.ui._tab_auditoria import _tab_auditoria as _tab_auditoria_impl
 
 
 # Casos nuevos (B1): dueno `app.ui._tab_casos`; el dashboard solo
 # construye el contexto y lo pasa.
 from app.ui._tab_casos import _tab_casos as _tab_casos_impl
-
-def shap_panel(unit: int, suffix: str = "motor") -> None:
-    """Panel SHAP unificado: top features + waterfall Plotly.
-
-    Sustituye a los dos bloques SHAP duplicados (Motor y Casos nuevos): una
-    sola definición, dos call sites con claves de botón distintas.
-    """
-    try:
-        from app.lib import ui_shap as USH
-    except ImportError:
-        st.info(
-            "SHAP no instalado: `app.lib.ui_shap` no está en el entorno. Instala el "
-            "paquete con `pip install shap` y recarga. El resto de la app "
-            "sigue funcionando sin explicabilidad.",
-            icon=":material/info:",
-        )
-        return
-
-    if st.button(
-        "Calcular SHAP para este motor",
-        icon=":material/psychology:",
-        key=f"btn_shap_{suffix}",
-        help="Calcula las contribuciones exactas del LightGBM del híbrido "
-             "(TreeExplainer) para la última ventana del motor.",
-    ):
-        try:
-            _shap_df = USH.shap_top_features(int(unit), top_k=10)
-        except ImportError:
-            st.info(
-                "SHAP no instalado: falta el paquete `shap` (`pip install shap`). "
-                "Sin él no se puede explicar la predicción.",
-                icon=":material/info:",
-            )
-            return
-        except Exception as _e:
-            st.warning(f"No se pudo calcular SHAP: {_e}", icon=":material/warning:")
-            return
-        if _shap_df is not None and not _shap_df.empty:
-            import plotly.express as px
-
-            _fig_shap = px.bar(
-                _shap_df.sort_values("abs_shap"),
-                x="abs_shap", y="feature", orientation="h",
-                labels={"abs_shap": "mean |SHAP| (ciclos RUL)",
-                        "feature": "feature"},
-                title=f"Top-10 features · motor {int(unit)}",
-            )
-            _fig_shap.update_layout(**chart_layout(height=360))
-            st.plotly_chart(
-                _fig_shap, use_container_width=True,
-                alt=f"Top-10 contribuciones SHAP del motor {int(unit)}.",
-            )
-            st.dataframe(_shap_df, use_container_width=True, hide_index=True)
-            try:
-                _wf_fig = USH.shap_waterfall_fig(int(unit), max_display=12)
-            except ImportError:
-                st.info(
-                    "SHAP no instalado: falta el paquete `shap` (`pip install shap`).",
-                    icon=":material/info:",
-                )
-                return
-            except Exception as _e2:
-                st.warning(f"No se pudo generar el waterfall: {_e2}",
-                           icon=":material/warning:")
-                return
-            _wf_fig.update_layout(**chart_layout(height=420))
-            style_axes(_wf_fig, x_title="feature", y_title="contribución")
-            st.plotly_chart(
-                _wf_fig, use_container_width=True,
-                alt=f"SHAP waterfall del motor {int(unit)}.",
-            )
-        else:
-            st.info("Sin datos suficientes para calcular SHAP.",
-                    icon=":material/info:")
-
 
 st.set_page_config(
     page_title="DS02 · Soporte a la decisión",
@@ -550,80 +461,12 @@ gemelos = st.session_state.get("twins", {})
 registros = st.session_state.get("hangar", {})
 
 
-def _tarjetas_gemelos() -> list[dict]:
-    """Una tarjeta por gemelo registrado, con el estado recalculado hoy.
-
-    El gemelo es flota registrada, pero su clave es el `engine_id` y su serie
-    vive en el gemelo, no en la caché: por eso `snapshot` (que sale de `frame`)
-    no lo veia. Sin esta lista, registrar un motor y volver al muro no mostraba
-    nada nuevo.
-
-    El estado no se guarda: se deriva de la serie guardada con los umbrales en
-    vigor (`twin.ciclo_a_ciclo`), igual que la tabla de gemelos.
-    """
-    tarjetas = []
-    usadas = {f"muro_gemelo_{int(u)}" for u in unidades_vistas}
-    _matriculas_altas = {a["matricula"] for a in _altas()}
-    for gemelo_id, gemelo in gemelos.items():
-        # El alta ya aparece en `tarjetas_cache` via `frame_con_altas`: no se
-        # duplica en el muro (sigue en Gemelos registrados). Sin este filtro,
-        # 1 Incorporar = 2 tarjetas (3->5).
-        if gemelo_id in _matriculas_altas:
-            continue
-        curva = T.ciclo_a_ciclo(gemelo, umbrales)
-        if curva.empty:
-            continue
-        # La sparkline del muro dibuja `lower`; la curva del gemelo la llama
-        # `lower_media`. Se homogenea aqui para que el muro no pregunte de donde
-        # salio la tarjeta.
-        curva["lower"] = curva["lower_media"]
-        ultima = curva.iloc[-1]
-        clave = f"muro_gemelo_{_slug_motor(gemelo_id)}"
-        # Dos ids que slugen igual ("A B" y "A_B") no pueden compartir boton:
-        # Streamlit rechaza la clave duplicada y cae la pagina entera.
-        while clave in usadas:
-            clave += "_"
-        usadas.add(clave)
-        tarjetas.append({
-            "orden_unidad": (1, str(gemelo_id)),
-            "etiqueta": str(gemelo_id),
-            "estado": str(ultima["decision"]),
-            "pred": float(ultima["pred"]),
-            "lower": float(ultima["lower_min"]),
-            "curva": curva,
-            "ciclo_tarjeta": int(ultima["cycle"]),
-            "clave_boton": clave,
-            "gemelo": str(gemelo_id),
-        })
-    return tarjetas
-
-
-tarjetas_gemelos = _tarjetas_gemelos()
+tarjetas_gemelos = _tarjetas_gemelos_fn(
+    gemelos, unidades_vistas, umbrales, _altas, _slug_motor)
 derivados_gemelos = sum(1 for t in tarjetas_gemelos if t["estado"] == L.AOG)
 
-
-def _tarjetas_cache() -> list[dict]:
-    """Una tarjeta por unidad de la flota visible: caché y altas."""
-    tarjetas = []
-    for u in unidades_vistas:
-        fila = snapshot[snapshot["unit"] == u].iloc[0]
-        _scored = fila["scored_cycle"]
-        tarjetas.append({
-            "orden_unidad": (0, int(u)),
-            "etiqueta": _etiqueta_unidad(float(u)),
-            "estado": str(fila["state"]),
-            "pred": fila["pred"],
-            "lower": fila["lower"],
-            "curva": curves[u],
-            "ciclo_tarjeta": int(_scored) if pd.notna(_scored) else int(cycle),
-            "clave_boton": f"muro_gemelo_{int(u)}",
-            "gemelo": None,
-            "unidad": int(u),
-        })
-    return tarjetas
-
-
-tarjetas_cache = _tarjetas_cache()
+tarjetas_cache = _tarjetas_cache_fn(
+    snapshot, curves, unidades_vistas, cycle, _etiqueta_unidad, _slug_motor)
 curve = curves[int(unit)]
 per_unit = L.per_unit_metrics(frame_cache)
 unit_metrics = (per_unit[per_unit["unit"] == unit].iloc[0]
@@ -697,161 +540,12 @@ with st.container(border=True):
         f"en el muro, sobre {_total_muro} tarjetas."
     )
 
-# P1.4 · Inferencia del sandbox cacheada por (unit, deriva, umbrales). Antes
-# cada movimiento del deslizador re-ejecutaba preflight + score_table (~5,89 s)
-# aunque el estado fuera el mismo que la vez anterior. `tramo_sig` es el sha
-# de provenance (`_cache_sha`): si la caché se regenera, la clave cambia y el
-# tramo se re-puntúa. Devuelve el resultado ya decidido, sin tocar `st`.
+# P1.4 · La inferencia del sandbox cacheada vive en `app/lib/sandbox.py`
+# (`_sandbox_puntua_cached`): el entrypoint la importa y la pasa por `AppCtx`.
 
-
-@st.cache_data(ttl=3600, show_spinner="Re-puntuando tramo con el artefacto…")
-def _sandbox_puntua_cached(
-    unit: int, deriva_pct: int, apto: float, hangar: float, tramo_sig: str,
-    sensor: str = "T48",
-) -> tuple:
-    """Preflight + puntuación + decisión del tramo perturbado (una vez por clave).
-
-    Devuelve `(ok, error, avisos, dec, ventas)`: `dec` es el frame decidido por
-    ventana (o `None` si no puntuó). Los errores de validación/puntuación se
-    devuelven como valores, no se lanzan, para que el fragment los pinte igual
-    que antes.
-    """
-    _umb = {"apto": float(apto), "hangar": float(hangar)}
-    _cur_sbx = L.unit_curve(windows, int(unit))
-    _c_inicio = int(_cur_sbx["cycle"].min())
-    _bajo = _cur_sbx[_cur_sbx["lower_min"] < _umb["hangar"]]
-    _c_fin = (int(_bajo["cycle"].min()) if not _bajo.empty
-              else int(_cur_sbx["cycle"].max()))
-    _tramo = telemetry[(telemetry["unit"] == int(unit))
-                       & (telemetry["cycle"] >= _c_inicio)
-                       & (telemetry["cycle"] <= _c_fin)].reset_index(drop=True)
-    _tab = _tramo[["cycle"] + INF.channel_order()].copy()
-    _deriva = float(int(deriva_pct)) / 100.0
-    _tab[sensor] = _tab[sensor].astype(float) * (
-        1.0 + _deriva * np.linspace(0.0, 1.0, len(_tab)))
-    _pf = INF.preflight(_tab)
-    if not _pf["ok"]:
-        return (False, _pf["error"], tuple(_pf["avisos"]), None, 0)
-    try:
-        _win = INF.score_table(_tab, engine_id=f"ESN-SBX-{int(unit)}")["windows"]
-    except ValueError as exc:
-        return (False, str(exc), tuple(_pf["avisos"]), None, 0)
-    return (True, None, tuple(_pf["avisos"]),
-            UR.decidir_ventanas(_win, _umb), int(len(_win)))
-
-
-
-
-def _informe_auditoria_pdf(
-    windows: pd.DataFrame,
-    curves: dict,
-    unidades: list,
-    threshold_apto: float,
-    threshold_aog: float,
-    provenance: dict,
-    critical_mae: float,
-) -> bytes:
-    """Informe de auditoría en PDF: las dos tablas que un tribunal pide.
-
-    Congela la huella del artefacto y las tablas de Evidencia, para que el papel
-    y la pantalla digan lo mismo. No recalcula el modelo: reusa las series ya
-    puntuadas de la caché.
-    """
-    from fpdf import FPDF
-
-    # Dueño unico de la traduccion latin-1: `pdf_partes`. Import local para que
-    # la funcion siga siendo autocontenida (los tests la extraen con `exec`).
-    from app.lib.pdf_partes import _latin1
-
-    pdf = FPDF(orientation="P", unit="mm", format="A4")
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
-
-    pdf.set_font("helvetica", "B", 16)
-    pdf.cell(0, 10, "Informe de auditoria - RUL DS02", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font("helvetica", size=10)
-    pdf.cell(0, 6,
-             f"Politica en vigor: apto si L_inf >= {threshold_apto:.0f} | "
-             f"inspeccion si {threshold_aog:.0f} <= L_inf < {threshold_apto:.0f} | "
-             f"hangar si L_inf < {threshold_aog:.0f}",
-             new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 6,
-             f"Artefacto congelado SHA-256: {provenance['artifact']['ensemble_sha256']}",
-             new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 6,
-             f"MAE en zona critica (RUL real < {threshold_aog:.0f}): "
-             f"{critical_mae:.2f} ciclos",
-             new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(4)
-
-    pdf.set_font("helvetica", "B", 12)
-    pdf.cell(0, 8, "Precision por tramo de vida (MAE sobre RUL real)",
-             new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font("helvetica", "B", 10)
-    for ancho, txt in ((35, "Tramo"), (30, "Ventanas"), (30, "MAE"), (30, "Sesgo")):
-        pdf.cell(ancho, 7, txt, border=1, align="C")
-    pdf.ln()
-    pdf.set_font("helvetica", size=10)
-    for r in L.mae_by_band(windows).itertuples():
-        pdf.cell(35, 7, _latin1(r.band), border=1)
-        pdf.cell(30, 7, f"{int(r.windows)}", border=1, align="R")
-        pdf.cell(30, 7, "n/a" if pd.isna(r.mae) else f"{r.mae:.3f}", border=1, align="R")
-        pdf.cell(30, 7, "n/a" if pd.isna(r.bias) else f"{r.bias:+.3f}", border=1, align="R")
-        pdf.ln()
-    pdf.ln(4)
-
-    pdf.set_font("helvetica", "B", 12)
-    pdf.cell(0, 8, "Alarma vs. verdad (adelanto por motor)",
-             new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font("helvetica", "B", 10)
-    for ancho, txt in ((30, "Motor"), (40, "Alarma"), (40, "RUL real < umbral"),
-                       (35, "Adelanto")):
-        pdf.cell(ancho, 7, txt, border=1, align="C")
-    pdf.ln()
-    pdf.set_font("helvetica", size=10)
-    for u in unidades:
-        a, t = L.first_alarm_cycle(curves[u], threshold_aog)
-        pdf.cell(30, 7, f"U{int(u)}", border=1)
-        pdf.cell(40, 7, "-" if a is None else str(int(a)), border=1, align="R")
-        pdf.cell(40, 7, "-" if t is None else str(int(t)), border=1, align="R")
-        pdf.cell(35, 7, "-" if (a is None or t is None) else str(int(t - a)),
-                 border=1, align="R")
-        pdf.ln()
-    pdf.ln(4)
-
-    pdf.set_font("helvetica", "I", 8)
-    pdf.multi_cell(
-        0, 5,
-        "La banda conformal es la de la serie guardada: no se recalibra al mover los "
-        "umbrales, porque la calibracion es parte del artefacto congelado. La decision "
-        "la toma el limite inferior de la banda, no la prediccion puntual (ADR-008).")
-    return bytes(pdf.output())
-
-
-@st.cache_data(ttl=3600, show_spinner="Generando informe de auditoría…")
-def _informe_pdf_cached(
-    threshold_apto: float,
-    threshold_aog: float,
-    critical_mae: float,
-    ensemble_sha256: str,
-    windows_sig: str,
-    aplicar_reglas: bool = False,
-    pdf_version: str = "",
-) -> bytes:
-    """Constructor cacheado del PDF de auditoría.
-
-    Lee los globales de la app (`windows`, `curves`, `unidades_vistas`,
-    `provenance`): la clave son escalares (umbrales, SHA, firma de caché,
-    aplicar_reglas y versión de manifest), así que no hay que hashear
-    DataFrames en cada render. P1.3: `aplicar_reglas` y `pdf_version`
-    (curvas/alarmas vía `windows_sig` + versión del manifest) cierran el
-    PDF stale al mover umbrales o activar la corrección.
-    """
-    return _informe_auditoria_pdf(
-        windows, curves, unidades_vistas,
-        threshold_apto, threshold_aog, provenance, critical_mae,
-    )
-
+# El informe de auditoría en PDF vive en `app/lib/informe_auditoria.py`
+# (`_informe_auditoria_pdf` + `_informe_pdf_cached`): el entrypoint importa el
+# constructor cacheado y lo pasa por `AppCtx`.
 
 # La vista la escribe el widget de la barra lateral; aquí solo se lee. Turno
 # esconde en Flota el material de demo y de auditoría.
@@ -882,7 +576,7 @@ ctx = AppCtx(
     style_axes=style_axes, fig_deriva=fig_deriva, shap_panel=shap_panel,
     st_badge_estado=st_badge_estado, sha256_cached=_sha256_cached,
     informe_pdf_cached=_informe_pdf_cached, log=_log,
-    preflight_panel=_preflight_panel,
+    preflight_panel=preflight_panel,
     sandbox_puntua_cached=_sandbox_puntua_cached, cache_sha=_cache_sha,
 )
 

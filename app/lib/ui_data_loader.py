@@ -24,8 +24,8 @@ import pandas as pd
 import streamlit as st
 
 from app import _paths
+from app.lib import _constantes
 
-APP_DIR = str(_paths.APP_DIR)
 ROOT = str(_paths.ROOT)
 CACHE_DIR = str(_paths.CACHE_DIR)
 WINDOWS_PATH = str(_paths.WINDOWS_PATH)
@@ -46,8 +46,10 @@ NO_DATA = "SIN_DATOS"
 # es "no se decide". Se mantiene distinto para que la UI no los confunda.
 SIN_DECISION = "SIN_DECISION"
 
-DEFAULT_AIRWORTHY = 30.0
-DEFAULT_AOG = 25.0
+# Dueño único de los umbrales: `app/lib/_constantes.py`. Se re-exportan aquí
+# para que `L.DEFAULT_AIRWORTHY` / `L.DEFAULT_AOG` sigan funcionando.
+DEFAULT_AIRWORTHY = _constantes.DEFAULT_AIRWORTHY
+DEFAULT_AOG = _constantes.DEFAULT_AOG
 
 # Símbolo por estado: el color nunca va solo (daltónicos y pantallas malas).
 STATE_SYMBOLS = {

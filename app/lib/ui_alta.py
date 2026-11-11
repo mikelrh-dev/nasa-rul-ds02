@@ -1,14 +1,15 @@
 """Alta rápida y estado demo: mapeo puro perfil -> (unidad, ciclo), sin Streamlit.
 
 Este módulo no importa Streamlit para poder probarlo sin levantar la app
-(misma convención que `twin.py` y `hangar.py`).
+(misma convención que `twin.py` y `hangar.py`). Los umbrales salen de
+`app/lib/_constantes.py`, que tampoco importa Streamlit.
 """
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 
-from app.lib import ui_data_loader as L
+from app.lib import _constantes
 from app.lib import ui_rules as UR
 
 # Rango negativo reservado: nunca colisiona con caché (11/14/15),
@@ -87,7 +88,8 @@ def frame_con_altas(
 
 def estado_demo() -> dict:
     """Estado exacto desde el que se cuenta la historia: 30/25, ciclo 29, U14."""
-    return {"umbrales": (L.DEFAULT_AIRWORTHY, L.DEFAULT_AOG), "ciclo": 29, "unidad": 14}
+    return {"umbrales": (_constantes.DEFAULT_AIRWORTHY, _constantes.DEFAULT_AOG),
+            "ciclo": 29, "unidad": 14}
 
 
 def estado_historia(windows: pd.DataFrame, umbrales: dict) -> list[dict]:

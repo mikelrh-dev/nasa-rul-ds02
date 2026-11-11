@@ -540,15 +540,15 @@ Rutas que el framework debe mirar aquí, sin sustituir los bloques:
 | A | `git ls-files`, `app/`, `src/{clase,ds02_rul,mia}`, `tests/`, `scripts/`, `notebooks/`, `docs/`, `MLProyectVault/`, `archive/` |
 | B | `pyproject.toml`, `requirements.txt`, `.python-version`, `.venv`, `.github/workflows/ci.yml` |
 | C | n/a: el proyecto no llevará contenedores (decisión 2026-11-07); mirar `.github/workflows/ci.yml` |
-| D | `src/ds02_rul/*`, `src/clase/*`, `app/ui_modulos/*`, `src/utils.py`, `src/reglas.py` |
+| D | `src/ds02_rul/*`, `src/clase/*`, `app/ui/*`, `src/utils.py`, `src/reglas.py` |
 | E | `src/clase/dataset_clase.py`, `src/ds02_rul/{data,features,residualizer,pipeline}.py`, `data/processed/auditoria_nulos.json` |
 | F | `src/ds02_rul/{model,stacking,ensemble,smoothing,conformal,metrics}.py`, `src/clase/train_*` |
 | G | `models/ds02_manifest.json`, `resultados/*.csv`, `README.md`, `docs/informes/`, `MLProyectVault/50-Evidencia/e00-cifras-autoritativas.md` |
 | H | `models/README.md`, `src/ds02_rul/persistence.py`, `app/cache/cache_manifest.json`, `src/mia/instrumento_oof.npz` (instrumento OOF versionado, ADR-012) |
 | I | `src/mia/{reglas,motor,casos,modelo}.py`, `src/mia/calibracion_banda.json`, `models/alarm_policy.json` |
-| J | `app/api.py`, `tests/test_security_api.py` |
-| K | `app/{dashboard_ds02,streamlit_app,ui_*}.py`, `app/ui_modulos/*`, `app/registros_sesiones*` |
-| L | `n8n/`, `src/n8n.py`, `app/ui_n8n.py`, `tests/test_n8n_decision.py` |
+| J | `app/services/api.py`, `tests/test_security_api.py` |
+| K | `app/entrypoints/{dashboard_ds02,streamlit_app}.py`, `app/ui/_*.py`, `app/registros_sesiones*` |
+| L | `n8n/`, `src/n8n.py`, `app/lib/ui_n8n.py`, `tests/test_n8n_decision.py` |
 | M | `tests/` (38 ficheros), `scripts/verify_gate.py`, `scripts/freeze_rules_evidence.py`, `scripts/freeze_oof_instrument.py` |
 | N | `README.md`, `README.en.md`, `docs/`, `openspec/`, `src/clase/README.md`, `scripts/README.md` |
 | O | `costes_reales_aeronauticos.md`, `docs/informe_estrat_gico_y_arquitectura_mro_ds02.md`, `models/psi_reference.json` |

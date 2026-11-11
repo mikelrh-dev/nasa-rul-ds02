@@ -428,8 +428,6 @@ def test_el_informe_de_auditoria_es_un_pdf_descargable():
     P1 (mejoras-streamlit): el PDF se genera al pulsar «Generar informe», no en
     cada render; el test pulsa ese botón antes de buscar la descarga.
     """
-    import ast
-
     app = _app()
     app.run()
     assert not app.exception, app.exception
@@ -445,20 +443,12 @@ def test_el_informe_de_auditoria_es_un_pdf_descargable():
     etiquetas = [b.proto.label or "" for b in app.download_button]
     assert any("auditor" in e.lower() and "pdf" in e.lower() for e in etiquetas), etiquetas
 
-    # Se extrae la función real del dashboard y se valida su salida.
-    src = open(DASHBOARD, encoding="utf-8").read()
-    fn = next(
-        n for n in ast.parse(src).body
-        if isinstance(n, ast.FunctionDef) and n.name == "_informe_auditoria_pdf"
-    )
-    import pandas as pd
-
-    ns: dict = {"pd": pd, "L": L}
-    exec(compile(ast.Module(body=[fn], type_ignores=[]), "<fn>", "exec"), ns)
+    # La función real vive en `app/lib/informe_auditoria.py`; se valida su salida.
+    from app.lib.informe_auditoria import _informe_auditoria_pdf
 
     windows = L.get_windows()
     curves = {int(u): L.unit_curve(windows, int(u)) for u in windows["unit"].unique()}
-    data = ns["_informe_auditoria_pdf"](
+    data = _informe_auditoria_pdf(
         windows, curves, sorted(curves), 30.0, 25.0,
         L.get_provenance(), L.critical_zone_mae(windows, 25.0),
     )

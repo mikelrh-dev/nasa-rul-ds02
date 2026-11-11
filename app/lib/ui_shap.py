@@ -15,12 +15,6 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from app import _paths
-
-APP_DIR = str(_paths.APP_DIR)
-ROOT = str(_paths.ROOT)
-SRC = str(_paths.SRC_DIR)
-
 from app.lib import ui_data_loader as L  # noqa: E402
 from app.lib import ui_inference as INF  # noqa: E402
 

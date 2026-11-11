@@ -11,8 +11,9 @@ while live scoring uses `step=1`. Measured on U14 at cycle 76: 0,6692 live
 against 0,8654 cached. Making the wall and the twin disagree about the same
 engine would cost the traceability this project sells.
 
-Pure: no Streamlit import, so the turn loop is testable without a server — the
-same convention as `twin.py`, `hangar.py`, `flota.py` and `ui_alta.py`.
+No es un módulo puro: importa `flota`, que a su vez importa `ui_data_loader`
+(Streamlit). El bucle de turnos no escribe y se testea con el runtime de
+Streamlit.
 """
 from __future__ import annotations
 

@@ -786,7 +786,7 @@ readable.
 | 6 | Pin the execution environment and re-run inside it | **Closed** | `.venv` (Python 3.12.10) registered as the `ds02-venv` kernel and used for the re-run recorded here |
 | 7 | Measure the branch error complementarity | **Closed** | the meta-learner now splits its weight across both branches (LightGBM 0.79, BiLSTM 0.12 of the ridge weight; importances `[148, 572]`) — a measurement, not an inference |
 | 8 | Make `units` mandatory in the inference API | **Closed** | `units=None` raises a `UserWarning` naming the hazard instead of silently smoothing across engines |
-| 9 | Expose a DS02 inference entry point | **Closed** | `scripts/predict_ds02.py`, `app/api.py`, `app/dashboard.py` |
+| 9 | Expose a DS02 inference entry point | **Closed** | `scripts/predict_ds02.py`, `app/services/api.py`, `app/entrypoints/dashboard_ds02.py` |
 
 Three caveats are deliberately **not** listed as open items because they are
 properties of the design rather than defects, and all three are reported wherever

@@ -6,17 +6,16 @@ dashboard-globals resolution below. No behavior, metric or threshold change.
 
 Receives the single `AppCtx` built by the dashboard: `windows`, `telemetry`,
 `units`, `cache_sha`, `sandbox_puntua_cached`, `chart_layout`, `style_axes`
-and `st_badge_estado` are read from it. `_sandbox_puntua_cached` stays
-single-owner in `dashboard_ds02.py` (one `def` in `app/`); this module only
-reuses it through the context, so the scoring/preflight logic is not
-duplicated here and the module never imports the dashboard.
+and `st_badge_estado` are read from it. `_sandbox_puntua_cached` is owned by
+`app/lib/sandbox.py`; this module only reuses it through the context, so the
+scoring/preflight logic is not duplicated here and the module never imports
+the dashboard.
 
 `frame_cache` (ttl=3600), the SHAP cache and the PDF `artefacto_sha256`
 signature are untouched.
 """
 from __future__ import annotations
 
-import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -128,7 +127,7 @@ def _sandbox_estres(ctx: AppCtx) -> None:
         _ok, _error, _avisos, _dec, _ventanas = _sandbox_puntua_cached(
             int(_u_sbx), int(_deriva_pct),
             float(_umb_sbx["apto"]), float(_umb_sbx["hangar"]), _cache_sha,
-            _sensor_sbx,
+            _sensor_sbx, windows=windows, telemetry=telemetry,
         )
         if not _ok:
             st.error(_error, icon=":material/rule:")

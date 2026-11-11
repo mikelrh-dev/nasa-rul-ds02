@@ -13,6 +13,14 @@ def read_dash() -> str:
     return open(DASH, encoding="utf-8").read()
 
 
+def read_paneles() -> str:
+    return open(os.path.join(APP, "ui", "_paneles.py"), encoding="utf-8").read()
+
+
+def read_informe() -> str:
+    return open(os.path.join(APP, "lib", "informe_auditoria.py"), encoding="utf-8").read()
+
+
 def test_hash_cached_with_cache_data():
     src = read_dash()
     assert "@st.cache_data" in src
@@ -30,7 +38,7 @@ def test_hash_cached_with_cache_data():
 
 
 def test_pdf_cached_with_cache_data():
-    src = read_dash()
+    src = read_informe()
     assert "_informe_pdf_cached" in src
     # decorator precedes the def
     assert re.search(r"@st\.cache_data[\s\S]*?def _informe_pdf_cached", src)
@@ -55,7 +63,7 @@ def test_tabs_fragmented():
 
 
 def test_single_shap_panel():
-    src = read_dash()
+    src = read_paneles()
     assert src.count("def shap_panel") == 1
     assert "shap_panel(" in src
 
@@ -102,7 +110,7 @@ def test_score_table_has_timeout():
 
 
 def test_dashboard_friendly_shap_message():
-    src = read_dash()
+    src = read_paneles()
     assert "pip install" in src.lower()
     assert "ImportError" in src
 

@@ -31,11 +31,14 @@ import tomllib
 from pathlib import Path
 
 # Bootstrap de paquete: este entrypoint vive en app/entrypoints/, asi que
-# parents[2] es la raiz del repo. Es el UNICO sys.path.insert de app/.
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
+# parents[2] es la raiz del repo. Es el UNICO sys.path.insert de app/ y el
+# unico `__file__` admitido: sirve solo para poder importar `app`.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app import _paths  # noqa: E402
+
+# El ROOT que usa la app sale de `_paths`, no de la aritmetica de `__file__`.
+ROOT = _paths.ROOT
 
 # Carga .streamlit/secrets.toml en os.environ si no vienen por entorno.
 # Asi N8N_WEBHOOK_URL (y N8N_WEBHOOK_TOKEN si existe) quedan disponibles

@@ -6,8 +6,9 @@ dashboard las importa con `from app.ui import ...`.
 
 - `_sha256_cached` se re-exporta desde `app.lib.ui_data_loader` (unica definicion en `app/`).
 
-Los imports de aqui nunca cargan TensorFlow: el dueno solo usa pandas, numpy y la
-capa de reglas.
+Los imports de aquí nunca cargan TensorFlow: el dueño re-exporta
+`_sha256_cached` desde `app.lib.ui_data_loader`, que importa pandas, numpy y
+Streamlit (para cachear la lectura), no TensorFlow.
 """
 from __future__ import annotations
 

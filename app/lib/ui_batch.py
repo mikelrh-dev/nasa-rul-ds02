@@ -5,10 +5,10 @@ devuelve una fila por motor: predicción, banda y estado decidido por el límite
 inferior. No reentrena, no toca la caché y no inventa ground truth: los datos los
 aporta el usuario, así que no hay error que reportar.
 
-Sin Streamlit: el módulo no llama a ningún `st.*`, para poder probarlo sin
-levantar la app (misma convención que `twin.py`, `hangar.py` y `ui_alta.py`). El
-único camino al modelo y al validador es `ui_inference`: no hay un segundo
-validador ni una segunda llamada al artefacto.
+No llama a ningún `st.*`, pero importa `ui_data_loader` y `ui_inference`, que sí
+importan Streamlit: no es un módulo puro. El único camino al modelo y al
+validador es `ui_inference`: no hay un segundo validador ni una segunda llamada
+al artefacto.
 """
 from __future__ import annotations
 

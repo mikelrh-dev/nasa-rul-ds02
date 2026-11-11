@@ -1,6 +1,6 @@
 """FastAPI surface over the DS02 artifact.
 
-    uvicorn app.api:app --host 127.0.0.1 --port 8000
+    uvicorn app.services.api:app --host 127.0.0.1 --port 8000
     curl -X POST localhost:8000/predict -H 'content-type: application/json' \\
          -d '{"unit": 11, "window": 0}'
 

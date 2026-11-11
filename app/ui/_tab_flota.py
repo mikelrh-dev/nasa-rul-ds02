@@ -10,13 +10,13 @@ Dashboard-owned globals (`frame`/`frame_cache`/`snapshot`/`curves`/
 `windows`/`provenance`/`unit`/`cycle`/thresholds/`umbrales`/preset state/
 `banda_en_uso`/`correccion_en_uso`/`_vista_tribunal` and the helpers
 `_etiqueta_unidad`/`_registro`/`_slug_motor`/`_guardar_registros`/
-`chart_layout`/`style_axes`) are passed by the dashboard, which keeps the
-module-level `windows`/`telemetry`/`frame_cache` hot path (ttl=3600,
-corregir+decidir) byte-identical. The fallback import of `dashboard_ds02`
-is lazy, inside the fragment, and only fills in what a standalone caller
-omitted (never at import time, so there is no circular import, and no
-TensorFlow import: every import here is pandas/numpy/plotly + the rules
-layer via `ui_*`/`flota`/`hangar`/`twin`/`simulacion`/`pdf_partes`).
+`chart_layout`/`style_axes`) travel inside the `AppCtx` built by
+`app/entrypoints/dashboard_ds02.py`, which keeps the module-level
+`windows`/`telemetry`/`frame_cache` hot path (ttl=3600, corregir+decidir)
+byte-identical. There is no fallback import of the dashboard: the context is
+the only source, so there is no circular import and no TensorFlow import
+(every import here is pandas/numpy/plotly + the rules layer via
+`ui_*`/`flota`/`hangar`/`twin`/`simulacion`/`pdf_partes`).
 
 `frame_cache` (ttl=3600), the ola-2 SHAP cache and the PDF
 `artefacto_sha256` signature are untouched: this module only reads the
@@ -44,10 +44,8 @@ from app.lib import ui_rules as UR
 from app.lib import ui_alta as A
 
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
-# Aliases con prefijo para conservar los nombres historicos del modulo.
 from app.lib.theme import (
     INK, SKY, ROSE,
-    SLATE as _SLATE, GREEN as _GREEN, AMBER as _AMBER,
     STATE_COLORS, STATE_BG, STATE_WORD, RANGO_ESTADO,
     BADGE_COLOR, BADGE_ICON,
 )

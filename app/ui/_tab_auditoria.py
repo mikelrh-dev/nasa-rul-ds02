@@ -7,13 +7,12 @@ dashboard-globals resolution below. No behavior, metric or threshold change.
 Dashboard-owned globals (`per_unit`/`provenance`/`windows`/`units`/`curves`/
 `alarms`/`unidades_vistas`/`global_metrics`/`critical_mae`/`manifest`/`cycle`/
 thresholds/`aplicar_reglas` and the helpers `chart_layout`/`style_axes`/
-`_sha256_cached`/`_informe_pdf_cached`) are passed by the dashboard, which
-keeps the module-level `windows`/`telemetry`/`frame_cache` hot path (ttl=3600,
-corregir+decidir) byte-identical. The fallback import of `dashboard_ds02`
-is lazy, inside the fragment, and only fills in what a standalone caller
-omitted (never at import time, so there is no circular import, and no
-TensorFlow import: every import here is pandas/numpy/plotly + the rules layer
-via `ui_*`).
+`_sha256_cached`/`_informe_pdf_cached`) travel inside the `AppCtx` built by
+`app/entrypoints/dashboard_ds02.py`, which keeps the module-level
+`windows`/`telemetry`/`frame_cache` hot path (ttl=3600, corregir+decidir)
+byte-identical. There is no fallback import of the dashboard: the context is
+the only source, so there is no circular import and no TensorFlow import
+(every import here is pandas/numpy/plotly + the rules layer via `ui_*`).
 
 `frame_cache` (ttl=3600), the ola-2 SHAP cache and the PDF
 `artefacto_sha256` signature are untouched: this module only reads the
@@ -461,6 +460,8 @@ def _tab_auditoria(ctx: AppCtx) -> None:
                     _windows_sig,
                     bool(aplicar_reglas),
                     _manifest_sig,
+                    windows=windows, curves=curves,
+                    unidades=unidades_vistas, provenance=provenance,
                 )
             except Exception as exc:  # pragma: no cover - defensa ante fpdf ausente
                 st.warning(

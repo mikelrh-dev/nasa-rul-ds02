@@ -9,16 +9,15 @@ This module is the single source of names. Every view resolves an engine
 through it, so the wall, the twin store, the hangar and the orders all agree.
 
 Named `flota`, not `motor`: `src/mia/motor.py` is the rules engine and
-`app/ui_rules.py` imports it as `from src.mia import motor as M`. Both packages sit on
+`app/lib/ui_rules.py` imports it as `from src.mia import motor as M`. Both packages sit on
 `sys.path` when the app runs, so the name would shadow the rules engine and the
 dashboard would import the registry where it expects `motor.motor`.
 
-Pure: no Streamlit import, so it can be tested without a server — the same
-convention as `twin.py`, `hangar.py` and `ui_alta.py`.
+No es un módulo puro: importa `ui_data_loader` para `UNIT_LABELS` y para leer
+la caché en `registrar_alta`, y ese cargador importa Streamlit. No tiene efectos
+secundarios (no escribe), así que se puede testear con el runtime de Streamlit.
 """
 from __future__ import annotations
-
-import os
 
 from app.lib import hangar as HGR
 from app.lib import twin as T

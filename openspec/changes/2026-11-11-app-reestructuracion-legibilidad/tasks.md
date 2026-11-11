@@ -13,15 +13,15 @@
 | 2.1 | Delete the 22 dead imports in `app/dashboard_ds02.py` | Done | AST scan finds 0 unused imported names; suite green |
 | 2.2 | Unify the design tokens on `app/theme.py` | Done | `_tab_flota`, `_tab_motor`, `_tab_auditoria` and `_sandbox_estres` import tokens from `theme.py`; no local hex literals |
 | 2.3 | Unify `_latin1` on `pdf_partes.py` and `_ahora` on `hangar.py` | Done | one definition each; both call sites resolve to it; suite green |
-| 2.4 | Unify the 30/25 thresholds on `L.DEFAULT_AIRWORTHY` / `L.DEFAULT_AOG` | Done | `_sidebar`, `_sandbox_estres`, `ui_alta`, `ui_n8n` and `dashboard_helpers` read the constants |
+| 2.4 | Unify the 30/25 thresholds on `L.DEFAULT_AIRWORTHY` / `L.DEFAULT_AOG` | Done | `app/lib/_constantes.py` owns the pair; `ui_data_loader` re-exports it and `_sidebar`, `_sandbox_estres`, `ui_alta`, `ui_n8n` and `dashboard_helpers` read the constants |
 | 2.5 | Refresh `app/README.md` and `app/ui_modulos/__init__.py` | Done | docs match the code; suite green |
 | 3 | **Phase 2 — close the `AppCtx` cycle** | | |
-| 3.1 | `_sandbox_estres` receives `AppCtx`; delete the 8 optional parameters and the `sys.modules.get` fallback | Done | `_tab_casos.py:943` passes `ctx`; no dashboard import in the module |
+| 3.1 | `_sandbox_estres` receives `AppCtx`; delete the 8 optional parameters and the `sys.modules.get` fallback | Done | `_tab_casos.py:930` passes `ctx`; no dashboard import in the module |
 | 3.2 | Drop the `if ctx is None` fallback in the four tabs | Done | no `ctx_from_dashboard` call sites remain |
 | 3.3 | Delete `ctx_from_dashboard()` from `app/context.py` | Done | `context.py` is a dataclass only; suite green |
 | 4 | **Phase 3 — path owner** | | |
 | 4.1 | Create `app/_paths.py` with `ROOT`, `APP_DIR`, `CACHE_DIR`, registry paths and the secrets path | Done | `app/_paths.py` anchors on `Path(__file__).resolve().parents[1]`; the absolute-path fingerprint before/after is byte-identical (empty `diff`) |
-| 4.2 | Point `ui_data_loader`, `ui_inference`, `ui_rules`, `ui_shap`, `api`, `dashboard_ds02`, `hangar` and `streamlit_app` at `_paths.py` | Done | `grep -rn "__file__" app/` finds it only in `_paths.py` (plus a docstring mention); the 20-file app suite passes `250 passed, 1 skipped` |
+| 4.2 | Point `ui_data_loader`, `ui_inference`, `ui_rules`, `ui_shap`, `api`, `dashboard_ds02`, `hangar` and `streamlit_app` at `_paths.py` | Done | `grep -rn "__file__" app/` finds it only in `_paths.py` and in the entrypoint bootstrap (`sys.path.insert`); both entrypoints use `_paths.ROOT` afterwards; the 20-file app suite passes `250 passed, 1 skipped` |
 | 5 | **Phase 4 — package move** | | |
 | 5.1 | Create `app/__init__.py` and the `app/entrypoints/`, `app/ui/`, `app/lib/`, `app/services/` packages | Done | `app.lib.ui_data_loader`, `app.ui._tab_flota` and `app.services.api` import |
 | 5.2 | Move the entrypoints, UI, lib and API modules | Done | no module left at the old `app/` root except `_paths.py` |
