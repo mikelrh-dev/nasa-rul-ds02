@@ -17,6 +17,7 @@ from src.mia.reglas import (  # noqa: F401
     banda_recalibrada,
     banda_recalibrada_vector,
     cargar_calibracion,
+    pava_causal_no_creciente,
     reglas,
 )
 
@@ -33,5 +34,6 @@ __all__ = [
     "cargar_calibracion",
     "banda_recalibrada",
     "banda_recalibrada_vector",
+    "pava_causal_no_creciente",
     "CALIBRACION_PATH",
 ]

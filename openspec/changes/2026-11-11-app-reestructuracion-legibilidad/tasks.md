@@ -7,8 +7,8 @@
 | # | Task | Status | Acceptance |
 |---|------|--------|------------|
 | 1 | **Phase 0 — gate prerequisite** | | |
-| 1.1 | Re-export `pava_causal_no_creciente` from `src/reglas.py` | Pending | `pytest tests/test_rules_gate.py -q` passes 9/9 in isolation and in the full suite |
-| 1.2 | Add a regression test that reproduces the shadowing order | Pending | `pytest tests/test_mia_reglas_directas.py tests/test_api_limites.py tests/test_rules_gate.py -q` passes |
+| 1.1 | Re-export `pava_causal_no_creciente` from `src/reglas.py` | Done | `pytest tests/test_rules_gate.py -q` passes 9/9 in isolation and in the full suite |
+| 1.2 | Add a regression test that reproduces the shadowing order | Done | `pytest tests/test_mia_reglas_directas.py tests/test_api_limites.py tests/test_rules_gate.py -q` passes |
 | 2 | **Phase 1 — dead code and duplicated tokens** | | |
 | 2.1 | Delete the 22 dead imports in `app/dashboard_ds02.py` | Pending | AST scan finds 0 unused imported names; suite green |
 | 2.2 | Unify the design tokens on `app/theme.py` | Pending | `_tab_flota`, `_tab_motor`, `_tab_auditoria` and `_sandbox_estres` import tokens from `theme.py`; no local hex literals |
