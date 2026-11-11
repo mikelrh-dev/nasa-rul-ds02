@@ -19,7 +19,7 @@ import pandas as pd
 
 from app.lib import ui_data_loader as L
 from app.lib import ui_inference as INF
-from app.lib import ui_rules as UR
+from app.lib import rules as UR
 from app.lib import twin as T
 
 # Tope duro por memoria del portátil: cada motor son ~50 muestras remuestreadas

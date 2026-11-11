@@ -1,4 +1,4 @@
-"""Tests for incorporating N engines at once (`app/ui_batch.py`).
+"""Tests for incorporating N engines at once (`app/batch.py`).
 
 The batch is the one feature the plan says is missing: an operator brings N
 engines, the app scores all of them and returns one triage row each. The claims
@@ -27,7 +27,7 @@ sys.path.insert(0, ROOT)
 
 from app.lib import ui_data_loader as L  # noqa: E402
 from app.lib import ui_inference as INF  # noqa: E402
-from app.lib import ui_batch as B  # noqa: E402
+from app.lib import batch as B  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),

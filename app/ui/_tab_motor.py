@@ -1,25 +1,14 @@
-"""Pestaña Motor extraída de `dashboard_ds02` (dashboard-split-monolito, PR4 task 2.3).
+"""Pestaña Motor: qué le pasa a un motor concreto.
 
-Pure structural move: the body of `_tab_motor` is byte-identical to the
-pre-split dashboard version except for the parameter list and the
-dashboard-globals resolution below. No behavior, metric or threshold change.
+La sala va de lo general a lo concreto: la curva de vida con su banda conformal,
+las alarmas y el ciclo en que se disparan, la telemetría física del motor
+elegido, el SHAP que explica la predicción y, al final, la orden de trabajo con
+su parte en PDF.
 
-Dashboard-owned globals (`snapshot`/`unit`/`curves`/`telemetry`/`order`/
-`registros`/`unidades_vistas`/thresholds/`umbrales`/`aplicar_reglas`/
-`curve`/`per_unit`/`unit_metrics`/`alarm_cycle`/`truth_cycle`/`current`/
-`_wu`/`coverage`/`critical_start`/`max_life` and the helpers
-`_etiqueta_unidad`/`_registro`/`chart_layout`/`style_axes`/`shap_panel`/
-`fig_deriva`/`st_badge_estado`) travel inside the `AppCtx` built by
-`app/entrypoints/dashboard_ds02.py`, which keeps the module-level
-`windows`/`telemetry`/`frame_cache` hot path (ttl=3600, corregir+decidir)
-byte-identical. There is no fallback import of the dashboard: the context is
-the only source, so there is no circular import and no TensorFlow import
-(every import here is pandas/plotly + the rules layer via
-`ui_*`/`flota`/`hangar`).
-
-`frame_cache` (ttl=3600), the ola-2 SHAP cache and the PDF
-`artefacto_sha256` signature are untouched: this module only reads the
-already-decided data it is handed, exactly as the inline fragment did.
+Los datos y los helpers llegan en el `AppCtx` que construye
+`app/entrypoints/dashboard_ds02.py`; el módulo no importa el dashboard ni
+TensorFlow. Procede de la extracción del monolito y no cambia métricas, umbrales
+ni cachés.
 """
 from __future__ import annotations
 
@@ -31,11 +20,11 @@ from app.lib import flota as F
 from app.lib import dashboard_helpers as DH
 from app.lib import hangar as HGR
 from app.lib import ui_data_loader as L
-from app.lib import ui_rules as UR
+from app.lib import rules as UR
 from src.mia import reglas as R_REGLAS
 
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
-from app.lib.theme import INK, MUTED, GRID, SURFACE, SKY, ROSE
+from app.lib.theme import INK, MUTED, MUTED_LINE, GRID, SURFACE, SKY, ROSE, ROSE_SOFT
 
 from app.lib.context import AppCtx
 
@@ -325,7 +314,7 @@ def _tab_motor(ctx: AppCtx) -> None:
         fig.add_trace(
             go.Scatter(
                 x=curve["cycle"], y=curve["y_true"], mode="lines",
-                line=dict(color="#94a3b8", width=1.6, dash="dot"), name="RUL real",
+                line=dict(color=MUTED_LINE, width=1.6, dash="dot"), name="RUL real",
             )
         )
         if alarm_cycle is not None:
@@ -341,7 +330,7 @@ def _tab_motor(ctx: AppCtx) -> None:
             y0=0, y1=threshold_aog, fillcolor=ROSE, opacity=0.10, line_width=0,
             annotation_text=f"zona de hangar (RUL < {threshold_aog:.0f})",
             annotation_position="top left", annotation_font_size=11,
-            annotation_font_color="#fca5a5",
+            annotation_font_color=ROSE_SOFT,
         )
         fig.add_vline(
             x=current, line_dash="dot", line_color=INK, line_width=1.5,

@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from app.lib import _constantes
-from app.lib import ui_rules as UR
+from app.lib import rules as UR
 
 # Rango negativo reservado: nunca colisiona con caché (11/14/15),
 # evaluación en vivo (-1) ni gemelos (0).

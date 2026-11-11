@@ -21,6 +21,11 @@ AMBER = "#f59e0b"
 GREEN = "#34d399"
 ROSE = "#f87171"
 SLATE = "#64748b"
+# Tonos suaves: series secundarias y anotaciones, no estados.
+ROSE_SOFT = "#fca5a5"
+SKY_SOFT = "#7dd3fc"
+SLATE_DARK = "#475569"
+MUTED_LINE = "#94a3b8"
 
 STATE_COLORS = {
     L.AIRWORTHY: GREEN,
@@ -127,7 +132,7 @@ def fig_deriva(per_cycle: pd.DataFrame, channels: list[str], last_cycle: int,
             line_width=0,
             annotation_text=f"RUL real < {threshold_aog:.0f}",
             annotation_position="top right", annotation_font_size=11,
-            annotation_font_color="#fca5a5",
+            annotation_font_color=ROSE_SOFT,
         )
     fig.update_layout(**chart_layout(height=height, hovermode="x unified"))
     style_axes(

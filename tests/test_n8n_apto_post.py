@@ -14,7 +14,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from src import n8n as N8N  # noqa: E402
-from app.lib import ui_n8n as UN  # noqa: E402
+from app.lib import n8n_payload as UN  # noqa: E402
 
 URL = "http://n8n.invalid/hook"
 PAYLOAD = {"decision": "APTO", "unidad": 11.0}
@@ -74,7 +74,7 @@ def test_sin_decision_no_hace_post():
     """SIN_DECISION nunca notifica (`debe_notificar` False): ni POST se intenta.
 
     `enviar_decision` la acepta como valida, asi que la guarda es la capa de
-    dedupe de `ui_n8n`: sin notificacion, no hay llamada al webhook.
+    dedupe de `n8n_payload`: sin notificacion, no hay llamada al webhook.
     """
     assert UN.debe_notificar("SIN_DECISION", "fp9", set()) is False
     assert UN.debe_notificar("APTO", "fp9", set()) is True

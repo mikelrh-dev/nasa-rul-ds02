@@ -44,7 +44,7 @@ def _sandbox_estres(ctx: AppCtx) -> None:
 
     El tribunal mueve el deslizador y la app re-puntúa el tramo con el artefacto
     congelado (`ui_inference.score_table`) y re-decide con el motor oficial
-    (`mia/reglas.py` vía `ui_rules.decidir_ventanas`). No se reentrena nada y no
+    (`mia/reglas.py` vía `rules.decidir_ventanas`). No se reentrena nada y no
     se escribe en `models/` ni en `src/`.
 
     La perturbación es sintética y se declara: el split-conformal se calibró sobre

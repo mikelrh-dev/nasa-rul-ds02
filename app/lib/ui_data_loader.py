@@ -365,7 +365,7 @@ def _state_at_cycle(at_cycle: pd.DataFrame, lower: float,
     """Estado del ciclo y la regla que lo decidio.
 
     Cuando el frame trae la pasada A (`decision` / `regla_decision`, de
-    `ui_rules.decidir_ventanas`), el estado se toma del motor `mia/` en la fila
+    `rules.decidir_ventanas`), el estado se toma del motor `mia/` en la fila
     mas restrictiva del ciclo. Si no la trae, se reclasifica el limite inferior
     como siempre: el cargador sigue siendo usable sin la capa de reglas.
     """

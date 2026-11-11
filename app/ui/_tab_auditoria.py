@@ -1,22 +1,14 @@
-"""Pestaña Auditoría extraída de `dashboard_ds02` (dashboard-split-monolito, PR5 task 2.4).
+"""Pestaña Auditoría: cómo se calculó todo lo que enseña el tablero.
 
-Pure structural move: the body of `_tab_auditoria` is byte-identical to the
-pre-split dashboard version except for the parameter list and the
-dashboard-globals resolution below. No behavior, metric or threshold change.
+Reúne la procedencia del artefacto (SHA-256, manifiesto, caché), el contraste
+entre lectura cruda y corregida, la trazabilidad de las reglas y el informe PDF
+que se entrega a un tribunal. Es la sala que responde «¿de dónde sale este
+número?» sin salir de la app.
 
-Dashboard-owned globals (`per_unit`/`provenance`/`windows`/`units`/`curves`/
-`alarms`/`unidades_vistas`/`global_metrics`/`critical_mae`/`manifest`/`cycle`/
-thresholds/`aplicar_reglas` and the helpers `chart_layout`/`style_axes`/
-`_sha256_cached`/`_informe_pdf_cached`) travel inside the `AppCtx` built by
-`app/entrypoints/dashboard_ds02.py`, which keeps the module-level
-`windows`/`telemetry`/`frame_cache` hot path (ttl=3600, corregir+decidir)
-byte-identical. There is no fallback import of the dashboard: the context is
-the only source, so there is no circular import and no TensorFlow import
-(every import here is pandas/numpy/plotly + the rules layer via `ui_*`).
-
-`frame_cache` (ttl=3600), the ola-2 SHAP cache and the PDF
-`artefacto_sha256` signature are untouched: this module only reads the
-already-decided data it is handed, exactly as the inline fragment did.
+Los datos y los helpers llegan en el `AppCtx` que construye
+`app/entrypoints/dashboard_ds02.py`; el módulo no importa el dashboard ni
+TensorFlow. Procede de la extracción del monolito y no cambia métricas, umbrales
+ni cachés.
 """
 from __future__ import annotations
 
@@ -30,7 +22,7 @@ import streamlit as st
 from app.lib import ui_data_loader as L
 
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
-from app.lib.theme import INK, SKY, GREEN, ROSE
+from app.lib.theme import INK, SKY, GREEN, ROSE, ROSE_SOFT, SKY_SOFT, SLATE_DARK
 
 from app.lib.context import AppCtx
 
@@ -81,7 +73,7 @@ def _tab_auditoria(ctx: AppCtx) -> None:
             go.Bar(
                 x=[f"U{int(u)}" for u in per_unit["unit"]], y=per_unit["mae"],
                 name="MAE",
-                marker_color=[("#fca5a5" if int(u) == 14 else "#7dd3fc") for u in per_unit["unit"]],
+                marker_color=[(ROSE_SOFT if int(u) == 14 else SKY_SOFT) for u in per_unit["unit"]],
                 text=[f"{v:.2f}" for v in per_unit["mae"]],
                 textposition="outside", textfont=dict(color=INK),
             )
@@ -149,7 +141,7 @@ def _tab_auditoria(ctx: AppCtx) -> None:
             band_fig = go.Figure(
                 go.Bar(
                     x=populated["band"], y=populated["mae"],
-                    marker_color=[GREEN if b.startswith("[0") else "#475569" for b in populated["band"]],
+                    marker_color=[GREEN if b.startswith("[0") else SLATE_DARK for b in populated["band"]],
                     text=[f"{v:.2f}" for v in populated["mae"]],
                     textposition="outside", textfont=dict(color=INK),
                 )

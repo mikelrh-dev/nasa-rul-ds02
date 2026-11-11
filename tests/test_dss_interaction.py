@@ -335,7 +335,7 @@ def test_el_modo_historia_carga_el_paso_3_en_la_app():
         pytest.fail("no está el paso 3 del modo historia")
 
     assert not app.exception, app.exception
-    from app.lib import ui_alta as _A, ui_data_loader as _L
+    from app.lib import alta as _A, ui_data_loader as _L
     _paso3 = [p for p in _A.estado_historia(_L.get_windows(), {"apto": 30.0, "hangar": 25.0}) if p["paso"] == 3][0]
     assert _selector_unidad(app).value == _paso3["unidad"]
     assert _slider_ciclo(app).value == _paso3["ciclo"]

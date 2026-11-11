@@ -2,9 +2,9 @@
 
     streamlit run app/entrypoints/dashboard_ds02.py
 
-Five tabs over one cached frame: fleet hangar, RUL with its conformal band,
-physical sensor radiography, the engine-14 audit, and the live evaluation of a
-unit you bring. Everything is read from `app/cache/` (see
+Four tabs over one cached frame: the fleet hangar, one engine in detail (RUL
+with its conformal band, alarms, physics and SHAP), the engines you bring, and
+the audit of how it was all computed. Everything is read from `app/cache/` (see
 `scripts/build/build_ui_cache.py`) and `models/ds02_manifest.json`; the frozen bundle is
 never loaded, so no TensorFlow import is needed and the app runs from a laptop
 without the 2.3 GB HDF5.
@@ -41,9 +41,9 @@ ROOT = _paths.ROOT
 
 from app.lib import flota as F  # noqa: E402
 from app.lib import hangar as HGR  # noqa: E402
-from app.lib import ui_alta as A  # noqa: E402
+from app.lib import alta as A  # noqa: E402
 from app.lib import ui_data_loader as L  # noqa: E402
-from app.lib import ui_rules as UR  # noqa: E402
+from app.lib import rules as UR  # noqa: E402
 from app.lib.informe_auditoria import _informe_pdf_cached  # noqa: E402
 from app.lib.sandbox import _sandbox_puntua_cached  # noqa: E402
 from app.ui import _sha256_cached  # noqa: E402

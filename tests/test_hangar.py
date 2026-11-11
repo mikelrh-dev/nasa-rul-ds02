@@ -86,7 +86,7 @@ def test_resumen_cuenta_abiertos_y_estados():
         "ESN-B": H.abrir("ESN-B", 1, 40.0, UMBRALES, "R7_APTO",
                          estado=H.EN_SERVICIO),
     }
-    resumen = H.resumen(registros)
+    resumen = H.resumen_estados(registros)
     assert resumen["total"] == 2
     assert resumen["abiertos"] == 1
     assert resumen["por_estado"][H.AOG] == 1

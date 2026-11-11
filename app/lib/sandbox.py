@@ -2,7 +2,7 @@
 
 Lógica del sandbox de estrés, separada de la UI (`app/ui/_sandbox_estres.py`)
 y del entrypoint. Usa Streamlit solo para cachear el resultado por clave; el
-cálculo en sí es pandas + `ui_inference` + `ui_rules`.
+cálculo en sí es pandas + `ui_inference` + `rules`.
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import streamlit as st
 
 from app.lib import ui_data_loader as L
 from app.lib import ui_inference as INF
-from app.lib import ui_rules as UR
+from app.lib import rules as UR
 
 __all__ = ["_sandbox_puntua_cached"]
 

@@ -9,7 +9,7 @@ This module is the single source of names. Every view resolves an engine
 through it, so the wall, the twin store, the hangar and the orders all agree.
 
 Named `flota`, not `motor`: `src/mia/motor.py` is the rules engine and
-`app/lib/ui_rules.py` imports it as `from src.mia import motor as M`. Both packages sit on
+`app/lib/rules.py` imports it as `from src.mia import motor as M`. Both packages sit on
 `sys.path` when the app runs, so the name would shadow the rules engine and the
 dashboard would import the registry where it expects `motor.motor`.
 
@@ -21,12 +21,12 @@ from __future__ import annotations
 
 from app.lib import hangar as HGR
 from app.lib import twin as T
-from app.lib import ui_alta as A
-from app.lib.ui_alta import PREFIJO_ALTA
+from app.lib import alta as A
+from app.lib.alta import PREFIJO_ALTA
 from app.lib import ui_data_loader as L
 
 ALTAS_KEY = "altas"
-# PREFIJO_ALTA is owned by ui_alta (single definition); re-exported here
+# PREFIJO_ALTA is owned by alta (single definition); re-exported here
 # so existing `flota.PREFIJO_ALTA` imports keep working.
 
 

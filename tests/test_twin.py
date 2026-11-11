@@ -167,7 +167,7 @@ def test_resumen_agrega_cobertura_y_mae():
     b = T.con_verdad(T.make_twin("ESN-B", _resultado([(40.0, 20.0, 12.0, 30.0)]),
                                  source="csv", banda="artefacto",
                                  correccion="ninguna", umbrales=UMBRALES), 45.0)
-    resumen = T.resumen({"ESN-A": a, "ESN-B": b, "ESN-C": T.make_twin(
+    resumen = T.resumen_gemelos({"ESN-A": a, "ESN-B": b, "ESN-C": T.make_twin(
         "ESN-C", _resultado([(40.0, 20.0, 12.0, 30.0)]), source="csv",
         banda="artefacto", correccion="ninguna", umbrales=UMBRALES)})
     assert resumen["total"] == 3

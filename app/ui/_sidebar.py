@@ -14,7 +14,7 @@ import streamlit as st
 from app.lib import dashboard_helpers as DH
 from app.lib import flota as F
 from app.lib import twin as T
-from app.lib import ui_alta as A
+from app.lib import alta as A
 from app.lib import ui_data_loader as L
 from app.lib import ui_inference as INF
 

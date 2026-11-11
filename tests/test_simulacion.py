@@ -24,7 +24,7 @@ sys.path.insert(0, ROOT)
 from app.lib import flota as F  # noqa: E402
 from app.lib import simulacion as S  # noqa: E402
 from app.lib import ui_data_loader as L  # noqa: E402
-from app.lib import ui_rules as UR  # noqa: E402
+from app.lib import rules as UR  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),

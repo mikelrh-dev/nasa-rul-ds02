@@ -61,7 +61,7 @@ def probar_n8n() -> dict:
 
     from src import n8n as N8N
 
-    from app.lib import ui_n8n as UN
+    from app.lib import n8n_payload as UN
 
     prueba = UN.payload_desde_traza(
         {"ventana": pd.Series({"unit": 14.0, "cycle": 25.0,

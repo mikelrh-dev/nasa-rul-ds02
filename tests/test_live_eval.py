@@ -25,7 +25,7 @@ sys.path.insert(0, ROOT)
 
 from app.lib import ui_data_loader as L  # noqa: E402
 from app.lib import ui_inference as INF  # noqa: E402
-from app.lib import ui_rules as UR  # noqa: E402
+from app.lib import rules as UR  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),
@@ -638,6 +638,47 @@ def test_el_preset_demo_pinta_el_estado_que_promete():
 
 
 @needs_cache
+def test_el_boton_preset_y_el_form_evaluar_no_se_desincronizan():
+    """Regresión: el preset deja su tabla en el form, no solo su matrícula.
+
+    El botón guardaba su resultado y su matrícula, pero el modo por defecto
+    («Ejemplo del test set») reconstruía la tabla desde el selectbox
+    `live_demo_preset`, que el botón no tocaba. Pulsar «Evaluar unidad» después
+    del preset puntuaba el tramo viejo con la matrícula nueva: el crítico
+    devolvía el APTO del Sano.
+    """
+    from streamlit.testing.v1 import AppTest
+
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"),
+                            default_timeout=300)
+    app.run()
+    assert not app.exception, app.exception
+
+    boton = next(b for b in app.button if b.key and "Crítico" in b.key)
+    boton.click().run()
+    assert not app.exception, app.exception
+    assert app.session_state["live_demo_preset"] == boton.key.removeprefix("live_demo_")
+
+    # El form del modo por ejemplo puntúa la tabla que está en pantalla.
+    evaluar = next(b for b in app.button if b.label == "Evaluar unidad")
+    evaluar.click().run()
+    assert not app.exception, app.exception
+
+    badges = [(m.value or "") for m in app.markdown]
+    decision = next((b for b in badges if "umbrales en vigor" in b), "")
+    assert "HANGAR" in decision, decision
+    assert "APTO" not in decision, decision
+
+    resultado = app.session_state.get("live_result")
+    assert resultado is not None
+    assert resultado["contract"]["motor"] == "ESN-CRIT-01"
+    assert int(resultado["contract"]["filas"]) == INF.DEMO_ROWS
+    # El tramo crítico termina en U14, no en el Sano de U15.
+    meta = app.session_state.get("live_meta") or {}
+    assert meta.get("unit") == 14, meta
+
+
+@needs_cache
 def test_alargar_un_tramo_no_mueve_su_final():
     """`rows` ensancha hacia atras; el final (y la decision) no se mueven.
 
@@ -672,7 +713,7 @@ def test_cada_preset_cae_en_el_estado_que_dice_su_nombre():
     """
     import unicodedata
 
-    from app.lib import ui_alta as A
+    from app.lib import alta as A
 
     def sin_acentos(texto: str) -> str:
         """El estado vive en ASCII (`INSPECCION`) y el nombre no (`INSPECCIÓN`)."""

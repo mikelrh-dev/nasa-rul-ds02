@@ -1,7 +1,7 @@
 """Payload n8n y dedupe (MIA-3) — modulo puro, sin Streamlit.
 
 `payload_desde_traza` reutiliza la traza de `decision_en_vivo`
-(`app/lib/ui_rules.py`): NO re-clasifica (prohibido `classify`) y NO incluye
+(`app/lib/rules.py`): NO re-clasifica (prohibido `classify`) y NO incluye
 `X_raw` (numpy, no JSON). `debe_notificar` decide el dedupe por fingerprint:
 HANGAR, INSPECCION y APTO notifican por POST (apto llega a la rama Set log
 de n8n); SIN_DECISION nunca notifica.
@@ -22,7 +22,7 @@ def payload_desde_traza(en_vivo: dict, umbrales: dict | None = None,
     """Construye el payload n8n EXACTO desde la traza de `decision_en_vivo`.
 
     `en_vivo` es el dict `{"ventana", "alertas", "traza"}` de
-    `ui_rules.decision_en_vivo`. `decision`, `usadas` y `porque` se leen de
+    `rules.decision_en_vivo`. `decision`, `usadas` y `porque` se leen de
     la traza tal cual; `motivo` se compone como en `decidir_ventanas`.
     `idempotency_key` es el `fingerprint` del contrato. La ventana en vivo
     no trae columna `unit`: la unidad sale del parámetro `unidad` (el

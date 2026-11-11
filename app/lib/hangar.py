@@ -158,7 +158,7 @@ def reiniciar(registro: dict, ciclo: int, nota: str = "",
             "replay_desde": int(ciclo)}
 
 
-def resumen(registros: dict) -> dict:
+def resumen_estados(registros: dict) -> dict:
     """Cuántas unidades hay en cada estado y cuántas siguen abiertas."""
     por_estado = {estado: 0 for estado in ESTADOS}
     for registro in registros.values():

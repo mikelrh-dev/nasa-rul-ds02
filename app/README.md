@@ -19,9 +19,9 @@ Contexto       lib/context.py                  AppCtx: un objeto en vez de 18-29
 Barra lateral  ui/_sidebar.py                  devuelve SidebarState (unidad elegida)
 Pestañas       ui/_tab_*.py                    fragmentos de Streamlit
 Tema           lib/theme.py                    dueno unico de tokens, `chart_layout`, `style_axes`, `fig_deriva`
-| Estado/registro lib/flota.py lib/hangar.py lib/twin.py lib/ui_alta.py lib/simulacion.py
-Datos/modelo   lib/ui_data_loader.py lib/ui_inference.py lib/ui_shap.py lib/ui_rules.py
-Presentacion   lib/dashboard_helpers.py lib/pdf_partes.py lib/ui_batch.py lib/ui_n8n.py
+Estado/registro lib/flota.py lib/hangar.py lib/twin.py lib/alta.py lib/simulacion.py
+Datos/modelo   lib/ui_data_loader.py lib/ui_inference.py lib/ui_shap.py lib/rules.py
+Presentacion   lib/dashboard_helpers.py lib/pdf_partes.py lib/batch.py lib/n8n_payload.py
 API            services/api.py
 ```
 
@@ -45,13 +45,13 @@ API            services/api.py
 | `lib/flota.py` | Registro de motores: una clave y una etiqueta para todas las vistas. |
 | `lib/hangar.py` | Persistencia del registro: JSON por sesión, migración del legacy, escritura atómica. |
 | `lib/twin.py` | Gemelo digital: serie guardada, vista de resultado y órdenes. |
-| `lib/ui_alta.py` | Alta de motor nuevo: clave sintética (`PREFIJO_ALTA`) y estado del formulario. |
+| `lib/alta.py` | Alta de motor nuevo: clave sintética (`PREFIJO_ALTA`) y estado del formulario. |
 | `lib/ui_data_loader.py` | Lee `app/cache/`, calcula métricas, curvas, snapshots y SHA. |
 | `lib/ui_inference.py` | Puntúa motores en vivo: ventanas, banda conformal, avisos. |
-| `lib/ui_rules.py` | Capa de reglas: corrección (pasada B) y decisión (pasada A). |
+| `lib/rules.py` | Capa de reglas: corrección (pasada B) y decisión (pasada A). |
 | `lib/ui_shap.py` | Panel SHAP: importancia global y waterfall (sin TensorFlow). |
-| `lib/ui_batch.py` | Ingesta por lotes desde CSV (varios motores). |
-| `lib/ui_n8n.py` | Construye el payload y llama al webhook de n8n. |
+| `lib/batch.py` | Ingesta por lotes desde CSV (varios motores). |
+| `lib/n8n_payload.py` | Construye el payload y llama al webhook de n8n. |
 | `lib/simulacion.py` | Simulación «qué pasaría si» sobre la flota. |
 | `lib/sandbox.py` | Puntuación del tramo del sandbox (preflight + score + decisión), cacheada. |
 | `lib/informe_auditoria.py` | Informe de auditoría en PDF: las dos tablas que pide un tribunal. |
@@ -59,6 +59,36 @@ API            services/api.py
 | `lib/dashboard_helpers.py` | Helpers puros sin Streamlit: CSV de contraste/trayectoria, cola filtrada, vista de reglas, sonda n8n. |
 | `services/api.py` | API FastAPI (`/predict`, `/units`) con token e idempotencia. |
 | `_paths.py` | Único dueño de las rutas del repositorio (`ROOT`, `APP_DIR`, `CACHE_DIR`, registros, secretos). |
+
+## Cómo se lee una pestaña
+
+Las dos pestañas grandes (`_tab_flota.py`, `_tab_casos.py`) siguen el mismo
+patrón: **preámbulo de alias, funciones anidadas con nombre y un cuerpo que es
+el guion de la pantalla**.
+
+```python
+def _tab_flota(ctx: AppCtx) -> None:
+    frame = ctx.frame                    # 1. preámbulo: alias del AppCtx
+
+    def _muro_del_hangar_ui() -> None:   # 2. cada bloque, su función
+        ...
+
+    _muro_del_hangar_ui()                # 3. el cuerpo, el orden visual
+    _cronologia_estado()
+```
+
+| Regla | Por qué |
+|---|---|
+| Las funciones no reciben parámetros: leen los alias por clausura. | El estado compartido ya viaja en el `AppCtx`; repetirlo en cada firma es ruido. |
+| El orden de las llamadas es el orden de la pantalla. | Para saber qué ve el usuario se lee el final del fichero, no los 900 renglones de arriba. |
+| Un bloque nuevo = una `def` más una llamada. | No obliga a tocar los demás bloques ni el preámbulo. |
+| Dos sentencias que comparten estado (`if correccion`, un `st.info` que depende de lo anterior) se quedan en el cuerpo. | Envolverlas obligaría a inventar parámetros y a reordenar la ejecución. |
+| La pestaña no se reparte en módulos más pequeños. | `tests/test_app_fixes2.py` lee el fuente y exige `@st.fragment` y `scope="app"` ahí; partirlo rompe la paginación del muro. |
+
+Orden en `_tab_flota`: muro → cronología → taller → avance → historia → sesión →
+cola → umbrales → historial → reglas → orden de trabajo → contraste → gemelos →
+detalle → ciclo de vida. En `_tab_casos`: lote → ejemplo → ciclo → unidad nueva →
+resultado → sandbox → demo en vivo → SHAP.
 
 ## Reglas de la carpeta
 

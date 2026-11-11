@@ -23,7 +23,7 @@ ARTIFACT = str(_paths.ARTIFACT_PATH)
 
 from app.lib import twin as T  # noqa: E402
 from app.lib import ui_data_loader as L  # noqa: E402
-from app.lib import ui_rules as UR  # noqa: E402
+from app.lib import rules as UR  # noqa: E402
 
 LIVE_UNIT = -1.0  # a DS02 unit can never take this value, so EMA never mixes
 

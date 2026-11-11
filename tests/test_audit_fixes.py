@@ -33,7 +33,7 @@ import freeze_rules_evidence as G  # noqa: E402
 from src.mia import reglas as R  # noqa: E402
 from app.lib import ui_data_loader as L  # noqa: E402
 from app.lib import ui_inference as INF  # noqa: E402
-from app.lib import ui_rules as UR  # noqa: E402
+from app.lib import rules as UR  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
     not L.cache_available(),

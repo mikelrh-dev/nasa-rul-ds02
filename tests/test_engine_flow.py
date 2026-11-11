@@ -21,7 +21,7 @@ sys.path.insert(0, ROOT)
 
 from app.lib import hangar as HGR  # noqa: E402
 from app.lib import twin as T  # noqa: E402
-from app.lib import ui_alta as AL  # noqa: E402
+from app.lib import alta as AL  # noqa: E402
 from app.lib import ui_data_loader as L  # noqa: E402
 from app.lib import ui_inference as INF  # noqa: E402
 

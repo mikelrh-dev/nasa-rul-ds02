@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 
 from app.lib import hangar as HGR
-from app.lib import ui_rules as UR
+from app.lib import rules as UR
 from app.lib.hangar import _ahora  # dueno unico del reloj UTC
 
 REGISTRY_KEY = "twins"
@@ -230,7 +230,7 @@ def metricas_verdad(twin: dict) -> dict | None:
     }
 
 
-def resumen(registro: dict) -> dict:
+def resumen_gemelos(registro: dict) -> dict:
     """Cuántos gemelos hay y cuántos tienen verdad conocida."""
     con_verdad = [t for t in registro.values() if t.get("truth")]
     metricas = [metricas_verdad(t) for t in con_verdad]

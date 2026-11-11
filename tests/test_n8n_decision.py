@@ -20,7 +20,7 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from app.lib import ui_n8n as UN  # noqa: E402
+from app.lib import n8n_payload as UN  # noqa: E402
 from src import n8n as N8N  # noqa: E402
 
 CLAVES_PAYLOAD = {

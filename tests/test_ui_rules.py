@@ -1,4 +1,4 @@
-"""Tests del puente `app/ui_rules.py` entre la caché y la capa de reglas.
+"""Tests del puente `app/rules.py` entre la caché y la capa de reglas.
 
 Tres cosas han de sostenerse:
 
@@ -28,7 +28,7 @@ APP = os.path.join(ROOT, "app")
 sys.path.insert(0, ROOT)
 
 from app.lib import ui_data_loader as L  # noqa: E402
-from app.lib import ui_rules as UR  # noqa: E402
+from app.lib import rules as UR  # noqa: E402
 from src.mia import reglas as R  # noqa: E402
 
 needs_cache = pytest.mark.skipif(
@@ -146,7 +146,7 @@ def _infracciones(texto: str) -> list[str]:
 def test_la_copia_no_dice_monotonia_estricta():
     """Los textos de la app y las seis frases vivas no sobreafirman."""
     for nombre in (os.path.join("entrypoints", "dashboard_ds02.py"),
-                   os.path.join("lib", "ui_rules.py")):
+                   os.path.join("lib", "rules.py")):
         with open(os.path.join(APP, nombre), encoding="utf-8") as fh:
             assert not _infracciones(fh.read()), nombre
 

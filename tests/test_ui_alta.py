@@ -6,7 +6,7 @@ sys.path.insert(0, ROOT)
 
 import pytest
 
-from app.lib import ui_alta as A
+from app.lib import alta as A
 from app.lib import ui_data_loader as L
 
 needs_cache = pytest.mark.skipif(
