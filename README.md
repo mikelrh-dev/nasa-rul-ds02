@@ -174,6 +174,10 @@ tabulares residualizadas. El meta-learner solo ve `[p_lstm, p_lgb]` (2 columnas)
 Fuente: `models/ds02_manifest.json` (`metrics.reference_row`). No es una media
 multisemilla: es la fila del artefacto congelado que sirve la app.
 
+![RUL real frente a RUL predicho por el bundle C, con la recta y=x de referencia](docs/assets/real_vs_predicho_bundle_c.png)
+
+El gráfico es la misma fila congelada del manifiesto, no una reejecución.
+
 **Por motor (el global esconde el reparto):**
 
 | Unidad | RMSE | Ventanas |
@@ -186,6 +190,8 @@ multisemilla: es la fila del artefacto congelado que sirve la app.
 
 U14 concentra el error: pesa poco en el global pero es el peor caso real. Por eso
 se publican global y macro, y la tabla final separa granos.
+
+![RMSE del bundle C por motor en test, con el n de ventanas](docs/assets/bundle_c_rmse_por_motor.png)
 
 ### Estabilidad multisemilla
 
@@ -294,8 +300,9 @@ rúbrica, `app/entrypoints/streamlit_app.py`, solo delega en ella.
 - SHAP explica el componente tabular (LightGBM, 93 features), **no** el BiLSTM ni
   el stacking; describe el modelo, no el motor.
 
-Evidencia: [`docs/assets/shap_importancia.png`](docs/assets/shap_importancia.png),
-`resultados/shap_bundle_C/` y `resultados/mlp_shap_E2/`.
+![Importancia global de features (SHAP, mean |SHAP|)](docs/assets/shap_importancia.png)
+
+Evidencia completa en `resultados/shap_bundle_C/` y `resultados/mlp_shap_E2/`.
 
 ## MLflow
 
@@ -325,6 +332,8 @@ del store es una invariante ejecutable, no una promesa del README.
 Los granos no se mezclan: el RMSE de fila y el de ventana no miden lo mismo, y el
 store lo declara con el tag `grano`. La ablación se aísla con
 `familia=ablacion_cycnorm`.
+
+![Vista Compare de MLflow con los nueve modelos de grano fila](docs/evidencia/mlflow/compare_fila.png)
 
 ### La ablación se compara dentro de MLflow
 
