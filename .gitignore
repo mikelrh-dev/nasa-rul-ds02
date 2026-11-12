@@ -86,6 +86,8 @@ cell_counts.txt
 # MLflow file store — text metadata only; artifacts and trash are never committed
 mlruns/**/artifacts/
 mlruns/.trash/
+# live notebook tracking — local only, never the deliverable
+mlruns-live/
 
 # local pre-notebook backups (2026-11-09; the rerun is a smoke test, not evidence)
 *.bak-2026-11-09

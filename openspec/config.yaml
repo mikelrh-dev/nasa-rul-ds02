@@ -14,7 +14,7 @@ context: |
            9 row + 4 window + 4 `cyc_norm` ablation; zero `live__*`, zero
            tombstones; `MLFLOW_ALLOW_FILE_STORE=true` because 3.18 refuses the file
            backend by default). No model binaries in the store. Rebuild with
-           `python scripts/backfill_mlflow.py --write`, verify with `--check`.
+           `python scripts/operativo/backfill_mlflow.py --write`, verify with `--check`.
   Env caveat: the committed DS02 notebook outputs were produced under the SYSTEM
            Python 3.10.0 (TensorFlow 2.21.0, LightGBM 4.6.0, scikit-learn 1.5.1),
            NOT under `.venv`, even though the notebook's kernelspec displays
@@ -81,7 +81,7 @@ rules:
     coverage_threshold: 0
     guidelines:
       - Do not retrain models in CI; the suite reads `app/cache/` and `_p1_oof_cache.npz` only
-      - Verify the MLflow store with `python scripts/backfill_mlflow.py --check`; no artifacts under mlruns/
+      - Verify the MLflow store with `python scripts/operativo/backfill_mlflow.py --check`; no artifacts under mlruns/
       - Re-execute the notebook and compare the four recorded test rows against the SOTA table
   archive:
     - Warn before merging destructive deltas (REMOVED or renamed requirements)

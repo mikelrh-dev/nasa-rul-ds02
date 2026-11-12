@@ -25,7 +25,7 @@ _os.environ.setdefault("TF_NUM_INTRAOP_THREADS", "1")
 _os.environ.setdefault("OMP_NUM_THREADS", "1")
 from ds02_rul.mlflow_live import log_live_run, persist_timings, setup_mlflow
 setup_mlflow()
-print("mlflow live: store=mlruns experiment=ds02-clase (fuente=live_notebook)")
+print("mlflow live: store=mlruns-live experiment=ds02-clase (fuente=live_notebook)")
 """
 
 # One live-log cell per notebook, using only objects that notebook already

@@ -42,6 +42,7 @@ from typing import Any
 # importing mlflow. It is harmless if the caller already exported it.
 os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
 
+from mlflow.entities import ViewType  # noqa: E402
 from mlflow.tracking import MlflowClient  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -667,6 +668,22 @@ def check(client: MlflowClient, exp_id: str) -> int:
             want = spec["tags"].get(name)
             if want is not None and run.data.tags.get(name) != want:
                 errors.append(f"{key}: tag {name}={run.data.tags.get(name)!r} != {want!r}")
+
+    # Store purity: `mlruns/` is the deliverable and must hold only the 17
+    # historic runs. `search_runs` hides tombstones, so ask for ALL stages.
+    all_runs = client.search_runs(
+        [exp_id], run_view_type=ViewType.ALL, max_results=1000
+    )
+    live = [
+        run for run in all_runs
+        if run.info.lifecycle_stage != "deleted"
+        and run.data.tags.get("fuente") != FUENTE_HISTORICO
+    ]
+    tombstones = [run for run in all_runs if run.info.lifecycle_stage == "deleted"]
+    if live:
+        errors.append(f"hay {len(live)} runs live en el store (debe ser historico-only)")
+    if tombstones:
+        errors.append(f"hay {len(tombstones)} tombstones en el store")
 
     if any(path.is_file() for path in STORE.rglob("artifacts/*")):
         errors.append("hay artefactos en mlruns/**/artifacts/ (debe ser texto)")

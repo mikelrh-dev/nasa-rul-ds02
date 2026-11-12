@@ -221,6 +221,29 @@ def test_backfill_check_helper_separates_live_runs():
     assert "live_notebook" in source
 
 
+# --- live store isolation -------------------------------------------------
+
+def test_live_store_defaults_to_mlruns_live():
+    from ds02_rul import mlflow_live
+
+    store = mlflow_live._live_store()
+    assert store.name == "mlruns-live"
+    assert store == mlflow_live._ROOT / "mlruns-live"
+
+
+def test_live_store_respects_env_override(monkeypatch, tmp_path):
+    from ds02_rul import mlflow_live
+
+    target = tmp_path / "custom-store"
+    monkeypatch.setenv("MLFLOW_LIVE_STORE", str(target))
+    assert mlflow_live._live_store() == target
+
+
+def test_gitignore_ignores_live_store():
+    gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
+    assert "mlruns-live/" in gitignore
+
+
 # --- notebooks static contract ---------------------------------------------
 
 def test_all_notebooks_have_mlflow_header_and_log_cell():

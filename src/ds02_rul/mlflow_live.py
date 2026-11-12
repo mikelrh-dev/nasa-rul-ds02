@@ -1,6 +1,11 @@
 """Live MLflow tracking for notebook re-execution (mlflow-live-notebooks).
 
-Text-only file store under ``mlruns/`` (same store the backfill writes).
+Live runs go to a *separate*, git-ignored text-only store: ``mlruns-live/``
+(override with ``MLFLOW_LIVE_STORE``). ``mlruns/`` is the published,
+git-versioned store: it holds exactly the 17 curated historic runs written by
+``scripts/operativo/backfill_mlflow.py --write``. Keeping both apart means
+re-running a notebook can never dirty the deliverable store.
+
 Live runs are tagged ``fuente=live_notebook`` so the historic backfill
 (``fuente=historico``) never counts, deletes or overwrites them.
 
@@ -24,8 +29,19 @@ FUENTE_LIVE = "live_notebook"
 FUENTE_HISTORICO = "historico"
 
 _ROOT = Path(__file__).resolve().parents[2]
-STORE = _ROOT / "mlruns"
 RESULTADOS = _ROOT / "resultados"
+
+
+def _live_store() -> Path:
+    """Live store path: ``MLFLOW_LIVE_STORE`` if set, else ``mlruns-live/``.
+
+    ``mlruns/`` (the git-versioned deliverable) is never used here.
+    """
+    override = os.environ.get("MLFLOW_LIVE_STORE")
+    if override:
+        return Path(override).expanduser()
+    return _ROOT / "mlruns-live"
+
 
 TIMING_FIELDS = ["run_key", "t_lgb_s", "t_bilstm_s", "tiempo_s", "fuente"]
 
@@ -47,11 +63,11 @@ def clean_timing_value(value: Any) -> float | None:
 
 
 def setup_mlflow(tracking_uri: str | None = None, experiment: str = EXPERIMENT) -> str:
-    """Point MLflow at the text-only store and ensure the experiment exists."""
+    """Point MLflow at the live store and ensure the experiment exists."""
     os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
     import mlflow
 
-    uri = tracking_uri or STORE.resolve().as_uri()
+    uri = tracking_uri or _live_store().resolve().as_uri()
     mlflow.set_tracking_uri(uri)
     mlflow.set_experiment(experiment)
     return uri
@@ -61,7 +77,7 @@ def _client():
     os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
     from mlflow.tracking import MlflowClient
 
-    return MlflowClient(tracking_uri=STORE.resolve().as_uri())
+    return MlflowClient(tracking_uri=_live_store().resolve().as_uri())
 
 
 def _experiment_id(client, experiment: str = EXPERIMENT) -> str:

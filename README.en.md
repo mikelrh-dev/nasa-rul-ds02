@@ -246,9 +246,9 @@ Evidence: [`docs/assets/shap_importancia.png`](docs/assets/shap_importancia.png)
 ## MLflow
 
 Tracking lives in `mlruns/` (text file store, no server or SQLite). The
-**versioned** store has **17 curated runs**: 9 row, 4 window and 4 ablation. The
-working tree may contain unversioned `live__*` runs; they are not part of the
-delivery.
+**versioned** store has **17 curated runs**: 9 row, 4 window and 4 ablation. Live
+notebook work writes to `mlruns-live/`, which is git-ignored: re-running a notebook
+can never dirty the delivery.
 
 ```bash
 python scripts/operativo/backfill_mlflow.py --check   # 17 runs, store + export, no artifacts
@@ -256,11 +256,63 @@ python scripts/operativo/backfill_mlflow.py --write   # regenerate the 17 runs (
 MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
 
+`--check` is not decorative: it queries the experiment with `ViewType.ALL` and
+**fails** when a `live__*` run or a tombstone (`lifecycle_stage: deleted`) shows
+up. Store purity is an executable invariant, not a README promise.
+
+### Three grains, three questions
+
+| Grain | Runs | What it compares |
+|---|---:|---|
+| `fila` | 9 | one reading = one model (5 classical + 4 MLP), GroupKFold by engine |
+| `ventana` | 4 | 50 readings per prediction: LGBM, BiLSTM, BiLSTM+EMA5 and the deployed bundle |
+| `ablacion` | 4 | the same model with `cyc_norm` ON/OFF × baseline delta |
+
+Grains never mix: row RMSE and window RMSE do not measure the same thing, and the
+store states it with the `grano` tag. Ablation runs are isolated by
+`familia=ablacion_cycnorm`.
+
+### Ablation compared inside MLflow
+
+| `cyc_norm` variant | Test RMSE |
+|---|---:|
+| OFF | **5.878** |
+| OFF + baseline delta | 5.896 |
+| ON (baseline) | 5.910 |
+| ON + delta | 5.974 |
+
+It was measured in `nb03` (test 11/14/15, seed 42) and registered **without
+retraining**: four comparable runs inside the tool, not a lone notebook figure.
+The full 4×3 grid lives in `resultados/ablacion_cycnorm.csv`.
+
+<img src="docs/evidencia/mlflow/compare_ablacion.png" width="760" alt="MLflow Compare view of the four cyc_norm ablation runs: rmse_test 5.974, 5.910, 5.896 and 5.878">
+
+### Why the store is plain text
+
+Each run keeps params, metrics and tags —including `git_commit`, `git_dirty` and
+the dataset SHA— so it stays auditable years later. There are no binaries: models
+live in `models/` and are identified by SHA, and `mlruns/**/artifacts/` is
+deliberately empty so the store is reviewable in a diff.
+
 Exported comparison:
 [`docs/evidencia/mlflow/comparativa.csv`](docs/evidencia/mlflow/comparativa.csv).
-Screenshots: [`compare_fila.png`](docs/evidencia/mlflow/compare_fila.png),
-[`compare_ventana.png`](docs/evidencia/mlflow/compare_ventana.png) and
-[`run_prod.png`](docs/evidencia/mlflow/run_prod.png).
+All screenshots live in `docs/evidencia/mlflow/`:
+
+| Screenshot | What it shows |
+|---|---|
+| [`compare_fila.png`](docs/evidencia/mlflow/compare_fila.png) | **Compare** view of 9 models, plotted by `rmse_val` |
+| [`compare_ventana.png`](docs/evidencia/mlflow/compare_ventana.png) | Compare view of the 4 window runs, by `rmse_test` |
+| [`compare_ablacion.png`](docs/evidencia/mlflow/compare_ablacion.png) | Compare view of the 4 `cyc_norm` runs, by `rmse_test` |
+| [`run_prod.png`](docs/evidencia/mlflow/run_prod.png) | deployed `prod__bundle_c` run page: 22 parameters, 9 metrics and traceability tags |
+
+Each Compare view is filtered by `tags.grano` and carries the parallel
+coordinates chart plus the parameters, metrics and tags tables side by side, so
+what the reviewer sees is what the CSV summarises. Row grain compares on
+`rmse_val` on purpose: the row test set is read once per family (XGB and MLP-E2),
+and those two readings are what the CSV publishes.
+
+If you would rather ask than look at the UI, the `mlflow mcp run` MCP exposes
+`search_experiments`, `list_runs` and `describe_run` over this same store.
 
 <details>
 <summary>17 run keys</summary>

@@ -26,6 +26,9 @@ from mlflow.tracking import MlflowClient  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 STORE = ROOT / "mlruns"
+# Experiment dir of `ds02-clase` in the file store (the only one, besides
+# `0` for Default and `models/`, that ships in git).
+EXPERIMENT_DIR = STORE / "456179934766753270"
 EXPORT = ROOT / "docs" / "evidencia" / "mlflow" / "comparativa.csv"
 
 
@@ -202,3 +205,23 @@ def test_live_runs_do_not_break_historic_check():
     # historic runs (17) — a live run would not change the historic count.
     specs = MOD.build_specs()
     assert all(spec["tags"].get("fuente") == "historico" for spec in specs)
+
+
+def test_store_is_historic_only_on_disk():
+    """The versioned store holds the 17 curated runs and nothing else.
+
+    Live notebook tracking writes to the git-ignored `mlruns-live/`, so
+    `mlruns/` must have exactly 17 active run dirs: no `live__*` leftovers and
+    no tombstones (`lifecycle_stage: deleted`). Read from disk, no server.
+    """
+    assert EXPERIMENT_DIR.is_dir(), f"falta {EXPERIMENT_DIR}"
+    run_dirs = [p for p in EXPERIMENT_DIR.iterdir()
+                if p.is_dir() and (p / "meta.yaml").is_file()]
+    assert len(run_dirs) == 17, f"esperaba 17 run dirs, hay {len(run_dirs)}"
+    for path in run_dirs:
+        meta = (path / "meta.yaml").read_text(encoding="utf-8")
+        assert "lifecycle_stage: active" in meta, f"{path.name} no está activo"
+        run_name_file = path / "tags" / "mlflow.runName"
+        if run_name_file.exists():
+            run_name = run_name_file.read_text(encoding="utf-8").strip()
+            assert not run_name.startswith("live__"), f"{path.name}: {run_name}"

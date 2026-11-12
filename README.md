@@ -301,8 +301,8 @@ Evidencia: [`docs/assets/shap_importancia.png`](docs/assets/shap_importancia.png
 
 El tracking vive en `mlruns/` (file store de texto, sin servidor ni SQLite). El
 store **versionado** tiene **17 runs curados**: 9 de fila, 4 de ventana y 4 de la
-ablación. En el árbol de trabajo puede haber runs `live__*` no versionados; no
-forman parte de la entrega.
+ablación. El trabajo vivo de los notebooks escribe en `mlruns-live/`, que está
+git-ignored: re-ejecutar un cuaderno no puede ensuciar la entrega.
 
 ```bash
 python scripts/operativo/backfill_mlflow.py --check   # 17 runs, store + export, sin artefactos
@@ -310,11 +310,63 @@ python scripts/operativo/backfill_mlflow.py --write   # regenerar los 17 runs (i
 MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
 
+`--check` no es decorativo: recorre el experimento con `ViewType.ALL` y **falla**
+si aparece un run `live__*` o un tombstone (`lifecycle_stage: deleted`). La pureza
+del store es una invariante ejecutable, no una promesa del README.
+
+### Tres granos, tres preguntas
+
+| Grano | Runs | Qué compara |
+|---|---:|---|
+| `fila` | 9 | una lectura = un modelo (5 clásicos + 4 MLP), GroupKFold por motor |
+| `ventana` | 4 | 50 lecturas por predicción: LGBM, BiLSTM, BiLSTM+EMA5 y el bundle desplegado |
+| `ablacion` | 4 | el mismo modelo con `cyc_norm` ON/OFF × baseline delta |
+
+Los granos no se mezclan: el RMSE de fila y el de ventana no miden lo mismo, y el
+store lo declara con el tag `grano`. La ablación se aísla con
+`familia=ablacion_cycnorm`.
+
+### La ablación se compara dentro de MLflow
+
+| Variante (`cyc_norm`) | RMSE test |
+|---|---:|
+| OFF | **5.878** |
+| OFF + baseline delta | 5.896 |
+| ON (baseline) | 5.910 |
+| ON + delta | 5.974 |
+
+Se midió en `nb03` (test 11/14/15, semilla 42) y se registró **sin reentrenar**:
+son cuatro runs comparables dentro de la herramienta, no una figura suelta del
+notebook. El grid 4×3 completo está en `resultados/ablacion_cycnorm.csv`.
+
+<img src="docs/evidencia/mlflow/compare_ablacion.png" width="760" alt="Vista Compare de MLflow con los cuatro runs de la ablación cyc_norm: rmse_test 5.974, 5.910, 5.896 y 5.878">
+
+### Por qué el store es de texto
+
+Cada run guarda params, métricas y tags —incluidos `git_commit`, `git_dirty` y el
+SHA del dataset— así que se puede auditar años después. No hay binarios: los
+modelos viven en `models/` y se identifican por SHA, y `mlruns/**/artifacts/`
+queda vacío a propósito para que el store sea revisable en un diff.
+
 La comparativa exportada es
 [`docs/evidencia/mlflow/comparativa.csv`](docs/evidencia/mlflow/comparativa.csv).
-Capturas: [`compare_fila.png`](docs/evidencia/mlflow/compare_fila.png),
-[`compare_ventana.png`](docs/evidencia/mlflow/compare_ventana.png) y
-[`run_prod.png`](docs/evidencia/mlflow/run_prod.png).
+Las capturas están todas en `docs/evidencia/mlflow/`:
+
+| Captura | Qué enseña |
+|---|---|
+| [`compare_fila.png`](docs/evidencia/mlflow/compare_fila.png) | vista **Compare** de 9 modelos, graficados por `rmse_val` |
+| [`compare_ventana.png`](docs/evidencia/mlflow/compare_ventana.png) | vista Compare de 4 runs de ventana, por `rmse_test` |
+| [`compare_ablacion.png`](docs/evidencia/mlflow/compare_ablacion.png) | vista Compare de los 4 runs de `cyc_norm`, por `rmse_test` |
+| [`run_prod.png`](docs/evidencia/mlflow/run_prod.png) | ficha del run desplegado `prod__bundle_c`: 22 parámetros, 9 métricas y los tags de trazabilidad |
+
+Cada Compare se filtra por `tags.grano` y trae el gráfico de coordenadas
+paralelas más las tablas de parámetros, métricas y tags lado a lado, así que la
+comparación que ve el tribunal es la misma que resume el CSV. El grano `fila` se
+compara por `rmse_val` a propósito: el test de fila se lee una sola vez por
+familia (XGB y MLP-E2), y esas dos lecturas son las que publica el CSV.
+
+Si preferís preguntar en vez de mirar la UI, el MCP `mlflow mcp run` expone
+`search_experiments`, `list_runs` y `describe_run` sobre este mismo store.
 
 <details>
 <summary>Ver los 17 run_key</summary>

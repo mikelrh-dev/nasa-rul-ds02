@@ -631,7 +631,8 @@ logged. Model binaries MUST NOT be logged (no `log_model`/autolog).
 - GIVEN any of NB01–07 cell 0
 - WHEN the notebook starts
 - THEN `MLFLOW_ALLOW_FILE_STORE=true` and `TF_ENABLE_ONEDNN_OPTS=0` are set
-- AND `setup_mlflow()` points at `<root>/mlruns`, experiment `ds02-clase`
+- AND `setup_mlflow()` points at `<root>/mlruns-live` (or `MLFLOW_LIVE_STORE`),
+  experiment `ds02-clase`
 - AND no later cell sets `TF_ENABLE_ONEDNN_OPTS`
 
 #### Scenario: Train cell logs live run with params and metrics
@@ -681,13 +682,15 @@ and `.csv` with `run_key`, `t_lgb_s`, `t_bilstm_s`, `tiempo_s`, `fuente`.
 
 The 17 backfill runs SHALL carry tag `fuente=historico`. Backfill
 `--write`/`--check`/`--export` SHALL manage only historic runs and MUST NOT
-count, delete or overwrite live runs (`fuente=live_notebook`).
+count, delete or overwrite live runs (`fuente=live_notebook`). Live tracking
+SHALL write to `mlruns-live/` (git-ignored), never to the versioned `mlruns/`.
 
-#### Scenario: Backfill check ignores live runs
+#### Scenario: The published store is historic-only
 
-- GIVEN the store has 17 historic + any live runs
-- WHEN `scripts/backfill_mlflow.py --check` runs
+- GIVEN `mlruns/` holds exactly the 17 curated historic runs
+- WHEN `scripts/operativo/backfill_mlflow.py --check` runs
 - THEN it exits 0 counting exactly the 17 historic runs
+- AND it fails if the store holds live runs (`fuente=live_notebook`) or tombstones
 
 #### Scenario: `STEP_TRAIN_OOF` does not shadow the protocol
 
