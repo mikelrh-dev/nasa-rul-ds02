@@ -180,7 +180,7 @@
     }
   },
   "defaults": {
-    "threshold_airworthy": 30.0,
-    "threshold_aog": 25.0
+    "threshold_airworthy": 25.0,
+    "threshold_aog": 20.0
   }
 }

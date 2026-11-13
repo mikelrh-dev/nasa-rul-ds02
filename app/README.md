@@ -32,7 +32,7 @@ API            services/api.py
 | `entrypoints/streamlit_app.py` | Entry point de la rúbrica: secretos, `sys.modules.pop` para el rerun y `import app.entrypoints.dashboard_ds02`. |
 | `entrypoints/dashboard_ds02.py` | Orquestador: carga la caché, construye `AppCtx`, monta sidebar y las 4 pestañas. |
 | `lib/context.py` | `AppCtx`: transporte único de datos, estado y helpers hacia las pestañas. |
-| `lib/_constantes.py` | Dueño único de los umbrales 30/25 (ADR-008), sin Streamlit. |
+| `lib/_constantes.py` | Dueño único de los umbrales 25/20 (ADR-013), sin Streamlit. |
 | `lib/theme.py` | Dueño único de los design tokens y helpers de Plotly (`chart_layout`, `style_axes`, `fig_deriva`). |
 | `ui/__init__.py` | Fachada del paquete; re-exporta `_sha256_cached`. |
 | `ui/_paneles.py` | Paneles compartidos: `preflight_panel`, `shap_panel` y las tarjetas del muro. |

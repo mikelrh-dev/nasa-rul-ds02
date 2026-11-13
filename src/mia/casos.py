@@ -26,19 +26,19 @@ from src.mia.modelo import COLUMNAS, predecir  # noqa: F401  (se reexporta para 
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ROWS_PATH = os.path.join(RAIZ, "app", "cache", "ds02_rows.parquet")
 WINDOWS_PATH = os.path.join(RAIZ, "app", "cache", "ds02_windows.parquet")
-UMBRAL_APTO = 30.0
-UMBRAL_HANGAR = 25.0
+UMBRAL_APTO = 25.0
+UMBRAL_HANGAR = 20.0
 
 # (nombre, unidad, ciclo, decision esperada). `unidad=None` -> caso de seguridad.
 CASOS = [
     ("U11 ciclo 1 (inicio de vida)", 11, 1, "APTO"),
-    ("U11 ciclo 21 (inspeccion)", 11, 21, "INSPECCION"),
-    ("U11 ciclo 26 (hangar)", 11, 26, "HANGAR"),
+    ("U11 ciclo 21 (transicion a apto)", 11, 21, "APTO"),
+    ("U11 ciclo 26 (inspeccion)", 11, 26, "INSPECCION"),
     ("U14 ciclo 3 (inicio de vida)", 14, 3, "APTO"),
-    ("U14 ciclo 35 (hangar)", 14, 35, "HANGAR"),
+    ("U14 ciclo 35 (inspeccion)", 14, 35, "INSPECCION"),
     ("U14 ciclo 60 (hangar)", 14, 60, "HANGAR"),
     ("U15 ciclo 20 (pleno servicio)", 15, 20, "APTO"),
-    ("U15 ciclo 26 (hangar)", 15, 26, "HANGAR"),
+    ("U15 ciclo 26 (inspeccion)", 15, 26, "INSPECCION"),
     ("Dato imposible", None, None, "SIN_DECISION"),
 ]
 
@@ -111,7 +111,7 @@ def ficha_invalida() -> dict:
             "la columna ciclo disminuye dentro de la ventana",
         ],
         "umbrales": {"apto": UMBRAL_APTO, "hangar": UMBRAL_HANGAR},
-        "rul_punto": 37.0,  # banda C: L_inf = 37 - 9.09 = 27.9 -> INSPECCION sin R1
+        "rul_punto": 37.0,  # banda C: L_inf = 37 - 9.09 = 27.9 -> APTO sin R1
         "limite_inferior": 15.0,
         "limite_superior": 65.0,
     }

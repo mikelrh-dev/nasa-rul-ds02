@@ -105,8 +105,8 @@ def test_preset_muestra_umbrales_y_banda_en_una_pasada():
         pytest.fail("selectbox preset no encontrado")
     assert not app.exception
     vals = _th_values(app)
-    assert vals.get("th_apto_Prudente (+5)") == 35.0, vals
-    assert vals.get("th_aog_Prudente (+5)") == 30.0, vals
+    assert vals.get("th_apto_Prudente (+5)") == 30.0, vals
+    assert vals.get("th_aog_Prudente (+5)") == 25.0, vals
     # Toggle on cambia banda en la misma pasada (AppTest puede ya pasar por
     # full-rerun del harness; el RED real es el on_change estructural).
     for t in app.toggle:

@@ -37,11 +37,11 @@ def test_presets_conservador_agresivo_ordered():
     m = re.search(r"_PRESETS\s*=\s*\{([^}]*)\}", src)
     assert m, "_PRESETS not found"
     block = m.group(1)
-    assert "Conservador" in block and "Agresivo" in block
-    # deltas ±10 alongside the existing ±5
-    assert "(10.0, 10.0)" in block and "(-10.0, -10.0)" in block
-    base_a, base_h = 30.0, 25.0
-    for d_a, d_h in [(10.0, 10.0), (-10.0, -10.0), (5.0, 5.0), (-5.0, -5.0), (0.0, 0.0)]:
+    assert "Conservador" in block and "Permisivo" in block
+    # No queda ningun preset -10: con base 25/20 caeria en 15/10.
+    assert "(-10.0, -10.0)" not in block
+    base_a, base_h = 25.0, 20.0
+    for d_a, d_h in [(10.0, 10.0), (5.0, 5.0), (-5.0, -5.0), (0.0, 0.0)]:
         assert max(0.0, base_h + d_h) < base_a + d_a
 
 

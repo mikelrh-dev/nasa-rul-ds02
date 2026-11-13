@@ -73,7 +73,7 @@ def test_payload_no_reclasifica():
 
 def test_payload_umbrales_por_defecto():
     payload = UN.payload_desde_traza(_en_vivo(), None, "abc", "fp3")
-    assert payload["umbrales"] == {"apto": 30.0, "hangar": 25.0}
+    assert payload["umbrales"] == {"apto": 25.0, "hangar": 20.0}
 
 
 def test_payload_ventana_en_vivo_sin_columna_unit():

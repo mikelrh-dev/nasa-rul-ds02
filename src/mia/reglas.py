@@ -13,7 +13,7 @@ Cada regla es una tupla de cinco datos, siempre en este orden:
 
 Los números `R2b` y `R6` conservan la numeración del informe de medición
 (`docs/informes/informe-2026-10-21-reglas-oof.md`); `R1` es la regla de seguridad y `R7/R8/R9` son los
-umbrales conformales 30/25 documentados en ADR-008.
+umbrales conformales 25/20 documentados en ADR-013.
 
 Los números de esta capa los reproduce scripts/auditoria/freeze_rules_evidence.py; si
 divergen, el gate falla (ADR-009).

@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>De la predicción a la acción · DS02</title>
+
+<!-- === FONTS: Newsreader (display) · Hanken Grotesk (cuerpo) · DM Mono (chrome) === -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=Hanken+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================
+   THEME — Cobalt Grid
+   papel #F0EBDE · tinta #1F2BE0 · dos tintas, sin acentos
+   ============================================ */
+:root{
+  --paper:#F0EBDE;
+  --paper2:#E6E0CE;
+  --ink:#1F2BE0;
+  --ink-soft:#5560E5;
+  --grid:rgba(31,43,224,.065);
+  --faint:rgba(31,43,224,.18);
+
+  --edge:76px;
+  --pad-top:96px;
+  --pad-bot:112px;
+
+  --serif:'Newsreader', Georgia, serif;
+  --sans:'Hanken Grotesk', system-ui, sans-serif;
+  --mono:'DM Mono', ui-monospace, monospace;
+
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+/* ============================================
+   FIXED 16:9 STAGE — viewport-base.css
+   ============================================ */
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#E6E0CE}
+.deck-viewport{position:fixed;inset:0;overflow:hidden;background:#E6E0CE}
+.deck-stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;transform-origin:0 0;background:var(--paper)}
+.slide{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;display:block;visibility:hidden;opacity:0;pointer-events:none;background:var(--paper)}
+.slide.active,.slide.visible{visibility:visible;opacity:1;pointer-events:auto;z-index:2}
+img,video,canvas,svg{max-width:100%;max-height:100%}
+
+/* ============================================
+   CADA SLIDE — retícula permanente + filete superior
+   ============================================ */
+.slide{transition:opacity .28s ease}
+.slide::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(to right, var(--grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+  background-size:36px 36px;
+}
+.slide::after{
+  content:"";position:absolute;left:var(--edge);right:var(--edge);top:30px;
+  height:1.5px;background:var(--ink);z-index:6;
+}
+
+/* === Chrome inyectado por JS: filete inferior, número, pista de navegación === */
+.chrome{position:absolute;inset:0;pointer-events:none;z-index:6}
+.chrome .bottom{position:absolute;left:var(--edge);right:var(--edge);bottom:24px;height:1.5px;background:var(--ink)}
+.chrome .pnum{position:absolute;right:var(--edge);bottom:52px;font-family:var(--mono);font-size:14px;color:var(--ink);letter-spacing:.06em}
+.chrome .hint{position:absolute;left:var(--edge);bottom:52px;font-family:var(--mono);font-size:12px;color:var(--ink);opacity:.4;letter-spacing:.08em}
+.slide:has(.glitch) .chrome .pnum{display:none}
+.slide:has(.glitch) .topbar{padding-right:360px}
+
+/* ============================================
+   MARCO DE CONTENIDO
+   ============================================ */
+.frame{
+  position:absolute;left:var(--edge);right:var(--edge);
+  top:var(--pad-top);bottom:var(--pad-bot);
+  z-index:3;display:flex;flex-direction:column;min-height:0;
+}
+
+/* ============================================
+   TIPOGRAFÍA BASE
+   ============================================ */
+h1,h2,h3{font-family:var(--serif);font-weight:400;color:var(--ink);letter-spacing:-.008em}
+h1{font-size:156px;line-height:.94}
+h2{font-size:76px;line-height:.98}
+h3{font-size:40px;line-height:1.05}
+em{font-style:italic}
+
+.lab{
+  font-family:var(--sans);font-size:15px;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--ink);
+}
+.lede{
+  font-family:var(--sans);font-size:26px;line-height:1.5;color:var(--ink);
+  max-width:1000px;
+}
+p,li,td{font-family:var(--sans);font-size:21px;line-height:1.5;color:var(--ink)}
+b,strong{font-weight:700}
+.mono{font-family:var(--mono);letter-spacing:.04em}
+.muted{opacity:.72}
+
+/* ============================================
+   TOPBAR — titular + lab-tag con filete cobalto
+   ============================================ */
+.topbar{
+  display:flex;align-items:baseline;justify-content:space-between;
+  gap:40px;padding-bottom:18px;border-bottom:1.5px solid var(--ink);
+}
+.topbar h2{font-size:78px}
+.topbar .lab{white-space:nowrap}
+
+/* ============================================
+   CONTADORES / CIFRAS
+   ============================================ */
+.vbig{font-family:var(--serif);font-size:150px;line-height:.88;letter-spacing:-.015em;color:var(--ink)}
+.big{font-family:var(--serif);font-size:96px;line-height:.92;letter-spacing:-.01em;color:var(--ink)}
+.kpi{font-family:var(--serif);font-size:74px;line-height:1;letter-spacing:-.01em;color:var(--ink)}
+.unit{font-family:var(--sans);font-size:16px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;margin-top:10px}
+
+/* ============================================
+   LEDGER / TABLAS
+   ============================================ */
+.lt{margin-top:26px}
+.lt-head,.lt-row{display:grid;gap:24px;align-items:baseline}
+.lt-head{
+  border-bottom:1.5px solid var(--ink);padding-bottom:10px;
+  font-family:var(--sans);font-size:13px;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;
+}
+.lt-row{border-bottom:1px solid var(--faint);padding:14px 0}
+.lt--airy .lt-row{padding:22px 0}
+.lt--tight .lt-row{padding:5px 0}
+.lt-row:last-child{border-bottom:1.5px solid var(--ink)}
+.lt .nm{font-family:var(--serif);font-size:33px;line-height:1.1}
+.lt .num{font-family:var(--mono);font-size:22px;letter-spacing:.02em}
+.lt .tx{font-size:21px;line-height:1.4}
+.hi{background:rgba(31,43,224,.08)}
+.lt-row.hi .nm,.lt-row.hi .num{font-weight:500}
+
+/* ============================================
+   PLACAS DE FIGURA — multiply funde el blanco con el papel
+   ============================================ */
+.plate{border:1.5px solid var(--ink);background:transparent;overflow:hidden}
+.plate img{display:block;width:100%;height:auto;mix-blend-mode:multiply}
+.plate--crop{height:330px}
+.plate--crop img{width:100%;height:100%;object-fit:cover;object-position:50% 6%;transform:scale(2.15);transform-origin:50% 10%}
+.plate--screen{background:#0B0D14}
+.plate--screen img{mix-blend-mode:normal;max-height:640px;object-fit:contain;width:100%}
+.cap{margin-top:10px;font-size:18px;line-height:1.45}
+.cap b{font-weight:700}
+
+/* ============================================
+   DECORACIÓN — columna pixel-glitch + parche QR
+   ============================================ */
+.glitch{
+  position:absolute;right:0;top:0;bottom:0;width:320px;z-index:1;
+  display:flex;flex-direction:column;opacity:.9;pointer-events:none;
+}
+.glitch i{display:block;flex:1;align-self:flex-end;background:repeating-linear-gradient(90deg,var(--ink) 0 1.5px,transparent 1.5px 9px)}
+.glitch i:nth-child(1){width:100%}
+.glitch i:nth-child(2){width:64%}
+.glitch i:nth-child(3){width:100%}
+.glitch i:nth-child(4){width:78%}
+.glitch i:nth-child(5){width:100%}
+.glitch i:nth-child(6){width:48%}
+.glitch i:nth-child(7){width:100%}
+.glitch i:nth-child(8){width:70%}
+.glitch i:nth-child(9){width:100%}
+.glitch i:nth-child(10){width:38%}
+.glitch i:nth-child(11){width:100%}
+.glitch i:nth-child(12){width:56%}
+
+.qr{width:96px;height:96px;display:block}
+
+/* ============================================
+   PIEZAS SUELTAS
+   ============================================ */
+.stack{display:flex;flex-direction:column}
+.grow{flex:1;min-height:0}
+.cols{display:grid;gap:48px}
+.rule-t{border-top:1.5px solid var(--ink);padding-top:18px}
+.rule-f{border-top:1px solid var(--faint);padding-top:14px}
+.note{font-size:20px;line-height:1.45;border-left:2px solid var(--ink);padding-left:20px}
+.tag{font-family:var(--mono);font-size:15px;letter-spacing:.06em;opacity:.85}
+
+/* === Barras de importancia (slide 16) === */
+.bars{margin-top:22px}
+.bar{
+  display:grid;grid-template-columns:130px 1fr 96px;align-items:center;gap:20px;
+  padding:13px 0;border-bottom:1px solid var(--faint);
+}
+.bar:last-child{border-bottom:1.5px solid var(--ink)}
+.bar .bn{font-family:var(--serif);font-size:28px;line-height:1.1}
+.bar .bt{display:block;height:18px;background:rgba(31,43,224,.10);position:relative}
+.bar .bt i{display:block;position:absolute;left:0;top:0;bottom:0;background:var(--ink);min-width:5px}
+.bar .bv{font-family:var(--mono);font-size:22px;text-align:right}
+
+/* === Cadena de pasos === */
+.chain{display:grid;grid-template-columns:repeat(5,1fr);border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink)}
+.chain .step{padding:22px 22px 24px;border-right:1px solid var(--faint)}
+.chain .step:last-child{border-right:0}
+.chain .n{font-family:var(--mono);font-size:15px;opacity:.65}
+.chain .t{font-family:var(--serif);font-size:36px;line-height:1.05;margin-top:12px}
+.chain .d{font-size:18px;line-height:1.45;margin-top:10px;opacity:.85}
+
+/* === Rampa de decisión (slide 19) === */
+.axis{position:relative;height:300px;margin-top:64px;border-bottom:1.5px solid var(--ink)}
+.axis .band{position:absolute;left:46%;width:16%;top:96px;height:140px;border:1.5px solid var(--ink);background:rgba(31,43,224,.14)}
+.axis .mark{position:absolute;left:54%;top:44px;height:192px;width:1.5px;background:var(--ink)}
+.axis .lab-m{position:absolute;left:54%;top:6px;transform:translateX(-50%);font-family:var(--mono);font-size:20px}
+.axis .lab-b{position:absolute;left:54%;top:232px;transform:translateX(-50%);font-family:var(--mono);font-size:15px;opacity:.75;white-space:nowrap}
+.axis .zone{position:absolute;bottom:-38px;font-family:var(--mono);font-size:15px;opacity:.8}
+.axis .gate{position:absolute;top:60px;height:228px;width:1px;background:var(--ink);opacity:.45}
+.axis .tick{position:absolute;bottom:0;width:1px;height:9px;background:var(--ink);opacity:.5}
+
+/* ============================================
+   ANIMACIÓN — revelado escalonado al activar
+   ============================================ */
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+.slide.active .reveal{opacity:1;transform:translateY(0)}
+.slide.active .reveal:nth-child(2){transition-delay:.06s}
+.slide.active .reveal:nth-child(3){transition-delay:.12s}
+.slide.active .reveal:nth-child(4){transition-delay:.18s}
+.slide.active .reveal:nth-child(5){transition-delay:.24s}
+
+@media (prefers-reduced-motion: reduce){
+  .reveal{transition-duration:.01ms !important;transition-delay:0s !important}
+  .slide{transition-duration:.01ms}
+}
+
+/* === Modo edición === */
+body.editing [contenteditable="true"]{outline:1px dashed rgba(31,43,224,.5);outline-offset:4px}
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+<!-- ══════════════════ 01 · PORTADA ══════════════════ -->
+<section class="slide active">
+  <div class="glitch" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="frame">
+    <div class="topbar" style="border-bottom:0;padding-bottom:0;padding-right:340px">
+      <div class="lab">IABD / Reto 1 / SAA · PIA · MIA</div>
+      <div class="lab">12 nov 2026</div>
+    </div>
+
+    <div style="margin-top:110px;position:relative;z-index:4">
+      <h1 style="max-width:1250px">De la predicción<br>a la <em>acción</em></h1>
+      <div style="width:150px;height:1.5px;background:var(--ink);margin:40px 0 32px"></div>
+      <p class="lede" style="font-size:24px;max-width:860px">
+        RUL y decisión de hangar en una flota DS02.<br>
+        De la telemetría al APTO, la inspección o el motor en tierra.
+      </p>
+    </div>
+
+    <div class="grow"></div>
+
+    <div style="display:flex;gap:0;border-top:1.5px solid var(--ink);padding-top:20px;position:relative;z-index:4">
+      <div style="padding-right:34px;border-right:1px solid var(--faint)" class="mono">65.173 <span class="muted">lecturas</span></div>
+      <div style="padding:0 34px;border-right:1px solid var(--faint)" class="mono">9 <span class="muted">motores</span></div>
+      <div style="padding:0 34px;border-right:1px solid var(--faint)" class="mono">8 <span class="muted">reglas</span></div>
+      <div style="padding-left:34px" class="mono">Bundle C</div>
+    </div>
+  </div>
+
+  <svg class="qr" style="position:absolute;right:270px;top:120px;z-index:5" viewBox="0 0 8 8" aria-hidden="true">
+    <rect width="8" height="8" fill="#F0EBDE"/>
+    <g fill="#1F2BE0">
+      <rect x="0" y="0" width="1" height="1"/><rect x="3" y="0" width="1" height="1"/><rect x="5" y="0" width="1" height="1"/><rect x="7" y="0" width="1" height="1"/>
+      <rect x="1" y="1" width="1" height="1"/><rect x="4" y="1" width="1" height="1"/><rect x="6" y="1" width="1" height="1"/>
+      <rect x="0" y="2" width="1" height="1"/><rect x="2" y="2" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="7" y="2" width="1" height="1"/>
+      <rect x="1" y="3" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/>
+      <rect x="0" y="4" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/>
+      <rect x="2" y="5" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="5" width="1" height="1"/>
+      <rect x="1" y="6" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="7" y="6" width="1" height="1"/>
+      <rect x="0" y="7" width="1" height="1"/><rect x="2" y="7" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/>
+    </g>
+  </svg>
+</section>
+
+<!-- ══════════════════ 02 · PROBLEMA DE NEGOCIO ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>El problema: AOG y coste en pista.</h2>
+      <div class="lab">ACTO I · NEGOCIO</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 700px;gap:80px;margin-top:56px">
+      <div>
+        <div class="vbig" style="font-size:126px">10.000–15.000</div>
+        <div class="unit">USD por hora de motor en tierra</div>
+        <p class="lede" style="margin-top:36px">
+          Un motor parado en pista es una hemorragia financiera. Hoy la decisión es ciega.
+          El sistema paga su desarrollo evitando <b>una sola parada no planificada</b>.
+        </p>
+      </div>
+
+      <div>
+        <div class="lt-head" style="grid-template-columns:1fr 200px"><span>Concepto</span><span style="text-align:right">Valor</span></div>
+        <div class="lt" style="margin-top:0">
+          <div class="lt-row" style="grid-template-columns:1fr 200px"><span class="tx">Coste AOG declarado</span><span class="num" style="text-align:right">10–15k USD/h</span></div>
+          <div class="lt-row" style="grid-template-columns:1fr 200px"><span class="tx">Horas por ciclo de vuelo</span><span class="num" style="text-align:right">1–2 h</span></div>
+          <div class="lt-row" style="grid-template-columns:1fr 200px"><span class="tx">Coste por ciclo de error</span><span class="num" style="text-align:right">10–30k USD</span></div>
+          <div class="lt-row hi" style="grid-template-columns:1fr 200px"><span class="tx">RMSE / umbral 20</span><span class="num" style="text-align:right">4,338 → 22 %</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rule-t" style="margin-top:80px">
+      <p style="font-family:var(--serif);font-size:34px;line-height:1.2;max-width:1400px">
+        Una sola parada no planificada evitada al año paga el sistema.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 03 · EDA Y CALIDAD ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>El ciclo de vida del motor</h2>
+      <div class="lab">ACTO I · EDA · NULOS</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:30px;margin-top:26px">
+      <div>
+        <div class="plate" style="height:250px;display:flex;align-items:center;justify-content:center"><img src="assets/eda_hist_rul.png" alt="Distribución de RUL" style="max-height:250px;width:auto;max-width:100%"></div>
+        <div class="cap"><b>RUL sesgada a la izquierda.</b> La cola crítica manda: el modelo tiene que acertar ahí, no en la media.</div>
+      </div>
+      <div>
+        <div class="plate" style="height:250px;display:flex;align-items:center;justify-content:center"><img src="assets/eda_barras_fase.png" alt="Barras por fase de vuelo" style="max-height:250px;width:auto;max-width:100%"></div>
+        <div class="cap"><b>El crucero domina.</b> Es donde se acumulan las horas y donde el desgaste es observable.</div>
+      </div>
+      <div>
+        <div class="plate" style="height:250px;display:flex;align-items:center;justify-content:center"><img src="assets/eda_box_t48_fase.png" alt="T48 crudo por fase" style="max-height:250px;width:auto;max-width:100%"></div>
+        <div class="cap"><b>T48 cruda separa fases.</b> Es régimen, no salud. Sin aislarlo, el modelo aprendería pilotaje.</div>
+      </div>
+    </div>
+
+    <div class="rule-t" style="margin-top:44px">
+      <p style="font-size:20px">
+        <b>1.185 nulos, todos en T30</b> (~1,8 %): MAR con patrón físico, dropout de sonda en crucero alto.
+        Imputación <span class="mono">ffill</span> causal por unidad y mediana de train solo para el primer NaN.
+      </p>
+    </div>
+
+    <div class="grow"></div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);border-top:1.5px solid var(--ink);padding-top:16px;margin-bottom:28px">
+      <div><div class="mono">65.173</div><div class="tag">lecturas útiles</div></div>
+      <div><div class="mono">1.185</div><div class="tag">huecos con causa física</div></div>
+      <div><div class="mono">52.635 / 12.538</div><div class="tag">train / test por motor</div></div>
+      <div><div class="mono">0</div><div class="tag">duplicados funcionales</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 04 · RESIDUALIZACIÓN ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>El régimen no es salud.</h2>
+      <div class="lab">ACTO I · RESIDUALIZACIÓN</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 880px;gap:64px;margin-top:40px;align-items:start">
+      <div>
+        <p class="lede" style="font-size:24px">
+          Un motor se calienta porque se rompe o porque el avión sube a tope. Si no se separan las dos cosas, el modelo aprende <b>pilotaje</b> en vez de desgaste.
+        </p>
+
+        <div class="rule-t" style="margin-top:28px">
+          <div class="lab">Qué se resta</div>
+          <p style="margin-top:10px;font-size:20px">Un Ridge por sensor —14— sobre un polinomio de grado 2 en <span class="mono">alt · Mach · TRA · T2</span>. Lo que sobra es el residuo: la degradación.</p>
+        </div>
+        <div class="rule-t" style="margin-top:22px">
+          <div class="lab">Con qué se ajusta</div>
+          <p style="margin-top:10px;font-size:20px">Solo con los motores <span class="mono">2·5·10·18·20</span>. Ningún otro participa: es la línea de la que cuelga todo lo demás.</p>
+        </div>
+        <div class="rule-t" style="margin-top:22px">
+          <div class="lab">Qué sale</div>
+          <p style="margin-top:10px;font-size:20px">19 canales escalados para la red y 93 features de resumen para el árbol. El mismo residuo, dos vistas.</p>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start">
+        <div>
+          <div class="plate"><img src="assets/eda_box_t48_fase.png" alt="T48 crudo por fase"></div>
+          <div class="cap"><b>Antes.</b> T48 crudo: la fase separa las cajas.</div>
+        </div>
+        <div>
+          <div class="plate"><img src="assets/eda_t48_resid_fase.png" alt="T48 residualizado por fase"></div>
+          <div class="cap"><b>Después.</b> Residualizado: se solapan.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rule-t" style="margin-top:52px">
+      <p style="font-family:var(--serif);font-size:30px;line-height:1.2;max-width:1500px">
+        La degradación es lo que queda cuando se resta el régimen.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 05 · SEPARADOR BASELINE ══════════════════ -->
+<section class="slide">
+  <div class="glitch" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="frame">
+    <div class="topbar" style="border-bottom:0">
+      <div class="lab">Acto II</div>
+      <div class="lab">SAA · RÚBRICA</div>
+    </div>
+    <div class="grow" style="display:flex;flex-direction:column;justify-content:center;position:relative;z-index:4">
+      <h1 style="font-size:150px">El Baseline<br>Académico</h1>
+      <p class="lede" style="margin-top:30px;font-size:24px;max-width:960px">
+        Cumpliendo la rúbrica: instantes aislados y modelos clásicos.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 06 · CINCO CLÁSICOS ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>Un pipeline, cinco clásicos.</h2>
+      <div class="lab">ACTO II · SAA</div>
+    </div>
+
+    <div class="lt-head" style="grid-template-columns:1.2fr 1.4fr .9fr .9fr .7fr;margin-top:30px">
+      <span>Modelo</span><span>Mejores parámetros</span><span>RMSE train</span><span>RMSE val</span><span>Tiempo</span>
+    </div>
+    <div class="lt" style="margin-top:0">
+      <div class="lt-row" style="grid-template-columns:1.2fr 1.4fr .9fr .9fr .7fr"><span class="nm">KNN</span><span class="tx mono">n_neighbors = 31</span><span class="num">6,984</span><span class="num">9,409</span><span class="num">9,1 s</span></div>
+      <div class="lt-row" style="grid-template-columns:1.2fr 1.4fr .9fr .9fr .7fr"><span class="nm">Regresión</span><span class="tx mono">alpha = 10</span><span class="num">8,200</span><span class="num">8,276</span><span class="num">3,5 s</span></div>
+      <div class="lt-row hi" style="grid-template-columns:1.2fr 1.4fr .9fr .9fr .7fr"><span class="nm">Random Forest</span><span class="tx mono">max_depth = 8</span><span class="num">7,157</span><span class="num">9,070</span><span class="num">79,6 s</span></div>
+      <div class="lt-row" style="grid-template-columns:1.2fr 1.4fr .9fr .9fr .7fr"><span class="nm">SVM</span><span class="tx mono">C = 10 · ε = 1</span><span class="num">7,525</span><span class="num">8,293</span><span class="num">2,7 s</span></div>
+      <div class="lt-row hi" style="grid-template-columns:1.2fr 1.4fr .9fr .9fr .7fr"><span class="nm">XGBoost</span><span class="tx mono">max_depth = 4</span><span class="num">7,189</span><span class="num"><b>8,217</b></span><span class="num">7,2 s</span></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 420px;gap:56px;border-top:1.5px solid var(--ink);padding-top:20px;margin-top:34px;align-items:start">
+      <div style="display:grid;gap:14px">
+        <p class="note">XGBoost gana con <b>8,217</b>, pero el techo es el grano: una fila no ve la secuencia.</p>
+        <p class="note"><span class="mono">cycle</span> pesa <b>20,8</b> en la permutación; el resto de variables, menos de 6,2. El modelo se apoya en el reloj.</p>
+        <p class="note">Por eso el siguiente paso no es «otro clasificador»: es cambiar el contrato de entrada.</p>
+      </div>
+      <div>
+        <div class="plate" style="height:300px;display:flex;align-items:center;justify-content:center"><img src="assets/importancia_permutacion.png" alt="Importancia por permutación del mejor clásico" style="max-height:300px;width:auto;max-width:100%"></div>
+        <div class="cap">Permutación: el reloj domina la decisión del modelo de fila.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 07 · MLP ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>MLP y sus experimentos.</h2>
+      <div class="lab">ACTO II · UNA FILA</div>
+    </div>
+
+    <div class="lt-head" style="grid-template-columns:.7fr 2.2fr 1.1fr .7fr;margin-top:30px">
+      <span>Exp.</span><span>Hipótesis</span><span>Parámetros</span><span>RMSE val</span>
+    </div>
+    <div class="lt lt--airy" style="margin-top:0">
+      <div class="lt-row" style="grid-template-columns:.7fr 2.2fr 1.1fr .7fr">
+        <span class="nm">base</span><span class="tx">Dos capas bastan para la no linealidad por régimen sin memorizar.</span>
+        <span class="tx mono">128·64 · α 0,001</span><span class="num">7,358</span>
+      </div>
+      <div class="lt-row hi" style="grid-template-columns:.7fr 2.2fr 1.1fr .7fr">
+        <span class="nm">E1 capacidad</span><span class="tx">Más capacidad capta la interacción régimen-degradación, aunque puede sobreajustar.</span>
+        <span class="tx mono">256·128·64</span><span class="num">7,481</span>
+      </div>
+      <div class="lt-row hi" style="grid-template-columns:.7fr 2.2fr 1.1fr .7fr">
+        <span class="nm">E2 reg_lr</span><span class="tx">Más regularización frena la memorización de 22 features transformadas y ruidosas.</span>
+        <span class="tx mono">128·64 · α 0,01</span><span class="num"><b>7,340</b></span>
+      </div>
+      <div class="lt-row" style="grid-template-columns:.7fr 2.2fr 1.1fr .7fr">
+        <span class="nm">E3 batch</span><span class="tx">Un batch grande estabiliza el gradiente en ventanas correladas.</span>
+        <span class="tx mono">batch 1024</span><span class="num">7,355</span>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:64px;border-top:1.5px solid var(--ink);padding-top:20px;margin-top:44px">
+      <p class="note"><b>E1 empeora</b> (7,358 → 7,481): subir capacidad memoriza. El experimento se conserva porque enseña el límite.</p>
+      <p class="note"><b>Test: 7,7211 · MAE 5,8132 · R² 0,8343.</b> Mejor que los clásicos, pero sigue viendo una fila.</p>
+    </div>
+
+    <div class="grow"></div>
+
+    <div class="rule-t" style="margin-top:0">
+      <p style="font-family:var(--serif);font-size:30px;line-height:1.2;max-width:1500px">
+        El techo no es la capacidad: es el contrato de entrada.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 08 · SEPARADOR BUNDLE C ══════════════════ -->
+<section class="slide">
+  <div class="glitch" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="frame">
+    <div class="topbar" style="border-bottom:0">
+      <div class="lab">Acto III</div>
+      <div class="lab">SAA · MODELO FINAL</div>
+    </div>
+    <div class="grow" style="display:flex;flex-direction:column;justify-content:center;position:relative;z-index:4">
+      <h1 style="font-size:150px">El Bundle C</h1>
+      <p class="lede" style="margin-top:30px;font-size:24px;max-width:980px">
+        Superando la rúbrica: secuencia, meta-modelos y el RMSE de 4,338.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 09 · FILA VS VENTANA + ABLACIÓN ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>La degradación es una secuencia.</h2>
+      <div class="lab">ACTO III · FILA VS VENTANA</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1.15fr;gap:60px;margin-top:34px;align-items:start">
+      <div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px">
+          <div>
+            <div class="big" style="font-size:76px">22</div>
+            <div class="lab" style="margin-top:8px">columnas · una fila</div>
+            <p style="margin-top:12px;font-size:19px">Un instante aislado: régimen, sensores y ciclo. No hay historia.</p>
+          </div>
+          <div>
+            <div class="big" style="font-size:76px">50 × 19</div>
+            <div class="lab" style="margin-top:8px">pasos × canales</div>
+            <p style="margin-top:12px;font-size:19px">Una trayectoria: el desgaste se ve en el movimiento, no en la foto.</p>
+          </div>
+        </div>
+
+        <div class="rule-t" style="margin-top:50px">
+          <div class="lab">El cambio de contrato</div>
+          <p style="margin-top:10px;font-size:20px">De <b>12.538 lecturas</b> sueltas a <b>6.196 ventanas</b> de 50 pasos. El modelo deja de preguntar «¿cómo está?» y empieza a preguntar «¿hacia dónde va?».</p>
+        </div>
+        <div class="rule-t" style="margin-top:26px">
+          <div class="lab">La ablación</div>
+          <p style="margin-top:10px;font-size:20px">El reloj (<span class="mono">cyc_norm</span>) no mejora el secuencial: 5,878–5,974. En LGBM cuesta <b>+0,77</b>. Se queda solo donde aporta: como canal del BiLSTM.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="lt-head" style="grid-template-columns:1.35fr .8fr 1.1fr"><span>Variante</span><span>LGBM</span><span>BiLSTM + EMA5</span></div>
+        <div class="lt lt--tight" style="margin-top:0">
+          <div class="lt-row hi" style="grid-template-columns:1.35fr .8fr 1.1fr"><span class="nm">cyc_norm OFF</span><span class="num"><b>6,297</b></span><span class="num"><b>5,878</b></span></div>
+          <div class="lt-row" style="grid-template-columns:1.35fr .8fr 1.1fr"><span class="nm">ON (baseline)</span><span class="num">7,067</span><span class="num">5,910</span></div>
+          <div class="lt-row" style="grid-template-columns:1.35fr .8fr 1.1fr"><span class="nm">OFF + delta</span><span class="num">8,765</span><span class="num">5,896</span></div>
+          <div class="lt-row" style="grid-template-columns:1.35fr .8fr 1.1fr"><span class="nm">ON + delta</span><span class="num">8,547</span><span class="num">5,974</span></div>
+        </div>
+        <div class="plate" style="margin-top:26px"><img src="assets/ablacion_cycnorm_rmse.png" alt="RMSE por variante de cyc_norm"></div>
+        <div class="cap">Cuatro variantes, mismo protocolo. El reloj no mueve el secuencial; distorsiona el árbol.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 10 · OOF + META ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>RidgeCV + LGBM y validación OOF.</h2>
+      <div class="lab">ACTO III · β = 1,00</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 720px;gap:64px;margin-top:34px;align-items:start">
+      <div>
+        <p class="lede" style="font-size:22px">
+          El meta no aprende de los sensores: aprende de dos predicciones. Para calibrar β, cada ventana la puntúa un meta entrenado en otros motores: <b>cero fuga entre ajuste y evaluación</b>.
+        </p>
+
+        <div class="lt-head" style="grid-template-columns:.8fr 1.5fr 1.2fr;margin-top:28px"><span>Pliegue</span><span>Entrena</span><span>Puntúa</span></div>
+        <div class="lt lt--tight" style="margin-top:0">
+          <div class="lt-row" style="grid-template-columns:.8fr 1.5fr 1.2fr"><span class="nm">1</span><span class="tx mono">5·16·18·20</span><span class="tx mono">2·10</span></div>
+          <div class="lt-row" style="grid-template-columns:.8fr 1.5fr 1.2fr"><span class="nm">2</span><span class="tx mono">2·10·16·20</span><span class="tx mono">5·18</span></div>
+          <div class="lt-row" style="grid-template-columns:.8fr 1.5fr 1.2fr"><span class="nm">3</span><span class="tx mono">2·5·10·18</span><span class="tx mono">16·20</span></div>
+        </div>
+
+        <div class="rule-t" style="margin-top:28px">
+          <div class="lab">El meta desplegado</div>
+          <p style="margin-top:10px;font-size:20px"><b>RidgeCV</b> sobre <span class="mono">[p_lstm, p_lgb]</span>, α = 88,6; <b>LightGBM</b> sobre las mismas dos columnas para corregir desvíos. La reconciliación es fija: 50 % Ridge + 50 % LGBM.</p>
+        </div>
+        <p class="note" style="margin-top:22px">β = mediana de los tres pliegues: <b>1,00</b>. El meta manda; el BiLSTM queda como rama de entrada, no como salida.</p>
+      </div>
+
+      <div>
+        <div class="plate"><img src="assets/ridge_meta_pesos_06.png" alt="Pesos del ridge_meta del bundle C"></div>
+        <div class="cap"><b>28 % red · 72 % árbol.</b> Intercepto −0,27 ciclos: el meta concilia, no inventa un nivel propio.</div>
+        <div class="note" style="margin-top:24px">
+          El test se reserva para la confirmación final. La selección de β se hace fuera de fold, sobre motores que el meta no vio.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 11 · CASCADA ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>De 11,0 a 4,3 ciclos de error.</h2>
+      <div class="lab">ACTO III · CASCADA</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:34px;margin-top:24px">
+      <div><div class="kpi" style="font-size:62px">11,034</div><div class="unit">XGBoost · fila</div></div>
+      <div><div class="kpi" style="font-size:62px">7,721</div><div class="unit">MLP · fila</div></div>
+      <div><div class="kpi" style="font-size:62px">5,618</div><div class="unit">BiLSTM + EMA5</div></div>
+      <div><div class="kpi" style="font-size:62px">4,338</div><div class="unit">Híbrido C</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:820px 1fr;gap:48px;margin-top:24px;align-items:start">
+      <div>
+        <div class="plate" style="height:280px;display:flex;align-items:center;justify-content:center"><img src="assets/bundle_c_cascada_rmse.png" alt="Cascada de RMSE del bundle C" style="max-height:280px;width:auto;max-width:100%"></div>
+        <div class="cap">Cada peldaño se midió sobre las mismas ventanas. El híbrido reduce el error un <b>61 %</b> frente al baseline de fila.</div>
+      </div>
+      <div>
+        <div class="plate" style="height:280px;display:flex;align-items:center;justify-content:center"><img src="assets/real_vs_predicho_bundle_c.png" alt="Valores reales frente a predichos del bundle C" style="max-height:280px;width:auto;max-width:100%"></div>
+        <div class="cap">Real frente a predicho sobre las 6.196 ventanas de test.</div>
+      </div>
+    </div>
+
+    <div class="rule-t" style="margin-top:22px">
+      <p style="font-size:19px">
+        Serie completa: <span class="mono">XGB 11,034 → MLP-E2 7,721 → LGBM 7,067 → BiLSTM 5,654 → +EMA5 5,618 → Híbrido-C 4,338</span>.
+        Ninguna mejora es una anécdota: todas se seleccionan por validación y se confirman en el test reservado.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 12 · SHAP ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>Atribución del desgaste.</h2>
+      <div class="lab">ACTO III · SHAP · 3 RAMAS</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 860px;gap:64px;margin-top:34px;align-items:start">
+      <div>
+        <div class="lab">El meta · solo ve dos columnas · mean |SHAP|</div>
+        <div class="bars">
+          <div class="bar"><span class="bn">p_lgb</span><span class="bt"><i style="width:100%"></i></span><span class="bv">20,15</span></div>
+          <div class="bar"><span class="bn">p_lstm</span><span class="bt"><i style="width:40.1%"></i></span><span class="bv">8,09</span></div>
+        </div>
+        <div class="cap" style="margin-top:12px"><b>71 % árbol · 29 % red.</b> Dos métodos distintos, el mismo reparto: el meta se apoya en el árbol, pero conserva la red.</div>
+
+        <p class="note" style="margin-top:26px">
+          Residuo del híbrido: sesgo <b>+0,369</b> ciclos, rango −14,8 a +9,5. El <b>58,8 %</b> de las ventanas se pasa de RUL —el lado que la NASA castiga— y el 4,3 % falla más de 10 ciclos.
+        </p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start">
+        <div>
+          <div class="plate"><img src="assets/bar_bilstm.png" alt="SHAP del BiLSTM por canal"></div>
+          <div class="cap"><b>BiLSTM · 19 canales.</b> <span class="mono">cyc_norm</span> 24,1 · T50 16,6.</div>
+        </div>
+        <div>
+          <div class="plate"><img src="assets/bar_lgbm.png" alt="SHAP del LightGBM"></div>
+          <div class="cap"><b>LightGBM · 93 features.</b> <span class="mono">cyc_norm</span> 12,9 · T50 media 9,1.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rule-t" style="margin-top:44px">
+      <p style="font-family:var(--serif);font-size:30px;line-height:1.2;max-width:1560px">
+        Las dos ramas miran el mismo desgaste desde ángulos distintos: el reloj y la temperatura de salida. El meta las concilia.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 13 · SEPARADOR ACCIÓN ══════════════════ -->
+<section class="slide">
+  <div class="glitch" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="frame">
+    <div class="topbar" style="border-bottom:0">
+      <div class="lab">Acto IV</div>
+      <div class="lab">PIA · MIA</div>
+    </div>
+    <div class="grow" style="display:flex;flex-direction:column;justify-content:center;position:relative;z-index:4">
+      <h1 style="font-size:150px">De la Predicción<br>a la Acción</h1>
+      <p class="lede" style="margin-top:30px;font-size:24px;max-width:980px">
+        Reglas de negocio, n8n y la App de Streamlit.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 14 · REGLAS ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>El modelo propone, la regla decide.</h2>
+      <div class="lab">ACTO IV · MIA · 8 REGLAS</div>
+    </div>
+
+    <div class="lt-head" style="grid-template-columns:1.35fr .32fr 2.1fr;margin-top:30px">
+      <span>Regla</span><span>Prioridad</span><span>Qué hace</span>
+    </div>
+    <div class="lt lt--airy" style="margin-top:0">
+      <div class="lt-row hi" style="grid-template-columns:1.35fr .32fr 2.1fr">
+        <span class="nm">R1_SEGURIDAD</span><span class="num"><b>10</b></span>
+        <span class="tx">Dato imposible → <span class="mono">SIN_DECISION</span> con motivo. Nunca un APTO sin evidencia.</span>
+      </div>
+      <div class="lt-row" style="grid-template-columns:1.35fr .32fr 2.1fr">
+        <span class="nm">R10_DATOS_INSUFICIENTES</span><span class="num">9</span>
+        <span class="tx">Faltan límite inferior o umbrales: no se clasifica.</span>
+      </div>
+      <div class="lt-row" style="grid-template-columns:1.35fr .32fr 2.1fr">
+        <span class="nm">R11_UMBRALES_INCOHERENTES</span><span class="num">8</span>
+        <span class="tx">hangar ≥ apto: no se clasifica.</span>
+      </div>
+      <div class="lt-row" style="grid-template-columns:1.35fr .32fr 2.1fr">
+        <span class="nm">R9_HANGAR</span><span class="num">3</span><span class="tx"><span class="mono">L_inf &lt; 20</span></span>
+      </div>
+      <div class="lt-row" style="grid-template-columns:1.35fr .32fr 2.1fr">
+        <span class="nm">R8_INSPECCION</span><span class="num">2</span><span class="tx"><span class="mono">20 ≤ L_inf &lt; 25</span></span>
+      </div>
+      <div class="lt-row" style="grid-template-columns:1.35fr .32fr 2.1fr">
+        <span class="nm">R7_APTO</span><span class="num">1</span><span class="tx"><span class="mono">L_inf ≥ 25</span></span>
+      </div>
+    </div>
+
+    <div class="grow"></div>
+
+    <div class="rule-t">
+      <p style="font-size:20px">
+        Cada regla lleva <span class="mono">id</span>, <span class="mono">prioridad</span>, <span class="mono">porque</span> y <span class="mono">accion</span>. Las dos de corrección se aplican antes; las seis de decisión se leen sobre <span class="mono">L_inf</span>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 15 · L_INF ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>Decidir sobre el pesimista.</h2>
+      <div class="lab">ACTO IV · BANDA CONFORMAL 90 %</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.05fr 1fr;gap:72px;margin-top:44px;align-items:start">
+      <div>
+        <p class="lede" style="font-size:22px">
+          La regla no lee la predicción puntual (<b>27</b>). Lee el límite inferior de la banda: <b>23</b>. Con la política 25/20, 23 es <b>INSPECCIÓN</b>: la unidad no se declara APTO.
+        </p>
+        <p class="note" style="margin-top:26px">
+          Elegir <span class="mono">L_inf</span> acota el riesgo financiero: equivocarse por pesimista cuesta una inspección; por optimista, un motor roto.
+        </p>
+        <p class="note" style="margin-top:18px">
+          La banda no ensancha la decisión: la estrecha. El sistema prefiere una inspección a un APTO dudoso.
+        </p>
+
+        <div class="rule-t" style="margin-top:34px">
+          <div class="lab">Umbrales de decisión · 25/20</div>
+          <p style="margin-top:12px;font-size:20px">
+            Hangar por debajo de <span class="mono">20</span>. Inspección entre <span class="mono">20</span> y <span class="mono">25</span>. Apto desde <span class="mono">25</span>.
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <div class="lab">L_inf · 0 a 50 ciclos</div>
+        <div class="axis">
+          <div class="band" style="left:46%;width:16%"></div>
+          <div class="gate" style="left:40%"></div>
+          <div class="gate" style="left:50%"></div>
+          <div class="mark" style="left:54%"></div>
+          <div class="lab-m">27</div>
+          <div class="lab-b">banda [23 · 31]</div>
+          <div class="zone" style="left:0;color:var(--ink)">0</div>
+          <div class="zone" style="left:38.5%;color:var(--ink)">20</div>
+          <div class="zone" style="left:48.5%;color:var(--ink)">25</div>
+          <div class="zone" style="left:97%;color:var(--ink)">50</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:58px" class="tag">
+          <span>HANGAR</span><span>INSPECCIÓN</span><span>APTO</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grow"></div>
+  </div>
+</section>
+
+<!-- ══════════════════ 16 · N8N ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>Ejecución automatizada.</h2>
+      <div class="lab">ACTO IV · n8n · 15 NODOS</div>
+    </div>
+
+    <div class="chain" style="grid-template-columns:1.4fr .8fr 2.4fr;margin-top:44px">
+      <div class="step"><div class="n">entrada</div><div class="t">Webhook</div><div class="d"><span class="mono">POST /ds02/decision</span> · respuesta inmediata.</div></div>
+      <div class="step"><div class="n">gate</div><div class="t">Switch</div><div class="d">Tres salidas, una por decisión.</div></div>
+      <div class="step"><div class="n">salida</div><div class="t">Acción</div><div class="d">Distinta en cada rama.</div></div>
+    </div>
+
+    <div class="lt-head" style="grid-template-columns:.9fr 2.4fr;margin-top:44px"><span>Rama</span><span>Qué ejecuta</span></div>
+    <div class="lt" style="margin-top:0">
+      <div class="lt-row" style="grid-template-columns:.9fr 2.4fr"><span class="nm">APTO</span><span class="tx">Registro y log de la decisión.</span></div>
+      <div class="lt-row" style="grid-template-columns:.9fr 2.4fr"><span class="nm">INSPECCION</span><span class="tx">Google Sheets y aviso para la próxima parada.</span></div>
+      <div class="lt-row hi" style="grid-template-columns:.9fr 2.4fr"><span class="nm">HANGAR</span><span class="tx"><b>Postgres <span class="mono">ds02_decisiones</span></b> + Calendar + Gmail.</span></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;border-top:1.5px solid var(--ink);padding-top:20px;margin-top:56px">
+      <p class="note">La rama HANGAR escribe en Postgres y llama a la API propia: la decisión no termina en una notificación, termina en un registro operativo.</p>
+      <p class="note">El flujo se versiona inactivo y sin secretos: las credenciales se referencian por <span class="mono">id</span>+<span class="mono">name</span>. La API usa <span class="mono">continueRegularOutput</span> para no romper la rama si el servicio no está levantado.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 17 · APP ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>El sistema integrado.</h2>
+      <div class="lab">ACTO IV · STREAMLIT</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 620px;gap:56px;margin-top:32px;align-items:start">
+      <div class="plate plate--screen"><img src="assets/dashboard_ds02.png" alt="Dashboard DS02"></div>
+      <div>
+        <div class="rule-t"><div class="lab">Entrada</div><p style="margin-top:10px;font-size:20px">Telemetría nueva o un caso de la caché. El bundle devuelve RUL y banda conformal.</p></div>
+        <div class="rule-t" style="margin-top:22px"><div class="lab">Decisión</div><p style="margin-top:10px;font-size:20px">La regla lee <span class="mono">L_inf</span>, aplica prioridad y escribe el motivo. La pantalla muestra el SHA del artefacto.</p></div>
+        <div class="rule-t" style="margin-top:22px"><div class="lab">Acción</div><p style="margin-top:10px;font-size:20px">La decisión viaja al webhook de n8n. El caso malo devuelve <span class="mono">SIN_DECISION</span> con motivo, sin romper la app.</p></div>
+        <p class="note" style="margin-top:24px">Un único flujo: telemetría → RUL → regla → decisión → n8n.</p>
+      </div>
+    </div>
+
+    <div class="grow"></div>
+  </div>
+</section>
+
+<!-- ══════════════════ 18 · IMPACTO ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>Conclusión.</h2>
+      <div class="lab">ACTO V · IMPACTO</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:48px;margin-top:62px">
+      <div>
+        <div class="mono" style="font-size:18px;opacity:.6">01</div>
+        <h3 style="margin-top:18px;font-size:38px">Telemetría aislada físicamente.</h3>
+        <p style="margin-top:16px;font-size:20px">14 Ridge separan régimen y degradación. El modelo aprende envejecimiento, no pilotaje.</p>
+      </div>
+      <div>
+        <div class="mono" style="font-size:18px;opacity:.6">02</div>
+        <h3 style="margin-top:18px;font-size:38px">Riesgo acotado asimétricamente.</h3>
+        <p style="margin-top:16px;font-size:20px">Se decide con <span class="mono">L_inf</span>: una inspección temprana cuesta menos que un AOG. La política 25/20 deja 0/125 ciclos críticos en APTO.</p>
+      </div>
+      <div>
+        <div class="mono" style="font-size:18px;opacity:.6">03</div>
+        <h3 style="margin-top:18px;font-size:38px">De la intuición a la evidencia auditable.</h3>
+        <p style="margin-top:16px;font-size:20px">Predicción, banda, regla, SHA y acción quedan trazados de extremo a extremo.</p>
+      </div>
+    </div>
+
+    <div class="grow"></div>
+
+    <div class="rule-t">
+      <p style="font-family:var(--serif);font-size:34px;line-height:1.2;max-width:1400px">
+        No se declara APTO por una media: se declara por un límite inferior.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 19 · MAPA RÚBRICA ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>Rúbrica → Evidencia.</h2>
+      <div class="lab">ACTO V · MAPA DE DEFENSA</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:56px;margin-top:44px">
+      <div>
+        <div class="lab">SAA</div>
+        <div class="lt lt--airy" style="margin-top:12px">
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">EDA y nulos → <span class="mono">notebooks/01</span></span></div>
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">5 clásicos → <span class="mono">resultados/comparativa.csv</span></span></div>
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">MLP → <span class="mono">resultados/mlp_comparativa.csv</span></span></div>
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">Ablación → <span class="mono">resultados/ablacion_cycnorm.csv</span></span></div>
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">SHAP → <span class="mono">resultados/shap_importancia.csv</span></span></div>
+        </div>
+      </div>
+      <div>
+        <div class="lab">PIA</div>
+        <div class="lt lt--airy" style="margin-top:12px">
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">Pipeline → <span class="mono">src/clase/pipeline_clase.py</span></span></div>
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">Estructura → <span class="mono">README.md</span> + tests</span></div>
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">MLflow → <span class="mono">mlruns/</span>, 17 runs curados</span></div>
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">App → <span class="mono">app/entrypoints/dashboard_ds02.py</span></span></div>
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">Entrypoint → <span class="mono">streamlit_app.py</span></span></div>
+        </div>
+      </div>
+      <div>
+        <div class="lab">MIA</div>
+        <div class="lt lt--airy" style="margin-top:12px">
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">Negocio con dato → README §Problema</span></div>
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">Reglas → <span class="mono">src/mia/reglas.py</span></span></div>
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">Motor → <span class="mono">src/mia/motor.py</span></span></div>
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">Flujo → <span class="mono">n8n/flujo.json</span></span></div>
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx">Cliente → <span class="mono">src/n8n.py</span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grow"></div>
+
+    <div class="rule-t">
+      <p style="font-size:20px">
+        El mapa completo, celda a celda, está en <span class="mono">docs/defensa/mapa-rubrica.md</span>.
+        Cada afirmación de esta presentación apunta a un archivo, una figura o un run.
+      </p>
+    </div>
+  </div>
+</section>
+</main>
+</div>
+
+<button class="edit-toggle" id="editToggle" title="Editar (E)">✎</button>
+
+<script>
+/* ============================================
+   CHROME INYECTADO — filete inferior, número, pista
+   ============================================ */
+const ALL_SLIDES = document.querySelectorAll('.slide');
+const TOTAL_SLIDES = ALL_SLIDES.length;
+ALL_SLIDES.forEach((slide, i) => {
+  const chrome = document.createElement('div');
+  chrome.className = 'chrome';
+  chrome.innerHTML =
+    '<div class="bottom"></div>' +
+    '<div class="pnum">' + String(i + 1).padStart(2, '0') + ' / ' + TOTAL_SLIDES + '</div>' +
+    (i === 0 ? '<div class="hint">← → · space</div>' : '');
+  slide.appendChild(chrome);
+});
+
+/* ============================================
+   CONTROL DE PRESENTACIÓN
+   ============================================ */
+class Deck {
+  constructor() {
+    this.slides = Array.from(document.querySelectorAll('.slide'));
+    this.stage = document.getElementById('deckStage');
+    this.i = 0;
+    this.scale();
+    this.bind();
+    this.goto(this.fromHash(), true);
+  }
+
+  scale() {
+    const f = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    const x = (window.innerWidth - 1920 * f) / 2;
+    const y = (window.innerHeight - 1080 * f) / 2;
+    this.stage.style.transform = `translate(${x}px, ${y}px) scale(${f})`;
+  }
+
+  bind() {
+    window.addEventListener('resize', () => this.scale());
+    document.addEventListener('keydown', (e) => {
+      const editing = document.body.classList.contains('editing');
+      if (editing && e.target.getAttribute('contenteditable') === 'true') return;
+      if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter'].includes(e.key)) { e.preventDefault(); this.next(); }
+      if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); this.prev(); }
+      if (e.key === 'Home') this.goto(0);
+      if (e.key === 'End') this.goto(this.slides.length - 1);
+    });
+
+    let x0 = null;
+    window.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    window.addEventListener('touchend', (e) => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 50) dx < 0 ? this.next() : this.prev();
+      x0 = null;
+    });
+
+    let wheelLock = false;
+    window.addEventListener('wheel', (e) => {
+      if (wheelLock || Math.abs(e.deltaY) < 20) return;
+      wheelLock = true;
+      e.deltaY > 0 ? this.next() : this.prev();
+      setTimeout(() => { wheelLock = false; }, 500);
+    }, { passive: true });
+  }
+
+  fromHash() {
+    const m = location.hash.match(/^#(\d+)$/);
+    return m ? Math.max(0, Math.min(parseInt(m[1], 10) - 1, this.slides.length - 1)) : 0;
+  }
+
+  goto(n, silent) {
+    this.i = Math.max(0, Math.min(n, this.slides.length - 1));
+    this.slides.forEach((s, k) => {
+      s.classList.toggle('active', k === this.i);
+      s.classList.toggle('visible', k === this.i);
+    });
+    if (!silent) history.replaceState(null, '', '#' + (this.i + 1));
+  }
+
+  next() { this.goto(this.i + 1); }
+  prev() { this.goto(this.i - 1); }
+}
+
+const deck = new Deck();
+
+/* ============================================
+   MODO EDICIÓN — guarda en localStorage
+   ============================================ */
+const KEY = 'ds02-deck-edits-v1';
+const toggle = document.getElementById('editToggle');
+let editing = false;
+
+const EDITABLE = 'h1,h2,h3,p,span.tx,span.nm,div.cap';
+
+/* Restaura las ediciones guardadas: clave "indice_slide:posicion_nodo" */
+function applyStored() {
+  const store = JSON.parse(localStorage.getItem(KEY) || '{}');
+  const slides = document.querySelectorAll('.slide');
+  Object.entries(store).forEach(([key, html]) => {
+    const [si, pos] = key.split(':').map(Number);
+    const slide = slides[si];
+    if (!slide) return;
+    const nodes = slide.querySelectorAll(EDITABLE);
+    if (nodes[pos]) nodes[pos].innerHTML = html;
+  });
+}
+
+applyStored();
+
+toggle.addEventListener('click', () => {
+  editing = !editing;
+  document.body.classList.toggle('editing', editing);
+  document.querySelectorAll(EDITABLE).forEach((el) => {
+    if (editing) el.setAttribute('contenteditable', 'true');
+    else el.removeAttribute('contenteditable');
+  });
+  toggle.classList.toggle('active', editing);
+});
+
+// autoguardado simple por slide + índice de elemento
+document.addEventListener('input', (e) => {
+  if (!editing) return;
+  const slide = e.target.closest('.slide');
+  if (!slide) return;
+  const idx = Array.from(document.querySelectorAll('.slide')).indexOf(slide);
+  const nodes = Array.from(slide.querySelectorAll(EDITABLE));
+  const pos = nodes.indexOf(e.target);
+  if (pos < 0) return;
+  const store = JSON.parse(localStorage.getItem(KEY) || '{}');
+  store[idx + ':' + pos] = e.target.innerHTML;
+  localStorage.setItem(KEY, JSON.stringify(store));
+});
+</script>
+</body>
+</html>

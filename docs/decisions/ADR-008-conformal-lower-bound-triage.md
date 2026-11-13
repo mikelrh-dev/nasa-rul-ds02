@@ -2,8 +2,10 @@
 
 ## Status
 
-**Accepted** — 2026-10-21. Thresholds are UI defaults; the operator can change
-them at runtime.
+**Accepted** — 2026-10-21. **Superseded for defaults by ADR-013
+(2026-11-12): current defaults are 25 / 20.** The lower-bound reasoning and the
+rejection of 50 / 25 remain valid; the 30 / 25 pair is kept here as the
+historical decision that ADR-013 revisits with OOF evidence.
 
 ## Date
 

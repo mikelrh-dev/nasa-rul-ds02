@@ -317,9 +317,9 @@ def classify(lower: float, airworthy: float = DEFAULT_AIRWORTHY,
              aog: float = DEFAULT_AOG) -> str:
     """Maintenance state from the conformal LOWER bound, never the point estimate.
 
-    The threshold pair is a decision, not a default: see ADR-008. A rule whose
+    The threshold pair is a decision, not a default: see ADR-013. A rule whose
     airworthy band starts above the largest achievable lower bound (≈ 36 on this
-    split) would never turn green, which is why the defaults are 30 / 25.
+    split) would never turn green, which is why the defaults are 25 / 20.
     """
     if not aog < airworthy:
         raise ValueError(

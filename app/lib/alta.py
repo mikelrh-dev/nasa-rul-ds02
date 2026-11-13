@@ -18,14 +18,15 @@ from app.lib import rules as UR
 PREFIJO_ALTA = -1000
 
 # Perfil -> (unidad cacheada, ciclo hasta el que se toma la historia).
-# Medido: U11 empieza en ciclo 1, U14 en 3, U15 en 2.
+# Medido: U11 empieza en ciclo 1, U14 en 3, U15 en 2. Los ciclos de desgaste y
+# crítico se eligen para la banda que promete cada nombre con la política 25/20.
 PERFILES = {
     "Recién salido de revisión": (11, 1),
     "Recién salido de revisión (U15)": (15, 2),
-    "Desgaste operativo medio": (11, 20),
-    "Desgaste operativo medio (U14)": (14, 20),
-    "Fin de vida / crítico": (14, 29),
-    "Fin de vida / crítico (U11)": (11, 23),  # C: U11 L_inf<25 desde el ciclo 23
+    "Desgaste operativo medio": (11, 23),  # C: U11 L_inf<25 desde el ciclo 23
+    "Desgaste operativo medio (U14)": (14, 25),
+    "Fin de vida / crítico": (14, 34),
+    "Fin de vida / crítico (U11)": (11, 27),  # C: U11 L_inf<20 desde el ciclo 27
     "Caso atípico (U14)": (14, 3),
 }
 
@@ -87,9 +88,9 @@ def frame_con_altas(
 
 
 def estado_demo() -> dict:
-    """Estado exacto desde el que se cuenta la historia: 30/25, ciclo 29, U14."""
+    """Estado exacto desde el que se cuenta la historia: 25/20, ciclo 34, U14."""
     return {"umbrales": (_constantes.DEFAULT_AIRWORTHY, _constantes.DEFAULT_AOG),
-            "ciclo": 29, "unidad": 14}
+            "ciclo": 34, "unidad": 14}
 
 
 def estado_historia(windows: pd.DataFrame, umbrales: dict) -> list[dict]:
@@ -131,8 +132,8 @@ def estado_historia(windows: pd.DataFrame, umbrales: dict) -> list[dict]:
     motor = max(rmse, key=rmse.get)
 
     base = dict(umbrales)
-    blandos = {"apto": float(umbrales["apto"]) + 5.0,
-               "hangar": float(umbrales["hangar"]) - 5.0}
+    blandos = {"apto": max(1.0, float(umbrales["apto"]) - 5.0),
+               "hangar": max(0.0, float(umbrales["hangar"]) - 5.0)}
     ciclo_hangar = primer_ciclo(motor, "HANGAR")
     return [
         {"paso": 1, "titulo": "El hangar esta mañana",
@@ -148,6 +149,6 @@ def estado_historia(windows: pd.DataFrame, umbrales: dict) -> list[dict]:
          "cuenta": "Derivado a hangar con la predicción puntual por encima del umbral.",
          "unidad": motor, "ciclo": ciclo_hangar, "umbrales": base},
         {"paso": 4, "titulo": "¿Y si aflojamos la política?",
-         "cuenta": "Cómo cambia la flota con otros umbrales.",
+         "cuenta": "Cómo cambia la flota con una política más permisiva (20/15; no validada en OOF).",
          "unidad": motor, "ciclo": ciclo_hangar, "umbrales": blandos},
     ]

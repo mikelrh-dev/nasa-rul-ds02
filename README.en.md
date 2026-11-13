@@ -137,11 +137,13 @@ worst case. That is why global and macro RMSE are both reported.
 | Seed | RMSE | NASA score | Source |
 |---|---:|---:|---|
 | 42 | 4.338 | 2336.2 | manifest (deployed bundle) |
-| 7 | 4.211 | 2289.5 | versioned `resultados/bundle_c_multiseed.csv` |
-| 123 | 4.424 | 2397.4 | versioned `resultados/bundle_c_multiseed.csv` |
-| **Mean ± std** | **4.324 ± 0.107** | **2341.0 ± 54.1** | [42, 7, 123] |
+| 7 | 4.371 | 2363.3 | versioned `resultados/bundle_c_multiseed.csv` |
+| 123 | 4.291 | 2305.9 | versioned `resultados/bundle_c_multiseed.csv` |
+| **Mean ± std** | **4.333 ± 0.040** | **2335.1 ± 28.7** | [42, 7, 123] |
 
 The mean is computed from the **versioned CSV**; re-running seeds can move it. The
+historical **4.324 ± 0.107 / 2341.0 ± 54.1** comes from the previous CSV
+(`72035c3`) and must not be cited as current. The
 means printed in NB06 (4.322 ± 0.064) and NB05 (4.330 ± 0.053) are historical and
 not regenerable and must not be cited as current. The same applies to 4.301,
 4.289, 4.344 and 4.368: those are historical bundles.
@@ -223,7 +225,7 @@ reason; no GO is ever returned without evidence. The gate is in
 |---|---|
 | GO | Log the decision. |
 | INSPECT | Notify for review at the next stop. |
-| HANGAR | Postgres `ds02_decisiones` + Calendar + Gmail + local API call. |
+| HANGAR | Postgres `ds02_decisiones` + Calendar + Gmail. |
 
 The versioned JSON is **inactive by design** (`active: false`). Running it needs
 credentials and can produce real effects (email, calendar, Postgres). No secrets
@@ -414,8 +416,9 @@ scripts/operativo/               MLflow backfill, stability, gate and prediction
 
 - **TensorFlow on CPU is not bit-for-bit deterministic.** Re-training can change
   the number; the **manifest** is the source of truth for the installed bundle.
-- **Multiseed:** 4.324 ± 0.107 comes from the versioned CSV (42/7/123). NB05/NB06
-  printed other means at the time and are kept as non-regenerable history. If
+- **Multiseed:** 4.333 ± 0.040 (NASA 2335.1 ± 28.7) comes from the versioned CSV
+  (42/7/123). The previous 4.324 ± 0.107 / 2341.0 ± 54.1 is historical (`72035c3`).
+  NB05/NB06 printed other means at the time and are kept as non-regenerable history. If
   `resultados/bundle_c_multiseed.csv` was regenerated locally, the working copy may
   differ from `HEAD`; the README follows the versioned copy.
 - **AOG cost:** USD 10,000–15,000/h is an external, Medium-credibility source;

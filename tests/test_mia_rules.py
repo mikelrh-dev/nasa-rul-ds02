@@ -28,10 +28,6 @@ from src.mia.casos import CASOS, ficha_invalida, hay_cache, probar_casos  # noqa
 from src.mia.motor import motor  # noqa: E402
 
 needs_cache = pytest.mark.skipif(not hay_cache(), reason="app/cache missing")
-needs_oof = pytest.mark.skipif(
-    not os.path.exists(os.path.join(ROOT, "_p1_oof_cache.npz")),
-    reason="_p1_oof_cache.npz missing",
-)
 
 
 # --------------------------------------------------------------- forma
@@ -151,9 +147,9 @@ def test_la_version_vectorizada_y_la_escalar_coinciden():
 # ------------------------------------------------------------ seguridad
 def test_la_seguridad_gana_a_los_umbrales():
     caso = ficha_invalida()
-    # Sin la regla de seguridad, el punto valido llevaria a inspeccion.
+    # Sin la regla de seguridad, el punto valido llevaria a APTO con 25/20.
     caso["alertas_datos"] = []
-    assert motor(caso, R.REGLAS_CORRECCION, R.REGLAS_DECISION)["decision"] == R.INSPECCION
+    assert motor(caso, R.REGLAS_CORRECCION, R.REGLAS_DECISION)["decision"] == R.APTO
     # Con ella, no se decide.
     caso["alertas_datos"] = ["canal fuera de rango"]
     assert motor(caso, R.REGLAS_CORRECCION, R.REGLAS_DECISION)["decision"] == R.SIN_DECISION
@@ -179,23 +175,27 @@ def test_la_calibracion_congelada_es_la_pura():
     assert cal["target_coverage"] == 0.9
 
 
-@needs_oof
 def test_la_correccion_mejora_el_nasa_en_el_oof_puro():
-    """Regresión sobre la medicion: la correccion baja el NASA Score en OOF."""
-    cache = np.load(os.path.join(ROOT, "_p1_oof_cache.npz"))
+    """Regresión sobre la medicion: la correccion baja el NASA Score en OOF.
+
+    Se mide sobre `mia/instrumento_oof.npz` —el OOF congelado— y no sobre un
+    cache intermedio que ya no se versiona. El instrumento tiene las mismas
+    columnas que la medición original (`units`, `cycles`, `y`, `pred_ema`).
+    """
     sys.path.insert(0, os.path.join(ROOT, "src"))
     from ds02_rul.metrics import calculate_nasa_score
-    from ds02_rul.stacking import select_beta_grouped
 
-    sel = select_beta_grouped(cache["units"], cache["cycles"], cache["y"],
-                              cache["p_lstm"], cache["p_lgb"], span=5,
-                              use_cycle_feature=False)
-    calib = sel["oof_calib"]
-    pure = np.isin(np.asarray(calib["units"], float), [2.0, 5.0, 10.0, 18.0, 20.0])
-    puntos = np.asarray(calib["pred_ema"], float)[pure]
-    unidades = np.asarray(calib["units"], float)[pure]
-    ciclos = np.asarray(calib["cycles"], float)[pure]
-    verdad = np.asarray(calib["y"], float)[pure]
+    with np.load(os.path.join(ROOT, "src", "mia", "instrumento_oof.npz")) as data:
+        unidades = np.asarray(data["units"], dtype=float)
+        ciclos = np.asarray(data["cycles"], dtype=float)
+        verdad = np.asarray(data["y"], dtype=float)
+        puntos = np.asarray(data["pred_ema"], dtype=float)
+
+    puras = np.isin(unidades, [2.0, 5.0, 10.0, 18.0, 20.0])
+    unidades = unidades[puras]
+    ciclos = ciclos[puras]
+    verdad = verdad[puras]
+    puntos = puntos[puras]
 
     corregido = np.empty(len(puntos))
     for u in np.unique(unidades):

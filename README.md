@@ -198,12 +198,13 @@ se publican global y macro, y la tabla final separa granos.
 | Semilla | RMSE | NASA score | Origen |
 |---|---:|---:|---|
 | 42 | 4.338 | 2336.2 | manifiesto (bundle desplegado) |
-| 7 | 4.211 | 2289.5 | `resultados/bundle_c_multiseed.csv` versionado |
-| 123 | 4.424 | 2397.4 | `resultados/bundle_c_multiseed.csv` versionado |
-| **Media ± std** | **4.324 ± 0.107** | **2341.0 ± 54.1** | [42, 7, 123] |
+| 7 | 4.371 | 2363.3 | `resultados/bundle_c_multiseed.csv` versionado |
+| 123 | 4.291 | 2305.9 | `resultados/bundle_c_multiseed.csv` versionado |
+| **Media ± std** | **4.333 ± 0.040** | **2335.1 ± 28.7** | [42, 7, 123] |
 
 La media se calcula sobre el **CSV versionado**; una reejecución de semillas puede
-moverla. Las medias impresas en NB06 (4.322 ± 0.064) y NB05 (4.330 ± 0.053) son
+moverla. La cifra histórica **4.324 ± 0.107 / 2341.0 ± 54.1** sale del CSV anterior
+(`72035c3`) y no debe citarse como la vigente. Las medias impresas en NB06 (4.322 ± 0.064) y NB05 (4.330 ± 0.053) son
 **histórico no regenerable** y no deben citarse como la cifra vigente. Tampoco
 deben citarse como actuales 4.301, 4.289, 4.344 ni 4.368: son bundles históricos.
 
@@ -283,7 +284,7 @@ evidencia. El gate que las aplica está en `src/mia/motor.py`.
 |---|---|
 | APTO | Registro/log de la decisión. |
 | INSPECCION | Aviso para revisar en la próxima parada. |
-| HANGAR | Postgres `ds02_decisiones` + Calendar + Gmail + llamada a la API local. |
+| HANGAR | Postgres `ds02_decisiones` + Calendar + Gmail. |
 
 El JSON versionado está **inactivo por diseño** (`active: false`); ejecutarlo
 requiere credenciales y puede producir efectos reales (correo, calendario,
@@ -485,8 +486,9 @@ scripts/operativo/               backfill MLflow, estabilidad, gate y predicció
 - **TensorFlow en CPU no es determinista bit a bit.** Una reejecución del
   entrenamiento puede dar otra cifra; el **manifiesto** es la fuente de verdad del
   bundle instalado.
-- **Multisemilla:** la media 4.324 ± 0.107 se calcula con el CSV versionado
-  (42/7/123). NB05/NB06 imprimieron otras medias en su momento y se conservan como
+- **Multisemilla:** la media 4.333 ± 0.040 (NASA 2335.1 ± 28.7) se calcula con el
+  CSV versionado (42/7/123). La cifra 4.324 ± 0.107 / 2341.0 ± 54.1 es del CSV
+  anterior (`72035c3`) y queda como histórica. NB05/NB06 imprimieron otras medias en su momento y se conservan como
   histórico no regenerable. Si `resultados/bundle_c_multiseed.csv` se regeneró en
   local, la copia de trabajo puede no coincidir con `HEAD`; la tabla sigue la copia
   versionada.

@@ -96,3 +96,12 @@ reference for the deployed bundle; bundle B is archived, not champion.
 Restore the four files from `archive/models_b/` into `models/`, restore the
 archived notebook chain, and regenerate `app/cache/`; the repository returns to
 the pre-decision state without re-training anything.
+
+## Errata 2026-11-12
+
+The multiseed band `4.324 ± 0.107 / NASA 2341.0 ± 54.1` quoted above comes from
+the previous version of `resultados/bundle_c_multiseed.csv` (commit `72035c3`,
+seeds 7=4.211 and 123=4.424) plus the seed-42 row. The current CSV has seeds
+7=4.371 and 123=4.291; with 42=4.338 it gives `4.333 ± 0.040 / NASA 2335.1 ±
+28.7`. The decision to deploy C is unchanged; this errata only corrects the
+stability figure.

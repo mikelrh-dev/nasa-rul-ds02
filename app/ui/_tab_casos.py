@@ -33,6 +33,11 @@ from app.ui._sandbox_estres import _sandbox_estres
 from app.lib.context import AppCtx
 
 
+# Quinto elemento del desplegable «Dataset demo»: no es un preset, es la
+# puerta a elegir motor y rango de ciclos a mano.
+DEMO_MANUAL = "Manual (motor y rango de ciclos)"
+
+
 @st.fragment
 def _tab_casos(ctx: AppCtx) -> None:
     """Cuatro rutas de entrada al mismo validador, en orden de pantalla.
@@ -467,19 +472,52 @@ def _tab_casos(ctx: AppCtx) -> None:
                 st.session_state["live_engine_id"] = DEMO_PRESETS[_nuevo][3]
         if mode == "Ejemplo del test set":
             demo_nombre = st.selectbox(
-                "Dataset demo", list(DEMO_PRESETS), key="live_demo_preset",
+                "Dataset demo", [*DEMO_PRESETS, DEMO_MANUAL], key="live_demo_preset",
                 on_change=_on_preset_change,
-                help=f"Tramos reales de caché con ciclos dispares. Al cambiar se proponen sus {INF.DEMO_ROWS} muestras remuestreadas y su matrícula.",
+                help=f"Cuatro casos reales o un tramo manual. Los presets cargan {INF.DEMO_ROWS} muestras; el manual carga el rango de ciclos que elijas.",
             )
+            if demo_nombre == DEMO_MANUAL:
+                _man_cols = st.columns(3)
+                with _man_cols[0]:
+                    _man_unit = st.selectbox(
+                        "Motor", [11, 14, 15], key="manual_unit",
+                        help="Unidad de la caché (11, 14 o 15).",
+                    )
+                _man_ciclos = INF.cycles_of_unit(_man_unit)
+                with _man_cols[1]:
+                    _man_start = st.selectbox(
+                        "Ciclo inicial", _man_ciclos, index=0,
+                        key=f"manual_start_{_man_unit}",
+                        help="Primer ciclo del tramo manual.",
+                    )
+                with _man_cols[2]:
+                    _man_end = st.selectbox(
+                        "Ciclo final", _man_ciclos,
+                        index=min(len(_man_ciclos) - 1, 5),
+                        key=f"manual_end_{_man_unit}",
+                        help="Último ciclo del tramo manual.",
+                    )
+                st.caption(
+                    "Se cargan todas las filas de la caché entre ambos ciclos, "
+                    "incluidos los extremos. Ajusta el rango hasta ver las muestras "
+                    "que quieras; el pre-vuelo de abajo te dirá si llega al mínimo."
+                )
         example_table, example_meta = INF.example_window(14, 0.55)
         if mode == "Ejemplo del test set" and "demo_nombre" in locals():
-            _du2, _dp2, _ciclo2, _ = DEMO_PRESETS[demo_nombre]
-            if _ciclo2 is None:
-                example_table, example_meta = INF.example_window(
-                    _du2, _dp2, rows=INF.DEMO_ROWS)
+            if demo_nombre == DEMO_MANUAL:
+                _man_ini, _man_fin = sorted((_man_start, _man_end))
+                if (_man_ini, _man_fin) != (_man_start, _man_end):
+                    st.caption(f"Rango invertido: se usa {_man_ini}→{_man_fin}.")
+                example_table, example_meta = INF.window_between_cycles(
+                    _man_unit, _man_ini, _man_fin)
             else:
-                example_table, example_meta = INF.window_ending_at(
-                    _du2, _ciclo2, rows=INF.DEMO_ROWS)
+                _du2, _dp2, _ciclo2, _ = DEMO_PRESETS[demo_nombre]
+                if _ciclo2 is None:
+                    example_table, example_meta = INF.example_window(
+                        _du2, _dp2, rows=INF.DEMO_ROWS)
+                else:
+                    example_table, example_meta = INF.window_ending_at(
+                        _du2, _ciclo2, rows=INF.DEMO_ROWS)
         submitted = False
         table_to_score = None
         data_meta = example_meta
@@ -730,7 +768,7 @@ def _tab_casos(ctx: AppCtx) -> None:
             _fp_n8n = str(live["contract"].get("fingerprint") or "")
             _enviadas_n8n = set(st.session_state.get("n8n_enviadas") or set())
             # MIA-3: unidad real para n8n (no -1 de scoring en vivo).
-            # live_meta trae `unit` de la caché (ej. 14 en Critico U14 ciclo 29);
+            # live_meta trae `unit` de la caché (ej. 14 en Critico U14 ciclo 34);
             # unidad_simulada=-1 solo evita mezclar EMA y no es la unidad real.
             _meta_n8n = st.session_state.get("live_meta") or {}
             _unidad_real = (
@@ -948,12 +986,12 @@ def _tab_casos(ctx: AppCtx) -> None:
         with st.expander("Demo en vivo", icon=":material/movie:", expanded=_vista_tribunal):
             st.caption(
                 "Deja la app en el estado desde el que se cuenta la historia: umbrales "
-                "30/25, ciclo 29 y la unidad 14, que es la que entra en hangar."
+                "25/20, ciclo 34 y la unidad 14, que es la que entra en hangar."
             )
             if st.button("Cargar escenario de demo", icon=":material/play_circle:",
                          key="demo_cargar", type="primary"):
                 st.session_state["_demo_pendiente"] = True
-                _log("Escenario de demo cargado (umbrales 30/25, ciclo 29, U14).")
+                _log("Escenario de demo cargado (umbrales 25/20, ciclo 34, U14).")
                 st.rerun()
             with st.expander("Restablecer demo", icon=":material/restart_alt:"):
                 st.caption(

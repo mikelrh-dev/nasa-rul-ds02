@@ -1,17 +1,25 @@
-"""Tests del dataset de clase: causalidad del ffill y pureza de fase_vuelo."""
+"""Tests del dataset de clase: builder, causalidad del ffill y fase_vuelo."""
+
+import hashlib
+import json
 
 import numpy as np
 import pandas as pd
 
 from src.clase.dataset_clase import (
+    ARTEFACTOS,
+    MANIFIESTO,
     asignar_fase_vuelo,
+    construir_artefactos_clase,
     elegibles_mar,
     imputar_ffill,
     inyectar_nulos,
     inyectar_nulos_mar,
     rachas_nulos,
     split_por_unidad,
+    verificar_manifiesto,
 )
+from src.ds02_rul.data import SENSOR_COLS
 
 
 def _toy() -> pd.DataFrame:
@@ -73,6 +81,16 @@ def test_mar_solo_en_crucero_alto_y_solo_t30():
     assert iny.loc[2, "T30"] == 100.0 and iny.loc[3, "T30"] == 100.0
     assert audit["nulos_inyectados"] == 4
     assert audit["tasa_global_T30"] > 0
+    assert audit["mascara_version"] == 1
+    pares = audit["mascara_columnas"]["T30"]
+    assert len(pares) == audit["nulos_inyectados"] == 4
+    assert len({p[0] for p in pares}) == len(pares)
+    assert all(len(p) == 3 for p in pares)
+    canon = json.dumps(
+        audit["mascara_columnas"], sort_keys=True, separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    assert audit["mascara_sha256"] == hashlib.sha256(canon.encode("utf-8")).hexdigest()
     r = rachas_nulos(iny)
     assert r["max_racha_por_unidad"][1.0] >= 2
 
@@ -83,3 +101,124 @@ def test_split_por_unidad_sin_solape():
     train, test = split_por_unidad(df, test_units=[11.0])
     assert set(train["unit"].unique()) == {2.0}
     assert set(test["unit"].unique()) == {11.0}
+
+
+def _raw_toy() -> dict:
+    """Dict con la misma forma que `load_ds02`, sin tocar el HDF5."""
+
+    def bloque(units, cycles):
+        n = len(units)
+        A = np.column_stack(
+            [np.asarray(units, dtype=float), np.asarray(cycles, dtype=float)]
+        )
+        W = np.zeros((n, 4), dtype=float)
+        W[:, 0] = 30_000.0  # alt: crucero alto, elegible para MAR
+        W[:, 1] = 0.70     # Mach: elegible para MAR
+        W[:, 2] = 50.0     # TRA
+        W[:, 3] = 500.0    # T2
+        Xs = np.full((n, 14), 100.0)
+        y = np.arange(n, 0, -1, dtype=float)
+        return A, W, Xs, y
+
+    A_tr, W_tr, Xs_tr, y_tr = bloque([1, 1, 1, 2, 2, 2], [0, 1, 2, 0, 1, 2])
+    A_te, W_te, Xs_te, y_te = bloque([11, 11, 11], [0, 1, 2])
+    return {
+        "A_train": A_tr, "W_train": W_tr, "Xs_train": Xs_tr, "y_train": y_tr,
+        "A_test": A_te, "W_test": W_te, "Xs_test": Xs_te, "y_test": y_te,
+    }
+
+
+def _hashes(directorio) -> dict:
+    return {
+        p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+        for p in directorio.iterdir()
+        if p.is_file()
+    }
+
+
+def test_builder_escribe_artefactos_con_esquema(tmp_path):
+    out = tmp_path / "processed"
+    res = construir_artefactos_clase(raw=_raw_toy(), out_dir=str(out))
+
+    for nombre in ARTEFACTOS + ("auditoria_nulos.json",):
+        assert (out / nombre).exists(), nombre
+
+    train = pd.read_parquet(out / "train.parquet")
+    test = pd.read_parquet(out / "test.parquet")
+    assert {"fase_vuelo", "RUL", "split_origen"} <= set(train.columns)
+    assert set(train["unit"].unique()) == {1.0, 2.0}
+    assert set(test["unit"].unique()) == {11.0}
+    # La base imputada no debe conservar nulos de sensor.
+    assert int(train[SENSOR_COLS].isna().sum().sum()) == 0
+    assert int(test[SENSOR_COLS].isna().sum().sum()) == 0
+    assert train["fase_vuelo"].notna().all()
+
+    X = pd.read_parquet(out / "X_train.parquet")
+    y = pd.read_parquet(out / "y_train.parquet")
+    assert list(X.columns) == [
+        c for c in train.columns if c not in ("RUL", "split_origen")
+    ]
+    assert y["RUL"].tolist() == train["RUL"].tolist()
+    assert res["auditoria"]["mecanismo"] == "MAR-altitud"
+
+
+def test_builder_escribe_manifiesto_y_fast_check(tmp_path):
+    out = tmp_path / "processed"
+    res = construir_artefactos_clase(raw=_raw_toy(), out_dir=str(out))
+
+    ruta = out / MANIFIESTO
+    assert ruta.exists()
+    manifiesto = json.loads(ruta.read_text(encoding="utf-8"))
+    assert manifiesto["format_version"] == 1
+    assert set(manifiesto["artefactos"]) == set(ARTEFACTOS)
+    assert manifiesto["mascara_sha256"] == res["auditoria"]["mascara_sha256"]
+    assert verificar_manifiesto(str(out))["ok"]
+
+
+def test_fast_check_detecta_parquet_manipulado(tmp_path):
+    out = tmp_path / "processed"
+    construir_artefactos_clase(raw=_raw_toy(), out_dir=str(out))
+
+    ruta = out / "train.parquet"
+    datos = bytearray(ruta.read_bytes())
+    datos[-1] ^= 0xFF
+    ruta.write_bytes(datos)
+
+    informe = verificar_manifiesto(str(out))
+    assert not informe["ok"]
+    assert any("train.parquet" in d for d in informe["diferencias"])
+
+
+def test_fast_check_sin_manifiesto(tmp_path):
+    informe = verificar_manifiesto(str(tmp_path))
+    assert not informe["ok"]
+    assert any(MANIFIESTO in d for d in informe["diferencias"])
+
+
+def test_builder_es_idempotente(tmp_path):
+    out = tmp_path / "processed"
+    construir_artefactos_clase(raw=_raw_toy(), out_dir=str(out))
+    antes = _hashes(out)
+
+    res = construir_artefactos_clase(raw=_raw_toy(), out_dir=str(out))
+
+    assert res["escritos"] == []
+    assert _hashes(out) == antes
+
+
+def test_check_detecta_drift(tmp_path):
+    out = tmp_path / "processed"
+    construir_artefactos_clase(raw=_raw_toy(), out_dir=str(out))
+    assert construir_artefactos_clase(
+        raw=_raw_toy(), out_dir=str(out), check=True
+    )["ok"]
+
+    train = pd.read_parquet(out / "train.parquet")
+    train.loc[0, "RUL"] = float(train.loc[0, "RUL"]) + 1.0
+    train.to_parquet(out / "train.parquet", index=False)
+
+    informe = construir_artefactos_clase(
+        raw=_raw_toy(), out_dir=str(out), check=True
+    )
+    assert not informe["ok"]
+    assert any("train.parquet" in d for d in informe["diferencias"])

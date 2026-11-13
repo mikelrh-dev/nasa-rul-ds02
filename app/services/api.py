@@ -18,10 +18,6 @@ P1 hardening:
   A fixed-window rate limit of 10 requests/minute per client IP applies
   with or without an API key, so authenticated writes are throttled too.
 - `/health` stays public (200 without credentials) as a liveness contract.
-- `/n8n-decision` (MIA-3 novel action) is a token-guarded write endpoint that
-  records a decision in `app/registros_n8n.json`; it is idempotent by
-  `fingerprint` and answers 503 when `N8N_WEBHOOK_TOKEN` is not configured.
-  It is NOT rate-limited: the per-IP limiter protects scoring, not the log.
 - `PredictRequest` validates `unit`/`window` with `ge`/`le` and rejects
   NaN/Inf via an explicit validator (pydantic allows them by default).
 
@@ -33,14 +29,12 @@ For local/standalone use bind `127.0.0.1`; there is no container image by design
 from __future__ import annotations
 
 import hmac
-import json
 import logging
 import math
 import os
 import threading
 import time
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 
 import numpy as np
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
@@ -181,123 +175,6 @@ class PredictRequest(BaseModel):
         if not math.isfinite(float(value)):
             raise ValueError("unit must be a finite number (NaN/Inf rejected)")
         return float(value)
-
-
-
-# ----------------------------------------------------------- n8n decision
-# MIA-3: accion novedosa de la rama HANGAR. El flujo n8n llama a la API del
-# propio proyecto; el token es el mismo N8N_WEBHOOK_TOKEN que la app envia en
-# X-DS02-Token (src/n8n.py). El registro es idempotente por fingerprint.
-_N8N_TOKEN = os.environ.get("N8N_WEBHOOK_TOKEN", "").strip() or None
-_N8N_DECISIONES = ("APTO", "INSPECCION", "HANGAR")
-_N8N_REGISTROS_PATH = str(_paths.N8N_REGISTROS_PATH)
-# RLock: `n8n_decision` ya lo toma y despues llama a `_guardar_n8n_registros`,
-# que lo vuelve a pedir. Con `Lock` el endpoint se autobloqueaba en el primer POST.
-_N8N_LOCK = threading.RLock()
-
-
-class N8NDecisionRequest(BaseModel):
-    """Decision que n8n registra en el log local del proyecto."""
-
-    decision: str = Field(..., description="APTO | INSPECCION | HANGAR")
-    fingerprint: str = Field(..., description="idempotency key de la traza")
-    artefacto_sha256: str = Field("", description="SHA-256 del artefacto")
-    unidad: int | None = Field(None, description="motor, si se conoce")
-    # El token puede venir en el body (contrato original, cubierto por tests) o
-    # en la cabecera X-DS02-Token, que es como lo envian la app (src/n8n.py) y
-    # el nodo n8n. La cabecera manda si esta presente.
-    token: str = Field("", description="N8N_WEBHOOK_TOKEN compartido (body o X-DS02-Token)")
-
-
-class N8NDecisionResponse(BaseModel):
-    """Resultado del registro: `recorded` es False si el fingerprint ya estaba."""
-
-    ok: bool
-    recorded: bool
-
-
-def _n8n_registro_path() -> str:
-    """Ruta del registro; inyectable en tests."""
-    return _N8N_REGISTROS_PATH
-
-
-def _cargar_n8n_registros() -> list:
-    """Lee el registro; ausente o corrupto se trata como lista vacia."""
-    ruta = _n8n_registro_path()
-    if not os.path.exists(ruta):
-        return []
-    try:
-        with open(ruta, encoding="utf-8") as fh:
-            datos = json.load(fh)
-        return list(datos) if isinstance(datos, list) else []
-    except (OSError, ValueError):
-        log.warning("n8n: registro %s ilegible; se empieza vacio", ruta)
-        return []
-
-
-def _guardar_n8n_registros(filas: list) -> None:
-    """Escritura atomica: tmp + fsync + replace, con lock de proceso."""
-    ruta = _n8n_registro_path()
-    tmp = f"{ruta}.tmp"
-    with _N8N_LOCK:
-        os.makedirs(os.path.dirname(os.path.abspath(ruta)), exist_ok=True)
-        try:
-            with open(tmp, "w", encoding="utf-8") as fh:
-                json.dump(filas, fh, ensure_ascii=False, indent=1)
-                fh.flush()
-                os.fsync(fh.fileno())
-            os.replace(tmp, ruta)
-        finally:
-            if os.path.exists(tmp):
-                os.remove(tmp)
-
-
-@app.post("/n8n-decision", response_model=N8NDecisionResponse)
-def n8n_decision(
-    req: N8NDecisionRequest,
-    x_ds02_token: str | None = Header(default=None, alias="X-DS02-Token"),
-) -> N8NDecisionResponse:
-    """Registra una decision vinda del flujo n8n (accion novedosa MIA-3).
-
-    Auth por token compartido (`hmac.compare_digest`, igual que el webhook de
-    n8n y `X-DS02-Token` de `src/n8n.py`). El token se acepta en la cabecera
-    `X-DS02-Token` (como lo envian la app y el nodo n8n) o en el body.
-    Sin token configurado, 503: el endpoint degrada de forma visible y no
-    rompe el arranque del servicio. Idempotente por `fingerprint`: un
-    reintento de n8n no duplica la fila.
-    """
-    if _N8N_TOKEN is None:
-        raise HTTPException(
-            status_code=503,
-            detail="N8N_WEBHOOK_TOKEN no esta configurado en el servidor; "
-                   "el endpoint /n8n-decision no puede autenticar la peticion",
-        )
-    token = x_ds02_token or req.token
-    if not token or not hmac.compare_digest(token, _N8N_TOKEN):
-        raise HTTPException(status_code=401, detail="invalid or missing n8n token")
-    if req.decision not in _N8N_DECISIONES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"decision invalida: {req.decision!r}; "
-                   f"debe ser una de {_N8N_DECISIONES}",
-        )
-
-    fila = {
-        "decision": req.decision,
-        "fingerprint": str(req.fingerprint),
-        "artefacto_sha256": str(req.artefacto_sha256),
-        "unidad": None if req.unidad is None else int(req.unidad),
-        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-    }
-    with _N8N_LOCK:
-        filas = _cargar_n8n_registros()
-        if any(str(f.get("fingerprint")) == fila["fingerprint"] for f in filas):
-            return N8NDecisionResponse(ok=True, recorded=False)
-        filas.append(fila)
-        _guardar_n8n_registros(filas)
-    log.info("n8n: decision %s registrada (fingerprint %s)",
-             req.decision, fila["fingerprint"])
-    return N8NDecisionResponse(ok=True, recorded=True)
 
 
 def _raw():

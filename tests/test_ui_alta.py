@@ -16,7 +16,7 @@ needs_cache = pytest.mark.skipif(
 
 
 def _banda(v):
-    return "APTO" if v >= 30 else ("INSPECCION" if v >= 25 else "HANGAR")
+    return L.classify(v)
 
 
 def test_perfiles_caen_en_su_banda():
@@ -48,8 +48,8 @@ def test_ciclos_inexistentes_lanzan_valueerror():
 
 def test_el_estado_de_demo_es_el_medido():
     demo = A.estado_demo()
-    assert demo["umbrales"] == (30.0, 25.0)
-    assert demo["ciclo"] == 29
+    assert demo["umbrales"] == (25.0, 20.0)
+    assert demo["ciclo"] == 34
     assert demo["unidad"] == 14
 
 
@@ -59,14 +59,14 @@ def test_una_aeronave_de_alta_entra_en_la_flota():
         {
             "matricula": "EC-MKR",
             "unidad": 11,
-            "ciclo": 23,  # C: U11 L_inf<25 desde el 23 (antes 22 con B)
+            "ciclo": 27,  # C: U11 L_inf<20 desde el 27 con la política 25/20
             "unit_id": A.unidad_alta(0),
         }
     ]
     frame = A.frame_con_altas(
-        windows, windows, altas, False, {"apto": 30.0, "hangar": 25.0}
+        windows, windows, altas, False, {"apto": 25.0, "hangar": 20.0}
     )
-    snapshot = L.fleet_snapshot(frame, 23, 30.0, 25.0)
+    snapshot = L.fleet_snapshot(frame, 27, 25.0, 20.0)
     assert int(A.unidad_alta(0)) in set(snapshot["unit"])
     fila = snapshot[snapshot["unit"] == int(A.unidad_alta(0))].iloc[0]
     assert fila["state"] == L.AOG
@@ -87,7 +87,7 @@ def test_el_modo_historia_se_deriva_de_la_cache():
     # Paso 3: su primera derivación a hangar.
     assert (pasos[2]["unidad"], pasos[2]["ciclo"]) == (14, 25)
     # Paso 4: los mismos umbrales aflojados en 5.
-    assert pasos[3]["umbrales"] == {"apto": 35.0, "hangar": 20.0}
+    assert pasos[3]["umbrales"] == {"apto": 25.0, "hangar": 20.0}
 
     for paso in pasos:
         assert paso["titulo"] and paso["cuenta"]

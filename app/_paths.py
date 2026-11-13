@@ -12,7 +12,7 @@ siguen apuntando al mismo sitio.
 Los valores son los de antes del movimiento, sin redondeos: `ROOT` es la raíz
 del repositorio, `APP_DIR` el directorio `app/`, `CACHE_DIR` la caché versionada
 (`ds02_windows.parquet`, `ds02_rows.parquet`, `cache_manifest.json`), y los
-registros (`registros_flota.json`, `registros_sesiones/`, `registros_n8n.json`)
+registros (`registros_flota.json`, `registros_sesiones/`)
 viven junto a `app/`.
 """
 from __future__ import annotations
@@ -39,8 +39,6 @@ SRC_DIR: Path = ROOT / "src"
 # Registros de flota: el legacy `registros_flota.json` y las sesiones.
 REGISTROS_PATH: Path = APP_DIR / "registros_flota.json"
 SESIONES_DIR: Path = APP_DIR / "registros_sesiones"
-# Registro de decisiones n8n (estado por máquina, gitignored).
-N8N_REGISTROS_PATH: Path = APP_DIR / "registros_n8n.json"
 
 # Secretos de Streamlit (no versionados; `streamlit_app.py` los carga a os.environ).
 SECRETS_PATH: Path = ROOT / ".streamlit" / "secrets.toml"

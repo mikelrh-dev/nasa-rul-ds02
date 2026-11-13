@@ -158,7 +158,7 @@ def test_un_ciclo_sin_ventanas_se_rechaza_sin_romper_la_app():
 
 @needs_cache
 def test_cargar_escenario_demo_no_rompe_la_app():
-    """C2: demo. Pressing it must load 30/25, cycle 29 and unit 14."""
+    """C2: demo. Pressing it must load 25/20, cycle 34 and unit 14."""
     app = _app()
     app.run()
     assert not app.exception
@@ -167,7 +167,7 @@ def test_cargar_escenario_demo_no_rompe_la_app():
     assert not app.exception, app.exception
 
     assert _selector_unidad(app).value == 14, _selector_unidad(app).value
-    assert _slider_ciclo(app).value == 29, _slider_ciclo(app).value
+    assert _slider_ciclo(app).value == 34, _slider_ciclo(app).value
 
 
 # ------------------------------------------------------------------ fase 1
@@ -336,14 +336,14 @@ def test_el_modo_historia_carga_el_paso_3_en_la_app():
 
     assert not app.exception, app.exception
     from app.lib import alta as _A, ui_data_loader as _L
-    _paso3 = [p for p in _A.estado_historia(_L.get_windows(), {"apto": 30.0, "hangar": 25.0}) if p["paso"] == 3][0]
+    _paso3 = [p for p in _A.estado_historia(_L.get_windows(), {"apto": _L.DEFAULT_AIRWORTHY, "hangar": _L.DEFAULT_AOG}) if p["paso"] == 3][0]
     assert _selector_unidad(app).value == _paso3["unidad"]
     assert _slider_ciclo(app).value == _paso3["ciclo"]
 
 
 @needs_cache
 def test_el_paso_4_afloja_los_umbrales():
-    """El paso 4 cambia la política: el umbral de hangar baja a 20."""
+    """El paso 4 cambia la política: APTO y HANGAR bajan 5 ciclos."""
     app = _app()
     app.run()
     for boton in app.button:
@@ -354,8 +354,8 @@ def test_el_paso_4_afloja_los_umbrales():
         pytest.fail("no está el paso 4 del modo historia")
 
     assert not app.exception, app.exception
-    assert _number_input(app, "Hangar si L_inf").value == 20.0
-    assert _number_input(app, "Apto si L_inf").value == 35.0
+    assert _number_input(app, "Hangar si L_inf").value == 15.0
+    assert _number_input(app, "Apto si L_inf").value == 20.0
 
 
 @needs_cache

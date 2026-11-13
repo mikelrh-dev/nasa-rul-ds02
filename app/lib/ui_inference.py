@@ -125,6 +125,43 @@ def example_window(unit: int = 14, position: float = 0.55,
     return table, meta
 
 
+def cycles_of_unit(unit: int) -> list[int]:
+    """Ciclos disponibles de una unidad, leídos de la caché de filas."""
+    rows_frame = L.get_rows()
+    frame = rows_frame[rows_frame["unit"] == int(unit)]
+    return sorted(int(c) for c in frame["cycle"].unique())
+
+
+def window_between_cycles(unit: int, start_cycle: int,
+                          end_cycle: int) -> tuple[pd.DataFrame, dict]:
+    """Tramo manual: todas las filas de la caché entre dos ciclos, ambos incluidos.
+
+    Es el equivalente manual de `example_window`/`window_ending_at`: no elige
+    una posición ni un ciclo final, sino el rango exacto que pide el usuario.
+    El mínimo de 50 filas lo valida `preflight`, no esta función, para que la
+    tabla se pueda ver aunque el tramo todavía no sea puntuable.
+    """
+    inicio, fin = int(start_cycle), int(end_cycle)
+    if inicio > fin:
+        raise ValueError(f"el ciclo inicial ({inicio}) no puede ser mayor que el final ({fin})")
+    rows_frame = L.get_rows()
+    frame = rows_frame[rows_frame["unit"] == int(unit)].reset_index(drop=True)
+    mask = frame["cycle"].between(inicio, fin).to_numpy()
+    posiciones = np.flatnonzero(mask)
+    if posiciones.size == 0:
+        raise ValueError(f"la unidad {unit} no tiene filas entre los ciclos {inicio} y {fin}")
+    chunk = frame.iloc[int(posiciones[0]):int(posiciones[-1]) + 1].copy()
+    table = chunk[["cycle"] + channel_order()].reset_index(drop=True)
+    meta = {
+        "source": "app/cache/ds02_rows.parquet",
+        "unit": int(unit),
+        "row_slice": [int(posiciones[0]), int(posiciones[-1]) + 1],
+        "start_cycle": int(chunk["cycle"].iloc[0]),
+        "end_cycle": int(chunk["cycle"].iloc[-1]),
+    }
+    return table, meta
+
+
 def window_ending_at(unit: int, cycle: int,
                      rows: int | None = None) -> tuple[pd.DataFrame, dict]:
     """The window that ends on the last cached row of `cycle`.
@@ -183,7 +220,7 @@ def demo_presets(u_hangar: int, c_hangar: int,
     """
     return {
         "Sano U15 inicio (APTO)": (15, 0.05, None, "ESN-SANO-01"),
-        "Medio U11 desgaste (INSPECCIÓN)": (11, 0.40, None, "ESN-MEDIO-01"),  # C: 0.40 -> L_inf 28.1 INSPECCION
+        "Medio U11 desgaste (INSPECCIÓN)": (11, None, 24, "ESN-MEDIO-01"),  # C: ciclo 24 -> L_inf 22.9 INSPECCION
         f"Crítico U{u_hangar} · ciclo {c_hangar} (HANGAR)": (
             u_hangar, None, c_hangar, "ESN-CRIT-01"),
         "Clásico U14 (HANGAR)": (14, 0.55, None, "ESN-DEMO-01"),

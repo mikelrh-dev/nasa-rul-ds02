@@ -234,7 +234,7 @@ def build(out_dir: str = DEFAULT_OUT, stride: int = 100, step: int = 2,
             "per_unit": per_unit,
             "mae_by_band": _mae_by_band(y_true, pred),
         },
-        "defaults": {"threshold_airworthy": 30.0, "threshold_aog": 25.0},
+        "defaults": {"threshold_airworthy": 25.0, "threshold_aog": 20.0},
     }
 
     os.makedirs(out_dir, exist_ok=True)

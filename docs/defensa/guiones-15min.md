@@ -122,5 +122,5 @@ es solo una de las semillas del análisis.
 - **Test una vez.** La frase es siempre: «el test se evalúa una sola vez y
   solo para el elegido». Ver `src/clase/train_clasicos.py` y
   `src/clase/train_mlp.py:107`.
-- **Acción propia en n8n (MIA-3).** La rama HANGAR no termina en servicios de terceros: llama a `POST /n8n-decision` de la API del propio proyecto (`app/api.py`), que registra la decisión con token compartido e idempotencia por `fingerprint`. Es la acción que no se vio en clase: el flujo consume la API del proyecto, no solo Postgres/Calendar/Gmail.
+- **Acción novedosa en n8n (MIA-3).** Pendiente de definir: la rama HANGAR debe terminar en una acción no vista en clase (ni Sheets, ni Postgres, ni Calendar, ni Gmail).
 - **MLflow / n8n.** «MLflow tiene 17 runs en `mlruns/`: 9 de fila, 4 de ventana y 4 de ablación, con export y capturas; el store es texto y no guarda binarios. n8n está incluido; el flujo versionado está inactivo por diseño (un test lo exige así), pero la instancia local lo ejecutó 29 veces (2026-11-07) con efectos reales. No vendas una ejecución de la app: no la hay.»

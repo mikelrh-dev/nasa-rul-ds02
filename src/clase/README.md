@@ -2,7 +2,7 @@
 
 > **Español** | [English](../../README.en.md)
 
-Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir de telemetría y propone APTO / INSPECCIÓN / HANGAR. **El mejor MLP de clase (E2, elegido por validación) logra RMSE 7.72 en test (val 7.34; uds 11/14/15); el híbrido desplegado (BiLSTM + LightGBM + stacking sobre la base con nulos tratados) está en 4.338. La media multisemilla vigente es 4.324 ± 0.107 sobre el CSV versionado (42/7/123); las medias 4.322 (NB06) y 4.330 (NB05) son histórico no regenerable.**
+Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir de telemetría y propone APTO / INSPECCIÓN / HANGAR. **El mejor MLP de clase (E2, elegido por validación) logra RMSE 7.72 en test (val 7.34; uds 11/14/15); el híbrido desplegado (BiLSTM + LightGBM + stacking sobre la base con nulos tratados) está en 4.338. La media multisemilla vigente es 4.333 ± 0.040 sobre el CSV versionado (42/7/123); la cifra 4.324 ± 0.107 es del CSV anterior (72035c3); las medias 4.322 (NB06) y 4.330 (NB05) son histórico no regenerable.**
 
 ![Real vs predicho del mejor clásico](../../docs/assets/clasicos_real_vs_pred.png)
 
@@ -130,11 +130,11 @@ flowchart LR
 
 **Modelo elegido del track de clase: MLP E2 (val 7.34; test 7.72 en lectura única).** No es el más rápido (XGB entrena en 7 s frente a 33 s) y se elige igualmente: RMSE manda porque un fallo gordo (motor parado) cuesta órdenes de magnitud más que segundos de CPU; a igualdad de RMSE se preferiría el más simple. Ese es el campeón **de clase**; el modelo que entra en producción, y el que defiende el reto, es el bundle C (4.338), no E2.
 
-**Modelo desplegado (bundle C):** híbrido BiLSTM + LightGBM + stacking + EMA sobre la base adaptada (MAR T30 + ffill con medianas de fit-units), RMSE 4.338 / NASA 2336.2 (test uds 11/14/15), media multiseed 4.324 ± 0.107 sobre el CSV versionado (42/7/123; NB06 4.322 y NB05 4.330 son histórico no regenerable). El híbrido es el "extra no visto en clase" del criterio SAA 6. El manifiesto declara la variante de datos, la partición de motores y las huellas SHA: el despliegue se audita desde el artefacto.
+**Modelo desplegado (bundle C):** híbrido BiLSTM + LightGBM + stacking + EMA sobre la base adaptada (MAR T30 + ffill con medianas de fit-units), RMSE 4.338 / NASA 2336.2 (test uds 11/14/15), media multiseed 4.333 ± 0.040 sobre el CSV versionado (42/7/123; la 4.324 ± 0.107 es del CSV anterior 72035c3; NB06 4.322 y NB05 4.330 son histórico no regenerable). El híbrido es el "extra no visto en clase" del criterio SAA 6. El manifiesto declara la variante de datos, la partición de motores y las huellas SHA: el despliegue se audita desde el artefacto.
 
 **Test (una lectura, solo el elegido):** MLP E2 RMSE 7.72 · MAE 5.81 · R² 0.83. Híbrido desplegado RMSE 4.338 · MAE 3.227 · R² 0.9461.
 
-**Estabilidad entre semillas:** 42, 7 y 123 dan, sobre el CSV versionado, RMSE 4.324 ± 0.107 y NASA 2341.0 ± 54.1; NB06 (4.322 ± 0.064 / 2342.3 ± 43.4) y NB05 (4.330 ± 0.053 / 2343.2 ± 24.1) son histórico no regenerable. La semilla 42 es la del bundle desplegado, así que el ± es la cota de ruido para leer diferencias. Evidencia: `resultados/bundle_c_multiseed.csv` versionado y `resultados/comparativa_bundle_c.csv`.
+**Estabilidad entre semillas:** 42, 7 y 123 dan, sobre el CSV versionado, RMSE 4.333 ± 0.040 y NASA 2335.1 ± 28.7 (la 4.324 ± 0.107 / 2341.0 ± 54.1 es del CSV anterior 72035c3); NB06 (4.322 ± 0.064 / 2342.3 ± 43.4) y NB05 (4.330 ± 0.053 / 2343.2 ± 24.1) son histórico no regenerable. La semilla 42 es la del bundle desplegado, así que el ± es la cota de ruido para leer diferencias. Evidencia: `resultados/bundle_c_multiseed.csv` versionado y `resultados/comparativa_bundle_c.csv`.
 
 ![Real vs predicho](../../docs/assets/mlp_real_vs_pred.png)
 
@@ -164,7 +164,7 @@ src/clase/            dataset_clase.py, pipeline_clase.py, train_clasicos.py, tr
                         shap_clase.py, tabla_final.py, ventanas_adaptadas.py, train_lgbm_adaptada.py
 src/ds02_rul/          bundle_c.py (entrenador del bundle C), puente_c.py, data.py, metrics.py, ...
 scripts/               evaluate_bundle_stability.py
-data/raw|processed/     HDF5 fuera de git; train_con_nulos + imputados + X/y + auditoria_nulos.json
+data/raw|processed/     HDF5 fuera de git; train_con_nulos + imputados + X/y + auditoria_nulos.json + dataset_manifest.json
 notebooks/              01_eda_y_contexto.ipynb, 02_modelos_clasicos_y_mlp.ipynb, 03_feature_engineering_secuencial.ipynb,
                         04_arquitectura_bilstm_oof.ipynb, 05_meta_ensemble_y_conformal.ipynb,
                         06_evaluacion_produccion_comparativa.ipynb, 07_shap_c_bundle_c.ipynb
@@ -184,7 +184,16 @@ app/dashboard_ds02.py   app de producción: evalúa el modelo desplegado (bundle
 
 ## Cómo ejecutarlo
 
+`data/processed/` es *build output*: no se versiona. El único escritor es
+`src/clase/dataset_clase.py`, que encadena build → MAR T30 → split → ffill con
+medianas de train → `fase_vuelo`. Es idempotente: no reescribe si el contenido
+no cambió. `auditoria_nulos.json` guarda la máscara MAR (`fila`, `unit`,
+`cycle`) y su SHA; `dataset_manifest.json` fija los SHA de bytes y la receta.
+
 ```bash
+python -m src.clase.dataset_clase            # 8 parquet + auditoria_nulos.json (con máscara MAR) + dataset_manifest.json
+python -m src.clase.dataset_clase --check    # reconstruye en temporal y compara contenido; NO escribe
+python -m src.clase.dataset_clase --fast-check  # verifica dataset_manifest.json y SHA de bytes; NO carga el HDF5
 python -m src.clase.train_clasicos     # 5 modelos + comparativa.csv + joblib (~2 min)
 python -m src.clase.train_mlp           # MLP base+3 + importancia (~8 min con validación OOF)
 python -m src.clase.shap_clase          # SHAP TreeExplainer + PNG/CSV
@@ -198,7 +207,7 @@ python -m pytest tests/test_clase_*.py tests/test_live_eval.py -q
 
 ## Acción propia en n8n (MIA-3)
 
-La rama HANGAR del flujo llama a `POST /n8n-decision` de la API del proyecto (`app/api.py`), que registra la decisión con token compartido (`hmac.compare_digest`) e idempotencia por `fingerprint`; el flujo consume la API propia, no solo servicios de terceros.
+La rama HANGAR del flujo actúa en Postgres (`ds02_decisiones`), Google Calendar y Gmail, y deja el rastro de las reglas usadas en el correo.
 
 ## Autoría
 

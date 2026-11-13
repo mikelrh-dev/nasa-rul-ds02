@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## DS02 Decision MIA-3\nLa app predice un caso y manda la decision por webhook.\nAPTO = solo log. INSPECCION = Google Sheets. HANGAR = Postgres + Calendar + Gmail + API propia (accion novedosa).\nHeader Auth obligatorio (X-DS02-Token). Credenciales: revisar en n8n antes de activar. El JSON se exporta con active:false.",
+        "content": "## DS02 Decision MIA-3\nLa app predice un caso y manda la decision por webhook.\nAPTO = solo log. INSPECCION = Google Sheets. HANGAR = Postgres + Calendar + Gmail.\nHeader Auth obligatorio (X-DS02-Token). Credenciales: revisar en n8n antes de activar. El JSON se exporta con active:false.",
         "height": 180,
         "width": 620
       },
@@ -322,6 +322,12 @@
         320
       ],
       "notes": "INSPECCION: anade la fila en Google Sheets para revision. Revisa la credencial de Sheets.",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REEMPLAZAR_CREDENCIAL",
+          "name": "DS02 Google Sheets"
+        }
+      },
       "onError": "stop"
     },
     {
@@ -346,7 +352,89 @@
             "fingerprint": "={{ $json.body.fingerprint || $json.fingerprint }}"
           },
           "matchingColumns": [],
-          "schema": []
+          "schema": [
+            {
+              "id": "decision",
+              "displayName": "decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "unidad",
+              "displayName": "unidad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "ciclo",
+              "displayName": "ciclo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "rul_punto",
+              "displayName": "rul_punto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "limite_inferior",
+              "displayName": "limite_inferior",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "limite_superior",
+              "displayName": "limite_superior",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "motivo",
+              "displayName": "motivo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "artefacto_sha256",
+              "displayName": "artefacto_sha256",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fingerprint",
+              "displayName": "fingerprint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
         },
         "options": {}
       },
@@ -358,7 +446,13 @@
         880,
         512
       ],
-      "notes": "HANGAR paso 1: inserta la orden en Postgres tabla ds02_decisiones. Revisa la credencial de Postgres."
+      "notes": "HANGAR paso 1: inserta la orden en Postgres tabla ds02_decisiones. Revisa la credencial de Postgres.",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR_CREDENCIAL",
+          "name": "DS02 Postgres"
+        }
+      }
     },
     {
       "parameters": {
@@ -385,7 +479,13 @@
         1168,
         512
       ],
-      "notes": "HANGAR paso 2: crea el evento de hangar en Google Calendar. Revisa la credencial de Calendar."
+      "notes": "HANGAR paso 2: crea el evento de hangar en Google Calendar. Revisa la credencial de Calendar.",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "REEMPLAZAR_CREDENCIAL",
+          "name": "DS02 Google Calendar"
+        }
+      }
     },
     {
       "parameters": {
@@ -401,6 +501,12 @@
       "name": "HANGAR Gmail",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REEMPLAZAR_CREDENCIAL",
+          "name": "DS02 Gmail"
+        }
+      },
       "position": [
         1440,
         512
@@ -409,45 +515,7 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "http://127.0.0.1:8000/n8n-decision",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "={{ (() => { const b = $('Webhook ds02/decision').first().json.body || {}; return JSON.stringify({ decision: b.decision || 'HANGAR', fingerprint: b.fingerprint || '', artefacto_sha256: b.artefacto_sha256 || '', unidad: b.unidad ?? null }); })() }}",
-        "options": {}
-      },
-      "id": "api_propia_hangar",
-      "name": "HANGAR API propia",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1712,
-        512
-      ],
-      "notes": "HANGAR paso 4 (accion novedosa, no vista en clase): registra la decision en la API del propio proyecto (POST /n8n-decision). El token viaja en X-DS02-Token (credencial de header) y la API es idempotente por fingerprint: un reintento no duplica la fila.",
-      "onError": "continueRegularOutput",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "LtD02epzwA6YQDol",
-          "name": "DS02 Webhook Header Auth"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "content": "## Credenciales por revisar\n- Google Sheets (INSPECCION)\n- Postgres (HANGAR)\n- Google Calendar (HANGAR)\n- Gmail (HANGAR)\n- API propia (HANGAR): credencial de header X-DS02-Token (DS02 Webhook Header Auth)\nEl repo no guarda secretos.",
+        "content": "## Credenciales por revisar\n- Google Sheets (INSPECCION)\n- Postgres (HANGAR)\n- Google Calendar (HANGAR)\n- Gmail (HANGAR)\nEl repo no guarda secretos.",
         "height": 140,
         "width": 620
       },
@@ -507,7 +575,7 @@
     },
     {
       "parameters": {
-        "content": "## HANGAR: taller en 4 pasos\n1 Postgres insert ds02_decisiones. 2 Google Calendar evento. 3 Gmail a operaciones. 4 Accion novedosa: llamada a la API propia (POST /n8n-decision).",
+        "content": "## HANGAR: taller en 3 pasos\n1 Postgres insert ds02_decisiones. 2 Google Calendar evento. 3 Gmail a operaciones.",
         "height": 160,
         "width": 900
       },
@@ -581,15 +649,7 @@
       ]
     },
     "HANGAR Gmail": {
-      "main": [
-        [
-          {
-            "node": "HANGAR API propia",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": []
     },
     "Set INSPECCION flat": {
       "main": [
@@ -613,66 +673,6 @@
   "meta": {
     "templateCredsSetupCompleted": false,
     "instanceId": "instancia-local"
-  },
-  "pinData": {
-    "Webhook ds02/decision": [
-      {
-        "json": {
-          "body": {
-            "decision": "INSPECCION",
-            "unidad": 14,
-            "ciclo": 29,
-            "rul_punto": 33.1,
-            "limite_inferior": 27.5,
-            "limite_superior": 44.2,
-            "umbrales": {
-              "apto": 30.0,
-              "hangar": 25.0
-            },
-            "usadas": [
-              "R8_INSPECCION"
-            ],
-            "porque": [
-              "R8_INSPECCION: 25 <= L_inf < 30 (L_inf=27.5)"
-            ],
-            "motivo": "R8_INSPECCION: 25 <= L_inf < 30 (L_inf=27.5)",
-            "alertas_datos": [],
-            "artefacto_sha256": "d6c70142-demo",
-            "fingerprint": "fp-u14-c29-sheets",
-            "idempotency_key": "fp-u14-c29-sheets"
-          }
-        }
-      }
-    ],
-    "Set INSPECCION flat": [
-      {
-        "json": {
-          "decision": "INSPECCION",
-          "unidad": 14,
-          "ciclo": 29,
-          "rul_punto": 33.1,
-          "limite_inferior": 27.5,
-          "motivo": "R8_INSPECCION: 25 <= L_inf < 30 (L_inf=27.5)",
-          "fingerprint": "fp-u14-c29-sheets"
-        }
-      }
-    ],
-    "INSPECCION Google Sheets append": [
-      {
-        "json": {
-          "updatedCells": 7,
-          "updatedRows": 1,
-          "updatedColumns": 7,
-          "decision": "INSPECCION",
-          "unidad": 14,
-          "ciclo": 29,
-          "rul_punto": 33.1,
-          "limite_inferior": 27.5,
-          "motivo": "R8_INSPECCION: 25 <= L_inf < 30 (L_inf=27.5)",
-          "fingerprint": "fp-u14-c29-sheets"
-        }
-      }
-    ]
   },
   "tags": [
     {

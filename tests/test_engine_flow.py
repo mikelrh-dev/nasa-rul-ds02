@@ -100,7 +100,7 @@ def test_el_gemelo_entra_en_la_flota_y_recorre_el_hangar():
     assert "ESN-TEST" in registros
     assert registros["ESN-TEST"]["estado"] == HGR.AOG
     assert registros["ESN-TEST"]["entrada"]["lower"] == 8.0
-    assert registros["ESN-TEST"]["entrada"]["umbrales"] == {"apto": 30.0, "hangar": 25.0}
+    assert registros["ESN-TEST"]["entrada"]["umbrales"] == {"apto": 25.0, "hangar": 20.0}
 
     # El único destino permitido desde AOG es taller.
     destinos = [s for s in app.selectbox if s.label == "Nuevo estado"]

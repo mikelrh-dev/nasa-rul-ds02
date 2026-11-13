@@ -33,3 +33,7 @@
 *.npy     binary
 *.png     binary
 *.pdf     binary
+
+# El manifiesto de caché se genera con CRLF en Windows y se valida por SHA en
+# disco; el CR es terminador de línea, no whitespace sobrante.
+app/cache/cache_manifest.json whitespace=cr-at-eol

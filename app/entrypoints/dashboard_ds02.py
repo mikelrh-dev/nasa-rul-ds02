@@ -10,9 +10,8 @@ never loaded, so no TensorFlow import is needed and the app runs from a laptop
 without the 2.3 GB HDF5.
 
 Both rule passes run through `src/mia/`: the correction pass (R2b + R6) behind the
-opt-in toggle, and the decision pass (R1, R9, R8, R7) on every render. The
-maintenance state is therefore the engine's answer, decided on the conformal
-LOWER bound and not on the point estimate. Thresholds are ADR-008's 30 / 25 and
+opt-in toggle, and the decision pass (R1, R9, R8, R7) on every render.The maintenance state is therefore the engine's answer, decided on the conformal
+LOWER bound and not on the point estimate. Thresholds are ADR-013's 25 / 20 and
 are adjustable in the sidebar.
 
 Colors, fonts and radii live in `.streamlit/config.toml`; the Plotly figures use
@@ -354,7 +353,6 @@ _PRESETS = {
     "Prudente (+5)": (5.0, 5.0),
     "Permisivo (−5)": (-5.0, -5.0),
     "Conservador (+10)": (10.0, 10.0),
-    "Agresivo (−10)": (-10.0, -10.0),
 }
 preset = str(st.session_state.get("preset", "Normal"))
 _base_apto = float(provenance["defaults"]["threshold_airworthy"])
@@ -362,9 +360,9 @@ _base_aog = float(provenance["defaults"]["threshold_aog"])
 _d_apto, _d_aog = _PRESETS.get(preset, _PRESETS["Normal"])
 _preset_vals = (max(1.0, _base_apto + _d_apto), max(0.0, _base_aog + _d_aog))
 # Sincroniza spinbuttons con el preset al cambiar: Streamlit ignora `value=`
-# si la clave ya existe y la historia deja valores persistentes (35/20).
+# si la clave ya existe y la historia deja valores persistentes (20/15).
 # Al cambiar se sobrescriben las claves del preset vigente con `_preset_vals`
-# para que Prudente→Normal restaure 30/25. Ediciones manuales del mismo
+# para que Prudente→Normal restaure 25/20. Ediciones manuales del mismo
 # preset se descartan por diseño (D3).
 _prev_preset = st.session_state.get("_preset_prev")
 if _prev_preset is not None and _prev_preset != preset:

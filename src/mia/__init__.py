@@ -7,7 +7,7 @@ Dos familias de reglas (medidas en `docs/informes/informe-2026-10-21-reglas-oof.
   (recalibrado de la banda conformal sobre el punto corregido).
 * **Decisión (pasada A)** — traducen el número en una acción:
   `R1_SEGURIDAD` (dato imposible → no decidir) y los umbrales conformales
-  30/25 de ADR-008 (`R7_APTO`, `R8_INSPECCION`, `R9_HANGAR`).
+  25/20 de ADR-013 (`R7_APTO`, `R8_INSPECCION`, `R9_HANGAR`).
 
 `predict()` de `src/ds02_rul/` y todo `models/` quedan intactos: el motor es una
 capa de post-procesado independiente que no reentrena nada.

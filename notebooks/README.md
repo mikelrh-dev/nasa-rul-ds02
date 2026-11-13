@@ -23,6 +23,7 @@ solo lo escribe `src/ds02_rul/bundle_c.py:entrenar`.
 
 | # | Notebook | Pregunta que responde | Módulos `.py` que usa | Artefactos que escribe |
 |---|---|---|---|---|
+| 00 | `00_datos.ipynb` | ¿De dónde salen los parquet y los nulos? | `clase/dataset_clase.py` | 8 parquet + `auditoria_nulos.json` |
 | 01 | `01_eda_y_contexto.ipynb` | ¿Cómo son los datos, las fases y las ventanas? | `ds02_rul/data.py`, `ds02_rul/features.py`, `clase/dataset_clase.py`, `clase/ventanas_adaptadas.py`, `ds02_rul/mlflow_live.py` | `resultados/eda_*.png` |
 | 02 | `02_modelos_clasicos_y_mlp.ipynb` | ¿Qué rinden los 5 clásicos y los 4 MLP de la rúbrica? | `clase/train_clasicos.py`, `clase/train_mlp.py`, `clase/pipeline_clase.py`, `clase/shap_clase.py`, `ds02_rul/persistence.py`, `ds02_rul/mlflow_live.py` | `resultados/clasicos_real_vs_pred.png`, `resultados/mlp_real_vs_pred.png`, `resultados/shap_importancia.png` |
 | 03 | `03_feature_engineering_secuencial.ipynb` | ¿Qué aporta `cyc_norm` y cómo se mide la ablación? | `ds02_rul/puente_c.py`, `ds02_rul/pipeline.py`, `ds02_rul/data.py`, `ds02_rul/mlflow_live.py` | `resultados/ablacion_cycnorm_rmse.png` |
@@ -32,6 +33,14 @@ solo lo escribe `src/ds02_rul/bundle_c.py:entrenar`.
 | 07 | `07_shap_c_bundle_c.ipynb` | ¿Qué canales/features pesan en las tres ramas del bundle C? | `ds02_rul/shap_c.py`, `ds02_rul/data.py`, `ds02_rul/persistence.py`, `ds02_rul/inference.py`, `ds02_rul/metrics.py`, `ds02_rul/mlflow_live.py` | `resultados/shap_bundle_C/{shap_*.csv,bar_*.png,metadata.json}` |
 
 ## Detalle por notebook
+
+### 00 — Datos de clase
+
+- **Módulo directo:** `clase.dataset_clase.construir_artefactos_clase`.
+- **Qué hace:** ejecuta el pipeline de datos (build → MAR T30 → split → ffill
+  con medianas de train → `fase_vuelo`) y escribe `data/processed/`.
+- **Qué no hace:** no entrena, no toca `models/`; es idempotente.
+- **Salida:** 8 parquet + `auditoria_nulos.json`; la receta vive en el `.py`.
 
 ### 01 — EDA y contexto
 
@@ -109,8 +118,12 @@ solo lo escribe `src/ds02_rul/bundle_c.py:entrenar`.
 
 ## Orden de ejecución
 
+Si `data/processed/` no existe (clon limpio), ejecuta `00_datos.ipynb` o
+`python -m src.clase.dataset_clase` (idempotente; `--check` compara sin
+escribir). Del 01 en adelante, los notebooks solo consumen esos parquet.
+
 ```text
-01 → 02 → 03 → 04 → 05 → 06 → 07
+00 → 01 → 02 → 03 → 04 → 05 → 06 → 07
 ```
 
 - **04 antes de 05** por `notebooks/artifacts_c/`.

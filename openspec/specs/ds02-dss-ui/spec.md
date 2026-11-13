@@ -441,20 +441,20 @@ The system MUST treat Incorporar and Reset as symmetric with no double-count: In
 
 ### Requirement: Preset thresholds restore
 
-The system MUST resync the threshold spinbuttons to the preset values whenever the preset changes: Normal 30/25, Prudente 35/30, Permisivo 25/20 (defaults 30/25 from provenance). Story-mode step 4 (current +5/−5, i.e. 35/20 from Normal) MUST NOT permanently contaminate Normal. Streamlit `value=` SHALL be overridden via `session_state` before the widget is read.
+The system MUST resync the threshold spinbuttons to the preset values whenever the preset changes: Normal 25/20, Prudente 30/25, Permisivo 20/15 (defaults 25/20 from provenance; 20/15 is an experimental, non-default scenario). Story-mode step 4 (current −5/−5, i.e. 20/15 from Normal) MUST NOT permanently contaminate Normal. Streamlit `value=` SHALL be overridden via `session_state` before the widget is read.
 
-#### Scenario: Prudente then Normal restores 30/25
+#### Scenario: Prudente then Normal restores 25/20
 
-- GIVEN preset Normal at 30/25
+- GIVEN preset Normal at 25/20
 - WHEN the operator selects Prudente then returns to Normal
-- THEN the spinbuttons read 35/30 then 30/25
+- THEN the spinbuttons read 30/25 then 25/20
 - AND the triage uses the resynced values
 
 #### Scenario: History step does not stick
 
-- GIVEN Normal at 30/25
-- WHEN story step 4 applies 35/20 then the preset is cycled away and back
-- THEN Normal reads 30/25 again
+- GIVEN Normal at 25/20
+- WHEN story step 4 applies 20/15 then the preset is cycled away and back
+- THEN Normal reads 25/20 again
 
 ---
 
@@ -466,9 +466,9 @@ The system MUST refresh the whole app when the fleet preset, its thresholds, or 
 
 #### Scenario: Preset change shows thresholds and band in one run
 
-- GIVEN preset Normal at 30/25 with `aplicar_reglas` off
+- GIVEN preset Normal at 25/20 with `aplicar_reglas` off
 - WHEN the operator selects `Prudente (+5)` and the app runs once
-- THEN the spinbuttons read 35/30 and the band caption is updated
+- THEN the spinbuttons read 30/25 and the band caption is updated
 
 #### Scenario: Toggle flips correction in the same pass
 
@@ -492,14 +492,14 @@ The Motor view MUST render an evaluated-not-triggered row for `R9_HANGAR` by eva
 
 #### Scenario: APTO shows R9 evaluated but not triggered
 
-- GIVEN `L_inf` 35.2 with thresholds 30/25
+- GIVEN `L_inf` 35.2 with thresholds 25/20
 - WHEN the Motor view renders
 - THEN the winning rule is `R7_APTO` and the row reads `R9 evaluada: No`
 - AND the text contains `evaluada, no dispara` and not `dispara` as a claim
 
 #### Scenario: Hangar shows R9 winning
 
-- GIVEN `L_inf` 20 with thresholds 30/25
+- GIVEN `L_inf` 19.9 with thresholds 25/20
 - WHEN the Motor view renders
 - THEN the winning rule is `R9_HANGAR`
 
@@ -573,7 +573,7 @@ in addition to Normal/Prudente/Permisivo, keeping hangar < apto for every preset
 
 #### Scenario: Presets stay ordered
 
-- GIVEN the five presets and defaults 30/25
+- GIVEN the four presets and defaults 25/20
 - WHEN each preset resolves
 - THEN hangar < apto holds and Conservador raises both thresholds by 10
 

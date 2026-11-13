@@ -38,9 +38,10 @@ needs_cache = pytest.mark.skipif(
     [
         (35.7, L.AIRWORTHY),
         (30.0, L.AIRWORTHY),
-        (29.9, L.PREVENTIVE),
-        (25.0, L.PREVENTIVE),
-        (24.9, L.AOG),
+        (25.0, L.AIRWORTHY),
+        (24.9, L.PREVENTIVE),
+        (20.0, L.PREVENTIVE),
+        (19.9, L.AOG),
         (-3.0, L.AOG),
     ],
 )

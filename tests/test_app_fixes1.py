@@ -132,25 +132,25 @@ def test_preset_historia_restores_normal():
     app = _app()
     app.run()
     assert not app.exception
-    assert _th_values(app).get("th_apto_Normal") == 30.0
-    assert _th_values(app).get("th_aog_Normal") == 25.0
-    # Historia paso 4: blandos 35/20 en la clave vigente (Normal).
+    assert _th_values(app).get("th_apto_Normal") == 25.0
+    assert _th_values(app).get("th_aog_Normal") == 20.0
+    # Historia paso 4: politica permisiva 20/15 en la clave vigente (Normal).
     assert _click(app, "", key="historia_4")
     assert not app.exception
-    assert _th_values(app).get("th_apto_Normal") == 35.0
-    assert _th_values(app).get("th_aog_Normal") == 20.0
+    assert _th_values(app).get("th_apto_Normal") == 20.0
+    assert _th_values(app).get("th_aog_Normal") == 15.0
     # Volver al paso 1 debe restaurar la base del preset, no la contaminada.
     assert _click(app, "", key="historia_1")
     assert not app.exception
-    assert _th_values(app).get("th_apto_Normal") == 30.0, _th_values(app)
-    assert _th_values(app).get("th_aog_Normal") == 25.0, _th_values(app)
-    # Ciclo de presets: Prudente 35/30, Normal 30/25.
+    assert _th_values(app).get("th_apto_Normal") == 25.0, _th_values(app)
+    assert _th_values(app).get("th_aog_Normal") == 20.0, _th_values(app)
+    # Ciclo de presets: Prudente 30/25, Normal 25/20.
     _set_preset(app, "Prudente (+5)")
     assert not app.exception
     vals = _th_values(app)
-    assert vals.get("th_apto_Prudente (+5)") == 35.0, vals
-    assert vals.get("th_aog_Prudente (+5)") == 30.0, vals
+    assert vals.get("th_apto_Prudente (+5)") == 30.0, vals
+    assert vals.get("th_aog_Prudente (+5)") == 25.0, vals
     _set_preset(app, "Normal")
     assert not app.exception
-    assert _th_values(app).get("th_apto_Normal") == 30.0
-    assert _th_values(app).get("th_aog_Normal") == 25.0
+    assert _th_values(app).get("th_apto_Normal") == 25.0
+    assert _th_values(app).get("th_aog_Normal") == 20.0

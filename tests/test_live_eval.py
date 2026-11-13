@@ -452,7 +452,7 @@ def test_el_sandbox_reproduce_la_caché_con_deriva_cero():
     assert not app.exception, app.exception
 
     curva = L.unit_curve(L.get_windows(), 14)
-    bajo = curva[curva["lower_min"] < 25.0]
+    bajo = curva[curva["lower_min"] < L.DEFAULT_AOG]
     esperado = int(bajo["cycle"].min())
     assert _cruce_hangar(app) == f"ciclo {esperado}", _cruce_hangar(app)
 
@@ -514,7 +514,7 @@ def test_el_sandbox_muestra_el_tramo_y_no_toda_la_vida_del_motor():
 
     windows = L.get_windows()
     curva = L.unit_curve(windows, 14)
-    bajo = curva[curva["lower_min"] < 25.0]
+    bajo = curva[curva["lower_min"] < L.DEFAULT_AOG]
     c_fin = int(bajo["cycle"].min())
     esperado = float(curva[curva["cycle"] == c_fin]["pred"].iloc[0])
 
@@ -695,10 +695,29 @@ def test_alargar_un_tramo_no_mueve_su_final():
     assert meta_largo["start_cycle"] < meta_corto["start_cycle"]
 
     # Lo mismo por ciclo final, que es como elige el preset critico.
-    largo_c, meta_lc = INF.window_ending_at(14, 29, rows=INF.DEMO_ROWS)
-    corto_c, meta_cc = INF.window_ending_at(14, 29)
+    largo_c, meta_lc = INF.window_ending_at(14, 34, rows=INF.DEMO_ROWS)
+    corto_c, meta_cc = INF.window_ending_at(14, 34)
     assert largo_c.iloc[-INF.window_size():].reset_index(drop=True).equals(corto_c)
-    assert meta_lc["end_cycle"] == meta_cc["end_cycle"] == 29
+    assert meta_lc["end_cycle"] == meta_cc["end_cycle"] == 34
+
+
+@needs_cache
+def test_el_tramo_manual_respeta_los_ciclos_elegidos():
+    """El modo manual carga exactamente el rango de ciclos, sin mover extremos."""
+    ciclos = INF.cycles_of_unit(15)
+    assert ciclos == sorted(ciclos)
+    assert ciclos[0] == 1 and ciclos[-1] == 67
+
+    tabla, meta = INF.window_between_cycles(15, 3, 7)
+    assert meta["start_cycle"] == 3
+    assert meta["end_cycle"] == 7
+    assert meta["unit"] == 15
+    assert tabla["cycle"].between(3, 7).all()
+    assert set(tabla["cycle"].unique()) == set(range(3, 8))
+    assert INF.preflight(tabla)["ok"]
+
+    with pytest.raises(ValueError, match="ciclo inicial"):
+        INF.window_between_cycles(15, 7, 3)
 
 
 @needs_cache
@@ -720,11 +739,11 @@ def test_cada_preset_cae_en_el_estado_que_dice_su_nombre():
         return "".join(c for c in unicodedata.normalize("NFD", texto)
                        if unicodedata.category(c) != "Mn")
 
-    umbrales = {"apto": 30.0, "hangar": 25.0}
-    # El preset critico usa el ciclo del estado demo (29): es el primer ciclo
-    # cuyo tramo en vivo (ultima ventana) cae en HANGAR con C (L_inf 21.4).
-    # El paso 3 del modo historia (25) es la primera derivacion por peor
-    # ventana de la flota: otra agregacion, no el tramo en vivo.
+    umbrales = {"apto": L.DEFAULT_AIRWORTHY, "hangar": L.DEFAULT_AOG}
+    # El preset critico usa el ciclo del estado demo (34): es el primer ciclo
+    # cuyo tramo en vivo (ultima ventana) cae en HANGAR con C (L_inf 19.0).
+    # El paso 3 del modo historia (34) coincide aqui con el tramo en vivo:
+    # es la primera derivacion por peor ventana de la flota.
     demo = A.estado_demo()
     presets = INF.demo_presets(int(demo["unidad"]), int(demo["ciclo"]))
     assert len(presets) >= 3, presets

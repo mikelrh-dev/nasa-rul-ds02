@@ -107,7 +107,7 @@ calibrated on the development engines.
 
 #### Scenario: The triage rule is the same one
 
-- GIVEN a live `L_inf` of 24.9 with thresholds 30/25
+- GIVEN a live `L_inf` of 19.9 with thresholds 25/20
 - WHEN the state is computed
 - THEN it is AOG, exactly as for a cached unit
 
