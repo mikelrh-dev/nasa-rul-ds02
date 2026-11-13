@@ -318,6 +318,18 @@ python scripts/operativo/backfill_mlflow.py --write   # regenerar los 17 runs (i
 MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
 
+El bloque es sintaxis de bash. En PowerShell 7:
+
+```powershell
+$env:MLFLOW_ALLOW_FILE_STORE = "true"
+.venv\Scripts\python.exe -m mlflow ui --backend-store-uri ./mlruns
+```
+
+`MLFLOW_ALLOW_FILE_STORE=true` no es opcional: MLflow 3.18 deja el file store
+en maintenance mode y se niega a arrancar sin esa variable. Usa el python del
+`.venv`, no el `mlflow` del PATH, para no mezclar el store con el Python de
+sistema.
+
 `--check` no es decorativo: recorre el experimento con `ViewType.ALL` y **falla**
 si aparece un run `live__*` o un tombstone (`lifecycle_stage: deleted`). La pureza
 del store es una invariante ejecutable, no una promesa del README.
@@ -443,6 +455,10 @@ python scripts/operativo/evaluate_bundle_stability.py --desde-csv
 python scripts/operativo/backfill_mlflow.py --check
 MLFLOW_ALLOW_FILE_STORE=true mlflow ui --backend-store-uri ./mlruns
 ```
+
+El comando de MLflow es sintaxis de bash; en PowerShell 7 usa
+`$env:MLFLOW_ALLOW_FILE_STORE = "true"; .venv\Scripts\python.exe -m mlflow ui --backend-store-uri ./mlruns`
+(ver la sección MLflow).
 
 ## Estructura del proyecto
 
