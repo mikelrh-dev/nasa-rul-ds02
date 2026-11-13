@@ -68,13 +68,29 @@ Tras `decision_en_vivo` en la pestaña Casos de `app/dashboard_ds02.py`, la app 
 
 ### Requirement: Flujo n8n importable con Switch de 3 ramas
 
-`n8n/flujo.json` SHALL contener un workflow n8n válido (JSON parseable, formato de exportación) con: nodo Webhook POST con path `ds02/decision`; nodo Switch con 3 ramas sobre `decision` (APTO / INSPECCION / HANGAR); rama HANGAR con Postgres insert + Google Calendar + Gmail; rama INSPECCION con Google Sheets append; rama APTO con Set (log). El JSON MUST NOT contener valores de credenciales (solo referencias). Las credenciales viven en la instancia local de n8n; el repo solo guarda el flujo.
+`n8n/flujo.json` SHALL contener un workflow n8n válido (JSON parseable, formato de
+exportación) con: nodo Webhook POST con path `ds02/decision`; nodo Switch con 3
+ramas sobre `decision` (APTO / INSPECCION / HANGAR) y un fallback que recoge
+`SIN_DECISION` y cualquier valor no reconocido sin ejecutar acciones críticas;
+rama HANGAR con Postgres insert + Google Calendar + Gmail; rama INSPECCION con
+Google Sheets append; rama APTO con Set (log). El JSON MUST NOT contener valores
+de credenciales (solo referencias). Las credenciales viven en la instancia local
+de n8n; el repo solo guarda el flujo.
+
+(Previously: Switch con 3 ramas APTO/INSPECCION/HANGAR, sin fallback.)
 
 #### Scenario: Flujo válido y con las 3 ramas
+
 - GIVEN `n8n/flujo.json`
 - WHEN se parsea como JSON y se inspeccionan los nodos
-- THEN es válido, contiene un Webhook `ds02/decision` y un Switch con las 3 salidas APTO/INSPECCION/HANGAR conectadas a sus acciones
+- THEN es válido, contiene un Webhook `ds02/decision` y un Switch con las 3
+  salidas APTO/INSPECCION/HANGAR conectadas a sus acciones
 
+#### Scenario: El fallback recoge valores raros
+
+- GIVEN una `decision` fuera de APTO/INSPECCION/HANGAR
+- WHEN llega al Switch
+- THEN cae al fallback, que solo registra y avisa, sin acciones críticas
 ### Requirement: Tests bundle C medidos desde la caché
 
 Los tests `test_todos_los_casos_salen_BIEN`, `test_hay_casos_para_cada_estado_y_para_sin_decision` (`tests/test_mia_rules.py`), `test_ciclos_hasta_fallo_coincide_con_la_cache` (`tests/test_simulacion.py`) y `test_perfiles_caen_en_su_banda`, `test_el_modo_historia_se_deriva_de_la_cache`, `test_el_paso_critico_cae_en_hangar_y_el_primero_no` (`tests/test_ui_alta.py`) SHALL reflejar los valores medidos desde `app/cache/` con bundle C (ver cifras en el encabezado de esta spec). Si la medición exige cambiar `CASOS` o `PERFILES`, el cambio SHALL documentarse con el valor medido.
@@ -99,3 +115,52 @@ None.
 ## Related capabilities
 
 Cita (no modifica) `ds02-rules-engine` (traza de decisión), `ds02-live-evaluation` (evaluación en vivo y contrato), `ds02-dss-ui` (pestaña Casos). Esta capacidad sustituye el stub de `src/n8n.py` y el placeholder de `n8n/flujo.json` dejados por `2026-11-02-clase-track`.
+
+
+---
+
+## Change 2026-11-13-cierre-hallazgos-app-n8n
+
+### Requirement: Umbrales del correo HANGAR desde el payload
+
+El nodo Gmail de HANGAR MUST usar los umbrales del payload
+(`umbrales.apto`/`umbrales.hangar`) y MUST tener 25/20 como valores por defecto,
+no 30/25.
+
+#### Scenario: Umbrales 25/20
+
+- GIVEN un payload con `umbrales` 25/20
+- WHEN se envía el correo de HANGAR
+- THEN el texto muestra apto ≥ 25 / hangar < 20
+
+### Requirement: Evento de Calendar con zona horaria
+
+El nodo Calendar de HANGAR MUST declarar `timeZone` (Europe/Madrid) y un `summary`
+no vacío.
+
+#### Scenario: Zona y título
+
+- GIVEN el nodo Calendar de HANGAR
+- WHEN se inspecciona
+- THEN `timeZone` es Europe/Madrid AND `summary` no es vacío
+
+### Requirement: idempotency_key en el insert de Postgres
+
+El nodo Postgres de HANGAR MUST mapear `idempotency_key` desde el payload.
+
+#### Scenario: Mapeo de la clave
+
+- GIVEN un payload con `idempotency_key`
+- WHEN se inserta
+- THEN la fila guarda ese `idempotency_key`
+
+### Requirement: Fallback que distingue SIN_DECISION
+
+El fallback del Switch MUST distinguir `SIN_DECISION` (sin acción, solo registro)
+de una decisión no reconocida (aviso de payload).
+
+#### Scenario: SIN_DECISION
+
+- GIVEN `decision=SIN_DECISION`
+- WHEN cae al fallback
+- THEN el registro lo trata como SIN_DECISION, no como no reconocida

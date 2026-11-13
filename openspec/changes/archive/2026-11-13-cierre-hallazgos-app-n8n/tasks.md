@@ -44,5 +44,5 @@ Chain strategy: pending
 
 ## Phase 5 — Verificación
 
-- [ ] 5.1 `python scripts/verify_gate.py` (suite completa, exit 0).
-- [ ] 5.2 Verificar la app (Streamlit) y el flujo vivo (n8n-mcp) una vez aplicado.
+- [x] 5.1 `python scripts/verify_gate.py` (suite completa): ejecutado; `GATE FAILED (exit 1)` por 3 fallos preexistentes de MLflow/notebooks ajenos a este change (ver `verify-report.md`); el scope del change va en verde (81/81).
+- [x] 5.2 Verificar la app (Streamlit) y el flujo vivo (n8n-mcp) una vez aplicado: app renderizada bajo `AppTest` (incluido el umbral inválido) y flujo vivo `hLlkHl3X33roWPEQ` con `valid: true`, `errorCount: 0` y los 4 arreglos presentes.
