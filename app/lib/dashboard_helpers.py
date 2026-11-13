@@ -1,29 +1,13 @@
 """Pure helpers for the app-ux-bundle-fix (no Streamlit).
 
-Kept separate from the dashboard so the CSV builders, the queue filter and
+Kept separate from the dashboard so the CSV builder, the queue filter and
 the 6-rule view can be unit-tested without launching the app. The thresholds
 come from `app/lib/_constantes.py`, so this module stays Streamlit-free.
 """
 from __future__ import annotations
 
-import pandas as pd
-
 from app.lib import _constantes
 from app.lib import hangar as HGR
-
-
-def contraste_csv(raw: pd.DataFrame, corrected: pd.DataFrame) -> str:
-    """CSV de contraste crudo vs corregido (merge por unit+cycle)."""
-    left = raw[["unit", "cycle", "lower"]].rename(
-        columns={"lower": "lower_raw"})
-    cols = ["unit", "cycle", "lower", "decision"]
-    right = corrected[[c for c in cols if c in corrected.columns]].rename(
-        columns={"lower": "lower_corregida"})
-    frame = left.merge(right, on=["unit", "cycle"], how="left")
-    if "decision" not in frame.columns:
-        frame["decision"] = ""
-    return frame[["unit", "cycle", "lower_raw", "lower_corregida",
-                  "decision"]].to_csv(index=False)
 
 
 def cola_filtrada(registros: dict, estados: set) -> list[dict]:

@@ -34,8 +34,8 @@ def _sidebar(windows, provenance, units, max_life, altas_fn, etiqueta_unidad,
             ["Tribunal", "Turno"],
             default="Tribunal",
             key="vista_modo",
-            help="Tribunal muestra todo (evidencia, demo, sandbox). Turno deja solo lo "
-                 "que un operario usa en su guardia.",
+            help="Tribunal muestra la evidencia de sesión y la traza de reglas; Turno "
+                 "deja solo lo que un operario usa en su guardia.",
         )
         _vistas = sorted(set(int(u) for u in units) | {int(a["unit_id"]) for a in altas_fn()})
         _default = _vistas[0] if int(st.session_state.get("unit", _vistas[0])) not in _vistas else int(st.session_state.get("unit", _vistas[0]))

@@ -124,12 +124,6 @@ def estado_por_ciclo(frame: pd.DataFrame) -> pd.DataFrame:
                           "regla_decision"]].reset_index(drop=True)
 
 
-def catalogo_decision() -> list[dict]:
-    """Las cuatro reglas de la pasada A, para pintarlas en la UI."""
-    return [{"regla": nombre, "prioridad": prioridad, "porque": porque}
-            for nombre, _condicion, _efecto, prioridad, porque in R.REGLAS_DECISION]
-
-
 def traza_decision(limite_inferior: float, umbrales: dict,
                    alertas: list[str] | None = None) -> dict:
     """Traza legible de la pasada A para una sola ficha."""

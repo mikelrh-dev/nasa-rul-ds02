@@ -46,7 +46,6 @@ def _tab_motor(ctx: AppCtx) -> None:
     umbrales = ctx.umbrales
     aplicar_reglas = ctx.aplicar_reglas
     curve = ctx.curve
-    per_unit = ctx.per_unit
     unit_metrics = ctx.unit_metrics
     alarm_cycle = ctx.alarm_cycle
     truth_cycle = ctx.truth_cycle
@@ -197,20 +196,6 @@ def _tab_motor(ctx: AppCtx) -> None:
             )
 
     with st.container(border=True):
-        st.subheader("Trayectoria del motor", icon=":material/download:")
-        st.caption(
-            f"Trayectoria de {_etiqueta_g} por ciclo (RUL predicha, banda y decisión)."
-        )
-        st.download_button(
-            "Descargar trayectoria (CSV)",
-            data=DH.trayectoria_csv(curve),
-            file_name=f"trayectoria_{_etiqueta_g.replace(' ', '_')}.csv",
-            mime="text/csv",
-            icon=":material/table_view:",
-        )
-
-
-    with st.container(border=True):
         st.subheader("Trayectoria de RUL y banda conformal", icon=":material/ssid_chart:")
         st.caption(
             f"Unidad {int(unit)} · {len(_wu)} ventanas evaluadas · cobertura por ventana "
@@ -270,6 +255,13 @@ def _tab_motor(ctx: AppCtx) -> None:
             fig, theme=None,
             alt="RUL real y predicha a lo largo de la vida del motor, con la banda conformal y la zona de hangar sombreada.",
         )
+        st.download_button(
+            "Descargar trayectoria (CSV)",
+            data=DH.trayectoria_csv(curve),
+            file_name=f"trayectoria_{_etiqueta_g.replace(' ', '_')}.csv",
+            mime="text/csv",
+            icon=":material/table_view:",
+        )
 
     with st.container(horizontal=True):
         if unit_metrics is not None:
@@ -292,48 +284,26 @@ def _tab_motor(ctx: AppCtx) -> None:
             "con la capa de reglas activa no se mezclan las dos lecturas."
         )
 
-    read_col, table_col = st.columns([1, 1])
-    with read_col:
-        with st.container(border=True, height="stretch"):
-            st.subheader("Lectura de la decisión", icon=":material/lightbulb:")
-            if alarm_cycle is not None:
-                lead = (truth_cycle - alarm_cycle) if truth_cycle is not None else None
+    with st.container(border=True):
+        st.subheader("Lectura de la decisión", icon=":material/lightbulb:")
+        if alarm_cycle is not None:
+            lead = (truth_cycle - alarm_cycle) if truth_cycle is not None else None
+            st.markdown(
+                f"La alarma de hangar (`L_inf < {threshold_aog:.0f}`) se dispara en el "
+                f"**ciclo {alarm_cycle}**."
+            )
+            if truth_cycle is not None:
                 st.markdown(
-                    f"La alarma de hangar (`L_inf < {threshold_aog:.0f}`) se dispara en el "
-                    f"**ciclo {alarm_cycle}**."
+                    f"La RUL real cruza {threshold_aog:.0f} ciclos en el **ciclo "
+                    f"{truth_cycle}**: la alarma llega **{lead} ciclos antes**, con una RUL "
+                    f"real de {curve.loc[curve['cycle'] == alarm_cycle, 'y_true'].iloc[0]:.1f}."
                 )
-                if truth_cycle is not None:
-                    st.markdown(
-                        f"La RUL real cruza {threshold_aog:.0f} ciclos en el **ciclo "
-                        f"{truth_cycle}**: la alarma llega **{lead} ciclos antes**, con una RUL "
-                        f"real de {curve.loc[curve['cycle'] == alarm_cycle, 'y_true'].iloc[0]:.1f}."
-                    )
-            else:
-                st.markdown("La unidad no cruza el umbral de hangar en los ciclos evaluados.")
-            st.caption(
-                "Ese adelanto es el precio de decidir con el límite inferior: la banda es "
-                "conservadora (cobertura realizada por encima del 90 % nominal)."
-            )
-    with table_col:
-        with st.container(border=True, height="stretch"):
-            st.subheader("Errores por unidad", icon=":material/table_chart:")
-            table = per_unit.assign(Motor=[f"U{int(u)}" for u in per_unit["unit"]])
-            st.dataframe(
-                table[["Motor", "windows", "rmse", "mae", "bias"]],
-                hide_index=True,
-                column_config={
-                    "Motor": st.column_config.TextColumn("Motor"),
-                    "windows": st.column_config.NumberColumn("Ventanas", format="%d"),
-                    "rmse": st.column_config.NumberColumn("RMSE", format="%.2f"),
-                    "mae": st.column_config.NumberColumn("MAE", format="%.2f"),
-                    "bias": st.column_config.NumberColumn("Sesgo", format="%+.2f"),
-                },
-                alt="RMSE, MAE y sesgo por motor, calculados de la caché.",
-            )
-            st.caption(
-                "Los sesgos tienen signo opuesto y se cancelan en el promedio global: U11 "
-                "sobreestima, U14 y U15 subestiman."
-            )
+        else:
+            st.markdown("La unidad no cruza el umbral de hangar en los ciclos evaluados.")
+        st.caption(
+            "Ese adelanto es el precio de decidir con el límite inferior: la banda es "
+            "conservadora (cobertura realizada por encima del 90 % nominal)."
+        )
 
     # ------------------------------------------------------------- SHAP
     with st.container(border=True):

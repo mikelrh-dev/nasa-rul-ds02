@@ -46,19 +46,6 @@ def test_presets_conservador_agresivo_ordered():
 
 
 # ---------------------------------------------------------- helpers puros
-def test_contrast_csv_columns():
-    from app.lib.dashboard_helpers import contraste_csv
-    raw = pd.DataFrame({"unit": [14, 14], "cycle": [25, 26],
-                        "lower": [24.0, 23.0]})
-    corr = pd.DataFrame({"unit": [14, 14], "cycle": [25, 26],
-                         "lower": [22.0, 21.0], "decision": ["HANGAR", "HANGAR"]})
-    out = contraste_csv(raw, corr)
-    rows = list(csv.DictReader(io.StringIO(out)))
-    assert rows and set(rows[0]) >= {"unit", "cycle", "lower_raw", "lower_corregida", "decision"}
-    assert float(rows[0]["lower_raw"]) == 24.0
-    assert float(rows[0]["lower_corregida"]) == 22.0
-
-
 def test_queue_filter_helper():
     from app.lib.dashboard_helpers import cola_filtrada
     registros = {

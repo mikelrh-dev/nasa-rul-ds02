@@ -21,7 +21,6 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from app.lib import flota as F  # noqa: E402
 from app.lib import simulacion as S  # noqa: E402
 from app.lib import ui_data_loader as L  # noqa: E402
 from app.lib import rules as UR  # noqa: E402
@@ -42,29 +41,13 @@ def _frame():
 
 
 @needs_cache
-def test_avanzar_mueve_toda_la_flota_menos_los_retenidos():
-    frame = _frame()
-    ciclo = 10
-    retenidos = S.retenidos(frame, ciclo, UMBRALES)
-    avance = S.avanzar(frame, ciclo, retenidos, n=10)
-
-    for unidad, nuevo in avance.items():
-        if unidad in retenidos:
-            assert nuevo == ciclo, (unidad, nuevo)
-        else:
-            assert nuevo == ciclo + 10, (unidad, nuevo)
-
-
-@needs_cache
 def test_un_motor_que_cruza_el_umbral_queda_retenido():
-    """U14 cruza a hangar en el ciclo 25 (C; B: 29): desde ahi no debe avanzar."""
+    """U14 cruza a hangar en el ciclo 25 (C; B: 29): desde ahi no vuela."""
     frame = _frame()
     # Antes del cruce, no esta retenido.
     assert 14 not in S.retenidos(frame, 10, UMBRALES)
     # En el ciclo del cruce, si.
     assert 14 in S.retenidos(frame, 29, UMBRALES)
-    # Y el avance lo deja donde esta.
-    assert S.avanzar(frame, 29, {14}, n=10)[14] == 29
 
 
 @needs_cache
@@ -81,25 +64,3 @@ def test_ciclos_hasta_fallo_coincide_con_la_cache():
     assert set(faltan) == {11, 14, 15}
 
 
-@needs_cache
-def test_reiniciar_vida_vuelve_al_primer_ciclo_y_se_marca_como_replay():
-    """El reinicio es un replay de la vida registrada, no una reparacion."""
-    frame = _frame()
-    registro = {}
-    registro = F.registrar_alta(registro, "EC-REPLAY", unidad_cache=11, ciclo=20)
-    # El motor esta en taller desde el ciclo 20.
-    registro = S.reiniciar_vida(registro, "EC-REPLAY", ciclo_taller=20)
-
-    alta = registro[F.ALTAS_KEY]["EC-REPLAY"]
-    assert alta["replay_desde"] == 20
-    # El primer ciclo puntuado de la U11 es el 1: vuelve a empezar.
-    assert alta["ciclo"] == 1
-    # Y el marco dice la verdad: es repetir lo grabado, no reparar.
-    assert "replay" in alta["motivo"].lower()
-
-
-@needs_cache
-def test_reiniciar_un_motor_que_no_existe_lanza_valueerror():
-    registro = {}
-    with pytest.raises(ValueError, match="EC-NAUFRAGIO"):
-        S.reiniciar_vida(registro, "EC-NAUFRAGIO", ciclo_taller=10)

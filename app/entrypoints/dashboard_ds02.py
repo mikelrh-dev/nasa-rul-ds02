@@ -58,7 +58,6 @@ from app.ui._paneles import (  # noqa: E402
 # conservan (no hay borrado automático). El legacy `registros_flota.json` se
 # copia una vez por sesión y no se mueve ni se toca después.
 _LEGACY_PATH = str(_paths.REGISTROS_PATH)
-_REGISTROS_PATH = _LEGACY_PATH  # alias legacy
 _DEFAULT_SESSION_ID = "default"
 
 
@@ -298,16 +297,6 @@ manifest = L.get_manifest()
 units = sorted(int(u) for u in windows["unit"].unique())
 max_life = int(windows["cycle"].max())
 
-# La app abre con un motor ya cargado: nadie llega a una pantalla vacía.
-# Semilla de sesión, nunca de disco — `tests/conftest.py` sigue aislando.
-#
-# No escribe `unit`: ese widget ya posee la clave y tiene su propio default
-# (`_vistas[0]`). Escribirla desde aquí provoca el aviso de Streamlit sobre un
-# widget con default y valor por Session State API. La marca dice que la app ya
-# se sembró; el selector ya carga un motor.
-if not st.session_state.get("_semilla_demo"):
-    st.session_state["_semilla_demo"] = True
-
 # ------------------------------------------------------- escrituras diferidas
 # Un handler no puede escribir en la clave de un widget que ya se instanció:
 # Streamlit lo prohíbe (`StreamlitWidgetAlreadyInstantiatedError`) y la app
@@ -321,16 +310,6 @@ if st.session_state.get("_escenario_pendiente"):
     _u, _c = st.session_state.pop("_escenario_pendiente")
     st.session_state["unit"] = int(_u)
     st.session_state["cycle"] = int(_c)
-# «Ver gemelo» del muro apunta al tab Motor con `selected_unit` (app-ux-bundle-fix):
-# la clave del widget del sidebar es `unit`, así que la selección se consume aquí,
-# antes de que los widgets se instancien. `selected_unit` queda como huella visible.
-if st.session_state.pop("_ver_gemelo_pendiente", None) is not None:
-    _sel = st.session_state.get("selected_unit")
-    if _sel is not None:
-        try:
-            st.session_state["unit"] = int(_sel)
-        except (TypeError, ValueError):
-            pass
 if st.session_state.get("_avance_flota") is not None:
     st.session_state["cycle"] = int(st.session_state.pop("_avance_flota"))
 

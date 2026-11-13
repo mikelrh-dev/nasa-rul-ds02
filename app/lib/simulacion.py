@@ -1,4 +1,4 @@
-"""Turn-advance simulator: the fleet clock, the held engines, the replay.
+"""Turn-advance simulator: the fleet clock and the held engines.
 
 The cache already holds a scored window per cycle (U11: 59 cycles, U14: 74,
 U15: 66). Advancing the fleet is therefore a *read*, not a computation: this
@@ -18,8 +18,6 @@ Streamlit.
 from __future__ import annotations
 
 import pandas as pd
-
-from app.lib import flota as F
 
 
 def _peor_ventana(grupo: pd.DataFrame, ciclo: int) -> pd.Series | None:
@@ -49,20 +47,6 @@ def retenidos(frame: pd.DataFrame, ciclo: int, umbrales: dict) -> set[int]:
     return retenidos
 
 
-def avanzar(frame: pd.DataFrame, ciclo: int, retenidos: set[int], n: int = 10) -> dict:
-    """New cycle per engine.
-
-    The fleet clock is one value for everyone; each engine decides whether it
-    advances with it. A held engine keeps its cycle, so it stops where it
-    failed instead of being extrapolated past it.
-    """
-    paso = int(n)
-    return {
-        int(unidad): (ciclo if int(unidad) in retenidos else ciclo + paso)
-        for unidad in frame["unit"].unique()
-    }
-
-
 def ciclos_hasta_fallo(frame: pd.DataFrame, ciclo: int, umbrales: dict) -> dict:
     """Cycles from `ciclo` until each engine's `L_inf` crosses the threshold.
 
@@ -77,28 +61,3 @@ def ciclos_hasta_fallo(frame: pd.DataFrame, ciclo: int, umbrales: dict) -> dict:
         faltan[int(unidad)] = (int(cruce["cycle"].min() - ciclo)
                                if not cruce.empty else None)
     return faltan
-
-
-def reiniciar_vida(registro: dict, clave: str, ciclo_taller: int) -> dict:
-    """Replay the recorded life from the first scored cycle.
-
-    Framed as a replay, not a repair: the cache holds the same degradation data,
-    so a "repaired" engine that fails at the same cycle would be a replay and a
-    technical jury sees it in two seconds. The record says so in its own words.
-    """
-    clave = F.normalizar_matricula(clave)
-    altas = dict(registro.get(F.ALTAS_KEY) or {})
-    if clave not in altas:
-        raise ValueError(f"no hay ningun motor de alta con la matricula {clave}")
-    alta = dict(altas[clave])
-    desde = int(ciclo_taller)
-    alta["replay_desde"] = desde
-    alta["ciclo"] = 1
-    alta["motivo"] = (
-        f"replay de la vida registrada desde el ciclo {desde}: la cache no "
-        f"tiene datos de un motor reparado"
-    )
-    altas[clave] = alta
-    nuevo = dict(registro)
-    nuevo[F.ALTAS_KEY] = altas
-    return nuevo

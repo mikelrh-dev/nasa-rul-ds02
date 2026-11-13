@@ -228,33 +228,6 @@ def _tab_auditoria(ctx: AppCtx) -> None:
                 delta_color="off", icon=":material/target:",
                 help="Error absoluto medio donde de verdad se decide el mantenimiento.")
 
-    with st.expander("Procedencia verificable", icon=":material/fingerprint:"):
-        st.caption(
-            "Huella SHA-256 del ensemble congelado, copiada del manifiesto que acompaña a "
-            "la caché. La UI no recalcula el artefacto: lo identifica."
-        )
-        st.code(provenance["artifact"]["ensemble_sha256"], language=None)
-        st.markdown(
-            f"**ensemble** `{provenance['artifact'].get('ensemble', 'models/ensemble.joblib')}` · "
-            f"**manifest** `{provenance['artifact'].get('manifest', 'models/ds02_manifest.json')}`"
-        )
-        st.caption(
-            "Para verificarlo en local: `python -c \"import hashlib;print(hashlib.sha256"
-            "(open('models/ensemble.joblib','rb').read()).hexdigest())\"`."
-        )
-        with st.container(horizontal=True):
-            st.metric(
-                "Ventanas en caché",
-                L.fmt_miles(provenance['counts']['windows']),
-                f"generada {provenance['generated_at'][:10]}",
-                border=True, delta_color="off", icon=":material/dataset:")
-        st.caption(
-            f"Contrato: ventana de {provenance['source']['window']} muestras, "
-            f"step={provenance['source']['step']}. La caché va a step=2 y la vía "
-            f"en vivo a step=1, así que no coinciden bit a bit, y el punto está "
-            f"suavizado con un EMA causal por motor. Documentado, no reconciliado."
-        )
-
     with st.expander("Contrato congelado vs. cálculo en vivo", icon=":material/difference:"):
         recorded = manifest.get("macro_rmse", {}).get("per_unit_rmse", {})
         compare = pd.DataFrame(
@@ -289,13 +262,35 @@ def _tab_auditoria(ctx: AppCtx) -> None:
             "6 196 ventanas y no aplica el recorte de 125 ciclos del camino FD001."
         )
 
-    with st.expander("Contrato de artefacto congelado", icon=":material/lock:"):
+    with st.expander("Contrato del artefacto y procedencia", icon=":material/lock:"):
+        st.caption(
+            "Huella SHA-256 del ensemble congelado y contrato registrado en "
+            "`models/ds02_manifest.json`. **No** es un cálculo de esta caché: es el "
+            "contrato del artefacto que se está consumiendo."
+        )
+        st.code(provenance["artifact"]["ensemble_sha256"], language=None)
+        st.markdown(
+            f"**ensemble** `{provenance['artifact'].get('ensemble', 'models/ensemble.joblib')}` · "
+            f"**manifest** `{provenance['artifact'].get('manifest', 'models/ds02_manifest.json')}`"
+        )
+        st.caption(
+            "Para verificarlo en local: `python -c \"import hashlib;print(hashlib.sha256"
+            "(open('models/ensemble.joblib','rb').read()).hexdigest())\"`."
+        )
+        with st.container(horizontal=True):
+            st.metric(
+                "Ventanas en caché",
+                L.fmt_miles(provenance['counts']['windows']),
+                f"generada {provenance['generated_at'][:10]}",
+                border=True, delta_color="off", icon=":material/dataset:")
+        st.caption(
+            f"Contrato: ventana de {provenance['source']['window']} muestras, "
+            f"step={provenance['source']['step']}. La caché va a step=2 y la vía "
+            f"en vivo a step=1, así que no coinciden bit a bit, y el punto está "
+            f"suavizado con un EMA causal por motor. Documentado, no reconciliado."
+        )
         shape = manifest.get("model_shape", {})
         conformal = manifest.get("conformal", {}) or {}
-        st.caption(
-            "Registrado en `models/ds02_manifest.json`. **No** es un cálculo de esta "
-            "caché: es el contrato del artefacto que se está consumiendo."
-        )
         st.markdown(
             f"**dataset** `{manifest.get('dataset')}` · "
             f"**code_version** `{manifest.get('code_version')}` · "
@@ -315,12 +310,6 @@ def _tab_auditoria(ctx: AppCtx) -> None:
         st.markdown(
             f"**banda R6 de la capa de reglas** `{decision_band.get('n_calibration')}` filas OOF "
             f"puras (sin unidad 16; solo si `aplicar_reglas`) · fuente `{decision_band.get('source')}`"
-        )
-        st.markdown("**SHA-256 del ensemble**")
-        st.code(provenance["artifact"]["ensemble_sha256"], language=None)
-        st.caption(
-            "64 caracteres hexadecimales. Es la huella del artefacto congelado, no la de "
-            "la caché."
         )
         # Auditoria criptografica on-demand: hashea el .keras en disco y lo
         # compara con el sello registrado. El hash va por `@st.cache_data`

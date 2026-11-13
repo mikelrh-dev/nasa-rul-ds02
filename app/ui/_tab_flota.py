@@ -5,7 +5,7 @@ cómo ha llegado hasta aquí (cronología y avance), qué política se aplica (e
 taller) y qué trabajo produce todo eso (cola, orden de trabajo y partes). Los
 gemelos registrados y su panel de detalle cierran la sala.
 
-La pestaña se lee como un guion: `_tab_flota` es un preámbulo de alias y catorce
+La pestaña se lee como un guion: `_tab_flota` es un preámbulo de alias y once
 llamadas con nombre, y cada bloque vive en su propia función anidada. Todas leen
 los alias del preámbulo por clausura, así que el orden de las llamadas es el
 orden de la pantalla.
@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import json
 
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -37,8 +36,8 @@ from app.lib import rules as UR
 
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
 from app.lib.theme import (
-    INK, SKY, ROSE,
-    STATE_COLORS, STATE_BG, STATE_WORD, RANGO_ESTADO,
+    SKY, ROSE,
+    STATE_BG, RANGO_ESTADO,
     BADGE_COLOR, BADGE_ICON,
 )
 from app.lib.context import AppCtx
@@ -59,15 +58,13 @@ def _rerun_app() -> None:
 def _tab_flota(ctx: AppCtx) -> None:
     """Muro del hangar y el trabajo que sale de él, en orden de pantalla.
 
-    Preámbulo de alias y catorce llamadas: cada bloque vive en la `def` anidada
+    Preámbulo de alias y once llamadas: cada bloque vive en la `def` anidada
     que le sigue y lee el `AppCtx` por clausura, así que este cuerpo es el índice
     visual de la pestaña. Ver «Cómo se lee una pestaña» en `app/README.md`.
     """
     frame = ctx.frame
     frame_cache = ctx.frame_cache
     snapshot = ctx.snapshot
-    curves = ctx.curves
-    unidades_vistas = ctx.unidades_vistas
     tarjetas_cache = ctx.tarjetas_cache
     tarjetas_gemelos = ctx.tarjetas_gemelos
     gemelos = ctx.gemelos
@@ -188,83 +185,18 @@ def _tab_flota(ctx: AppCtx) -> None:
                                         "en vigor en «Gemelos registrados», bajo el muro."
                                     )
                                 else:
-                                    # app-ux-bundle-fix: «Ver gemelo» apunta al tab Motor
-                                    # con `selected_unit`; el dashboard lo consume con
-                                    # escritura diferida (clave `unit` del sidebar).
-                                    st.session_state["selected_unit"] = int(tarjeta["unidad"])
-                                    st.session_state["_ver_gemelo_pendiente"] = int(tarjeta["unidad"])
+                                    # «Ver gemelo» apunta al tab Motor: el dashboard consume
+                                    # `_escenario_pendiente` con escritura diferida (clave
+                                    # `unit` del sidebar).
                                     st.session_state["_escenario_pendiente"] = (
                                         tarjeta["unidad"], tarjeta["ciclo_tarjeta"])
                                     st.session_state["_toast_pendiente"] = (
-                                        f"{etiqueta} seleccionada (selected_unit="
-                                        f"{int(tarjeta['unidad'])}). Abre su ficha en la "
+                                        f"{etiqueta} seleccionada. Abre su ficha en la "
                                         "pestaña «Motor · qué le pasa a este»."
                                     )
                                 st.rerun()
 
             _muro_del_hangar()
-
-    def _cronologia_estado() -> None:
-        """Cronologia de estado por unidad y ciclo."""
-        with st.expander("Cronología de estado de flota", icon=":material/timeline:",
-                         expanded=False):
-            st.caption(
-                "**Leyenda:** ● verde → Apto · ■ naranja → Inspección · ✕ rojo → Hangar. "
-                "Solo `L_inf` (límite inferior de la banda) decide el color; la línea "
-                "vertical punteada es el reloj de flota."
-            )
-            ribbon_rows = []
-            por_ciclo = UR.estado_por_ciclo(frame)
-            for u in unidades_vistas:
-                curva = curves[u]
-                sub = por_ciclo[por_ciclo["unit"] == u].sort_values("cycle")
-                ribbon_rows.append(
-                    pd.DataFrame(
-                        {
-                            "unidad": _etiqueta_unidad(float(u)),
-                            "ciclo": curva["cycle"],
-                            "estado": sub["decision"].to_numpy(),
-                            "L_inf": curva["lower"],
-                        }
-                    )
-                )
-            ribbon = pd.concat(ribbon_rows, ignore_index=True)
-            ribbon["color"] = ribbon["estado"].map(STATE_COLORS)
-            ribbon["etiqueta"] = ribbon["estado"].map(STATE_WORD)
-            ribbon["simbolo"] = ribbon["estado"].map(L.STATE_SYMBOLS).fillna("circle")
-
-            fig_fleet = go.Figure(
-                go.Scatter(
-                    x=ribbon["ciclo"],
-                    y=ribbon["unidad"],
-                    mode="markers",                            marker=dict(color=ribbon["color"], size=11, symbol=ribbon["simbolo"],
-                                            line=dict(width=0)),
-                    customdata=np.column_stack([ribbon["etiqueta"], ribbon["L_inf"]]),
-                    hovertemplate=(
-                        "U%{y} · ciclo %{x}<br>estado: %{customdata[0]}"
-                        "<br>L_inf: %{customdata[1]:.1f} ciclos<extra></extra>"
-                    ),
-                    name="Estado por ciclo",
-                )
-            )
-            fig_fleet.add_vline(
-                x=cycle, line_color=INK, line_width=1.5, line_dash="dot",
-                annotation_text=f"ciclo {cycle}", annotation_position="top",
-                annotation_font=dict(color=INK, size=11),
-            )
-            fig_fleet.update_layout(
-                **chart_layout(height=240, showlegend=False,
-                               hovermode="closest"),
-                xaxis_title="Ciclo de vuelo",
-                yaxis=dict(
-                    categoryorder="array", categoryarray=[_etiqueta_unidad(float(u)) for u in reversed(unidades_vistas)],
-                ),
-            )
-            style_axes(fig_fleet)
-            st.plotly_chart(
-                fig_fleet, theme=None,
-                alt="Cronología de estado por unidad: verde apto, ámbar inspección y rojo hangar a lo largo de los ciclos.",
-            )
 
     def _taller_politica() -> None:
         """El taller: preset y umbrales en vigor."""
@@ -460,48 +392,6 @@ def _tab_flota(ctx: AppCtx) -> None:
                     + ". No se extrapola más allá de la vida registrada."
                 )
 
-    def _comparar_umbrales() -> None:
-        """Comparativa de la flota con umbrales alternativos."""
-        with st.expander("Comparar con otros umbrales", icon=":material/compare:"):
-            st.caption(
-                "Recalcula la flota con un segundo juego de umbrales (sin re-puntuar) y "
-                "muestra qué cambiaría respecto a los en vigor."
-            )
-            comp_a = st.number_input("Apto alternativo", min_value=1.0, max_value=100.0,
-                                      value=threshold_apto + 5.0, step=1.0, key="comp_apto")
-            comp_h = st.number_input("Hangar alternativo", min_value=0.0, max_value=99.0,
-                                      value=threshold_aog + 5.0, step=1.0, key="comp_aog")
-            if comp_h >= comp_a:
-                st.error("El hangar alternativo debe ser menor que el apto alternativo.",
-                          icon=":material/rule:")
-            else:
-                snap_b = L.fleet_snapshot(frame, cycle, comp_a, comp_h)
-                cuenta_a = snapshot["state"].value_counts()
-                cuenta_b = snap_b["state"].value_counts()
-                comp = pd.DataFrame({
-                    "Estado": [L.STATE_LABELS.get(s, s) for s in L.STATE_LABELS],
-                    "En vigor": [int(cuenta_a.get(s, 0)) for s in L.STATE_LABELS],
-                    "Alternativo": [int(cuenta_b.get(s, 0)) for s in L.STATE_LABELS],
-                })
-                st.dataframe(comp, hide_index=True,
-                             alt="Comparativa de estados de flota entre umbrales en vigor y alternativos.")
-                merged = snapshot[["unit", "state"]].merge(
-                    snap_b[["unit", "state"]], on="unit", suffixes=("", "_alt"))
-                cambian = merged[merged["state"] != merged["state_alt"]]
-                if cambian.empty:
-                    st.caption("Nada cambiaría: los mismos estados con los otros umbrales.")
-                else:
-                    st.dataframe(
-                        pd.DataFrame({
-                            "Motor": [f"U{int(u)}" for u in cambian["unit"]],
-                            "Ahora": [L.STATE_LABELS.get(s, s) for s in cambian["state"]],
-                            "Con alternativos": [L.STATE_LABELS.get(s, s)
-                                                  for s in cambian["state_alt"]],
-                        }),
-                        hide_index=True,
-                        alt="Unidades que cambiarían de estado con los umbrales alternativos.",
-                    )
-
     def _historial_de_unidad() -> None:
         """Rachas de estado de la unidad seleccionada."""
         with st.expander("Historial de la unidad: cómo llegó a este estado",
@@ -560,18 +450,6 @@ def _tab_flota(ctx: AppCtx) -> None:
                         "La unidad todavía no tiene ventanas evaluadas en este ciclo: el motor no "
                         "emite una decisión que no pueda sostener."
                     )
-                catalogo = pd.DataFrame(UR.catalogo_decision()).rename(
-                    columns={"regla": "Regla", "prioridad": "Prioridad", "porque": "Porqué"}
-                )
-                st.dataframe(
-                    catalogo,
-                    hide_index=True,
-                    column_config={
-                        "Prioridad": st.column_config.NumberColumn("Prioridad", format="%d"),
-                    },
-                    alt="Reglas de la pasada A, con su prioridad y su justificación.",
-                )
-
     def _orden_de_trabajo() -> None:
         """Orden de trabajo y partes descargables."""
         blocked = order["unidades"]
@@ -602,13 +480,6 @@ def _tab_flota(ctx: AppCtx) -> None:
                         icon=":material/download:",
                     )
                     st.download_button(
-                        "Descargar orden (CSV)",
-                        data=L.work_order_csv(order),
-                        file_name=f"orden_mantenimiento_ds02_ciclo{cycle}.csv",
-                        mime="text/csv",
-                        icon=":material/table_view:",
-                    )
-                    st.download_button(
                         "Descargar orden (PDF)",
                         data=PP.parte_trabajo_pdf(order),
                         file_name=f"orden_mantenimiento_ds02_ciclo{cycle}.pdf",
@@ -632,29 +503,6 @@ def _tab_flota(ctx: AppCtx) -> None:
                         icon=":material/download:",
                         help="Deja constancia firmable de que se miró la flota y no había nada que derivar.",
                     )
-                    st.download_button(
-                        "Descargar parte de flota (CSV)",
-                        data=snapshot[["unit", "cycle", "state", "rule"]].to_csv(index=False),
-                        file_name=f"parte_flota_ds02_ciclo{cycle}.csv",
-                        mime="text/csv",
-                        icon=":material/table_view:",
-                    )
-
-    def _contraste_crudo_corregido() -> None:
-        """CSV de contraste crudo frente a corregido."""
-        with st.container(border=True):
-            st.subheader("Contraste crudo vs corregido", icon=":material/compare_arrows:")
-            st.caption(
-                "Por ventana: límite inferior de la caché (crudo) frente al de la capa "
-                "de reglas (corregido), con la decisión final."
-            )
-            st.download_button(
-                "Descargar contraste (CSV)",
-                data=DH.contraste_csv(windows, frame_cache),
-                file_name=f"contraste_crudo_corregido_ciclo{cycle}.csv",
-                mime="text/csv",
-                icon=":material/table_view:",
-            )
 
     def _gemelos_registrados() -> None:
         """Tabla y gestion de los gemelos registrados."""
@@ -784,14 +632,6 @@ def _tab_flota(ctx: AppCtx) -> None:
                             mime="application/json",
                             icon=":material/download:",
                             key="twin_doc_json",
-                        )
-                        st.download_button(
-                            "Descargar ficha del gemelo (CSV)",
-                            data=L.work_order_csv(orden_gemelo),
-                            file_name=f"orden_mantenimiento_{slug_doc}.csv",
-                            mime="text/csv",
-                            icon=":material/table_view:",
-                            key="twin_doc_csv",
                         )
 
                 with st.expander("Eliminar un gemelo", icon=":material/delete:"):
@@ -1047,8 +887,6 @@ def _tab_flota(ctx: AppCtx) -> None:
 
     _muro_del_hangar_ui()
 
-    _cronologia_estado()
-
     _taller_politica()
 
     _avance_de_flota()
@@ -1078,15 +916,11 @@ def _tab_flota(ctx: AppCtx) -> None:
         icon=":material/shield:",
     )
 
-    _comparar_umbrales()
-
     _historial_de_unidad()
 
     _traza_de_reglas()
 
     _orden_de_trabajo()
-
-    _contraste_crudo_corregido()
 
     _gemelos_registrados()
 
