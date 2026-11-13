@@ -30,8 +30,15 @@ hallazgos de la prueba exhaustiva (subagente `deleg_4da84161`):
 - `4020c90` sdd(tasks)
 - Change: `openspec/changes/2026-11-13-cierre-hallazgos-app-n8n/` (proposal, specs, design, tasks).
 
-El **apply** estaba en curso con un subagente (`deleg_9983ade1`). Sus cambios
-quedan **sin commitear** en el working tree (`app/` y `n8n/flujo.json`).
+El **apply** se interrumpió con un subagente (`deleg_9983ade1`). Dejó los seis
+arreglos y sus tests en el working tree, **sin commitear**:
+
+`app/entrypoints/dashboard_ds02.py`, `app/lib/dashboard_helpers.py`,
+`app/ui/_tab_auditoria.py`, `app/ui/_tab_flota.py`, `n8n/flujo.json`,
+`tests/test_dss_ui.py`, `tests/test_engine_flow.py`, `tests/test_n8n_decision.py`.
+
+Los tests focales pasan (**81 passed**). **Pendiente de comprobar**: si el flujo
+VIVO (n8n-mcp) ya tiene H2/H4/H5/H6a; el subagente pudo no llegar a aplicarlos.
 
 ## Siguientes pasos (cuando vuelvas)
 
