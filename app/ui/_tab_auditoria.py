@@ -327,18 +327,28 @@ def _tab_auditoria(ctx: AppCtx) -> None:
             st.session_state["audit_hashes"] = {"bilstm_ds02.keras": _digest_keras}
         _audit = st.session_state.get("audit_hashes")
         if _audit:
-            _esp_bilstm = (provenance.get("artifact") or {}).get("bilstm_sha256")
+            # El hash esperado vive en el contrato del artefacto; la procedencia
+            # de la caché es solo fallback (no registra `bilstm_sha256`).
+            _artifacts = (manifest or {}).get("artifacts") or {}
+            _esp_bilstm = _artifacts.get("bilstm_sha256") or (
+                (provenance.get("artifact") or {}).get("bilstm_sha256"))
             _leido_bilstm = _audit.get("bilstm_ds02.keras")
-            if _leido_bilstm is not None and _esp_bilstm and _leido_bilstm == _esp_bilstm:
+            if _leido_bilstm is None:
+                st.warning("No se pudo hashear bilstm_ds02.keras.",
+                           icon=":material/warning:")
+            elif not _esp_bilstm:
+                st.warning(
+                    "bilstm_ds02.keras: no hay hash registrado en "
+                    "`models/ds02_manifest.json` ni en la procedencia; no se puede "
+                    "comparar.", icon=":material/warning:",
+                )
+            elif _leido_bilstm == _esp_bilstm:
                 st.success("bilstm_ds02.keras: hash coincide con el manifest.",
                            icon=":material/check_circle:")
-            elif _leido_bilstm is not None:
+            else:
                 st.error(f"bilstm_ds02.keras: discrepancia "
                          f"({_leido_bilstm[:12]} vs {_esp_bilstm[:12]})",
                          icon=":material/cancel:")
-            else:
-                st.warning("No se pudo hashear bilstm_ds02.keras.",
-                           icon=":material/warning:")
         # El sello estaba en pantalla y nadie lo comprobaba: si el bundle se
         # reentrena y se sustituye sin reconstruir `app/cache/`, la superficie
         # sigue pintando predicciones bajo el sello viejo. Se mira en cada

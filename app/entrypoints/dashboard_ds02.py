@@ -344,10 +344,18 @@ threshold_apto = float(st.session_state.get(f"th_apto_{preset}", _preset_vals[0]
 threshold_aog = float(st.session_state.get(f"th_aog_{preset}", _preset_vals[1]))
 if not threshold_aog < threshold_apto:
     st.error(
-        "El umbral de hangar debe ser estrictamente menor que el de apto.",
+        "El umbral de hangar debe ser estrictamente menor que el de apto. "
+        f"Se restaura el preset «{preset}» ({_preset_vals[0]:.0f}/"
+        f"{_preset_vals[1]:.0f}); corrige los dos valores si querías otro par.",
         icon=":material/rule:",
     )
-    st.stop()
+    # Sin `st.stop()`: una app en blanco no deja corregir el par. Se devuelve
+    # el preset al `session_state` (los spinbuttons aún no se han instanciado
+    # en esta pasada) y el resto del render sigue con esos valores válidos.
+    st.session_state[f"th_apto_{preset}"] = float(_preset_vals[0])
+    st.session_state[f"th_aog_{preset}"] = float(_preset_vals[1])
+    threshold_apto = float(_preset_vals[0])
+    threshold_aog = float(_preset_vals[1])
 aplicar_reglas = bool(st.session_state.get("aplicar_reglas", False))
 cycle = int(st.session_state.get("cycle", 1))
 banda_en_uso = (

@@ -180,6 +180,9 @@ def _tab_flota(ctx: AppCtx) -> None:
                                     # registro es la tabla de debajo. Decirlo es mejor que
                                     # prometer una ficha que no existe.
                                     st.session_state["_gemelo_pendiente"] = tarjeta["gemelo"]
+                                    # La ficha del detalle ya existe: se deja seleccionado
+                                    # el gemelo pulsado para que «Ver gemelo» abra su serie.
+                                    st.session_state["gemelo_detalle_sel"] = tarjeta["gemelo"]
                                     st.session_state["_toast_pendiente"] = (
                                         f"{etiqueta}: su estado se recalcula con los umbrales "
                                         "en vigor en «Gemelos registrados», bajo el muro."

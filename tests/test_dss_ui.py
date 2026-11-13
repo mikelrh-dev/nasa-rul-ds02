@@ -12,6 +12,7 @@ Run:  python -m pytest tests -q
 """
 from __future__ import annotations
 
+import copy
 import json
 import os
 import sys
@@ -399,3 +400,121 @@ def test_the_cycle_slider_drives_the_grounded_kpi():
     assert len(downloads) == 2, "a grounded fleet must offer the work order (JSON + PDF)"
     for widget in downloads:
         assert widget.proto.disabled is False
+
+
+# ------------------------------------------- regresiones H1 / H3 / H6c
+DASHBOARD_PATH = os.path.join(APP, "entrypoints", "dashboard_ds02.py")
+
+
+def _app(ds02=DASHBOARD_PATH):
+    from streamlit.testing.v1 import AppTest
+
+    return AppTest.from_file(ds02, default_timeout=180)
+
+
+@needs_cache
+def test_auditar_hashes_no_rompe_sin_bilstm_sha256(monkeypatch):
+    """H1: pulsar «Auditar hashes del artefacto» no puede tirar la pestaña.
+
+    El manifiesto de procedencia no registra `bilstm_sha256` y el manifiesto del
+    artefacto tampoco: el render debe avisar, no lanzar `TypeError`.
+    """
+    provenance = copy.deepcopy(L.get_provenance())
+    (provenance.get("artifact") or {}).pop("bilstm_sha256", None)
+    manifest = copy.deepcopy(L.get_manifest())
+    (manifest.get("artifacts") or {}).pop("bilstm_sha256", None)
+    monkeypatch.setattr(L, "get_provenance", lambda: provenance)
+    monkeypatch.setattr(L, "get_manifest", lambda: manifest)
+
+    app = _app()
+    app.run()
+    assert not app.exception, app.exception
+    boton = next(b for b in app.button if b.key == "btn_audit_hashes")
+    boton.click().run()
+    assert not app.exception, app.exception
+    # La pestaña sigue mostrando reglas e informe: no se trunca.
+    subheaders = [s.value for s in app.subheader]
+    assert "Vista de las 6 reglas de decisión" in subheaders
+    assert "Informe de auditoría" in subheaders
+
+
+@needs_cache
+def test_auditar_hashes_toma_el_hash_del_manifiesto(monkeypatch):
+    """TRIANGULATE H1: si procedencia no trae la clave, el manifiesto la aporta."""
+    provenance = copy.deepcopy(L.get_provenance())
+    (provenance.get("artifact") or {}).pop("bilstm_sha256", None)
+    monkeypatch.setattr(L, "get_provenance", lambda: provenance)
+
+    app = _app()
+    app.run()
+    assert not app.exception, app.exception
+    boton = next(b for b in app.button if b.key == "btn_audit_hashes")
+    boton.click().run()
+    assert not app.exception, app.exception
+    assert any("hash coincide con el manifest" in (s.value or "")
+               for s in app.success), [s.value for s in app.success]
+
+
+@needs_cache
+def test_umbral_invertido_mantiene_la_app_operable():
+    """H3: Hangar >= Apto muestra un error y restaura el preset, sin `st.stop()`."""
+    app = _app()
+    app.session_state["th_apto_Normal"] = 25.0
+    app.session_state["th_aog_Normal"] = 30.0
+    app.run()
+    assert not app.exception, app.exception
+    # La app sigue completa: barra lateral y cuatro pestañas para corregir.
+    assert len(app.tabs) == 4
+    assert len(app.sidebar) > 0
+    assert any("umbral de hangar" in (e.value or "").lower() for e in app.error)
+    # El preset queda restaurado en sesión y los spinbuttons nacen válidos.
+    assert float(app.session_state.get("th_apto_Normal") or 0.0) == 25.0
+    assert float(app.session_state.get("th_aog_Normal") or 0.0) == 20.0
+    vals = {n.key: float(n.value) for n in app.number_input
+            if (n.key or "").startswith("th_")}
+    assert vals.get("th_apto_Normal") == 25.0
+    assert vals.get("th_aog_Normal") == 20.0
+
+
+@needs_cache
+def test_umbral_valido_no_muestra_el_error_de_rango():
+    """TRIANGULATE H3: un par ordenado (30/25) no dispara el error ni el stop."""
+    app = _app()
+    app.session_state["th_apto_Normal"] = 30.0
+    app.session_state["th_aog_Normal"] = 25.0
+    app.run()
+    assert not app.exception, app.exception
+    assert not any("umbral de hangar" in (e.value or "").lower() for e in app.error)
+    assert len(app.tabs) == 4
+    vals = {n.key: float(n.value) for n in app.number_input
+            if (n.key or "").startswith("th_")}
+    assert vals.get("th_apto_Normal") == 30.0
+    assert vals.get("th_aog_Normal") == 25.0
+
+
+def test_probar_n8n_huella_unica_por_pulsacion(monkeypatch):
+    """H6c: el test del panel manda una huella distinta en cada pulsación."""
+    from unittest import mock
+
+    import src.n8n as N8N
+
+    from app.lib import dashboard_helpers as DH
+
+    enviados = []
+
+    def _fake_enviar(decision, payload, *args, **kwargs):
+        enviados.append(payload)
+        return {"ok": True, "status": 200, "decision": decision}
+
+    monkeypatch.setattr(N8N, "enviar_decision", _fake_enviar)
+    with mock.patch.dict(os.environ, {}, clear=False):
+        DH.probar_n8n()
+        DH.probar_n8n()
+
+    assert len(enviados) == 2
+    huellas = [str(p["fingerprint"]) for p in enviados]
+    assert all(huellas)
+    assert len(set(huellas)) == 2, f"la huella debe ser única por pulsación: {huellas}"
+    assert "test-panel" not in huellas
+    for payload in enviados:
+        assert payload["idempotency_key"] == payload["fingerprint"]

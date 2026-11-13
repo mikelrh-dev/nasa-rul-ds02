@@ -41,6 +41,8 @@ def probar_n8n() -> dict:
     Vive aquí (no en el dashboard) para que el dashboard mantenga un único
     `enviar_decision(` en su punto de llamada tras `decision_en_vivo`.
     """
+    import uuid
+
     import pandas as pd
 
     from src import n8n as N8N
@@ -55,5 +57,5 @@ def probar_n8n() -> dict:
          "traza": {"decision": "APTO", "usadas": ["R7_APTO"],
                    "porque": ["test de conexión del panel n8n"]}},
         {"apto": _constantes.DEFAULT_AIRWORTHY, "hangar": _constantes.DEFAULT_AOG},
-        "", "test-panel", unidad=14)
+        "", str(uuid.uuid4()), unidad=14)
     return N8N.enviar_decision("APTO", prueba)

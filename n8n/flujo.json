@@ -401,7 +401,8 @@
             "limite_superior": "={{ $json.body.limite_superior ?? $json.limite_superior }}",
             "motivo": "={{ $json.body.motivo || $json.motivo }}",
             "artefacto_sha256": "={{ $json.body.artefacto_sha256 || $json.artefacto_sha256 }}",
-            "fingerprint": "={{ $json.body.fingerprint || $json.fingerprint }}"
+            "fingerprint": "={{ $json.body.fingerprint || $json.fingerprint }}",
+            "idempotency_key": "={{ $json.body.idempotency_key || $json.idempotency_key }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -485,6 +486,15 @@
               "display": true,
               "type": "string",
               "canBeUsedToMatch": false
+            },
+            {
+              "id": "idempotency_key",
+              "displayName": "idempotency_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
             }
           ]
         },
@@ -521,7 +531,8 @@
         "resource": "event",
         "summary": "={{ 'HANGAR DS02 unidad ' + ($json.body.unidad || $json.unidad) + ' ciclo ' + ($json.body.ciclo || $json.ciclo) }}",
         "end": "={{ $now.plus(1, 'hour') }}",
-        "start": "={{ $now }}"
+        "start": "={{ $now }}",
+        "timeZone": "Europe/Madrid"
       },
       "id": "calendar_hangar",
       "name": "HANGAR Google Calendar",
@@ -546,7 +557,7 @@
         "sendTo": "alternativemarkleonard@gmail.com",
         "subject": "=HANGAR DS02 · U{{ $('Webhook ds02/decision').first().json.body.unidad }} · ciclo {{ $('Webhook ds02/decision').first().json.body.ciclo }} · RUL {{ Math.round(($('Webhook ds02/decision').first().json.body.rul_punto ?? 0)*10)/10 }} · L_inf {{ Math.round(($('Webhook ds02/decision').first().json.body.limite_inferior ?? 0)*10)/10 }}",
         "emailType": "html",
-        "message": "={{ (() => { const w = $('Webhook ds02/decision').first().json; const b = w.body || w || $json.body || $json; const u = (b.unidad ?? $json.unidad ?? '—'); const c = (b.ciclo ?? $json.ciclo ?? '—'); const rul = (b.rul_punto ?? $json.rul_punto ?? '—'); const linf = (b.limite_inferior ?? $json.limite_inferior ?? '—'); const lsup = (b.limite_superior ?? $json.limite_superior ?? '—'); const um = b.umbrales || {}; const umA = (um.apto ?? 30); const umH = (um.hangar ?? 25); const usadas = Array.isArray(b.usadas) ? b.usadas.join(', ') : (b.usadas || '—'); const porque = Array.isArray(b.porque) ? b.porque.join(' · ') : (b.porque || b.motivo || '—'); const motivo = b.motivo || porque; const alertas = Array.isArray(b.alertas_datos) && b.alertas_datos.length ? b.alertas_datos.join('; ') : 'Sin alertas de datos'; const fp = String(b.fingerprint || b.idempotency_key || '').slice(0,12); const sha = String(b.artefacto_sha256 || '').slice(0,12); const dec = b.decision || 'HANGAR'; const fmt = (v) => (typeof v === 'number' ? (Math.round(v*10)/10).toString() : String(v)); const plain = 'HANGAR DS02 - Gemelo digital\\nDecision: ' + dec + '\\nUnidad: U' + u + '\\nCiclo: ' + c + '\\nRUL punto: ' + fmt(rul) + ' ciclos\\nLimite inferior (L_inf): ' + fmt(linf) + '\\nLimite superior (L_sup): ' + fmt(lsup) + '\\nUmbrales: apto>=' + fmt(umA) + ' / hangar<' + fmt(umH) + '\\nReglas usadas: ' + usadas + '\\nMotivo: ' + motivo + '\\nAlertas de datos: ' + alertas + '\\nFingerprint: ' + fp + '...\\nArtefacto SHA-256: ' + sha + '...\\nGenerado por n8n ds02/decision (DS02 Decision MIA-3)'; const row = (k,v) => '<tr><td style=\"padding:8px 12px;background:#f1f5f9;color:#334155;font-weight:bold;border:1px solid #e2e8f0;width:42%\">'+k+'</td><td style=\"padding:8px 12px;color:#0f172a;border:1px solid #e2e8f0\">'+v+'</td></tr>'; return '<!DOCTYPE html><html><body style=\"margin:0;padding:0;background:#e2e8f0;font-family:Arial,Helvetica,sans-serif\"><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#e2e8f0;padding:20px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"640\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#ffffff;border-radius:10px;overflow:hidden;max-width:640px\"><tr><td style=\"background:#0b2a4a;color:#ffffff;padding:22px 24px\"><div style=\"font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#93c5fd\">DS02 · Gemelo digital</div><div style=\"font-size:24px;font-weight:bold;margin-top:6px\">Decisión HANGAR — derivación a taller</div><div style=\"font-size:14px;margin-top:8px;color:#dbeafe\">Unidad U'+u+' · Ciclo '+c+' · '+dec+'</div></td></tr><tr><td style=\"padding:20px 24px\"><p style=\"margin:0 0 14px;color:#334155;font-size:15px\">La unidad no vuela hasta revisión en hangar. Resumen de la decisión del gemelo DS02:</p><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:collapse;font-size:14px\">'+row('Unidad','U'+u+' (real, no -1)')+row('Ciclo',c)+row('RUL punto (ciclos)',fmt(rul))+row('Límite inferior L_inf',fmt(linf))+row('Límite superior L_sup',fmt(lsup))+row('Umbrales (apto / hangar)',fmt(umA)+' / '+fmt(umH))+row('Reglas usadas',usadas)+row('Motivo / porque',motivo)+row('Alertas de datos',alertas)+row('Fingerprint (corto)',fp+'…')+row('Artefacto SHA-256 (corto)',sha+'…')+'</table><p style=\"margin:16px 0 0;color:#475569;font-size:13px\">Acción: Postgres ds02_decisiones + Calendar + este aviso Gmail. Revisa el gemelo DS02 antes de liberar la aeronave.</p><hr style=\"border:none;border-top:1px solid #e2e8f0;margin:20px 0\"><p style=\"margin:0 0 8px;color:#334155;font-size:13px\"><strong>Versión en texto plano (respaldo):</strong></p><pre style=\"white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px;color:#334155;background:#f8fafc;padding:12px;border-radius:6px\">'+plain+'</pre></td></tr><tr><td style=\"background:#0b2a4a;color:#cbd5e1;padding:14px 24px;font-size:12px\">Generado automáticamente por n8n · flujo ds02/decision · DS02 Decision MIA-3 (hLlkHl3X33roWPEQ) · This email was sent automatically with n8n</td></tr></table></td></tr></table></body></html>'; })() }}",
+        "message": "={{ (() => { const w = $('Webhook ds02/decision').first().json; const b = w.body || w || $json.body || $json; const u = (b.unidad ?? $json.unidad ?? '—'); const c = (b.ciclo ?? $json.ciclo ?? '—'); const rul = (b.rul_punto ?? $json.rul_punto ?? '—'); const linf = (b.limite_inferior ?? $json.limite_inferior ?? '—'); const lsup = (b.limite_superior ?? $json.limite_superior ?? '—'); const um = b.umbrales || {}; const umA = (um.apto ?? 25); const umH = (um.hangar ?? 20); const usadas = Array.isArray(b.usadas) ? b.usadas.join(', ') : (b.usadas || '—'); const porque = Array.isArray(b.porque) ? b.porque.join(' · ') : (b.porque || b.motivo || '—'); const motivo = b.motivo || porque; const alertas = Array.isArray(b.alertas_datos) && b.alertas_datos.length ? b.alertas_datos.join('; ') : 'Sin alertas de datos'; const fp = String(b.fingerprint || b.idempotency_key || '').slice(0,12); const sha = String(b.artefacto_sha256 || '').slice(0,12); const dec = b.decision || 'HANGAR'; const fmt = (v) => (typeof v === 'number' ? (Math.round(v*10)/10).toString() : String(v)); const plain = 'HANGAR DS02 - Gemelo digital\\nDecision: ' + dec + '\\nUnidad: U' + u + '\\nCiclo: ' + c + '\\nRUL punto: ' + fmt(rul) + ' ciclos\\nLimite inferior (L_inf): ' + fmt(linf) + '\\nLimite superior (L_sup): ' + fmt(lsup) + '\\nUmbrales: apto>=' + fmt(umA) + ' / hangar<' + fmt(umH) + '\\nReglas usadas: ' + usadas + '\\nMotivo: ' + motivo + '\\nAlertas de datos: ' + alertas + '\\nFingerprint: ' + fp + '...\\nArtefacto SHA-256: ' + sha + '...\\nGenerado por n8n ds02/decision (DS02 Decision MIA-3)'; const row = (k,v) => '<tr><td style=\"padding:8px 12px;background:#f1f5f9;color:#334155;font-weight:bold;border:1px solid #e2e8f0;width:42%\">'+k+'</td><td style=\"padding:8px 12px;color:#0f172a;border:1px solid #e2e8f0\">'+v+'</td></tr>'; return '<!DOCTYPE html><html><body style=\"margin:0;padding:0;background:#e2e8f0;font-family:Arial,Helvetica,sans-serif\"><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#e2e8f0;padding:20px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"640\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#ffffff;border-radius:10px;overflow:hidden;max-width:640px\"><tr><td style=\"background:#0b2a4a;color:#ffffff;padding:22px 24px\"><div style=\"font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#93c5fd\">DS02 · Gemelo digital</div><div style=\"font-size:24px;font-weight:bold;margin-top:6px\">Decisión HANGAR — derivación a taller</div><div style=\"font-size:14px;margin-top:8px;color:#dbeafe\">Unidad U'+u+' · Ciclo '+c+' · '+dec+'</div></td></tr><tr><td style=\"padding:20px 24px\"><p style=\"margin:0 0 14px;color:#334155;font-size:15px\">La unidad no vuela hasta revisión en hangar. Resumen de la decisión del gemelo DS02:</p><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:collapse;font-size:14px\">'+row('Unidad','U'+u+' (real, no -1)')+row('Ciclo',c)+row('RUL punto (ciclos)',fmt(rul))+row('Límite inferior L_inf',fmt(linf))+row('Límite superior L_sup',fmt(lsup))+row('Umbrales (apto / hangar)',fmt(umA)+' / '+fmt(umH))+row('Reglas usadas',usadas)+row('Motivo / porque',motivo)+row('Alertas de datos',alertas)+row('Fingerprint (corto)',fp+'…')+row('Artefacto SHA-256 (corto)',sha+'…')+'</table><p style=\"margin:16px 0 0;color:#475569;font-size:13px\">Acción: Postgres ds02_decisiones + Calendar + este aviso Gmail. Revisa el gemelo DS02 antes de liberar la aeronave.</p><hr style=\"border:none;border-top:1px solid #e2e8f0;margin:20px 0\"><p style=\"margin:0 0 8px;color:#334155;font-size:13px\"><strong>Versión en texto plano (respaldo):</strong></p><pre style=\"white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px;color:#334155;background:#f8fafc;padding:12px;border-radius:6px\">'+plain+'</pre></td></tr><tr><td style=\"background:#0b2a4a;color:#cbd5e1;padding:14px 24px;font-size:12px\">Generado automáticamente por n8n · flujo ds02/decision · DS02 Decision MIA-3 (hLlkHl3X33roWPEQ) · This email was sent automatically with n8n</td></tr></table></td></tr></table></body></html>'; })() }}",
         "options": {}
       },
       "id": "gmail_hangar",
@@ -612,7 +623,7 @@
             {
               "id": "a_fallback_log",
               "name": "log",
-              "value": "={{ 'DECISION NO RECONOCIDA: ' + ($json.body.decision ?? $json.decision ?? 'SIN_DECISION') + ' · U' + ($json.body.unidad ?? $json.unidad ?? '?') + ' · ciclo ' + ($json.body.ciclo ?? $json.ciclo ?? '?') + ' · sin acciones; solo registro y aviso Telegram' }}",
+              "value": "={{ (() => { const d = ($json.body.decision ?? $json.decision ?? 'SIN_DECISION'); return (d === 'SIN_DECISION') ? ('SIN_DECISION · sin accion critica; solo registro y aviso · U' + ($json.body.unidad ?? $json.unidad ?? '?') + ' · ciclo ' + ($json.body.ciclo ?? $json.ciclo ?? '?')) : ('DECISION NO RECONOCIDA: ' + d + ' · U' + ($json.body.unidad ?? $json.unidad ?? '?') + ' · ciclo ' + ($json.body.ciclo ?? $json.ciclo ?? '?') + ' · revisar payload'); })() }}",
               "type": "string"
             }
           ]
@@ -634,7 +645,7 @@
         "resource": "message",
         "operation": "sendMessage",
         "chatId": "={{ $env.DS02_TELEGRAM_CHAT_ID }}",
-        "text": "=⚠️ DS02 DECISION NO RECONOCIDA: \"{{ $json.body.decision ?? $json.decision ?? 'SIN_DECISION' }}\" · U{{ $json.body.unidad ?? $json.unidad }} · ciclo {{ $json.body.ciclo ?? $json.ciclo }} · fp {{ $json.body.fingerprint ?? $json.fingerprint }}. Se esperaba APTO, INSPECCION o HANGAR (o SIN_DECISION); revisar payload.",
+        "text": "=⚠️ DS02 {{ (() => { const d = ($json.body.decision ?? $json.decision ?? 'SIN_DECISION'); return (d === 'SIN_DECISION') ? ('SIN_DECISION (sin accion critica): U' + ($json.body.unidad ?? $json.unidad ?? '?') + ' · ciclo ' + ($json.body.ciclo ?? $json.ciclo ?? '?') + ' · fp ' + ($json.body.fingerprint ?? $json.fingerprint ?? '') + '. Solo registro; no se ejecutan acciones.') : ('DECISION NO RECONOCIDA: \"' + d + '\" · U' + ($json.body.unidad ?? $json.unidad ?? '?') + ' · ciclo ' + ($json.body.ciclo ?? $json.ciclo ?? '?') + ' · fp ' + ($json.body.fingerprint ?? $json.fingerprint ?? '') + '. Se esperaba APTO, INSPECCION o HANGAR (o SIN_DECISION); revisar payload.'); })() }}",
         "additionalFields": {}
       },
       "id": "telegram_fallback",

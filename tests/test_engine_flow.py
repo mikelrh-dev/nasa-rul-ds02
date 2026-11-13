@@ -347,3 +347,37 @@ def test_el_pre_vuelo_cuenta_ventanas_y_detecta_el_orden():
     malo = INF.preflight(desordenada)
     assert malo["ok"] is False
     assert "Orden de canales" in malo["error"]
+
+
+# ------------------------------------------------- regresión H6b
+@needs_cache
+def test_ver_gemelo_selecciona_la_ficha_del_registrado():
+    """H6b: «Ver gemelo» abre la ficha del gemelo registrado.
+
+    El muro ya llevaba a la sección de gemelos; lo que faltaba era dejar el
+    selector del detalle fijado en el gemelo pulsado.
+    """
+    from streamlit.testing.v1 import AppTest
+
+    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"),
+                            default_timeout=240)
+    # Dos gemelos: el selector abre en el primero, así que elegir el segundo
+    # solo puede venir del botón «Ver gemelo».
+    app.session_state["twins"] = {"ESN-PRIMERO": _gemelo("ESN-PRIMERO"),
+                                  "ESN-FICHA": _gemelo("ESN-FICHA")}
+    app.run()
+    assert not app.exception, app.exception
+
+    tarjetas = [b for b in app.button if (b.proto.label or "").strip() == "Ver gemelo"]
+    boton = next(b for b in tarjetas if "ESN-FICHA" in (b.key or ""))
+    selector = next(s for s in app.selectbox if s.key == "gemelo_detalle_sel")
+    assert selector.value == "ESN-PRIMERO", selector.value
+    boton.click().run()
+    assert not app.exception, app.exception
+
+    # El selector del detalle queda fijado y la ficha se dibuja para él.
+    selector = next(s for s in app.selectbox if s.key == "gemelo_detalle_sel")
+    assert selector.value == "ESN-FICHA", selector.value
+    assert app.session_state["gemelo_detalle_sel"] == "ESN-FICHA"
+    alts = [c.proto.alt or "" for c in app.get("plotly_chart")]
+    assert any("ESN-FICHA" in a for a in alts), alts

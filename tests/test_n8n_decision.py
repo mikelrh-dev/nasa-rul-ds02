@@ -346,3 +346,101 @@ def test_repo_no_guarda_secretos_de_telegram():
     assert "accesstoken" not in bruto
     assert "bot_token" not in bruto
     assert "telegramapitoken" not in bruto
+
+
+# ------------------------------------- H2 / H4 / H5 / H6a (cambio 2026-11-13)
+def _nodo(flujo, nombre):
+    return next(n for n in flujo["nodes"] if n["name"] == nombre)
+
+
+def _expresiones_fallback(flujo):
+    """(log del Set, texto del Telegram) del fallback."""
+    set_fb = _nodo(flujo, "FALLBACK Set no reconocida")
+    log = set_fb["parameters"]["assignments"]["assignments"][0]["value"]
+    telegram = _nodo(flujo, "FALLBACK Telegram alerta")
+    return log, telegram["parameters"]["text"]
+
+
+# --------------------------------------------------------------- H2: Gmail
+def test_gmail_umbrales_por_defecto_25_20():
+    """H2: el correo de HANGAR usa 25/20 por defecto, no 30/25."""
+    gmail = _nodo(_flujo(), "HANGAR Gmail")
+    mensaje = gmail["parameters"]["message"]
+    assert "const umA = (um.apto ?? 25)" in mensaje
+    assert "const umH = (um.hangar ?? 20)" in mensaje
+    assert "(um.apto ?? 30)" not in mensaje
+    assert "(um.hangar ?? 25)" not in mensaje
+
+
+def test_gmail_umbrales_ordenados_y_citados_en_el_texto():
+    """TRIANGULATE H2: los defaults respetan ADR-013 y viajan al texto."""
+    import re
+
+    mensaje = _nodo(_flujo(), "HANGAR Gmail")["parameters"]["message"]
+    m_apto = re.search(r"\(um\.apto \?\? (\d+)\)", mensaje)
+    m_hangar = re.search(r"\(um\.hangar \?\? (\d+)\)", mensaje)
+    assert m_apto is not None and m_hangar is not None
+    apto = int(m_apto.group(1))
+    hangar = int(m_hangar.group(1))
+    assert (apto, hangar) == (25, 20)
+    assert hangar < apto
+    # El texto del correo imprime los umbrales recibidos (payload gana).
+    assert "Umbrales: apto>=' + fmt(umA)" in mensaje
+    assert "' / hangar<' + fmt(umH)" in mensaje
+
+
+# ------------------------------------------------------------ H4: Calendar
+def test_calendar_declara_zona_europe_madrid():
+    """H4: el evento de Calendar declara Europe/Madrid y un summary no vacío."""
+    cal = _nodo(_flujo(), "HANGAR Google Calendar")
+    params = cal["parameters"]
+    assert params.get("timeZone") == "Europe/Madrid"
+    assert (params.get("summary") or "").strip()
+
+
+def test_flujo_no_se_queda_con_la_zona_por_defecto():
+    """TRIANGULATE H4: ninguna zona de n8n por defecto sigue en el flujo."""
+    texto = json.dumps(_flujo())
+    assert "America/New_York" not in texto
+    assert texto.count("Europe/Madrid") >= 1
+
+
+# ------------------------------------------------------------- H5: Postgres
+def test_postgres_mapea_idempotency_key():
+    """H5: el insert guarda la clave de idempotencia del payload."""
+    pg = _nodo(_flujo(), "HANGAR Postgres insert")
+    columnas = pg["parameters"]["columns"]["value"]
+    assert columnas["idempotency_key"] == (
+        "={{ $json.body.idempotency_key || $json.idempotency_key }}"
+    )
+
+
+def test_postgres_schema_conoce_idempotency_key():
+    """TRIANGULATE H5: la columna existe en el esquema del nodo."""
+    pg = _nodo(_flujo(), "HANGAR Postgres insert")
+    ids = {c["id"] for c in pg["parameters"]["columns"]["schema"]}
+    assert "idempotency_key" in ids
+    tipos = {c["id"]: c["type"] for c in pg["parameters"]["columns"]["schema"]}
+    assert tipos["idempotency_key"] == "string"
+
+
+# ------------------------------------------------------ H6a: fallback
+def test_fallback_set_distingue_sin_decision():
+    """H6a: SIN_DECISION se registra como tal, no como no reconocida."""
+    log, _ = _expresiones_fallback(_flujo())
+    assert "=== 'SIN_DECISION'" in log
+    assert "SIN_DECISION · sin accion" in log
+    assert "DECISION NO RECONOCIDA" in log
+    # La forma vieja (SIN_DECISION renderizada como no reconocida) desaparece.
+    assert "'DECISION NO RECONOCIDA: ' + ($json.body.decision" not in log
+
+
+def test_fallback_telegram_distingue_sin_decision():
+    """TRIANGULATE H6a: el aviso de Telegram también separa ambos casos."""
+    _, texto = _expresiones_fallback(_flujo())
+    assert "=== 'SIN_DECISION'" in texto
+    assert "SIN_DECISION (sin accion" in texto
+    assert "DECISION NO RECONOCIDA" in texto
+    assert "DECISION NO RECONOCIDA: \"{{" not in texto
+    # El aviso conserva la huella: el dedupe por fingerprint sigue leyéndose.
+    assert "fingerprint" in texto
