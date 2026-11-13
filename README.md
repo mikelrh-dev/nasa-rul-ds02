@@ -296,6 +296,12 @@ Postgres). No se incluyen secretos.
 conformal, decisión, SHA del bundle y una sección de SHAP. El entrypoint de la
 rúbrica, `app/entrypoints/streamlit_app.py`, solo delega en ella.
 
+![El muro del hangar al avanzar el ciclo: la decisión pasa de APTO a INSPECCIÓN y a HANGAR](docs/assets/muro-decision-ciclo.gif)
+
+*Captura real de la app: al avanzar el «Ciclo de vuelo simulado», el límite
+inferior de la banda (`L_inf`) cruza los umbrales 25/20 y cada tarjeta pasa de
+APTO PARA VUELO a INSPECCIÓN PROGRAMADA y a DERIVACIÓN A HANGAR (AOG).*
+
 - **Global:** top-10 features por `mean |SHAP|` para el motor seleccionado.
 - **Local:** waterfall para explicar una predicción concreta.
 - SHAP explica el componente tabular (LightGBM, 93 features), **no** el BiLSTM ni

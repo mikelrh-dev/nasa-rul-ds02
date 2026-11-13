@@ -237,6 +237,12 @@ are included.
 decision, bundle SHA and a SHAP section. The rubric entrypoint,
 `app/entrypoints/streamlit_app.py`, only delegates to it.
 
+![The hangar wall as the cycle advances: the decision moves from APTO to INSPECCIÓN and HANGAR](docs/assets/muro-decision-ciclo.gif)
+
+*Real app capture: as the simulated flight cycle advances, the lower band limit
+(`L_inf`) crosses the 25/20 thresholds and each card moves from APTO PARA VUELO
+to INSPECCIÓN PROGRAMADA and DERIVACIÓN A HANGAR (AOG).*
+
 - **Global:** top-10 features by `mean |SHAP|` for the selected engine.
 - **Local:** waterfall explanation for one prediction.
 - SHAP explains the tabular component (LightGBM, 93 features), **not** the BiLSTM
