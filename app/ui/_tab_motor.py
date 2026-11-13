@@ -38,11 +38,9 @@ def _tab_motor(ctx: AppCtx) -> None:
     unit = ctx.unit
     etiqueta_unidad = ctx.etiqueta_unidad
     registro = ctx.registro
-    curves = ctx.curves
     telemetry = ctx.telemetry
     order = ctx.order
     registros = ctx.registros
-    unidades_vistas = ctx.unidades_vistas
     threshold_apto = ctx.threshold_apto
     threshold_aog = ctx.threshold_aog
     umbrales = ctx.umbrales
@@ -197,37 +195,7 @@ def _tab_motor(ctx: AppCtx) -> None:
                 "Radiografía de temperaturas T24 (salida LPC) · T2 (entrada del fan) · "
                 "T50 (salida LPT): estaciones físicas del dataset N-CMAPSS."
             )
-            with st.expander("Mapa de calor · degradación sensorial (z-score)",
-                             expanded=False):
-                st.caption(
-                    "z-score por canal sobre la historia completa del motor: "
-                    "rojo = por encima de su media histórica, azul = por debajo. "
-                    "Colapsado por defecto para no saturar la vista."
-                )
-                _sensor_cols = [c for g in L.CHANNEL_GROUPS.values() for c in g]
-                _sensor_cols = list(dict.fromkeys(_sensor_cols))
-                _tel_u = telemetry[telemetry["unit"] == unit]
-                if not _tel_u.empty and all(c in _tel_u.columns for c in _sensor_cols):
-                    _heat = _tel_u.groupby("cycle", as_index=False)[_sensor_cols].mean(
-                        numeric_only=True)
-                    _mat = _heat[_sensor_cols].astype(float)
-                    _z = (_mat - _mat.mean(axis=0)) / _mat.std(axis=0).replace(0, 1)
-                    import plotly.express as px
-                    _fig_heat = px.imshow(
-                        _z.T,
-                        x=_heat["cycle"].astype(str).tolist(),
-                        y=_sensor_cols,
-                        color_continuous_scale="RdBu_r",
-                        aspect="auto",
-                        labels={"x": "ciclo", "y": "sensor", "color": "z"},
-                    )
-                    _fig_heat.update_layout(
-                        height=360, margin=dict(l=10, r=10, t=10, b=10))
-                    st.plotly_chart(_fig_heat, theme=None,
-                                    alt=f"Mapa de calor z-score de los sensores "
-                                        f"del motor {unit} a lo largo de su vida.")
 
-    # -------------------- comparador: 2-3 motores superpuestos
     with st.container(border=True):
         st.subheader("Trayectoria del motor", icon=":material/download:")
         st.caption(
@@ -241,47 +209,6 @@ def _tab_motor(ctx: AppCtx) -> None:
             icon=":material/table_view:",
         )
 
-    with st.container(border=True):
-        st.subheader("Comparador · superpone trayectorias",
-                     icon=":material/compare_arrows:")
-        st.caption(
-            "Elige 2–3 motores y superpone su límite inferior — lo que decide — y su "
-            "predicción puntual, solo para comparar. La línea roja es el umbral de hangar."
-        )
-        _comparar = st.multiselect(
-            "Motores a comparar",
-            unidades_vistas,
-            default=unidades_vistas[:2],
-            format_func=lambda u: _etiqueta_unidad(float(u)),
-            key="comparador_unidades",
-            help="El límite inferior es lo que decide el estado; la predicción puntual "
-                 "se dibuja solo para comparar.",
-        )
-        if _comparar:
-            _fig_c = go.Figure()
-            for u in _comparar:
-                _curva_c = curves[u]
-                _et_c = _etiqueta_unidad(float(u))
-                _fig_c.add_trace(go.Scatter(
-                    x=_curva_c["cycle"], y=_curva_c["lower"], mode="lines",
-                    name=f"L_inf · {_et_c}", line=dict(width=2),
-                ))
-                _fig_c.add_trace(go.Scatter(
-                    x=_curva_c["cycle"], y=_curva_c["pred"], mode="lines",
-                    name=f"RUL predicha · {_et_c}", line=dict(width=1.2, dash="dot"),
-                ))
-            _fig_c.add_hline(
-                y=threshold_aog, line_color=ROSE, line_dash="dash", line_width=1.5,
-                annotation_text=f"hangar ({threshold_aog:.0f})",
-                annotation_position="top right", annotation_font=dict(color=ROSE, size=11),
-            )
-            _fig_c.update_layout(**chart_layout(height=380))
-            style_axes(_fig_c, x_title="Ciclo de vuelo", y_title="RUL (ciclos)")
-            st.plotly_chart(
-                _fig_c, theme=None,
-                alt="Comparador de trayectorias: límite inferior y RUL predicha de los "
-                    "motores seleccionados.",
-            )
 
     with st.container(border=True):
         st.subheader("Trayectoria de RUL y banda conformal", icon=":material/ssid_chart:")
@@ -407,39 +334,6 @@ def _tab_motor(ctx: AppCtx) -> None:
                 "Los sesgos tienen signo opuesto y se cancelan en el promedio global: U11 "
                 "sobreestima, U14 y U15 subestiman."
             )
-
-    # -------------------- perfil de vuelo: alt vs Mach (canales reales)
-    # Vive aquí y no en «Casos nuevos»: dibuja el motor seleccionado en la barra
-    # lateral, así que es una vista del motor, no una forma de traer casos.
-    with st.container(border=True):
-        st.subheader("Perfil de vuelo · altitud y régimen de vuelo",
-                     icon=":material/flight:")
-        st.caption(
-            "Los dos son canales reales del dataset. No hay mapa: el dataset "
-            "N-CMAPSS no trae coordenadas GPS (no hay latitud, longitud ni "
-            "posición entre sus 18 canales), así que dibujar rutas exigiría "
-            "inventarlas."
-        )
-        _perfil = telemetry[telemetry["unit"] == int(unit)].copy()
-        if not _perfil.empty:
-            _fig_vuelo = go.Figure(
-                go.Scatter(
-                    x=_perfil["Mach"], y=_perfil["alt"], mode="lines",
-                    line=dict(color=SKY, width=2), name="Perfil de vuelo",
-                    hovertemplate="Mach %{x:.3f}<br>altitud %{y:.0f} ft<extra></extra>",
-                )
-            )
-            _fig_vuelo.update_layout(**chart_layout(
-                height=260, showlegend=False, hovermode="closest",
-                xaxis_title="Mach", yaxis_title="altitud (ft)",
-            ))
-            style_axes(_fig_vuelo)
-            st.plotly_chart(
-                _fig_vuelo, theme=None,
-                alt=f"Perfil de vuelo de {_etiqueta_unidad(float(unit))}: altitud "
-                    f"frente a número de Mach, los dos canales reales del dataset.",
-            )
-
 
     # ------------------------------------------------------------- SHAP
     with st.container(border=True):

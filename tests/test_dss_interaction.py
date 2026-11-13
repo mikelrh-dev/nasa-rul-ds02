@@ -1,6 +1,6 @@
 """Interaction tests: the two star buttons must not break the app.
 
-The logic behind C1 (alta) and C2 (demo) was correct and covered by
+The logic behind C1 (alta) was correct and covered by
 `tests/test_ui_alta.py`. What was missing is a test that *presses* the button.
 Both broke with `StreamlitWidgetAlreadyInstantiatedError` because the handler
 wrote to a session-state key owned by an already-instantiated widget. The 152
@@ -156,20 +156,6 @@ def test_un_ciclo_sin_ventanas_se_rechaza_sin_romper_la_app():
     assert matricula not in app.session_state.get("altas", {})
 
 
-@needs_cache
-def test_cargar_escenario_demo_no_rompe_la_app():
-    """C2: demo. Pressing it must load 25/20, cycle 34 and unit 14."""
-    app = _app()
-    app.run()
-    assert not app.exception
-
-    assert _click(app, "Cargar escenario de demo"), "el botón de demo no está"
-    assert not app.exception, app.exception
-
-    assert _selector_unidad(app).value == 14, _selector_unidad(app).value
-    assert _slider_ciclo(app).value == 34, _slider_ciclo(app).value
-
-
 # ------------------------------------------------------------------ fase 1
 def _tarjetas_del_muro(app) -> list:
     return [b for b in app.button if (b.proto.label or "").strip() == "Ver gemelo"]
@@ -204,23 +190,6 @@ def test_pulsar_una_tarjeta_cambia_la_unidad_seleccionada():
 
     assert not app.exception, app.exception
     assert _selector_unidad(app).value == 14
-
-
-@needs_cache
-def test_el_onboarding_es_uno_solo():
-    """El onboarding ya no está duplicado: queda el modo historia, no los archetypes.
-
-    Antes convivían los tres archetypes de «¿Primera vez aquí?» y los cuatro
-    pasos del modo historia: dos formas de hacer lo mismo. Se quedó el modo
-    historia, que es más narrativo.
-    """
-    app = _app()
-    app.run()
-    assert not app.exception, app.exception
-
-    claves = [b.key or "" for b in app.button]
-    assert not any(k.startswith("arquetipo_") for k in claves), claves
-    assert any(k.startswith("historia_") for k in claves), claves
 
 
 # ------------------------------------------------------------------ fase 3
@@ -323,51 +292,6 @@ def test_la_decision_no_cambia_de_agregacion():
 
 # ------------------------------------------------------------------ fase 5
 @needs_cache
-def test_el_modo_historia_carga_el_paso_3_en_la_app():
-    """Pulsar el paso 3 deja la app donde el paso declara."""
-    app = _app()
-    app.run()
-    for boton in app.button:
-        if boton.key == "historia_3":
-            boton.click().run()
-            break
-    else:
-        pytest.fail("no está el paso 3 del modo historia")
-
-    assert not app.exception, app.exception
-    from app.lib import alta as _A, ui_data_loader as _L
-    _paso3 = [p for p in _A.estado_historia(_L.get_windows(), {"apto": _L.DEFAULT_AIRWORTHY, "hangar": _L.DEFAULT_AOG}) if p["paso"] == 3][0]
-    assert _selector_unidad(app).value == _paso3["unidad"]
-    assert _slider_ciclo(app).value == _paso3["ciclo"]
-
-
-@needs_cache
-def test_el_paso_4_afloja_los_umbrales():
-    """El paso 4 cambia la política: APTO y HANGAR bajan 5 ciclos."""
-    app = _app()
-    app.run()
-    for boton in app.button:
-        if boton.key == "historia_4":
-            boton.click().run()
-            break
-    else:
-        pytest.fail("no está el paso 4 del modo historia")
-
-    assert not app.exception, app.exception
-    assert _number_input(app, "Hangar si L_inf").value == 15.0
-    assert _number_input(app, "Apto si L_inf").value == 20.0
-
-
-@needs_cache
-def test_el_comparador_superpone_trayectorias():
-    app = _app()
-    app.run()
-    assert not app.exception, app.exception
-    alts = [c.proto.alt or "" for c in app.get("plotly_chart")]
-    assert any("Comparador de trayectorias" in a for a in alts), alts
-
-
-@needs_cache
 def test_el_registro_de_sesion_es_visible_y_exportable():
     app = _app()
     app.run()
@@ -378,10 +302,7 @@ def test_el_registro_de_sesion_es_visible_y_exportable():
     assert any("Registro de sesión" in e for e in etiquetas), etiquetas
 
     # Una acción discreta llena el registro; sin ella no hay nada que exportar.
-    for boton in app.button:
-        if boton.key == "historia_3":
-            boton.click().run()
-            break
+    assert _click(app, "Incorporar unidad")
     assert not app.exception, app.exception
 
     descargas = [b.proto.label or "" for b in app.download_button]
@@ -461,9 +382,8 @@ def test_el_informe_de_auditoria_es_un_pdf_descargable():
 def test_la_vista_turno_oculta_el_material_de_tribunal():
     """La vista de turno deja solo lo que un operario usa en su guardia.
 
-    Esconde el modo historia (demo), el registro de sesión (log) y la traza de
-    reglas (auditoría). Lo operativo —muro, reloj, orden de trabajo, hangar—
-    sigue en su sitio.
+    Esconde el registro de sesión (log) y la traza de reglas (auditoría).
+    Lo operativo —muro, reloj, orden de trabajo, hangar— sigue en su sitio.
     """
     app = _app()
     app.run()
@@ -476,7 +396,6 @@ def test_la_vista_turno_oculta_el_material_de_tribunal():
         return [s.value for s in a.tabs[0].subheader]
 
     tribunal = _secciones(app)
-    assert "Modo historia · la narrativa en cuatro pasos" in tribunal
     assert "Motor de reglas · traza del caso" in tribunal
     assert any("Registro de sesión" in (e.label or "") for e in app.tabs[0].expander)
 
@@ -484,7 +403,6 @@ def test_la_vista_turno_oculta_el_material_de_tribunal():
     assert not app.exception, app.exception
 
     turno = _secciones(app)
-    assert "Modo historia · la narrativa en cuatro pasos" not in turno, turno
     assert "Motor de reglas · traza del caso" not in turno, turno
     assert not any("Registro de sesión" in (e.label or "")
                    for e in app.tabs[0].expander)

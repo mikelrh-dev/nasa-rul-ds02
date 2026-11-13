@@ -85,10 +85,10 @@ def _tab_flota(ctx: AppCtx) -> None:
 | Dos sentencias que comparten estado (`if correccion`, un `st.info` que depende de lo anterior) se quedan en el cuerpo. | Envolverlas obligaría a inventar parámetros y a reordenar la ejecución. |
 | La pestaña no se reparte en módulos más pequeños. | `tests/test_app_fixes2.py` lee el fuente y exige `@st.fragment` y `scope="app"` ahí; partirlo rompe la paginación del muro. |
 
-Orden en `_tab_flota`: muro → cronología → taller → avance → historia → sesión →
+Orden en `_tab_flota`: muro → cronología → taller → avance → sesión →
 cola → umbrales → historial → reglas → orden de trabajo → contraste → gemelos →
 detalle → ciclo de vida. En `_tab_casos`: lote → ejemplo → ciclo → unidad nueva →
-resultado → sandbox → demo en vivo → SHAP.
+resultado → sandbox → SHAP.
 
 ## Reglas de la carpeta
 

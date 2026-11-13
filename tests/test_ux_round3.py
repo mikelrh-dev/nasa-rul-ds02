@@ -1,4 +1,4 @@
-"""Tercera ronda UX: restablecer demo, recorte explícito y coma decimal.
+"""Tercera ronda UX: recorte explícito y coma decimal.
 
 Nada aquí toca el modelo: son persistencia de registros, validación de
 entrada y símbolos de accesibilidad.
@@ -102,16 +102,6 @@ def test_cada_estado_tiene_simbolo_y_etiqueta():
 
 
 # ------------------------------------------------------- app
-def test_restablecer_demo_existe_y_no_rompe_el_render():
-    from streamlit.testing.v1 import AppTest
-
-    app = AppTest.from_file(os.path.join(ROOT, "app", "entrypoints", "dashboard_ds02.py"),
-                            default_timeout=120)
-    app.run()
-    assert not app.exception, app.exception
-    assert any(b.label == "Borrar gemelos y hangar" for b in app.button)
-
-
 def test_todo_grafico_y_tabla_nuevos_tienen_nombre_accesible():
     from streamlit.testing.v1 import AppTest
 

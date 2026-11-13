@@ -315,14 +315,6 @@ if not st.session_state.get("_semilla_demo"):
 # de crear los widgets: en la siguiente pasada el widget nace con el valor ya en
 # `session_state`. Sin esto, «Incorporar unidad» y «Cargar escenario de demo»
 # rompían la app aunque su lógica fuera correcta.
-if st.session_state.get("_demo_pendiente"):
-    _demo = A.estado_demo()
-    st.session_state["preset"] = "Normal"
-    st.session_state["th_apto_Normal"] = _demo["umbrales"][0]
-    st.session_state["th_aog_Normal"] = _demo["umbrales"][1]
-    st.session_state["unit"] = _demo["unidad"]
-    st.session_state["cycle"] = _demo["ciclo"]
-    st.session_state.pop("_demo_pendiente", None)
 if st.session_state.get("_alta_pendiente") is not None:
     st.session_state["unit"] = st.session_state.pop("_alta_pendiente")
 if st.session_state.get("_escenario_pendiente"):
@@ -369,12 +361,6 @@ if _prev_preset is not None and _prev_preset != preset:
     st.session_state[f"th_apto_{preset}"] = float(_preset_vals[0])
     st.session_state[f"th_aog_{preset}"] = float(_preset_vals[1])
 st.session_state["_preset_prev"] = preset
-# El modo historia puede pedir otros umbrales: se dejan en `session_state` antes
-# de que el widget exista, igual que las demás escrituras diferidas.
-if st.session_state.get("_umbrales_pendientes"):
-    _u_p, _h_p = st.session_state.pop("_umbrales_pendientes")
-    st.session_state[f"th_apto_{preset}"] = float(_u_p)
-    st.session_state[f"th_aog_{preset}"] = float(_h_p)
 threshold_apto = float(st.session_state.get(f"th_apto_{preset}", _preset_vals[0]))
 threshold_aog = float(st.session_state.get(f"th_aog_{preset}", _preset_vals[1]))
 if not threshold_aog < threshold_apto:

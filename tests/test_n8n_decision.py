@@ -229,3 +229,120 @@ def test_flujo_json_valido_con_3_ramas():
     assert "ds02/decision" in cuerpo
     # Sin valores de credenciales: solo referencias por nombre.
     assert "credentials" not in cuerpo or "password" not in cuerpo.lower()
+
+
+# ------------------------------------------------- telegram + fallback
+def _flujo():
+    path = os.path.join(ROOT, "n8n", "flujo.json")
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _switch(flujo):
+    return next(n for n in flujo["nodes"] if "switch" in n["type"].lower())
+
+
+def _destinos(flujo):
+    """Nombres de nodo que aparecen como destino en alguna conexion."""
+    destinos = set()
+    for conexion in flujo["connections"].values():
+        for salida in conexion.get("main", []):
+            for destino in salida:
+                destinos.add(destino["node"])
+    return destinos
+
+
+RAMA_A_TELEGRAM = {
+    0: "APTO Telegram aviso",
+    1: "INSPECCION Telegram aviso",
+    2: "HANGAR Telegram aviso",
+    3: "FALLBACK Telegram alerta",
+}
+RAMA_A_ACCION = {
+    0: "APTO Set log",
+    1: "Set INSPECCION flat",
+    2: "HANGAR Postgres insert",
+    3: "FALLBACK Set no reconocida",
+}
+
+
+def test_switch_fallback_output_extra():
+    """SIN_DECISION / decision no reconocida tiene salida propia (indice 3)."""
+    switch = _switch(_flujo())
+    assert switch["parameters"]["options"]["fallbackOutput"] == "extra"
+
+
+def test_sin_decision_cae_en_el_fallback_no_en_una_regla():
+    """Solo APTO/INSPECCION/HANGAR tienen regla; SIN_DECISION va al extra."""
+    switch = _switch(_flujo())
+    reglas = switch["parameters"]["rules"]["values"]
+    assert [r["outputKey"] for r in reglas] == ["APTO", "INSPECCION", "HANGAR"]
+    derechas = [r["conditions"]["conditions"][0]["rightValue"] for r in reglas]
+    assert "SIN_DECISION" not in derechas
+
+
+def test_switch_tiene_4_salidas_conectadas():
+    flujo = _flujo()
+    salidas = flujo["connections"]["Switch por decision"]["main"]
+    assert len(salidas) == 4  # APTO, INSPECCION, HANGAR + fallback
+
+
+def test_cada_rama_del_switch_avisa_por_telegram():
+    """Cada rama conserva su accion y ademas manda el aviso fire-and-forget."""
+    flujo = _flujo()
+    salidas = flujo["connections"]["Switch por decision"]["main"]
+    for indice in range(4):
+        destinos = {d["node"] for d in salidas[indice]}
+        assert RAMA_A_ACCION[indice] in destinos
+        assert RAMA_A_TELEGRAM[indice] in destinos
+
+
+def test_telegram_fire_and_forget_sin_botones():
+    flujo = _flujo()
+    nodos = [n for n in flujo["nodes"] if "telegram" in n["type"].lower()]
+    assert len(nodos) == 4
+    destinos = _destinos(flujo)
+    for nodo in nodos:
+        assert nodo["name"] in destinos, "el aviso esta conectado"
+        assert nodo["parameters"]["resource"] == "message"
+        assert nodo["parameters"]["operation"] == "sendMessage"
+        assert nodo["parameters"]["additionalFields"] == {}
+        assert nodo["parameters"]["text"].startswith("=")
+        # Chat ID por entorno: nada identificable queda en el repo.
+        assert "$env" in nodo["parameters"]["chatId"]
+        params = json.dumps(nodo["parameters"]).lower()
+        assert "inlinekeyboard" not in params
+        assert "replymarkup" not in params
+        credencial = nodo["credentials"]["telegramApi"]
+        assert credencial["id"] == "REEMPLAZAR_CREDENCIAL"
+
+
+def test_telegram_texto_incluye_decision_y_fingerprint():
+    cuerpo = io.StringIO()
+    json.dump(_flujo(), cuerpo)
+    texto = cuerpo.getvalue()
+    assert "SIN_DECISION" in texto
+    for nodo in (n for n in _flujo()["nodes"]
+                 if "telegram" in n["type"].lower()):
+        assert "fingerprint" in nodo["parameters"]["text"]
+
+
+def test_fallback_no_ejecuta_acciones_y_avisa():
+    flujo = _flujo()
+    salidas = flujo["connections"]["Switch por decision"]["main"]
+    destinos = {d["node"] for d in salidas[3]}
+    assert destinos == {"FALLBACK Set no reconocida",
+                        "FALLBACK Telegram alerta"}
+    assert not any("Postgres" in d or "Gmail" in d or "Sheets" in d
+                   for d in destinos)
+
+
+def test_repo_no_guarda_secretos_de_telegram():
+    cuerpo = io.StringIO()
+    json.dump(_flujo(), cuerpo)
+    bruto = cuerpo.getvalue().lower()
+    assert "password" not in bruto
+    assert "access_token" not in bruto
+    assert "accesstoken" not in bruto
+    assert "bot_token" not in bruto
+    assert "telegramapitoken" not in bruto

@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## DS02 Decision MIA-3\nLa app predice un caso y manda la decision por webhook.\nAPTO = solo log. INSPECCION = Google Sheets. HANGAR = Postgres + Calendar + Gmail.\nHeader Auth obligatorio (X-DS02-Token). Credenciales: revisar en n8n antes de activar. El JSON se exporta con active:false.",
+        "content": "## DS02 Decision MIA-3\nLa app predice un caso y manda la decision por webhook.\nAPTO = solo log + Telegram. INSPECCION = Google Sheets + Telegram. HANGAR = Postgres + Calendar + Gmail + Telegram.\nTelegram es fire-and-forget: sin botones ni respuesta esperada, en paralelo de cada accion.\nEl Switch tiene salida extra FALLBACK para SIN_DECISION / decisions no reconocidas (registro + Telegram).\nHeader Auth obligatorio (X-DS02-Token). Credenciales: revisar en n8n antes de activar. El JSON se exporta con active:false.",
         "height": 180,
         "width": 620
       },
@@ -116,7 +116,9 @@
             }
           ]
         },
-        "options": {}
+        "options": {
+          "fallbackOutput": "extra"
+        }
       },
       "id": "switch_decision",
       "name": "Switch por decision",
@@ -126,7 +128,7 @@
         520,
         320
       ],
-      "notes": "Switch: una rama por decision. APTO arriba, INSPECCION en medio, HANGAR abajo."
+      "notes": "Switch: 3 reglas (APTO, INSPECCION, HANGAR) + salida extra fallbackOutput=extra (indice 3) para SIN_DECISION y cualquier decision no reconocida. Cada salida avisa por Telegram en paralelo de su accion (fire-and-forget, sin botones)."
     },
     {
       "parameters": {
@@ -151,6 +153,31 @@
         140
       ],
       "notes": "APTO: sin accion externa, solo deja constancia en el log."
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $env.DS02_TELEGRAM_CHAT_ID }}",
+        "text": "=✅ DS02 APTO · U{{ $json.body.unidad ?? $json.unidad }} · ciclo {{ $json.body.ciclo ?? $json.ciclo }} · RUL {{ $json.body.rul_punto ?? $json.rul_punto }} · L_inf {{ $json.body.limite_inferior ?? $json.limite_inferior }} · {{ $json.body.motivo ?? $json.motivo }} · fp {{ $json.body.fingerprint ?? $json.fingerprint }}. Sin accion externa.",
+        "additionalFields": {}
+      },
+      "id": "telegram_apto",
+      "name": "APTO Telegram aviso",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1160,
+        140
+      ],
+      "notes": "Aviso Telegram fire-and-forget: un envio unidireccional, sin botones ni respuesta esperada. Corre en paralelo de la accion de la rama; si falla, continueRegularOutput evita romper el flujo. Chat ID por env DS02_TELEGRAM_CHAT_ID; el token vive en la credencial de n8n.",
+      "credentials": {
+        "telegramApi": {
+          "id": "REEMPLAZAR_CREDENCIAL",
+          "name": "DS02 Telegram"
+        }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -329,6 +356,31 @@
         }
       },
       "onError": "stop"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $env.DS02_TELEGRAM_CHAT_ID }}",
+        "text": "=🔎 DS02 INSPECCION · U{{ $json.body.unidad ?? $json.unidad }} · ciclo {{ $json.body.ciclo ?? $json.ciclo }} · RUL {{ $json.body.rul_punto ?? $json.rul_punto }} · L_inf {{ $json.body.limite_inferior ?? $json.limite_inferior }} · {{ $json.body.motivo ?? $json.motivo }} · fp {{ $json.body.fingerprint ?? $json.fingerprint }}. Revision en Google Sheets.",
+        "additionalFields": {}
+      },
+      "id": "telegram_inspeccion",
+      "name": "INSPECCION Telegram aviso",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1160,
+        320
+      ],
+      "notes": "Aviso Telegram fire-and-forget: un envio unidireccional, sin botones ni respuesta esperada. Corre en paralelo de la accion de la rama; si falla, continueRegularOutput evita romper el flujo. Chat ID por env DS02_TELEGRAM_CHAT_ID; el token vive en la credencial de n8n.",
+      "credentials": {
+        "telegramApi": {
+          "id": "REEMPLAZAR_CREDENCIAL",
+          "name": "DS02 Telegram"
+        }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -515,7 +567,32 @@
     },
     {
       "parameters": {
-        "content": "## Credenciales por revisar\n- Google Sheets (INSPECCION)\n- Postgres (HANGAR)\n- Google Calendar (HANGAR)\n- Gmail (HANGAR)\nEl repo no guarda secretos.",
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $env.DS02_TELEGRAM_CHAT_ID }}",
+        "text": "=🚨 DS02 HANGAR · U{{ $json.body.unidad ?? $json.unidad }} · ciclo {{ $json.body.ciclo ?? $json.ciclo }} · RUL {{ $json.body.rul_punto ?? $json.rul_punto }} · L_inf {{ $json.body.limite_inferior ?? $json.limite_inferior }} · L_sup {{ $json.body.limite_superior ?? $json.limite_superior }} · {{ $json.body.motivo ?? $json.motivo }} · fp {{ $json.body.fingerprint ?? $json.fingerprint }}. Orden de taller: Postgres + Calendar + Gmail.",
+        "additionalFields": {}
+      },
+      "id": "telegram_hangar",
+      "name": "HANGAR Telegram aviso",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1440,
+        640
+      ],
+      "notes": "Aviso Telegram fire-and-forget: un envio unidireccional, sin botones ni respuesta esperada. Corre en paralelo de la accion de la rama; si falla, continueRegularOutput evita romper el flujo. Chat ID por env DS02_TELEGRAM_CHAT_ID; el token vive en la credencial de n8n.",
+      "credentials": {
+        "telegramApi": {
+          "id": "REEMPLAZAR_CREDENCIAL",
+          "name": "DS02 Telegram"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## Credenciales por revisar\n- Google Sheets (INSPECCION)\n- Postgres (HANGAR)\n- Google Calendar (HANGAR)\n- Gmail (HANGAR)\n- Telegram (aviso fire-and-forget en las 4 salidas): token en la credencial; chat id en el env DS02_TELEGRAM_CHAT_ID\nEl repo no guarda secretos.",
         "height": 140,
         "width": 620
       },
@@ -530,7 +607,56 @@
     },
     {
       "parameters": {
-        "content": "## 1 Entrada y decision\nPOST ds02/decision con decision APTO/INSPECCION/HANGAR, unidad, ciclo, RUL, L_inf, usadas, porque y fingerprint. El switch reparte por decision.",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a_fallback_log",
+              "name": "log",
+              "value": "={{ 'DECISION NO RECONOCIDA: ' + ($json.body.decision ?? $json.decision ?? 'SIN_DECISION') + ' · U' + ($json.body.unidad ?? $json.unidad ?? '?') + ' · ciclo ' + ($json.body.ciclo ?? $json.ciclo ?? '?') + ' · sin acciones; solo registro y aviso Telegram' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set_fallback_log",
+      "name": "FALLBACK Set no reconocida",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        700
+      ],
+      "notes": "Salida extra del Switch: deja constancia de la decision no reconocida."
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $env.DS02_TELEGRAM_CHAT_ID }}",
+        "text": "=⚠️ DS02 DECISION NO RECONOCIDA: \"{{ $json.body.decision ?? $json.decision ?? 'SIN_DECISION' }}\" · U{{ $json.body.unidad ?? $json.unidad }} · ciclo {{ $json.body.ciclo ?? $json.ciclo }} · fp {{ $json.body.fingerprint ?? $json.fingerprint }}. Se esperaba APTO, INSPECCION o HANGAR (o SIN_DECISION); revisar payload.",
+        "additionalFields": {}
+      },
+      "id": "telegram_fallback",
+      "name": "FALLBACK Telegram alerta",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1160,
+        700
+      ],
+      "notes": "Aviso Telegram fire-and-forget: un envio unidireccional, sin botones ni respuesta esperada. Corre en paralelo de la accion de la rama; si falla, continueRegularOutput evita romper el flujo. Chat ID por env DS02_TELEGRAM_CHAT_ID; el token vive en la credencial de n8n. Salida extra del Switch: alerta de SIN_DECISION / decision no reconocida.",
+      "credentials": {
+        "telegramApi": {
+          "id": "REEMPLAZAR_CREDENCIAL",
+          "name": "DS02 Telegram"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## 1 Entrada y decision\nPOST ds02/decision con decision APTO/INSPECCION/HANGAR, unidad, ciclo, RUL, L_inf, usadas, porque y fingerprint. El switch reparte por decision; lo no reconocido (incluido SIN_DECISION) va a la salida FALLBACK (indice 3).",
         "height": 200,
         "width": 700
       },
@@ -545,7 +671,7 @@
     },
     {
       "parameters": {
-        "content": "## APTO: solo log\nSin accion externa. Deja constancia del caso apto.",
+        "content": "## APTO: solo log + Telegram\nSin accion externa. Deja constancia en el log y avisa por Telegram (mensaje unidireccional, sin botones).",
         "height": 160,
         "width": 420
       },
@@ -560,7 +686,7 @@
     },
     {
       "parameters": {
-        "content": "## INSPECCION: Google Sheets\nAnade fila en DS02 Decisiones / Decisiones para revision.",
+        "content": "## INSPECCION: Google Sheets + Telegram\nAnade fila en DS02 Decisiones / Decisiones para revision y avisa por Telegram en paralelo.",
         "height": 160,
         "width": 420
       },
@@ -575,7 +701,7 @@
     },
     {
       "parameters": {
-        "content": "## HANGAR: taller en 3 pasos\n1 Postgres insert ds02_decisiones. 2 Google Calendar evento. 3 Gmail a operaciones.",
+        "content": "## HANGAR: taller en 3 pasos + Telegram\n1 Postgres insert ds02_decisiones. 2 Google Calendar evento. 3 Gmail a operaciones. El aviso de Telegram va en paralelo.",
         "height": 160,
         "width": 900
       },
@@ -586,6 +712,21 @@
       "position": [
         820,
         440
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## FALLBACK: SIN_DECISION / no reconocida\nfallbackOutput=extra crea la salida 3 del Switch: recoge SIN_DECISION y cualquier valor fuera de APTO/INSPECCION/HANGAR. No ejecuta acciones: deja registro en el Set y avisa por Telegram.",
+        "height": 180,
+        "width": 520
+      },
+      "id": "nota_fallback",
+      "name": "Nota FALLBACK",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        140,
+        620
       ]
     }
   ],
@@ -608,6 +749,11 @@
             "node": "APTO Set log",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "APTO Telegram aviso",
+            "type": "main",
+            "index": 0
           }
         ],
         [
@@ -615,11 +761,33 @@
             "node": "Set INSPECCION flat",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "INSPECCION Telegram aviso",
+            "type": "main",
+            "index": 0
           }
         ],
         [
           {
             "node": "HANGAR Postgres insert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HANGAR Telegram aviso",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FALLBACK Set no reconocida",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "FALLBACK Telegram alerta",
             "type": "main",
             "index": 0
           }
@@ -669,7 +837,7 @@
     "saveManualExecutions": true,
     "executionOrder": "v1"
   },
-  "versionId": "ds02-mia3-v2",
+  "versionId": "ds02-mia3-v3",
   "meta": {
     "templateCredsSetupCompleted": false,
     "instanceId": "instancia-local"

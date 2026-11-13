@@ -6,7 +6,6 @@ Este módulo no importa Streamlit para poder probarlo sin levantar la app
 """
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 
 from app.lib import _constantes
@@ -91,64 +90,3 @@ def estado_demo() -> dict:
     """Estado exacto desde el que se cuenta la historia: 25/20, ciclo 34, U14."""
     return {"umbrales": (_constantes.DEFAULT_AIRWORTHY, _constantes.DEFAULT_AOG),
             "ciclo": 34, "unidad": 14}
-
-
-def estado_historia(windows: pd.DataFrame, umbrales: dict) -> list[dict]:
-    """Modo historia: cuatro pasos que cuentan la narrativa, derivados de la caché.
-
-    Cada paso deja la app en un estado (unidad, ciclo, umbrales) y dice qué cuenta.
-    Los ciclos salen de la caché — el primer ciclo puntuado, la primera inspección
-    y la primera derivación a hangar — y el «motor problemático» es el de mayor
-    RMSE. No hay constantes esparcidas: si la caché cambia, el modo historia cambia
-    con ella y un test lo detecta.
-
-    `windows` es el frame de `ui_data_loader.get_windows()` (una fila por ventana
-    ya puntuada) y `umbrales` el par en vigor, del que sale el cuarto paso.
-    """
-    idx = windows.groupby(["unit", "cycle"])["lower"].idxmin()
-    por_ciclo = (windows.loc[idx, ["unit", "cycle", "lower"]]
-                 .sort_values(["unit", "cycle"]).reset_index(drop=True))
-
-    def banda(v: float) -> str:
-        """Clasifica un límite inferior con los umbrales en vigor."""
-        if v >= umbrales["apto"]:
-            return "APTO"
-        if v >= umbrales["hangar"]:
-            return "INSPECCION"
-        return "HANGAR"
-
-    def primer_ciclo(unit: int, en_banda: str | None = None) -> int:
-        """Primer ciclo de un motor, o primero en un estado dado."""
-        sub = por_ciclo[por_ciclo["unit"] == unit]
-        if en_banda is None:
-            return int(sub["cycle"].iloc[0])
-        es = sub["lower"].map(banda).to_numpy()
-        return int(sub["cycle"].iloc[int((es == en_banda).nonzero()[0][0])])
-
-    rmse = {}
-    for unit, grupo in windows.groupby("unit"):
-        residuo = grupo["pred"].to_numpy() - grupo["y_true"].to_numpy()
-        rmse[int(unit)] = float(np.sqrt(np.mean(residuo ** 2)))
-    motor = max(rmse, key=rmse.get)
-
-    base = dict(umbrales)
-    blandos = {"apto": max(1.0, float(umbrales["apto"]) - 5.0),
-               "hangar": max(0.0, float(umbrales["hangar"]) - 5.0)}
-    ciclo_hangar = primer_ciclo(motor, "HANGAR")
-    return [
-        {"paso": 1, "titulo": "El hangar esta mañana",
-         "cuenta": "Toda la flota en verde.",
-         "unidad": int(por_ciclo["unit"].iloc[0]),
-         "ciclo": int(por_ciclo["cycle"].iloc[0]),
-         "umbrales": base},
-        {"paso": 2, "titulo": "El motor problemático",
-         "cuenta": "Primera inspección programada.",
-         "unidad": motor, "ciclo": primer_ciclo(motor, "INSPECCION"),
-         "umbrales": base},
-        {"paso": 3, "titulo": "La decisión difícil",
-         "cuenta": "Derivado a hangar con la predicción puntual por encima del umbral.",
-         "unidad": motor, "ciclo": ciclo_hangar, "umbrales": base},
-        {"paso": 4, "titulo": "¿Y si aflojamos la política?",
-         "cuenta": "Cómo cambia la flota con una política más permisiva (20/15; no validada en OOF).",
-         "unidad": motor, "ciclo": ciclo_hangar, "umbrales": blandos},
-    ]

@@ -741,8 +741,7 @@ def test_cada_preset_cae_en_el_estado_que_dice_su_nombre():
 
     umbrales = {"apto": L.DEFAULT_AIRWORTHY, "hangar": L.DEFAULT_AOG}
     # El preset critico usa el ciclo del estado demo (34): es el primer ciclo
-    # cuyo tramo en vivo (ultima ventana) cae en HANGAR con C (L_inf 19.0).
-    # El paso 3 del modo historia (34) coincide aqui con el tramo en vivo:
+    # cuyo tramo en vivo (ultima ventana) cae en HANGAR con C (L_inf 19.0).    # El ciclo del estado demo (34) coincide aqui con el tramo en vivo:
     # es la primera derivacion por peor ventana de la flota.
     demo = A.estado_demo()
     presets = INF.demo_presets(int(demo["unidad"]), int(demo["ciclo"]))

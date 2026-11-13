@@ -1,6 +1,6 @@
 """RED→GREEN de app-fixes-1 (2026-11-06-app-fixes-1).
 
-SHAPC-WF-01, muro 3→5→3, preset 30/25 e historia. Cada test nombra
+SHAPC-WF-01, muro 3→5→3 y preset 30/25. Cada test nombra
 el artefacto que no corre antes del arreglo (strict_tdd: true).
 """
 from __future__ import annotations
@@ -128,22 +128,12 @@ def test_incorporar_y_reset_muro_3_4_3():
 
 
 @needs_cache
-def test_preset_historia_restores_normal():
+def test_preset_cycle_restores_normal():
     app = _app()
     app.run()
     assert not app.exception
     assert _th_values(app).get("th_apto_Normal") == 25.0
     assert _th_values(app).get("th_aog_Normal") == 20.0
-    # Historia paso 4: politica permisiva 20/15 en la clave vigente (Normal).
-    assert _click(app, "", key="historia_4")
-    assert not app.exception
-    assert _th_values(app).get("th_apto_Normal") == 20.0
-    assert _th_values(app).get("th_aog_Normal") == 15.0
-    # Volver al paso 1 debe restaurar la base del preset, no la contaminada.
-    assert _click(app, "", key="historia_1")
-    assert not app.exception
-    assert _th_values(app).get("th_apto_Normal") == 25.0, _th_values(app)
-    assert _th_values(app).get("th_aog_Normal") == 20.0, _th_values(app)
     # Ciclo de presets: Prudente 30/25, Normal 25/20.
     _set_preset(app, "Prudente (+5)")
     assert not app.exception

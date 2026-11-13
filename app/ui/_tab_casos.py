@@ -981,33 +981,6 @@ def _tab_casos(ctx: AppCtx) -> None:
             )
             _sandbox_estres(ctx)
 
-    def _demo_en_vivo() -> None:
-        """Escenario de demo y restablecimiento."""
-        with st.expander("Demo en vivo", icon=":material/movie:", expanded=_vista_tribunal):
-            st.caption(
-                "Deja la app en el estado desde el que se cuenta la historia: umbrales "
-                "25/20, ciclo 34 y la unidad 14, que es la que entra en hangar."
-            )
-            if st.button("Cargar escenario de demo", icon=":material/play_circle:",
-                         key="demo_cargar", type="primary"):
-                st.session_state["_demo_pendiente"] = True
-                _log("Escenario de demo cargado (umbrales 25/20, ciclo 34, U14).")
-                st.rerun()
-            with st.expander("Restablecer demo", icon=":material/restart_alt:"):
-                st.caption(
-                    "Borra la flota registrada —gemelos y registros de hangar— de la "
-                    "sesión y del disco. La caché y el artefacto no se tocan."
-                )
-                confirma = st.checkbox("Confirmo que quiero borrar la flota registrada",
-                                        key="reset_confirm")
-                if st.button("Borrar gemelos y hangar", icon=":material/delete_forever:",
-                               disabled=not confirma, key="reset_demo"):
-                    st.session_state["twins"] = {}
-                    st.session_state["hangar"] = {}
-                    _guardar_registros()
-                    st.session_state["twin_flash"] = "Flota registrada borrada."
-                    st.rerun()
-
     def _shap_waterfall() -> None:
         """Explicabilidad local con SHAP waterfall."""
         with st.container(border=True):
@@ -1042,7 +1015,5 @@ def _tab_casos(ctx: AppCtx) -> None:
     _resultado_en_vivo()
 
     _sandbox_de_estres()
-
-    _demo_en_vivo()
 
     _shap_waterfall()

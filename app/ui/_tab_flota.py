@@ -5,7 +5,7 @@ cómo ha llegado hasta aquí (cronología y avance), qué política se aplica (e
 taller) y qué trabajo produce todo eso (cola, orden de trabajo y partes). Los
 gemelos registrados y su panel de detalle cierran la sala.
 
-La pestaña se lee como un guion: `_tab_flota` es un preámbulo de alias y quince
+La pestaña se lee como un guion: `_tab_flota` es un preámbulo de alias y catorce
 llamadas con nombre, y cada bloque vive en su propia función anidada. Todas leen
 los alias del preámbulo por clausura, así que el orden de las llamadas es el
 orden de la pantalla.
@@ -34,7 +34,6 @@ from app.lib import twin as T
 from app.lib import ui_data_loader as L
 from app.lib import ui_inference as INF
 from app.lib import rules as UR
-from app.lib import alta as A
 
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
 from app.lib.theme import (
@@ -60,7 +59,7 @@ def _rerun_app() -> None:
 def _tab_flota(ctx: AppCtx) -> None:
     """Muro del hangar y el trabajo que sale de él, en orden de pantalla.
 
-    Preámbulo de alias y quince llamadas: cada bloque vive en la `def` anidada
+    Preámbulo de alias y catorce llamadas: cada bloque vive en la `def` anidada
     que le sigue y lee el `AppCtx` por clausura, así que este cuerpo es el índice
     visual de la pestaña. Ver «Cómo se lee una pestaña» en `app/README.md`.
     """
@@ -359,29 +358,6 @@ def _tab_flota(ctx: AppCtx) -> None:
                 + ("nunca en la vida registrada" if v is None else f"{v} ciclos")
                 for u, v in sorted(_faltan.items()))
             st.caption(f"Ciclos hasta el umbral de hangar · {_faltan_txt}")
-
-    def _modo_historia() -> None:
-        """Modo historia: la narrativa en cuatro pasos."""
-        if _vista_tribunal:
-            with st.container(border=True):
-                st.subheader("Modo historia · la narrativa en cuatro pasos", icon=":material/auto_stories:")
-                st.caption("Cuatro estados que cuentan la historia, derivados de la caché. Cada paso deja la app donde dice; el cuarto cambia la política para ver el efecto.")
-                # Base del preset, no los umbrales en vigor: tras el paso 4 (35/20)
-                # los umbrales en vigor ya están contaminados y los pasos 1-3
-                # derivarían su base de ellos en vez de restaurar el preset.
-                _pasos_historia = A.estado_historia(windows, {"apto": float(_preset_vals[0]), "hangar": float(_preset_vals[1])})
-                _cols_h = st.columns(len(_pasos_historia))
-                for _col, _paso in zip(_cols_h, _pasos_historia):
-                    with _col:
-                        if st.button(f"{_paso['paso']}. {_paso['titulo']}", key=f"historia_{_paso['paso']}", icon=":material/play_circle:"):
-                            st.session_state["_escenario_pendiente"] = (int(_paso["unidad"]), int(_paso["ciclo"]))
-                            st.session_state["_umbrales_pendientes"] = (_paso["umbrales"]["apto"], _paso["umbrales"]["hangar"])
-                            _log_sesion = st.session_state.get("_sesion_log") or []
-                            _log_sesion.append({"at": pd.Timestamp.now(tz="UTC").isoformat(), "que": f"Modo historia, paso {_paso['paso']}: {_paso['titulo']}."})
-                            st.session_state["_sesion_log"] = _log_sesion
-                            st.session_state["_toast_pendiente"] = (f"Paso {_paso['paso']}: {_paso['titulo']}. {_paso['cuenta']}")
-                            st.rerun()
-                        st.caption(_paso["cuenta"])
 
     def _registro_de_sesion() -> None:
         """Registro de las acciones de la sesion."""
@@ -1076,8 +1052,6 @@ def _tab_flota(ctx: AppCtx) -> None:
     _taller_politica()
 
     _avance_de_flota()
-
-    _modo_historia()
 
     _registro_de_sesion()
 
