@@ -56,5 +56,5 @@ Chain strategy: pending
 
 ## Phase 6: Verify and archive
 
-- [ ] 6.1 Write `verify-report.md` with the gate output, captures and any surviving issue.
-- [ ] 6.2 Merge the MODIFIED and ADDED requirements into `openspec/specs/ds02-dss-ui/spec.md` and move the change to `openspec/changes/archive/2026-11-14-formato-tablas-metricas/`.
+- [x] 6.1 Write `verify-report.md` with the gate output, captures and any surviving issue.
+- [x] 6.2 Merge the MODIFIED and ADDED requirements into `openspec/specs/ds02-dss-ui/spec.md` and move the change to `openspec/changes/archive/2026-11-14-formato-tablas-metricas/`.
