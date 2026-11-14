@@ -37,8 +37,8 @@ Chain strategy: pending
 
 ## Phase 3: Gate and visual evidence
 
-- [ ] 3.1 Run `python -m pytest tests -q` and record exit code and counts.
-- [ ] 3.2 Capture the sidebar and confirm no Vista control and all sections present.
+- [x] 3.1 Run `python -m pytest tests -q` and record exit code and counts — 495 passed, 3 pre-existing MLflow failures.
+- [x] 3.2 Capture the sidebar and confirm no Vista control and all sections present — capture saved, sidebar starts at «Unidad de test», rule trace and session log visible.
 
 ## Phase 4: Verify and archive
 
