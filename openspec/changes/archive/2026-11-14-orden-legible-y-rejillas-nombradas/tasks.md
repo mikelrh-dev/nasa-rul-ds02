@@ -51,5 +51,5 @@ Chain strategy: pending
 
 ## Phase 5: Verify and archive
 
-- [ ] 5.1 Write `verify-report.md` with the gate output, captures and any surviving issue.
-- [ ] 5.2 Merge the added requirements into `openspec/specs/ds02-dss-ui/spec.md` and move the change to `openspec/changes/archive/2026-11-14-orden-legible-y-rejillas-nombradas/`.
+- [x] 5.1 Write `verify-report.md` with the gate output, captures and any surviving issue.
+- [x] 5.2 Merge the added requirements into `openspec/specs/ds02-dss-ui/spec.md` and move the change to `openspec/changes/archive/2026-11-14-orden-legible-y-rejillas-nombradas/`.
