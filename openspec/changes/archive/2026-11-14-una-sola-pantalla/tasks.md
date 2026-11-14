@@ -42,5 +42,5 @@ Chain strategy: pending
 
 ## Phase 4: Verify and archive
 
-- [ ] 4.1 Write `verify-report.md` with the gate output, captures and any surviving issue.
-- [ ] 4.2 Archive the change under `openspec/changes/archive/2026-11-14-una-sola-pantalla/`.
+- [x] 4.1 Write `verify-report.md` with the gate output, captures and any surviving issue.
+- [x] 4.2 Archive the change under `openspec/changes/archive/2026-11-14-una-sola-pantalla/`.
