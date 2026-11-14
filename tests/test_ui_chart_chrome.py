@@ -34,18 +34,24 @@ def test_chart_layout_reserva_aire_para_ticks_y_titulos():
     assert margin["b"] >= 64, "el margen inferior debe sacar ticks y titulo de X"
 
 
-def test_chart_layout_activa_automargin_en_ambos_ejes():
+def test_chart_layout_margenes_explicitos_sin_automargin():
+    """Con automargin el alto del area de trazado queda impredecible y la leyenda,
+    anclada en fraccion de ese alto, caia donde no debia."""
     layout = chart_layout()
-    assert layout["xaxis"]["automargin"] is True
-    assert layout["yaxis"]["automargin"] is True
+    assert layout["margin"]["b"] >= 96, (
+        "el margen inferior fijo debe sacar ticks y titulo del eje X"
+    )
+    assert layout["xaxis"]["automargin"] is False
+    assert layout["yaxis"]["automargin"] is False
 
 
-def test_chart_layout_con_overrides_respeta_automargin():
-    """Un llamador puede ensanchar margenes, pero no debe quedarse sin automargin."""
-    layout = chart_layout(margin=dict(l=80, r=20, t=44, b=70))
-    assert layout["margin"]["l"] == 80
-    assert layout["xaxis"]["automargin"] is True
-    assert layout["yaxis"]["automargin"] is True
+def test_chart_layout_coloca_la_leyenda_a_distancia_fija_bajo_el_plot():
+    """La leyenda debe quedar a ~65 px del area de trazado: ticks (~20) + salto +
+    titulo del eje X (~18) + holgura."""
+    layout = chart_layout(height=280)
+    alto_plot = 280 - layout["margin"]["t"] - layout["margin"]["b"]
+    assert layout["legend"]["y"] < 0
+    assert abs(abs(layout["legend"]["y"]) * alto_plot - 65) <= 1
 
 
 def test_leyenda_debajo_del_area_de_trazado():

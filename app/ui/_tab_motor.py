@@ -167,7 +167,7 @@ def _tab_motor(ctx: AppCtx) -> None:
             st.plotly_chart(
                 fig_deriva(_per_cycle_g, _presiones,
                            int(_per_cycle_g["cycle"].max()),
-                           critical_start, threshold_aog, height=220),
+                           critical_start, threshold_aog, height=280),
                 theme=None, config=CHART_CONFIG,
                 alt=f"Radiografía de sensores de {_etiqueta_g}: deriva porcentual de las "
                     "presiones frente a su línea base sana.",
@@ -187,7 +187,7 @@ def _tab_motor(ctx: AppCtx) -> None:
             st.plotly_chart(
                 fig_deriva(_per_cycle_t, _temp_clave,
                            int(_per_cycle_t["cycle"].max()),
-                           critical_start, threshold_aog, height=220),
+                           critical_start, threshold_aog, height=280),
                 theme=None, config=CHART_CONFIG,
                 alt=f"Radiografía de temperaturas T24, T2 y T50 de {_etiqueta_g}: "
                     "deriva porcentual frente a la línea base sana.",

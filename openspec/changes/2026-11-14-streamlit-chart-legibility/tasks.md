@@ -47,9 +47,9 @@ Chain strategy: pending
 ## Phase 4: GREEN gate and visual evidence
 
 - [x] 4.1 Run `python -m pytest tests -q` and record exit code and counts — 465 passed, 3 pre-existing MLflow failures (identical to the pre-change baseline of 458 passed / 3 failed).
-- [ ] 4.2 Capture before/after screenshots at 1280 px and 560 px for the Motor, Flota and Auditoría tabs under `scratch/sdd-chart-legibility/`.
+- [x] 4.2 Capture before/after screenshots at 1280 px and 560 px for the Motor, Flota and Auditoría tabs under `scratch/sdd-chart-legibility/` — `final-1280-{motor,flota,auditoria,casos}.png`, plus the 560 px pass in the verify report.
 
 ## Phase 5: Verify and archive
 
-- [ ] 5.1 Write `verify-report.md` with the gate output, the capture paths and any surviving clip.
+- [x] 5.1 Write `verify-report.md` with the gate output, the capture paths and any surviving clip.
 - [ ] 5.2 Merge the delta into `openspec/specs/ds02-dss-ui/spec.md` and move the change to `openspec/changes/archive/2026-11-14-streamlit-chart-legibility/`.

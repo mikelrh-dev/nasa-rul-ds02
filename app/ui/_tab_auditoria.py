@@ -148,7 +148,10 @@ def _tab_auditoria(ctx: AppCtx) -> None:
                     textposition="outside", textfont=dict(color=INK),
                 )
             )
-            band_fig.update_layout(**chart_layout(height=300, hovermode="closest"))
+            band_fig.update_layout(**chart_layout(
+                height=300, hovermode="closest",
+                margin=dict(l=56, r=16, t=44, b=48),
+            ))
             style_axes(band_fig, x_title="tramo de RUL real", y_title="MAE (ciclos)")
             st.plotly_chart(
                 band_fig, theme=None, config=CHART_CONFIG,

@@ -78,6 +78,14 @@ BADGE_ICON = {
 # de solo lectura.
 CHART_CONFIG: dict = {"displayModeBar": False}
 
+# Margenes base: con 8 px Plotly dibujaba ticks y titulos fuera del viewport del
+# SVG y el texto quedaba recortado. El margen inferior debe ademas dejar sitio
+# para la leyenda, que cuelga bajo el titulo del eje X.
+_MARGEN_L, _MARGEN_R, _MARGEN_T, _MARGEN_B = 56, 16, 44, 120
+# Lo que la leyenda inferior deja libre bajo el area de trazado: ticks (~20 px),
+# salto, titulo del eje X (~18 px) y holgura. Medido en DOM vivo.
+_LEYENDA_DESPEJE_PX = 65.0
+
 
 def chart_layout(**overrides) -> dict:
     """Shared Plotly layout: transparent surface, themed axes, legend below."""
@@ -85,11 +93,14 @@ def chart_layout(**overrides) -> dict:
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Inter, sans-serif", color=INK, size=13),
-        # Margenes con aire para ticks y titulos: con 8 px Plotly los dibujaba
-        # fuera del viewport del SVG y el texto quedaba recortado.
-        margin=dict(l=56, r=16, t=44, b=64),
-        xaxis=dict(automargin=True),
-        yaxis=dict(automargin=True),
+        margin=dict(l=_MARGEN_L, r=_MARGEN_R, t=_MARGEN_T, b=_MARGEN_B),
+        # Sin automargin en ningun eje: `automargin` reserva sitio para la leyenda
+        # encogiendo el area de trazado, y como la posicion de la leyenda es una
+        # fraccion de esa altura, el despeje se retroalimentaba y volvia a chocar
+        # con el titulo del eje X. Con margenes explicitos el alto del area de
+        # trazado es exactamente height - t - b.
+        xaxis=dict(automargin=False),
+        yaxis=dict(automargin=False),
         hoverlabel=dict(bgcolor=SURFACE, bordercolor=GRID, font=dict(color=INK)),
         legend=dict(
             orientation="h", yanchor="top", y=-0.16, x=0,
@@ -98,6 +109,16 @@ def chart_layout(**overrides) -> dict:
         hovermode="x unified",
     )
     layout.update(overrides)
+
+    # La leyenda cuelga bajo el titulo del eje X. Su `y` es una fraccion de la
+    # altura del area de trazado, asi que se recalcula con los margenes y la
+    # altura DEFINITIVOS: algunos graficos sobreescriben `margin` y `height`.
+    if "legend" not in overrides:
+        margen = layout["margin"]
+        altura = layout.get("height")
+        if isinstance(altura, (int, float)) and altura > 0:
+            alto_plot = max(float(altura) - margen["t"] - margen["b"], 40.0)
+            layout["legend"]["y"] = round(-_LEYENDA_DESPEJE_PX / alto_plot, 3)
     return layout
 
 
@@ -132,7 +153,10 @@ def fig_deriva(per_cycle: pd.DataFrame, channels: list[str], last_cycle: int,
         fig.add_trace(
             go.Scatter(
                 x=per_cycle["cycle"], y=drift[ch], mode="lines",
-                name=L.CHANNEL_LABELS.get(ch, ch), line=dict(width=2),
+                # Solo el codigo en la leyenda: con las descripciones largas
+                # el pressures chart envolvia 5 filas y el propio Plotly
+                # encogia el area de trazado para hacerles sitio.
+                name=L.CHANNEL_LABELS.get(ch, ch).split(" \u00b7 ")[0], line=dict(width=2),
             )
         )
     fig.add_hline(y=0, line_color=MUTED, line_width=1)
@@ -144,7 +168,12 @@ def fig_deriva(per_cycle: pd.DataFrame, channels: list[str], last_cycle: int,
             annotation_position="top right", annotation_font_size=11,
             annotation_font_color=ROSE_SOFT,
         )
-    fig.update_layout(**chart_layout(height=height, hovermode="x unified"))
+    # Mas aire arriba: con la leyenda larga el area de trazado se encoge y el
+    # titulo Y rotado necesita margen para no salirse del SVG.
+    fig.update_layout(**chart_layout(
+        height=height, hovermode="x unified",
+        margin=dict(l=_MARGEN_L, r=_MARGEN_R, t=72, b=_MARGEN_B),
+    ))
     style_axes(
         fig, x_title="Ciclo de vuelo",
         y_title="% vs. baseline (5 ciclos)",

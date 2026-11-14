@@ -52,15 +52,22 @@ flowchart LR
 
 ```python
 # app/lib/theme.py
+_MARGEN_L, _MARGEN_R, _MARGEN_T, _MARGEN_B = 56, 16, 44, 120
+_LEYENDA_DESPEJE_PX = 65.0
+
 CHART_CONFIG: dict = {"displayModeBar": False}
 
 def chart_layout(**overrides) -> dict:
-    # margin=dict(l=56, r=16, t=44, b=64)
-    # legend: orientation="h", yanchor="top", y=-0.16, x=0
-    # xaxis=dict(automargin=True), yaxis=dict(automargin=True)
+    # margin=dict(l=_MARGEN_L, r=_MARGEN_R, t=_MARGEN_T, b=_MARGEN_B)
+    # xaxis=dict(automargin=False), yaxis=dict(automargin=False)
+    # legend: orientation="h", yanchor="top", x=0,
+    #         y = -_LEYENDA_DESPEJE_PX / (height - t - b)   # se recalcula tras los overrides
 ```
 
 Every call site becomes `st.plotly_chart(fig, theme=None, config=CHART_CONFIG, alt=...)`.
+
+`fig_deriva` overrides the top margin to 72 px and renders the legend with the dataset
+channel codes only (the full descriptions stay in the glossary and captions).
 
 ## Testing Strategy
 
@@ -80,12 +87,16 @@ process.
 
 ## Known Limitations
 
-- The legend offset `y=-0.16` depends on final series-name lengths; it is verified by
-  before/after captures, not derived analytically. Evidence: measured legend boxes
-  during diagnosis (4–7 rows above the plot).
-- `automargin` shrinks the plotting area; chart heights stay unchanged unless a capture
-  shows a surviving clip, in which case `_tab_motor.py` radiography heights rise from
-  220 px.
+- `automargin` is deliberately disabled on both axes. With it enabled, Plotly shrinks the
+  plotting area to make room for the legend, and because the legend offset is a fraction
+  of that area, the clearance fed back into itself and the legend overlapped the X axis
+  title again (measured 7 px at 1280 px). Explicit margins make the plotting-area height
+  deterministic: `height - t - b`.
+- The legend names are dataset channel codes; the physical descriptions live in the
+  glossary, the paste-grid help text and the chart captions. Evidence: with the full
+  descriptions the pressure legend wrapped into 5 rows and Plotly shrank the plot for them.
+- At 560 px the trajectory legend ends flush with the figure bottom (0 px spare); nothing
+  is clipped.
 
 ## Migration / Rollout
 
