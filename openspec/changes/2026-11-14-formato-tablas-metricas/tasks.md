@@ -51,8 +51,8 @@ Chain strategy: pending
 
 ## Phase 5: Gate and visual evidence
 
-- [ ] 5.1 Run `python -m pytest tests -q` and record exit code and counts.
-- [ ] 5.2 Capture Auditoría, Casos and Flota at 1280 px under `scratch/sdd-formato-metricas/`; confirm no raw float64 cell and the three new cards.
+- [x] 5.1 Run `python -m pytest tests -q` and record exit code and counts — 488 passed, 3 pre-existing MLflow failures.
+- [x] 5.2 Capture Auditoría, Casos and Flota at 1280 px under `scratch/sdd-formato-metricas/`; confirm no raw float64 cell and the three new cards — five captures saved, zero raw cells in read-only grids, three cards measured.
 
 ## Phase 6: Verify and archive
 
