@@ -44,8 +44,8 @@ Chain strategy: pending
 
 ## Phase 4: Gate and visual evidence
 
-- [ ] 4.1 Run `python -m pytest tests -q` and record exit code and counts.
-- [ ] 4.2 Capture the Motor tab at 1280 px and 560 px under `scratch/sdd-poda-radiografia/`; confirm which figures render.
+- [x] 4.1 Run `python -m pytest tests -q` and record exit code and counts — 477 passed, 3 pre-existing MLflow failures.
+- [x] 4.2 Capture the Motor tab at 1280 px and 560 px under `scratch/sdd-poda-radiografia/`; confirm which figures render — two captures saved, gauge absent, only T24/T2/T50 traces.
 
 ## Phase 5: Verify and archive
 
