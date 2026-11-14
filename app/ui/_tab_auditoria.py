@@ -22,7 +22,9 @@ import streamlit as st
 from app.lib import ui_data_loader as L
 
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
-from app.lib.theme import INK, SKY, GREEN, ROSE, ROSE_SOFT, SKY_SOFT, SLATE_DARK
+from app.lib.theme import (
+    CHART_CONFIG, INK, SKY, GREEN, ROSE, ROSE_SOFT, SKY_SOFT, SLATE_DARK,
+)
 
 from app.lib.context import AppCtx
 
@@ -81,7 +83,7 @@ def _tab_auditoria(ctx: AppCtx) -> None:
         bars.update_layout(**chart_layout(height=340, barmode="group", hovermode="closest"))
         style_axes(bars, y_title="ciclos")
         st.plotly_chart(
-            bars, theme=None,
+            bars, theme=None, config=CHART_CONFIG,
             alt="RMSE y MAE por unidad; el motor 14 concentra el error con 760 ventanas.",
         )
         st.caption("Calculado de la caché, no de una tabla fija. Rojo = motor 14.")
@@ -149,11 +151,11 @@ def _tab_auditoria(ctx: AppCtx) -> None:
             band_fig.update_layout(**chart_layout(height=300, hovermode="closest"))
             style_axes(band_fig, x_title="tramo de RUL real", y_title="MAE (ciclos)")
             st.plotly_chart(
-                band_fig, theme=None,
+                band_fig, theme=None, config=CHART_CONFIG,
                 alt="MAE por tramo de RUL real: mínimo en el tramo crítico 0-25 y máximo en vida alta.",
             )
             st.dataframe(
-                populated.assign(Tramo=populated["band"]),
+                populated.rename(columns={"band": "Tramo"}),
                 hide_index=True,
                 column_config={
                     "Tramo": st.column_config.TextColumn("Tramo"),

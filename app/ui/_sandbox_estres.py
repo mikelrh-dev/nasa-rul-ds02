@@ -25,7 +25,7 @@ from app.lib.context import AppCtx
 
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
 # `theme` no importa el dashboard: no hay ciclo en el import.
-from app.lib.theme import SKY, AMBER, GREEN, ROSE
+from app.lib.theme import CHART_CONFIG, SKY, AMBER, GREEN, ROSE
 
 __all__ = ["_sandbox_estres"]
 
@@ -192,7 +192,7 @@ def _sandbox_estres(ctx: AppCtx) -> None:
             f"{_c_fin} leída de la caché: el límite inferior cruza el umbral de hangar "
             f"en el ciclo {_cruce_ciclo} y el estado al final del tramo es "
             f"{L.STATE_LABELS.get(_estado, _estado)}.")
-    st.plotly_chart(fig, use_container_width=True, alt=_alt)
+    st.plotly_chart(fig, config=CHART_CONFIG, use_container_width=True, alt=_alt)
 
     _m1, _m2 = st.columns(2)
     _m1.metric("RUL p35 al final del tramo", f"{_ultima['pred']:.1f} ciclos",

@@ -36,7 +36,7 @@ from app.lib import rules as UR
 
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
 from app.lib.theme import (
-    SKY, ROSE,
+    CHART_CONFIG, SKY, ROSE,
     STATE_BG, RANGO_ESTADO,
     BADGE_COLOR, BADGE_ICON,
 )
@@ -161,7 +161,7 @@ def _tab_flota(ctx: AppCtx) -> None:
                                         paper_bgcolor="rgba(0,0,0,0)",
                                         plot_bgcolor="rgba(0,0,0,0)",
                                     ),
-                                    theme=None,
+                                    theme=None, config=CHART_CONFIG,
                                     alt=f"Sparkline de L_inf de {etiqueta} a lo largo de los ciclos.",
                                 )
                             if pd.isna(tarjeta["lower"]):
@@ -759,7 +759,7 @@ def _tab_flota(ctx: AppCtx) -> None:
             _fig.update_layout(**chart_layout(height=340, hovermode="closest"))
             style_axes(_fig, x_title="Ciclo de vuelo", y_title="RUL (ciclos)")
             st.plotly_chart(
-                _fig, theme=None,
+                _fig, theme=None, config=CHART_CONFIG,
                 alt=f"Curva de RUL del gemelo {_elegido} con su banda conformal al 90 %, "
                     "el límite inferior que decide y el umbral de hangar.",
             )

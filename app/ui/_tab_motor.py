@@ -24,7 +24,9 @@ from app.lib import rules as UR
 from src.mia import reglas as R_REGLAS
 
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
-from app.lib.theme import INK, MUTED, MUTED_LINE, GRID, SURFACE, SKY, ROSE, ROSE_SOFT
+from app.lib.theme import (
+    CHART_CONFIG, INK, MUTED, MUTED_LINE, GRID, SURFACE, SKY, ROSE, ROSE_SOFT,
+)
 
 from app.lib.context import AppCtx
 
@@ -105,7 +107,7 @@ def _tab_motor(ctx: AppCtx) -> None:
             _gauge.update_layout(**chart_layout(height=240, showlegend=False,
                                                 margin=dict(l=18, r=18, t=46, b=8)))
             st.plotly_chart(
-                _gauge, theme=None,
+                _gauge, theme=None, config=CHART_CONFIG,
                 alt=f"Gauge de RUL restante de {_etiqueta_g}: {_pred_g:.1f} ciclos, con "
                     f"la zona de hangar por debajo de {threshold_aog:.0f} sombreada.",
             )
@@ -166,7 +168,7 @@ def _tab_motor(ctx: AppCtx) -> None:
                 fig_deriva(_per_cycle_g, _presiones,
                            int(_per_cycle_g["cycle"].max()),
                            critical_start, threshold_aog, height=220),
-                theme=None,
+                theme=None, config=CHART_CONFIG,
                 alt=f"Radiografía de sensores de {_etiqueta_g}: deriva porcentual de las "
                     "presiones frente a su línea base sana.",
             )
@@ -186,7 +188,7 @@ def _tab_motor(ctx: AppCtx) -> None:
                 fig_deriva(_per_cycle_t, _temp_clave,
                            int(_per_cycle_t["cycle"].max()),
                            critical_start, threshold_aog, height=220),
-                theme=None,
+                theme=None, config=CHART_CONFIG,
                 alt=f"Radiografía de temperaturas T24, T2 y T50 de {_etiqueta_g}: "
                     "deriva porcentual frente a la línea base sana.",
             )
@@ -214,13 +216,13 @@ def _tab_motor(ctx: AppCtx) -> None:
                 x=curve["cycle"], y=curve["lower"], mode="lines",
                 line=dict(width=0), fill="tonexty",
                 fillcolor="rgba(56, 189, 248, 0.18)",
-                name="Banda conformal 90 %",
+                name="Banda 90 %",
             )
         )
         fig.add_trace(
             go.Scatter(
                 x=curve["cycle"], y=curve["pred"], mode="lines",
-                line=dict(color=SKY, width=3), name="RUL predicha (ensamble)",
+                line=dict(color=SKY, width=3), name="RUL predicha",
             )
         )
         fig.add_trace(
@@ -252,7 +254,7 @@ def _tab_motor(ctx: AppCtx) -> None:
         fig.update_layout(**chart_layout(height=430, hovermode="x unified"))
         style_axes(fig, x_title="Ciclo de vuelo", y_title="RUL (ciclos restantes)")
         st.plotly_chart(
-            fig, theme=None,
+            fig, theme=None, config=CHART_CONFIG,
             alt="RUL real y predicha a lo largo de la vida del motor, con la banda conformal y la zona de hangar sombreada.",
         )
         st.download_button(

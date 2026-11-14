@@ -12,7 +12,7 @@ import streamlit as st
 
 from app.lib import twin as T
 from app.lib import ui_data_loader as L
-from app.lib.theme import chart_layout, style_axes
+from app.lib.theme import CHART_CONFIG, chart_layout, style_axes
 
 __all__ = ["preflight_panel", "shap_panel", "tarjetas_cache", "tarjetas_gemelos"]
 
@@ -86,7 +86,7 @@ def shap_panel(unit: int, suffix: str = "motor") -> None:
             )
             _fig_shap.update_layout(**chart_layout(height=360))
             st.plotly_chart(
-                _fig_shap, use_container_width=True,
+                _fig_shap, config=CHART_CONFIG, use_container_width=True,
                 alt=f"Top-10 contribuciones SHAP del motor {int(unit)}.",
             )
             st.dataframe(_shap_df, use_container_width=True, hide_index=True)
@@ -105,7 +105,7 @@ def shap_panel(unit: int, suffix: str = "motor") -> None:
             _wf_fig.update_layout(**chart_layout(height=420))
             style_axes(_wf_fig, x_title="feature", y_title="contribución")
             st.plotly_chart(
-                _wf_fig, use_container_width=True,
+                _wf_fig, config=CHART_CONFIG, use_container_width=True,
                 alt=f"SHAP waterfall del motor {int(unit)}.",
             )
         else:

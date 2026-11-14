@@ -73,16 +73,26 @@ BADGE_ICON = {
 }
 
 
+# Chrome comun de todos los graficos del dashboard. Sin modebar flotante: se
+# superponia a la esquina superior derecha y no aporta nada en una superficie
+# de solo lectura.
+CHART_CONFIG: dict = {"displayModeBar": False}
+
+
 def chart_layout(**overrides) -> dict:
-    """Shared Plotly layout: transparent surface, themed axes, top legend."""
+    """Shared Plotly layout: transparent surface, themed axes, legend below."""
     layout = dict(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Inter, sans-serif", color=INK, size=13),
-        margin=dict(l=8, r=8, t=44, b=8),
+        # Margenes con aire para ticks y titulos: con 8 px Plotly los dibujaba
+        # fuera del viewport del SVG y el texto quedaba recortado.
+        margin=dict(l=56, r=16, t=44, b=64),
+        xaxis=dict(automargin=True),
+        yaxis=dict(automargin=True),
         hoverlabel=dict(bgcolor=SURFACE, bordercolor=GRID, font=dict(color=INK)),
         legend=dict(
-            orientation="h", yanchor="bottom", y=1.02, x=0,
+            orientation="h", yanchor="top", y=-0.16, x=0,
             bgcolor="rgba(0,0,0,0)", font=dict(color=MUTED, size=12),
         ),
         hovermode="x unified",
@@ -137,6 +147,6 @@ def fig_deriva(per_cycle: pd.DataFrame, channels: list[str], last_cycle: int,
     fig.update_layout(**chart_layout(height=height, hovermode="x unified"))
     style_axes(
         fig, x_title="Ciclo de vuelo",
-        y_title="variación % vs. media de los 5 primeros ciclos",
+        y_title="% vs. baseline (5 ciclos)",
     )
     return fig

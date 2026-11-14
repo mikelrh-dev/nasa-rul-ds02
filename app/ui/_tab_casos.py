@@ -27,7 +27,9 @@ from app.lib import n8n_payload as UN
 from app.lib import rules as UR
 from src import n8n as N8N
 
-from app.lib.theme import ROSE, ROSE_SOFT, SKY, chart_layout, style_axes
+from app.lib.theme import (
+    CHART_CONFIG, ROSE, ROSE_SOFT, SKY, chart_layout, style_axes,
+)
 
 from app.ui._sandbox_estres import _sandbox_estres
 from app.lib.context import AppCtx
@@ -922,7 +924,7 @@ def _tab_casos(ctx: AppCtx) -> None:
                 fig_live.update_layout(**chart_layout(height=340, hovermode="x unified"))
                 style_axes(fig_live, x_title="Ciclo de vuelo", y_title="RUL (ciclos)")
                 st.plotly_chart(
-                    fig_live, theme=None,
+                    fig_live, theme=None, config=CHART_CONFIG,
                     alt="Estimación de RUL y banda conformal para la unidad aportada por el usuario.",
                 )
 
