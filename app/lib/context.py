@@ -75,7 +75,6 @@ class AppCtx:
     guardar_registros: Any = None
     chart_layout: Any = None
     style_axes: Any = None
-    fig_deriva: Any = None
     shap_panel: Any = None
     st_badge_estado: Any = None
     sha256_cached: Any = None

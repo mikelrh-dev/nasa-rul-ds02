@@ -216,13 +216,13 @@ def test_el_gemelo_consolida_la_decision_y_su_regla():
 
 
 @needs_cache
-def test_el_gauge_del_gemelo_tiene_nombre_accesible():
+def test_la_pestana_motor_no_muestra_gauge():
     app = _app()
     app.run()
     assert not app.exception, app.exception
 
     alts = [c.proto.alt or "" for c in app.get("plotly_chart")]
-    assert any("Gauge de RUL" in a for a in alts), alts
+    assert not any("Gauge de RUL" in a for a in alts), alts
 
 
 @needs_cache
@@ -233,7 +233,9 @@ def test_el_gemelo_incluye_ciclo_de_vida_y_orden_de_trabajo():
 
     texto = _texto(app)
     assert "Ciclo de vida del hangar" in texto
-    assert "Radiografía de sensores" in texto
+    alts = [c.proto.alt or "" for c in app.get("plotly_chart")]
+    assert any("Deriva media de las temperaturas" in a for a in alts), alts
+    assert not any("Radiografía de sensores" in a for a in alts), alts
 
 
 # ------------------------------------------------------------------ fase 4

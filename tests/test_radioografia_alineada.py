@@ -162,3 +162,33 @@ def test_el_caption_trae_cifras_calculadas_metodo_y_fuente():
     solo_presiones = TH.caption_deriva_vida(resumen, PRESIONES)
     assert "T50" not in solo_presiones, "el caption acotado no debe citar otros canales"
     assert "cache" in solo_presiones.lower()
+
+
+# ---------------------------------------------------------------------- poda
+@needs_cache
+def test_la_pestana_motor_no_construye_gauge_ni_figura_por_ciclo():
+    import ast
+
+    ruta = os.path.join(APP, "ui", "_tab_motor.py")
+    src = open(ruta, encoding="utf-8").read()
+    arbol = ast.parse(src)
+
+    for nodo in ast.walk(arbol):
+        if isinstance(nodo, ast.Call) and isinstance(nodo.func, ast.Attribute):
+            assert nodo.func.attr != "Indicator", "el gauge debe desaparecer del Motor"
+
+    sin_vida = src.replace("fig_deriva_vida(", "")
+    assert "fig_deriva(" not in sin_vida, "la vista por ciclo debe desaparecer del Motor"
+
+
+@needs_cache
+def test_la_nota_de_presiones_trae_cifras_medidas_y_no_acusa_causas():
+    _, resumen = L.drift_por_rul(CANALES)
+
+    nota = TH.resumen_criterio(resumen, PRESIONES)
+
+    bases, _ = TH.canales_unicos(PRESIONES)
+    mayor = resumen.loc[bases, "salto"].abs().max()
+    assert f"{mayor:.1f} ppt" in nota
+    assert "monótona" in nota
+    assert "condiciones de vuelo" not in nota

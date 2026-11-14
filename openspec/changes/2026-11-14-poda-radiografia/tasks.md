@@ -24,23 +24,23 @@ Chain strategy: pending
 
 ## Phase 1: RED tests for the pruned surface
 
-- [ ] 1.1 Replace the gauge accessibility assertion with one asserting no plotly chart declares a gauge. Acceptance: RED.
-- [ ] 1.2 Replace the per-cycle radiography assertion with one asserting the aligned temperature view is present. Acceptance: RED.
-- [ ] 1.3 Add a contract test: `_tab_motor.py` builds neither a gauge Indicator nor a per-cycle figure. Acceptance: RED.
-- [ ] 1.4 Add the pressure-note contract: measured magnitude and monotonicity, no causal claim. Acceptance: RED.
-- [ ] 1.5 Record the failure list with `pytest tests/test_dss_interaction.py tests/test_radioografia_alineada.py -q`.
+- [x] 1.1 Replace the gauge accessibility assertion with one asserting no plotly chart declares a gauge. Acceptance: RED -> GREEN.
+- [x] 1.2 Replace the per-cycle radiography assertion with one asserting the aligned temperature view is present. Acceptance: RED -> GREEN.
+- [x] 1.3 Add a contract test: `_tab_motor.py` builds neither a gauge Indicator nor a per-cycle figure. Acceptance: RED -> GREEN.
+- [x] 1.4 Add the pressure-note contract: measured magnitude and monotonicity, no causal claim. Acceptance: RED -> GREEN.
+- [x] 1.5 Record the failure list with `pytest tests/test_dss_interaction.py tests/test_radioografia_alineada.py -q` — 4 failed, 23 passed.
 
 ## Phase 2: Prune the card
 
-- [ ] 2.1 Remove the gauge column and the two per-cycle radiography blocks from `_tab_motor.py`.
-- [ ] 2.2 Render the aligned temperature figure and the pressure note from the same summary.
-- [ ] 2.3 Acceptance: 1.1–1.4 green.
+- [x] 2.1 Remove the gauge column and the two per-cycle radiography blocks from `_tab_motor.py`.
+- [x] 2.2 Render the aligned temperature figure and the pressure note from the same summary.
+- [x] 2.3 Acceptance: 1.1–1.4 green — 34 passed in the focused suite.
 
 ## Phase 3: Remove the dead helper
 
-- [ ] 3.1 Delete `fig_deriva()` from `theme.py` and add `resumen_criterio()`.
-- [ ] 3.2 Drop the `fig_deriva` import and context construction in `dashboard_ds02.py` and the `AppCtx` field.
-- [ ] 3.3 Update `app/README.md`; acceptance: no `fig_deriva` reference remains outside archived specs.
+- [x] 3.1 Delete `fig_deriva()` from `theme.py` and add `resumen_criterio()`.
+- [x] 3.2 Drop the `fig_deriva` import and context construction in `dashboard_ds02.py` and the `AppCtx` field.
+- [x] 3.3 Update `app/README.md`; acceptance: no `fig_deriva` reference remains outside archived specs.
 
 ## Phase 4: Gate and visual evidence
 

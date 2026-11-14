@@ -234,7 +234,7 @@ def _log(mensaje: str) -> None:
 
 # Design tokens y helpers de Plotly: dueno `theme.py`.
 from app.lib.theme import (  # noqa: E402
-    BADGE_COLOR, BADGE_ICON, chart_layout, style_axes, fig_deriva,
+    BADGE_COLOR, BADGE_ICON, chart_layout, style_axes,
 )
 
 
@@ -544,7 +544,7 @@ ctx = AppCtx(
     vista_tribunal=_vista_tribunal, etiqueta_unidad=_etiqueta_unidad,
     registro=_registro, slug_motor=_slug_motor,
     guardar_registros=_guardar_registros, chart_layout=chart_layout,
-    style_axes=style_axes, fig_deriva=fig_deriva, shap_panel=shap_panel,
+    style_axes=style_axes, shap_panel=shap_panel,
     st_badge_estado=st_badge_estado, sha256_cached=_sha256_cached,
     informe_pdf_cached=_informe_pdf_cached, log=_log,
     preflight_panel=preflight_panel,

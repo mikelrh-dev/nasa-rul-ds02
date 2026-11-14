@@ -18,7 +18,7 @@ Orquestador    entrypoints/dashboard_ds02.py   globals, cachés, montaje de las 
 Contexto       lib/context.py                  AppCtx: un objeto en vez de 18-29 parámetros
 Barra lateral  ui/_sidebar.py                  devuelve SidebarState (unidad elegida)
 Pestañas       ui/_tab_*.py                    fragmentos de Streamlit
-Tema           lib/theme.py                    dueno unico de tokens, `chart_layout`, `style_axes`, `fig_deriva`
+Tema           lib/theme.py                    dueno unico de tokens, `chart_layout`, `style_axes`, `resumen_criterio`
 Estado/registro lib/flota.py lib/hangar.py lib/twin.py lib/alta.py lib/simulacion.py
 Datos/modelo   lib/ui_data_loader.py lib/ui_inference.py lib/ui_shap.py lib/rules.py
 Presentacion   lib/dashboard_helpers.py lib/pdf_partes.py lib/batch.py lib/n8n_payload.py
@@ -33,7 +33,7 @@ API            services/api.py
 | `entrypoints/dashboard_ds02.py` | Orquestador: carga la caché, construye `AppCtx`, monta sidebar y las 4 pestañas. |
 | `lib/context.py` | `AppCtx`: transporte único de datos, estado y helpers hacia las pestañas. |
 | `lib/_constantes.py` | Dueño único de los umbrales 25/20 (ADR-013), sin Streamlit. |
-| `lib/theme.py` | Dueño único de los design tokens y helpers de Plotly (`chart_layout`, `style_axes`, `fig_deriva`). |
+| `lib/theme.py` | Dueño único de los design tokens y helpers de Plotly (`chart_layout`, `style_axes`, `resumen_criterio`). |
 | `ui/__init__.py` | Fachada del paquete; re-exporta `_sha256_cached`. |
 | `ui/_paneles.py` | Paneles compartidos: `preflight_panel`, `shap_panel` y las tarjetas del muro. |
 | `ui/_sidebar.py` | Barra lateral: vista, unidad de test, reloj y altas de flota. Devuelve `SidebarState`. |

@@ -25,8 +25,8 @@ from src.mia import reglas as R_REGLAS
 
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
 from app.lib.theme import (
-    CHART_CONFIG, INK, MUTED, MUTED_LINE, GRID, SURFACE, SKY, ROSE, ROSE_SOFT,
-    caption_deriva_vida, fig_deriva_vida,
+    CHART_CONFIG, INK, MUTED_LINE, SKY, ROSE, ROSE_SOFT,
+    caption_deriva_vida, fig_deriva_vida, resumen_criterio,
 )
 
 from app.lib.context import AppCtx
@@ -55,12 +55,9 @@ def _tab_motor(ctx: AppCtx) -> None:
     current = ctx.current
     wu = ctx.wu
     coverage = ctx.coverage
-    critical_start = ctx.critical_start
-    max_life = ctx.max_life
     chart_layout = ctx.chart_layout
     style_axes = ctx.style_axes
     shap_panel = ctx.shap_panel
-    fig_deriva = ctx.fig_deriva
     st_badge_estado = ctx.st_badge_estado
     _etiqueta_unidad = etiqueta_unidad
     _registro = registro
@@ -79,144 +76,67 @@ def _tab_motor(ctx: AppCtx) -> None:
             "la traza de la regla y el ciclo de vida del hangar. El gemelo "
             "registrado tiene su propio panel, arriba."
         )
-        _gauge_col, _decision_col = st.columns([1, 2])
-        with _gauge_col:
-            _gauge = go.Figure(
-                go.Indicator(
-                    mode="gauge+number",
-                    value=round(_pred_g, 1),
-                    number={"suffix": " ciclos", "font": {"color": INK, "size": 26}},
-                    title={"text": "RUL restante", "font": {"color": MUTED, "size": 13}},
-                    gauge={
-                        "axis": {"range": [0, max_life], "tickfont": {"color": MUTED}},
-                        "bar": {"color": SKY, "thickness": 0.4},
-                        "bgcolor": SURFACE,
-                        "bordercolor": GRID,
-                        "steps": [
-                            {"range": [0, threshold_aog],
-                             "color": "rgba(248,113,113,0.28)"},
-                            {"range": [threshold_aog, threshold_apto],
-                             "color": "rgba(245,158,11,0.22)"},
-                            {"range": [threshold_apto, max_life],
-                             "color": "rgba(52,211,153,0.22)"},
-                        ],
-                        "threshold": {"line": {"color": ROSE, "width": 3},
-                                      "thickness": 0.7, "value": threshold_aog},
-                    },
-                )
-            )
-            _gauge.update_layout(**chart_layout(height=240, showlegend=False,
-                                                margin=dict(l=18, r=18, t=46, b=8)))
-            st.plotly_chart(
-                _gauge, theme=None, config=CHART_CONFIG,
-                alt=f"Gauge de RUL restante de {_etiqueta_g}: {_pred_g:.1f} ciclos, con "
-                    f"la zona de hangar por debajo de {threshold_aog:.0f} sombreada.",
-            )
-        with _decision_col:
-            st_badge_estado(_fila_g["state"])
-            with st.container(horizontal=True):
-                st.metric("RUL p35 (conservadora)",
-                          f"{_pred_g:.1f}" if pd.notna(_fila_g["pred"]) else "—",
-                          "cuantil 0.35", border=True, delta_color="off",
-                          icon=":material/speed:",
-                          help="Cuantil 0.35 de la RUL (ADR-003): conservador. "
-                               "El estado lo decide L_inf, el limite inferior de la banda.")
-                st.metric("L_inf (decide)",
-                          f"{_lo_g:.1f}" if pd.notna(_fila_g["lower"]) else "—",
-                          "ciclos", border=True, delta_color="off",
-                          icon=":material/trending_down:")
-                st.metric("Regla que decide", str(_fila_g["rule"] or "(ninguna)"),
-                          "pasada A · mia.motor", border=True, delta_color="off",
-                          icon=":material/rule:")
-            if pd.notna(_lo_g):
-                _r9 = R_REGLAS.si_R9_HANGAR({"limite_inferior": float(_lo_g), "alertas_datos": [], "umbrales": {"apto": float(umbrales["apto"]), "hangar": float(umbrales["hangar"])}})
-                if _r9:
-                    st.caption(f"R9 evaluada: Sí (L_inf {_lo_g:.1f} < {float(umbrales['hangar']):.0f}): dispara y gana")
-                else:
-                    st.caption(f"R9 evaluada: No (L_inf {_lo_g:.1f} >= {float(umbrales['hangar']):.0f}): evaluada, no dispara")
-                for linea in UR.traza_decision(_lo_g, umbrales)["porque"]:
-                    st.caption(linea)
-            _registro_g = registros.get(F.clave_de(float(unit), _registro()))
-            if _registro_g:
-                st.markdown(
-                    f"**Ciclo de vida del hangar**: "
-                    f"{HGR.ETIQUETAS.get(_registro_g['estado'], _registro_g['estado'])}"
-                    f" · abierto en el ciclo {_registro_g['entrada']['ciclo']} con "
-                    f"`L_inf = {_registro_g['entrada']['lower']:.1f}`."
-                )
+        st_badge_estado(_fila_g["state"])
+        with st.container(horizontal=True):
+            st.metric("RUL p35 (conservadora)",
+                      f"{_pred_g:.1f}" if pd.notna(_fila_g["pred"]) else "—",
+                      "cuantil 0.35", border=True, delta_color="off",
+                      icon=":material/speed:",
+                      help="Cuantil 0.35 de la RUL (ADR-003): conservador. "
+                           "El estado lo decide L_inf, el limite inferior de la banda.")
+            st.metric("L_inf (decide)",
+                      f"{_lo_g:.1f}" if pd.notna(_fila_g["lower"]) else "—",
+                      "ciclos", border=True, delta_color="off",
+                      icon=":material/trending_down:")
+            st.metric("Regla que decide", str(_fila_g["rule"] or "(ninguna)"),
+                      "pasada A · mia.motor", border=True, delta_color="off",
+                      icon=":material/rule:")
+        if pd.notna(_lo_g):
+            _r9 = R_REGLAS.si_R9_HANGAR({"limite_inferior": float(_lo_g), "alertas_datos": [], "umbrales": {"apto": float(umbrales["apto"]), "hangar": float(umbrales["hangar"])}})
+            if _r9:
+                st.caption(f"R9 evaluada: Sí (L_inf {_lo_g:.1f} < {float(umbrales['hangar']):.0f}): dispara y gana")
             else:
-                st.markdown("**Ciclo de vida del hangar**: sin registro abierto.")
-            _bloqueada = next(
-                (u for u in order["unidades"] if int(u["unidad"]) == int(unit)), None)
-            if _bloqueada:
-                st.markdown(
-                    f"**Orden de trabajo**: derivación a hangar · "
-                    f"`L_inf {_bloqueada['limite_inferior']:.1f}` < {threshold_aog:.0f} · "
-                    f"{_bloqueada['accion']}"
-                )
-            else:
-                st.markdown(
-                    "**Orden de trabajo**: ninguna para este motor en el ciclo del reloj.")
-        # Radiografía de sensores: la misma señal que en su pestaña, sin salir de aquí.
+                st.caption(f"R9 evaluada: No (L_inf {_lo_g:.1f} >= {float(umbrales['hangar']):.0f}): evaluada, no dispara")
+            for linea in UR.traza_decision(_lo_g, umbrales)["porque"]:
+                st.caption(linea)
+        _registro_g = registros.get(F.clave_de(float(unit), _registro()))
+        if _registro_g:
+            st.markdown(
+                f"**Ciclo de vida del hangar**: "
+                f"{HGR.ETIQUETAS.get(_registro_g['estado'], _registro_g['estado'])}"
+                f" · abierto en el ciclo {_registro_g['entrada']['ciclo']} con "
+                f"`L_inf = {_registro_g['entrada']['lower']:.1f}`."
+            )
+        else:
+            st.markdown("**Ciclo de vida del hangar**: sin registro abierto.")
+        _bloqueada = next(
+            (u for u in order["unidades"] if int(u["unidad"]) == int(unit)), None)
+        if _bloqueada:
+            st.markdown(
+                f"**Orden de trabajo**: derivación a hangar · "
+                f"`L_inf {_bloqueada['limite_inferior']:.1f}` < {threshold_aog:.0f} · "
+                f"{_bloqueada['accion']}"
+            )
+        else:
+            st.markdown(
+                "**Orden de trabajo**: ninguna para este motor en el ciclo del reloj.")
+        # Radiografía alineada por RUL: solo grupos con señal resoluble. Las
+        # presiones no pasan el suelo de resolución (su error de baseline supera
+        # su cambio vital), así que se cierran con una conclusión calculada.
         _presiones = L.CHANNEL_GROUPS["Presiones"]
         _temp_clave = ["T24", "T2", "T50"]
-        _canales_radio = _presiones + _temp_clave
+        _canales_radio = _temp_clave + _presiones
         _frame_vida, _resumen_vida = L.drift_por_rul(_canales_radio)
-        _per_cycle_g = (
-            telemetry[telemetry["unit"] == unit]
-            .groupby("cycle", as_index=False)[_presiones]
-            .mean(numeric_only=True)
-        )
-        if not _per_cycle_g.empty:
+        if not _frame_vida.empty:
             st.plotly_chart(
-                fig_deriva(_per_cycle_g, _presiones,
-                           int(_per_cycle_g["cycle"].max()),
-                           critical_start, threshold_aog, height=280),
+                fig_deriva_vida(_frame_vida, _resumen_vida, _temp_clave,
+                                 threshold_aog),
                 theme=None, config=CHART_CONFIG,
-                alt=f"Radiografía de sensores de {_etiqueta_g}: deriva porcentual de las "
-                    "presiones frente a su línea base sana.",
+                alt="Deriva media de las temperaturas frente a su línea base sana, "
+                    "alineada por el RUL real y promediada sobre las unidades test.",
             )
-            st.caption(
-                "Radiografía de sensores (presiones) respecto a la línea base sana del "
-                "propio motor: la señal física bruta, antes de que el modelo la lea."
-            )
-            if not _frame_vida.empty:
-                st.plotly_chart(
-                    fig_deriva_vida(_frame_vida, _resumen_vida, _presiones,
-                                     threshold_aog),
-                    theme=None, config=CHART_CONFIG,
-                    alt="Deriva media de las presiones frente a su línea base sana, "
-                        "alineada por el RUL real y promediada sobre las unidades test.",
-                )
-                st.caption(caption_deriva_vida(_resumen_vida, _presiones))
-        # app-ux-bundle-fix: radiografía de temperaturas T24 · T2 · T50.
-        _per_cycle_t = (
-            telemetry[telemetry["unit"] == unit]
-            .groupby("cycle", as_index=False)[_temp_clave]
-            .mean(numeric_only=True)
-        )
-        if not _per_cycle_t.empty:
-            st.plotly_chart(
-                fig_deriva(_per_cycle_t, _temp_clave,
-                           int(_per_cycle_t["cycle"].max()),
-                           critical_start, threshold_aog, height=280),
-                theme=None, config=CHART_CONFIG,
-                alt=f"Radiografía de temperaturas T24, T2 y T50 de {_etiqueta_g}: "
-                    "deriva porcentual frente a la línea base sana.",
-            )
-            st.caption(
-                "Radiografía de temperaturas T24 (salida LPC) · T2 (entrada del fan) · "
-                "T50 (salida LPT): estaciones físicas del dataset N-CMAPSS."
-            )
-            if not _frame_vida.empty:
-                st.plotly_chart(
-                    fig_deriva_vida(_frame_vida, _resumen_vida, _temp_clave,
-                                     threshold_aog),
-                    theme=None, config=CHART_CONFIG,
-                    alt="Deriva media de las temperaturas frente a su línea base sana, "
-                        "alineada por el RUL real y promediada sobre las unidades test.",
-                )
-                st.caption(caption_deriva_vida(_resumen_vida, _temp_clave))
+            st.caption(caption_deriva_vida(_resumen_vida, _temp_clave))
+            st.caption("Presiones: " + resumen_criterio(_resumen_vida, _presiones))
 
     with st.container(border=True):
         st.subheader("Trayectoria de RUL y banda conformal", icon=":material/ssid_chart:")

@@ -182,55 +182,6 @@ def style_axes(fig, x_title: str | None = None, y_title: str | None = None):
     return fig
 
 
-def fig_deriva(per_cycle: pd.DataFrame, channels: list[str], last_cycle: int,
-               critical_start: int | None, threshold_aog: float,
-               height: int = 360) -> go.Figure:
-    """Deriva porcentual de los sensores frente a la línea base sana del motor.
-
-    Extraída de la pestaña de sensores para que el gemelo la muestre sin duplicar
-    el cálculo: la misma señal, el mismo baseline y la misma anotación.
-    """
-    fig = go.Figure()
-    canales_base, etiquetas = canales_unicos(
-        [c for c in channels if c in per_cycle.columns]
-    )
-    if not canales_base:
-        return fig
-    baseline_cycles = 5
-    baseline = per_cycle.head(baseline_cycles)[canales_base].mean()
-    drift = (per_cycle[canales_base] / baseline - 1.0) * 100.0
-    for ch in canales_base:
-        fig.add_trace(
-            go.Scatter(
-                x=per_cycle["cycle"], y=drift[ch], mode="lines",
-                # Solo el codigo en la leyenda: con las descripciones largas
-                # el pressures chart envolvia 5 filas y el propio Plotly
-                # encogia el area de trazado para hacerles sitio.
-                name=etiquetas[ch], line=dict(width=2, color=COLOR_CANAL.get(ch, MUTED_LINE)),
-            )
-        )
-    fig.add_hline(y=0, line_color=MUTED, line_width=1)
-    if critical_start is not None:
-        fig.add_vrect(
-            x0=critical_start, x1=last_cycle, fillcolor=ROSE, opacity=0.12,
-            line_width=0,
-            annotation_text=f"RUL real < {threshold_aog:.0f}",
-            annotation_position="top right", annotation_font_size=11,
-            annotation_font_color=ROSE_SOFT,
-        )
-    # Mas aire arriba: con la leyenda larga el area de trazado se encoge y el
-    # titulo Y rotado necesita margen para no salirse del SVG.
-    fig.update_layout(**chart_layout(
-        height=height, hovermode="x unified",
-        margin=dict(l=_MARGEN_L, r=_MARGEN_R, t=72, b=_MARGEN_B),
-    ))
-    style_axes(
-        fig, x_title="Ciclo de vuelo",
-        y_title="% vs. baseline (5 ciclos)",
-    )
-    return fig
-
-
 def fig_deriva_vida(frame: pd.DataFrame, resumen: pd.DataFrame,
                     channels: list[str], threshold_aog: float,
                     height: int = 280) -> go.Figure:
@@ -284,6 +235,36 @@ def fig_deriva_vida(frame: pd.DataFrame, resumen: pd.DataFrame,
     return fig
 
 
+CRITERIO_DRIFT = "(|corr con el RUL| >= 0,3 y salto >= 0,5 ppt)"
+
+
+def _forma_medida(vista) -> str:
+    """Monotonicidad calculada desde el resumen, nunca un literal."""
+    if vista is None or not len(vista) or "monotono" not in vista.columns:
+        return "la forma no es monótona"
+    return ("la forma es monótona" if bool(vista["monotono"].all())
+            else "la forma no es monótona")
+
+
+def resumen_criterio(resumen, channels=None) -> str:
+    """Conclusion medible para un grupo que no supera el criterio de deriva.
+
+    Sustituye a una curva cuando el grupo no tiene senal resoluble: su error de
+    baseline supera su cambio vital.
+    """
+    if resumen is None or resumen.empty:
+        return "Sin datos para estos canales."
+    vista = resumen
+    if channels:
+        bases, _ = canales_unicos(list(channels))
+        vista = resumen.loc[resumen.index.intersection(bases)]
+    if vista.empty:
+        return "Sin datos para estos canales."
+    mayor = float(vista["salto"].abs().max())
+    return (f"Ninguno de estos canales supera el criterio {CRITERIO_DRIFT}: "
+            f"el mayor cambio entre tramos es de {mayor:.1f} ppt y {_forma_medida(vista)}.")
+
+
 def caption_deriva_vida(resumen: pd.DataFrame, channels: list[str] | None = None) -> str:
     """Frase del caption con las cifras medidas; ningun numero va escrito a mano."""
     metodo = ("Método: valor del ciclo dividido por la media de los 5 primeros ciclos "
@@ -299,17 +280,10 @@ def caption_deriva_vida(resumen: pd.DataFrame, channels: list[str] | None = None
     if vista.empty:
         return "No hay datos para estos canales. " + metodo
     destacados = vista.index[vista["resaltar"]].tolist()
-    criterio = "(|corr con el RUL| >= 0,3 y salto >= 0,5 ppt)"
+    criterio = CRITERIO_DRIFT
     if not destacados:
-        mayor = float(vista["salto"].abs().max())
-        if "monotono" in vista.columns and len(vista):
-            forma = ("la forma es monótona" if bool(vista["monotono"].all())
-                     else "la forma no es monótona")
-        else:
-            forma = "la forma no es monótona"
-        return (f"Deriva media de las unidades test alineada por RUL real. Ninguno de "
-                f"estos canales supera el criterio de deriva {criterio}: el mayor cambio "
-                f"entre tramos es de {mayor:.1f} ppt y {forma}. " + metodo)
+        return ("Deriva media de las unidades test alineada por RUL real. "
+                + resumen_criterio(resumen, channels) + " " + metodo)
     cifras = ", ".join(
         f"{canal} {vista.loc[canal, 'salto']:+.2f} ppt" for canal in destacados
     )
