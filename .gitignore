@@ -98,6 +98,9 @@ notebooks/artifacts_c.bak-2026-11-09/
 .atl/
 .freebuff/
 .hermes/
+# local agent skill packs and generated scratch captures — never deliverable
+.agents/
+scratch/
 
 # fleet records persisted by the Streamlit UI (per-machine state)
 app/registros_flota.json
