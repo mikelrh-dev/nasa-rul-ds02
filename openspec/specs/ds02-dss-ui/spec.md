@@ -189,6 +189,15 @@ the selector. It SHALL plot the per-cycle evolution of the selected channels and
 SHALL mark the critical band where the true RUL is below the AOG threshold — the
 same `[0, 25)` band the metrics use.
 
+It SHALL also plot, under the per-cycle view, a cross-unit aggregate view of the same
+selected channels aligned by the real RUL of each cycle and averaged over every test unit
+present in the cache. That view SHALL highlight the channels with a measured sustained
+drift and SHALL dim the rest. Its caption SHALL state the measured drift of those
+channels as percentage points between the first and last RUL bin, together with the
+method (cycle value divided by the mean of the unit's first five cycles, minus one, in
+percent) and the source (`app/cache/`). The figures in the caption SHALL be computed from
+the same frame the chart draws and SHALL NOT be hardcoded literals.
+
 #### Scenario: Names come from the file, not from FD001
 
 - GIVEN the operating-condition and sensor selectors
@@ -202,6 +211,23 @@ same `[0, 25)` band the metrics use.
 - WHEN the chart is drawn
 - THEN the cycles whose true RUL is below the AOG threshold are shaded
 - AND the drift of the signal into that region is readable
+
+#### Scenario: The life-aligned view is present and aggregated
+
+- GIVEN telemetry rows for every test unit in the cache
+- WHEN the sensor tab renders the aligned view
+- THEN each selected channel is drawn against the real RUL of its cycle
+- AND the values are averaged across units within each RUL bin
+- AND the channels with a measured sustained drift are visually distinguished from the
+  others
+
+#### Scenario: The stated finding matches the drawn data
+
+- GIVEN the aligned frame
+- WHEN the caption is composed
+- THEN the percentage-point figures equal the difference between the first and last RUL
+  bin means of that frame
+- AND the caption names the method and the cache as its source
 
 ### Requirement: Engine-14 honesty panel
 
