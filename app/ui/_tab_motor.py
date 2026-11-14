@@ -26,6 +26,7 @@ from src.mia import reglas as R_REGLAS
 # Design tokens: dueno `theme.py` (el dashboard tambien los importa de ahi).
 from app.lib.theme import (
     CHART_CONFIG, INK, MUTED, MUTED_LINE, GRID, SURFACE, SKY, ROSE, ROSE_SOFT,
+    caption_deriva_vida, fig_deriva_vida,
 )
 
 from app.lib.context import AppCtx
@@ -158,6 +159,9 @@ def _tab_motor(ctx: AppCtx) -> None:
                     "**Orden de trabajo**: ninguna para este motor en el ciclo del reloj.")
         # Radiografía de sensores: la misma señal que en su pestaña, sin salir de aquí.
         _presiones = L.CHANNEL_GROUPS["Presiones"]
+        _temp_clave = ["T24", "T2", "T50"]
+        _canales_radio = _presiones + _temp_clave
+        _frame_vida, _resumen_vida = L.drift_por_rul(_canales_radio)
         _per_cycle_g = (
             telemetry[telemetry["unit"] == unit]
             .groupby("cycle", as_index=False)[_presiones]
@@ -176,8 +180,16 @@ def _tab_motor(ctx: AppCtx) -> None:
                 "Radiografía de sensores (presiones) respecto a la línea base sana del "
                 "propio motor: la señal física bruta, antes de que el modelo la lea."
             )
+            if not _frame_vida.empty:
+                st.plotly_chart(
+                    fig_deriva_vida(_frame_vida, _resumen_vida, _presiones,
+                                     threshold_aog),
+                    theme=None, config=CHART_CONFIG,
+                    alt="Deriva media de las presiones frente a su línea base sana, "
+                        "alineada por el RUL real y promediada sobre las unidades test.",
+                )
+                st.caption(caption_deriva_vida(_resumen_vida, _presiones))
         # app-ux-bundle-fix: radiografía de temperaturas T24 · T2 · T50.
-        _temp_clave = ["T24", "T2", "T50"]
         _per_cycle_t = (
             telemetry[telemetry["unit"] == unit]
             .groupby("cycle", as_index=False)[_temp_clave]
@@ -196,6 +208,15 @@ def _tab_motor(ctx: AppCtx) -> None:
                 "Radiografía de temperaturas T24 (salida LPC) · T2 (entrada del fan) · "
                 "T50 (salida LPT): estaciones físicas del dataset N-CMAPSS."
             )
+            if not _frame_vida.empty:
+                st.plotly_chart(
+                    fig_deriva_vida(_frame_vida, _resumen_vida, _temp_clave,
+                                     threshold_aog),
+                    theme=None, config=CHART_CONFIG,
+                    alt="Deriva media de las temperaturas frente a su línea base sana, "
+                        "alineada por el RUL real y promediada sobre las unidades test.",
+                )
+                st.caption(caption_deriva_vida(_resumen_vida, _temp_clave))
 
     with st.container(border=True):
         st.subheader("Trayectoria de RUL y banda conformal", icon=":material/ssid_chart:")

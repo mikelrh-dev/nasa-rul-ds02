@@ -123,6 +123,100 @@ def fmt_miles(n: int | float) -> str:
     return f"{int(n):,}".replace(",", ".")
 
 
+# Umbral de correlacion con el RUL real para que un canal se destaque en la vista
+# alineada. Se calcula, no es una lista fija: si la cache cambia, el resaltado sigue
+# a los datos.
+# Umbrales de destaque, iguales para todos los canales: correlacion de la deriva
+# media por tramo de RUL con el tramo, y salto minimo en puntos porcentuales.
+DRIFT_DESTACO_CORR = 0.3
+DRIFT_SALTO_MIN = 0.5
+# Minimo de observaciones para que un tramo de RUL entre en el resumen.
+MIN_MUESTRAS_BIN = 5
+
+
+def drift_por_rul(channels: list[str], bin_width: int = 10):
+    """Deriva % de cada canal respecto a la baseline de su unidad, alineada por RUL real.
+
+    Para cada unidad y canal: media por ciclo, baseline = media de sus 5 primeros
+    ciclos (la misma definicion que `fig_deriva`), deriva = (valor / baseline - 1) * 100.
+    El RUL del ciclo es el minimo de las ventanas que empiezan en ese ciclo.
+
+    Devuelve `(frame, resumen)`:
+      frame   -> unit, cycle, rul, canal, deriva, bin, rul_centro
+      resumen -> por canal: inicio_vida, fin_vida, salto, corr_rul, resaltar
+    """
+    columnas = ["unit", "cycle", "rul", "canal", "deriva", "bin", "rul_centro"]
+    resumen_vacio = pd.DataFrame(
+        columns=["inicio_vida", "fin_vida", "salto", "corr_rul", "resaltar"]
+    )
+    filas = get_rows()
+    ventanas = get_windows()
+    if filas.empty or ventanas.empty:
+        return pd.DataFrame(columns=columnas), resumen_vacio
+
+    rul_de_ciclo = ventanas.groupby(["unit", "cycle"], as_index=False)["y_true"].min()
+    trozos = []
+    for unidad, grupo in filas.groupby("unit"):
+        por_ciclo = (
+            grupo.groupby("cycle", as_index=False)[list(channels)]
+            .mean(numeric_only=True)
+            .sort_values("cycle")
+        )
+        baseline = por_ciclo.head(5)[list(channels)].mean()
+        deriva = por_ciclo.copy()
+        deriva[list(channels)] = (por_ciclo[list(channels)] / baseline - 1.0) * 100.0
+        largo = deriva.melt(id_vars=["cycle"], value_vars=list(channels),
+                            var_name="canal", value_name="deriva")
+        largo.insert(0, "unit", int(unidad))
+        trozos.append(largo)
+
+    frame = (pd.concat(trozos, ignore_index=True) if trozos
+             else pd.DataFrame(columns=["unit", "cycle", "canal", "deriva"]))
+    frame["cycle"] = frame["cycle"].astype(int)
+    frame = frame.merge(
+        rul_de_ciclo.rename(columns={"y_true": "rul"}),
+        on=["unit", "cycle"], how="left",
+    ).dropna(subset=["rul", "deriva"]).copy()
+    frame["rul"] = frame["rul"].astype(float)
+    frame["bin"] = (frame["rul"] // bin_width).astype(int)
+    frame["rul_centro"] = frame["bin"] * bin_width + bin_width / 2.0
+    frame = frame[columnas].sort_values(["canal", "unit", "cycle"]).reset_index(drop=True)
+
+    # Tramos con menos de MIN_MUESTRAS_BIN observaciones no son fiables: el extremo
+    # de RUL alto solo lo alcanzan las unidades mas longevas y con 4 filas el
+    # promedio es ruido.
+    agregado = (
+        frame.groupby(["bin", "canal"], as_index=False)
+        .agg(media=("deriva", "mean"), n=("deriva", "size"))
+    )
+    validos = agregado[agregado["n"] >= MIN_MUESTRAS_BIN]
+    filas_resumen = []
+    for canal in channels:
+        serie = validos[validos["canal"] == canal].sort_values("bin")
+        puntos = frame.loc[frame["canal"] == canal]
+        if serie.empty or puntos.empty:
+            continue
+        # Bins en RUL ascendente: el mas alto es el inicio de vida y el mas bajo el
+        # final. Salto positivo = el sensor sube al acercarse el fallo.
+        inicio = float(serie["media"].iloc[-1])
+        fin = float(serie["media"].iloc[0])
+        corr = float(puntos["deriva"].corr(puntos["rul"]))
+        salto = fin - inicio
+        filas_resumen.append({
+            "canal": canal, "inicio_vida": inicio, "fin_vida": fin,
+            "salto": salto, "corr_rul": corr,
+            "resaltar": abs(corr) >= DRIFT_DESTACO_CORR
+            and abs(salto) >= DRIFT_SALTO_MIN,
+        })
+    tabla = pd.DataFrame(
+        filas_resumen,
+        columns=["canal", "inicio_vida", "fin_vida", "salto", "corr_rul", "resaltar"],
+    )
+    if tabla.empty:
+        return frame, resumen_vacio
+    return frame, tabla.set_index("canal")
+
+
 # --------------------------------------------------------------------- readers
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_windows() -> pd.DataFrame:

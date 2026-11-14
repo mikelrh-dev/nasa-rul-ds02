@@ -179,3 +179,82 @@ def fig_deriva(per_cycle: pd.DataFrame, channels: list[str], last_cycle: int,
         y_title="% vs. baseline (5 ciclos)",
     )
     return fig
+
+
+# Color de los canales que si derivan cuando hay mas de uno; el orden lo da la
+# seleccion, no el diccionario.
+COLORES_DESTACO = [SKY, AMBER, ROSE]
+
+
+def fig_deriva_vida(frame: pd.DataFrame, resumen: pd.DataFrame,
+                    channels: list[str], threshold_aog: float,
+                    height: int = 280) -> go.Figure:
+    """Deriva media por tramo de RUL real, agregada sobre las unidades de la cache.
+
+    La x va en RUL real invertido (vida alta a la izquierda, fallo a la derecha) para
+    que la zona critica quede donde termina la vida del motor.
+    """
+    fig = go.Figure()
+    if frame is None or frame.empty or resumen is None or resumen.empty:
+        return fig
+    destacados = set(resumen.index[resumen["resaltar"]]) \
+        if "resaltar" in resumen.columns else set()
+    colores = {
+        canal: COLORES_DESTACO[i % len(COLORES_DESTACO)]
+        for i, canal in enumerate(c for c in channels if c in destacados)
+    }
+    for canal in channels:
+        serie = (
+            frame[frame["canal"] == canal]
+            .groupby("rul_centro", as_index=False)["deriva"].mean()
+            .sort_values("rul_centro")
+        )
+        if serie.empty:
+            continue
+        es_destacado = canal in destacados
+        fig.add_trace(go.Scatter(
+            x=serie["rul_centro"], y=serie["deriva"], mode="lines",
+            name=canal,
+            line=dict(width=2.5 if es_destacado else 1.2,
+                      color=colores.get(canal, MUTED_LINE)),
+        ))
+    fig.add_hline(y=0, line_color=MUTED, line_width=1)
+    fig.add_vrect(
+        x0=0, x1=threshold_aog, fillcolor=ROSE, opacity=0.12, line_width=0,
+        annotation_text=f"RUL real < {threshold_aog:.0f}",
+        annotation_position="top right", annotation_font_size=11,
+        annotation_font_color=ROSE_SOFT,
+    )
+    # Mismo margen superior amplio que la vista por ciclo: el titulo Y rotado es
+    # largo y con 44 px se sale del viewport del SVG.
+    fig.update_layout(**chart_layout(
+        height=height, hovermode="x unified",
+        margin=dict(l=_MARGEN_L, r=_MARGEN_R, t=72, b=_MARGEN_B),
+    ))
+    style_axes(fig, x_title="RUL real (ciclos)",
+               y_title="% vs. baseline (5 ciclos)")
+    fig.update_xaxes(autorange="reversed")
+    return fig
+
+
+def caption_deriva_vida(resumen: pd.DataFrame, channels: list[str] | None = None) -> str:
+    """Frase del caption con las cifras medidas; ningun numero va escrito a mano."""
+    metodo = ("Método: valor del ciclo dividido por la media de los 5 primeros ciclos "
+              "del propio motor, menos 1, en %. Fuente: app/cache (ds02_rows y "
+              "ds02_windows).")
+    if resumen is None or resumen.empty:
+        return ("Deriva media de las unidades test alineada por RUL real. " + metodo)
+    vista = resumen.loc[resumen.index.intersection(channels)] if channels else resumen
+    if vista.empty:
+        return "No hay datos para estos canales. " + metodo
+    destacados = vista.index[vista["resaltar"]].tolist()
+    if not destacados:
+        return ("Deriva media de las unidades test alineada por RUL real. Ninguno de "
+                "estos canales muestra una deriva sostenida: oscila con las condiciones "
+                "de vuelo. " + metodo)
+    cifras = ", ".join(
+        f"{canal} {vista.loc[canal, 'salto']:+.2f} ppt" for canal in destacados
+    )
+    return (f"Deriva media de las unidades test alineada por RUL real. Solo {cifras} "
+            f"muestra una deriva sostenida entre el primer y el último tramo de vida; "
+            f"el resto oscila con las condiciones de vuelo. " + metodo)
