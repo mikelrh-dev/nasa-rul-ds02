@@ -198,6 +198,14 @@ method (cycle value divided by the mean of the unit's first five cycles, minus o
 percent) and the source (`app/cache/`). The figures in the caption SHALL be computed from
 the same frame the chart draws and SHALL NOT be hardcoded literals.
 
+Every channel SHALL keep one colour across the per-cycle view and the aligned view, so a
+series can be followed without re-reading the legend. Channels measured as duplicates on
+the cache (correlation 1.000 across the test units) SHALL be drawn once, under a label
+naming both codes, instead of as two overlapping traces. For a selection in which no
+channel meets the drift criterion, the caption SHALL state the largest measured change
+between RUL bins and whether the shape is monotone, and SHALL NOT attribute the movement
+to a cause the view does not compute.
+
 #### Scenario: Names come from the file, not from FD001
 
 - GIVEN the operating-condition and sensor selectors
@@ -228,6 +236,26 @@ the same frame the chart draws and SHALL NOT be hardcoded literals.
 - THEN the percentage-point figures equal the difference between the first and last RUL
   bin means of that frame
 - AND the caption names the method and the cache as its source
+
+#### Scenario: Duplicated channels are not drawn twice
+
+- GIVEN a channel group that contains a measured duplicate pair
+- WHEN the radiography renders
+- THEN the pair appears as one trace
+- AND its label names both channel codes
+
+#### Scenario: One colour per channel in both views
+
+- GIVEN the same channel code visible in the per-cycle view and in the aligned view
+- WHEN both charts render
+- THEN the channel carries the same colour in both
+
+#### Scenario: The caption does not assert what it cannot compute
+
+- GIVEN a selection where no channel meets the drift criterion
+- WHEN the caption is composed
+- THEN it reports the largest measured bin change and whether the shape is monotone
+- AND it does not attribute the movement to a cause such as flight conditions
 
 ### Requirement: Engine-14 honesty panel
 
