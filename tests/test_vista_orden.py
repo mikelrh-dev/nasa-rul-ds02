@@ -17,7 +17,16 @@ APP = os.path.join(ROOT, "app")
 sys.path.insert(0, ROOT)
 
 from app.lib import simulacion as S  # noqa: E402
+from app.lib import ui_data_loader as L  # noqa: E402
+from app.lib import ui_inference as INF  # noqa: E402
 from app.lib import vista_orden as VO  # noqa: E402
+
+DASHBOARD = os.path.join(APP, "entrypoints", "dashboard_ds02.py")
+
+needs_cache = pytest.mark.skipif(
+    not L.cache_available(),
+    reason="app/cache missing — run `python scripts/build/build_ui_cache.py`",
+)
 
 
 # --------------------------------------------------------------- vista de la orden
@@ -109,3 +118,31 @@ def test_cada_rejilla_declara_su_descripcion():
                 faltan.append(f"{ruta}:{nodo.lineno}")
 
     assert not faltan, f"rejillas sin alt=: {faltan}"
+
+
+# ------------------------------------------------- rotulo visible del triage de lote
+@needs_cache
+def test_el_triage_del_lote_lleva_rotulo_visible():
+    from streamlit.testing.v1 import AppTest
+
+    tabla, _ = INF.example_window(14, 0.55)
+    tabla.insert(0, "unit_id", "ESN-LOTE-01")
+    csv = tabla.to_csv(index=False)
+
+    app = AppTest.from_file(DASHBOARD, default_timeout=180)
+    app.run()
+    assert not app.exception, app.exception
+
+    modo = next(c for c in app.segmented_control if c.key == "lote_mode")
+    modo.set_value("Pegar CSV por bloques").run()
+    assert not app.exception, app.exception
+
+    area = next(a for a in app.text_area if (a.label or "").startswith("CSV con columna"))
+    area.set_value(csv).run()
+    assert not app.exception, app.exception
+    boton = next(b for b in app.button if "Puntuar" in (b.proto.label or ""))
+    boton.click().run()
+    assert not app.exception, app.exception
+
+    texto = "\n".join([m.value for m in app.markdown] + [c.value for c in app.caption])
+    assert "Triage del lote" in texto

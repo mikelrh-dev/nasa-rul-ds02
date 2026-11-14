@@ -46,8 +46,8 @@ Chain strategy: pending
 
 ## Phase 4: Gate and visual evidence
 
-- [ ] 4.1 Run `python -m pytest tests -q` and record exit code and counts.
-- [ ] 4.2 Capture Flota at cycle 31 (blocked units) and Casos; confirm readable preview, honest countdown and labels.
+- [x] 4.1 Run `python -m pytest tests -q` and record exit code and counts — 494 passed, 3 pre-existing MLflow failures.
+- [x] 4.2 Capture Flota at cycle 31 (blocked units) and Casos; confirm readable preview, honest countdown and labels — capture saved, no braces, «ya por debajo» for U11/U15, label verified live (Flota) and by integration test (Casos).
 
 ## Phase 5: Verify and archive
 
