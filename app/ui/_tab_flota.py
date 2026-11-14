@@ -88,7 +88,6 @@ def _tab_flota(ctx: AppCtx) -> None:
     preset_vals = ctx.preset_vals
     banda_en_uso = ctx.banda_en_uso
     correccion_en_uso = ctx.correccion_en_uso
-    vista_tribunal = ctx.vista_tribunal
     etiqueta_unidad = ctx.etiqueta_unidad
     registro = ctx.registro
     slug_motor = ctx.slug_motor
@@ -97,7 +96,6 @@ def _tab_flota(ctx: AppCtx) -> None:
     style_axes = ctx.style_axes
     _PRESETS = presets
     _preset_vals = preset_vals
-    _vista_tribunal = vista_tribunal
     _etiqueta_unidad = etiqueta_unidad
     _registro = registro
     _slug_motor = slug_motor
@@ -307,37 +305,36 @@ def _tab_flota(ctx: AppCtx) -> None:
 
     def _registro_de_sesion() -> None:
         """Registro de las acciones de la sesion."""
-        if _vista_tribunal:
-            with st.expander("Registro de sesión · qué se ha hecho en esta sesión",
-                             icon=":material/receipt_long:"):
-                _log_sesion = st.session_state.get("_sesion_log") or []
-                if not _log_sesion:
-                    st.caption(
-                        "Todavía no has hecho nada en esta sesión. El registro se llena con "
-                        "cada acción discreta: altas, escenarios, lotes y gemelos."
+        with st.expander("Registro de sesión · qué se ha hecho en esta sesión",
+                         icon=":material/receipt_long:"):
+            _log_sesion = st.session_state.get("_sesion_log") or []
+            if not _log_sesion:
+                st.caption(
+                    "Todavía no has hecho nada en esta sesión. El registro se llena con "
+                    "cada acción discreta: altas, escenarios, lotes y gemelos."
+                )
+            else:
+                st.dataframe(
+                    pd.DataFrame(_log_sesion),
+                    hide_index=True,
+                    column_config={
+                        "at": st.column_config.TextColumn("Cuándo"),
+                        "que": st.column_config.TextColumn("Qué"),
+                    },
+                    alt="Registro de sesión: las acciones hechas, con su fecha.",
+                )
+                with st.container(horizontal=True):
+                    st.download_button(
+                        "Descargar registro (CSV)",
+                        data=pd.DataFrame(_log_sesion).to_csv(index=False),
+                        file_name="registro_sesion_ds02.csv",
+                        mime="text/csv",
+                        icon=":material/download:",
                     )
-                else:
-                    st.dataframe(
-                        pd.DataFrame(_log_sesion),
-                        hide_index=True,
-                        column_config={
-                            "at": st.column_config.TextColumn("Cuándo"),
-                            "que": st.column_config.TextColumn("Qué"),
-                        },
-                        alt="Registro de sesión: las acciones hechas, con su fecha.",
-                    )
-                    with st.container(horizontal=True):
-                        st.download_button(
-                            "Descargar registro (CSV)",
-                            data=pd.DataFrame(_log_sesion).to_csv(index=False),
-                            file_name="registro_sesion_ds02.csv",
-                            mime="text/csv",
-                            icon=":material/download:",
-                        )
-                        if st.button("Vaciar registro", icon=":material/delete:",
-                                     key="sesion_vaciar"):
-                            st.session_state["_sesion_log"] = []
-                            st.rerun()
+                    if st.button("Vaciar registro", icon=":material/delete:",
+                                 key="sesion_vaciar"):
+                        st.session_state["_sesion_log"] = []
+                        st.rerun()
 
     def _cola_de_mantenimiento() -> None:
         """Tabla de la cola con el porque de cada estado."""
@@ -446,29 +443,28 @@ def _tab_flota(ctx: AppCtx) -> None:
 
     def _traza_de_reglas() -> None:
         """Traza de la pasada A sobre la unidad seleccionada."""
-        if _vista_tribunal:
-            with st.container(border=True):
-                st.subheader("Motor de reglas · traza del caso", icon=":material/rule:")
-                fila = snapshot[snapshot["unit"] == unit].iloc[0]
-                st.caption(
-                    "Pasada A de `mia.motor` sobre la unidad seleccionada: la misma función del "
-                    "cuaderno de práctica, no una reclasificación paralela. Gana la regla de "
-                    "mayor prioridad que se cumpla."
+        with st.container(border=True):
+            st.subheader("Motor de reglas · traza del caso", icon=":material/rule:")
+            fila = snapshot[snapshot["unit"] == unit].iloc[0]
+            st.caption(
+                "Pasada A de `mia.motor` sobre la unidad seleccionada: la misma función del "
+                "cuaderno de práctica, no una reclasificación paralela. Gana la regla de "
+                "mayor prioridad que se cumpla."
+            )
+            if bool(fila["reached"]):
+                traza = UR.traza_decision(float(fila["lower"]), umbrales)
+                st.markdown(
+                    f"**U{int(unit)} · ciclo {cycle}** · `L_inf = {fila['lower']:.1f}` → "
+                    f"**{traza['decision'] or 'sin decisión'}** · reglas: "
+                    + (" → ".join(traza["usadas"]) or "(ninguna)")
                 )
-                if bool(fila["reached"]):
-                    traza = UR.traza_decision(float(fila["lower"]), umbrales)
-                    st.markdown(
-                        f"**U{int(unit)} · ciclo {cycle}** · `L_inf = {fila['lower']:.1f}` → "
-                        f"**{traza['decision'] or 'sin decisión'}** · reglas: "
-                        + (" → ".join(traza["usadas"]) or "(ninguna)")
-                    )
-                    for linea in traza["porque"]:
-                        st.caption(linea)
-                else:
-                    st.caption(
-                        "La unidad todavía no tiene ventanas evaluadas en este ciclo: el motor no "
-                        "emite una decisión que no pueda sostener."
-                    )
+                for linea in traza["porque"]:
+                    st.caption(linea)
+            else:
+                st.caption(
+                    "La unidad todavía no tiene ventanas evaluadas en este ciclo: el motor no "
+                    "emite una decisión que no pueda sostener."
+                )
     def _orden_de_trabajo() -> None:
         """Orden de trabajo y partes descargables."""
         blocked = order["unidades"]

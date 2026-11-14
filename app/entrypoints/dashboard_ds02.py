@@ -518,10 +518,6 @@ with st.container(border=True):
 # (`_informe_auditoria_pdf` + `_informe_pdf_cached`): el entrypoint importa el
 # constructor cacheado y lo pasa por `AppCtx`.
 
-# La vista la escribe el widget de la barra lateral; aquí solo se lee. Turno
-# esconde en Flota el material de demo y de auditoría.
-_vista_tribunal = str(st.session_state.get("vista_modo", "Tribunal")) == "Tribunal"
-
 # Contexto unico de la app: las pestanas reciben un objeto en vez de 18-29
 # parametros. Se construye una sola vez, tras calcular todos los globales.
 from app.lib.context import AppCtx  # noqa: E402
@@ -541,7 +537,7 @@ ctx = AppCtx(
     correccion=correccion, order=order, registros=registros,
     unidades_vistas=unidades_vistas, gemelos=gemelos,
     tarjetas_cache=tarjetas_cache, tarjetas_gemelos=tarjetas_gemelos,
-    vista_tribunal=_vista_tribunal, etiqueta_unidad=_etiqueta_unidad,
+    etiqueta_unidad=_etiqueta_unidad,
     registro=_registro, slug_motor=_slug_motor,
     guardar_registros=_guardar_registros, chart_layout=chart_layout,
     style_axes=style_axes, shap_panel=shap_panel,

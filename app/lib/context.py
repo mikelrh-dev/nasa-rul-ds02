@@ -66,7 +66,6 @@ class AppCtx:
     gemelos: dict[str, Any] | None = None
     tarjetas_cache: list[dict[str, Any]] | None = None
     tarjetas_gemelos: list[dict[str, Any]] | None = None
-    vista_tribunal: bool | None = None
 
     # ------------------------------------------------------- helpers de UI
     etiqueta_unidad: Any = None

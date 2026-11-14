@@ -379,36 +379,38 @@ def test_el_informe_de_auditoria_es_un_pdf_descargable():
     assert data.rstrip().endswith(b"%%EOF"), "PDF sin marca de fin"
 
 
-# ------------------------------------------------------------------ vista
+# ------------------------------------------------------------------ vista unica
 @needs_cache
-def test_la_vista_turno_oculta_el_material_de_tribunal():
-    """La vista de turno deja solo lo que un operario usa en su guardia.
+def test_hay_una_sola_pantalla_y_no_conmutador_de_vista():
+    """El conmutador «Vista» prometía dos audiencias y no cambiaba casi nada.
 
-    Esconde el registro de sesión (log) y la traza de reglas (auditoría).
-    Lo operativo —muro, reloj, orden de trabajo, hangar— sigue en su sitio.
+    Medido en vivo: Auditoría y Casos eran idénticos en ambos modos; solo se ocultaban
+    dos bloques dentro de Flota. Se retiró el control y la pantalla única muestra todo.
     """
     app = _app()
     app.run()
     assert not app.exception, app.exception
 
-    vista = next(c for c in app.segmented_control if c.label == "Vista")
-    assert vista.value == "Tribunal", vista.value
+    assert not [c for c in app.segmented_control if c.label == "Vista"]
 
     def _secciones(a):
         return [s.value for s in a.tabs[0].subheader]
 
-    tribunal = _secciones(app)
-    assert "Motor de reglas · traza del caso" in tribunal
+    secciones = _secciones(app)
+    assert "Motor de reglas · traza del caso" in secciones
     assert any("Registro de sesión" in (e.label or "") for e in app.tabs[0].expander)
-
-    vista.set_value("Turno").run()
-    assert not app.exception, app.exception
-
-    turno = _secciones(app)
-    assert "Motor de reglas · traza del caso" not in turno, turno
-    assert not any("Registro de sesión" in (e.label or "")
-                   for e in app.tabs[0].expander)
 
     for seccion in ("Muro del hangar", "Avanzar la flota", "Orden de trabajo",
                     "Hangar · ciclo de vida"):
-        assert seccion in turno, (seccion, turno)
+        assert seccion in secciones, (seccion, secciones)
+
+
+@needs_cache
+def test_el_sandbox_arranca_desplegado_en_la_pantalla_unica():
+    """Sin modos, el sandbox de estrés queda desplegado: es la palanca de la demo."""
+    app = _app()
+    app.run()
+    assert not app.exception, app.exception
+
+    sandbox = next(e for e in app.expander if "Sandbox de estrés" in (e.label or ""))
+    assert sandbox.proto.expanded is True

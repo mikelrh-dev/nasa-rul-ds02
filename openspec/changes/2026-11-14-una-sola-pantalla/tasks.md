@@ -24,16 +24,16 @@ Chain strategy: pending
 
 ## Phase 1: RED contracts
 
-- [ ] 1.1 Replace the switch-driven test with one asserting no «Vista» segmented control exists. Acceptance: RED.
-- [ ] 1.2 Assert session log and rule trace are always present in the single screen. Acceptance: RED while gated.
-- [ ] 1.3 Assert the sandbox expander starts expanded. Acceptance: RED.
-- [ ] 1.4 Record the failure list.
+- [x] 1.1 Replace the switch-driven test with one asserting no «Vista» segmented control exists. Acceptance: RED -> GREEN.
+- [x] 1.2 Assert session log and rule trace are always present in the single screen. Acceptance: RED while gated -> GREEN.
+- [x] 1.3 Assert the sandbox expander starts expanded. Acceptance: guard against regression (ya pasaba por el modo por defecto).
+- [x] 1.4 Record the failure list — 1 failed (el control seguía existiendo), 52 passed tras aplicar.
 
 ## Phase 2: Remove the switch
 
-- [ ] 2.1 Drop the widget, the flag, the context field and the three read sites.
-- [ ] 2.2 Dedent the gated Flota blocks; set the sandbox default.
-- [ ] 2.3 Acceptance: 1.1–1.3 green.
+- [x] 2.1 Drop the widget, the flag, the context field and the three read sites.
+- [x] 2.2 Dedent the gated Flota blocks; set the sandbox default.
+- [x] 2.3 Acceptance: 1.1–1.3 green — 52 passed en las suites afectadas.
 
 ## Phase 3: Gate and visual evidence
 

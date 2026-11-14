@@ -56,7 +56,6 @@ def _tab_casos(ctx: AppCtx) -> None:
     _guardar_registros = ctx.guardar_registros
     _log = ctx.log
     _preflight_panel = ctx.preflight_panel
-    _vista_tribunal = ctx.vista_tribunal
     shap_panel = ctx.shap_panel
     threshold_aog = ctx.threshold_aog
     threshold_apto = ctx.threshold_apto
@@ -994,7 +993,7 @@ def _tab_casos(ctx: AppCtx) -> None:
     def _sandbox_de_estres() -> None:
         """Sandbox de estres en vivo."""
         with st.expander("Sandbox de estrés · perturba el motor y mira el pipeline reaccionar",
-                         icon=":material/tune:", expanded=_vista_tribunal):
+                         icon=":material/tune:", expanded=True):
             st.caption(
                 "El tribunal mueve el deslizador y la app re-puntúa el tramo con el "
                 "artefacto congelado y re-decide con el motor oficial. No se reentrena "
