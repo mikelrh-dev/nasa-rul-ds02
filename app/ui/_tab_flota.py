@@ -38,8 +38,9 @@ from app.lib import rules as UR
 from app.lib.theme import (
     CHART_CONFIG, SKY, ROSE,
     STATE_BG, RANGO_ESTADO,
-    BADGE_COLOR, BADGE_ICON,
+    BADGE_COLOR, BADGE_ICON, nombra_grid,
 )
+from app.lib.vista_orden import tabla_orden
 from app.lib.ui_format import (
     dos_decimales, entero, formatea, un_decimal,
 )
@@ -292,10 +293,16 @@ def _tab_flota(ctx: AppCtx) -> None:
                             for u in sorted(_retenidos)))
                 else:
                     st.caption("Toda la flota puede volar en este ciclo.")
+            _actuales = {
+                int(r.unit): float(r.lower)
+                for r in _decidido[_decidido["cycle"] == cycle].itertuples()
+                if pd.notna(r.lower)
+            }
+            _resumen_faltan = S.resumen_ciclos_hasta_fallo(
+                _faltan, _actuales, float(umbrales["hangar"]))
             _faltan_txt = " · ".join(
-                f"{F.etiqueta(F.clave_de(float(u), _registro()))}: "
-                + ("nunca en la vida registrada" if v is None else f"{v} ciclos")
-                for u, v in sorted(_faltan.items()))
+                f"{F.etiqueta(F.clave_de(float(u), _registro()))}: {_resumen_faltan[u]}"
+                for u in sorted(_faltan))
             st.caption(f"Ciclos hasta el umbral de hangar · {_faltan_txt}")
 
     def _registro_de_sesion() -> None:
@@ -473,12 +480,22 @@ def _tab_flota(ctx: AppCtx) -> None:
                     "el hash del artefacto y los umbrales en vigor."
                 )
                 # app-ux-bundle-fix: vista previa de la orden antes de descargar.
-                _orden = formatea(pd.DataFrame(blocked), {"limite_inferior": dos_decimales})
+                nombra_grid("Vista previa de la orden")
                 st.dataframe(
-                    _orden,
+                    tabla_orden(blocked),
                     hide_index=True,
                     column_config={
-                        "limite_inferior": st.column_config.TextColumn("L_inf"),
+                        "Unidad": st.column_config.NumberColumn("Unidad"),
+                        "Estado": st.column_config.TextColumn("Estado"),
+                        "Regla": st.column_config.TextColumn("Regla"),
+                        "Ventana evaluada": st.column_config.TextColumn("Ventana evaluada"),
+                        "Ciclo simulado": st.column_config.NumberColumn("Ciclo simulado"),
+                        "Ciclo evaluado": st.column_config.NumberColumn("Ciclo evaluado"),
+                        "RUL estimada": st.column_config.NumberColumn("RUL estimada"),
+                        "L_inf": st.column_config.NumberColumn("L_inf"),
+                        "L_sup": st.column_config.NumberColumn("L_sup"),
+                        "RUL real": st.column_config.TextColumn("RUL real"),
+                        "Acción": st.column_config.TextColumn("Acción"),
                     },
                     alt="Vista previa de la orden de trabajo: unidades bloqueadas con su límite inferior y acción.",
                 )

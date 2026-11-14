@@ -89,7 +89,10 @@ def shap_panel(unit: int, suffix: str = "motor") -> None:
                 _fig_shap, config=CHART_CONFIG, use_container_width=True,
                 alt=f"Top-10 contribuciones SHAP del motor {int(unit)}.",
             )
-            st.dataframe(_shap_df, use_container_width=True, hide_index=True)
+            st.dataframe(
+                _shap_df, use_container_width=True, hide_index=True,
+                alt=f"Top-10 contribuciones SHAP del motor {int(unit)}.",
+            )
             try:
                 _wf_fig = USH.shap_waterfall_fig(int(unit), max_display=12)
             except ImportError:

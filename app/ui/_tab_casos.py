@@ -28,7 +28,7 @@ from app.lib import rules as UR
 from src import n8n as N8N
 
 from app.lib.theme import (
-    CHART_CONFIG, ROSE, ROSE_SOFT, SKY, chart_layout, style_axes,
+    CHART_CONFIG, ROSE, ROSE_SOFT, SKY, chart_layout, nombra_grid, style_axes,
 )
 
 from app.ui._sandbox_estres import _sandbox_estres
@@ -168,6 +168,7 @@ def _tab_casos(ctx: AppCtx) -> None:
                 "Ciclo": entero, "RUL p35": un_decimal,
                 "L_inf (decide)": un_decimal, "L_sup": un_decimal,
             })
+            nombra_grid("Triage del lote · una fila por motor")
             st.dataframe(
                 _ver, hide_index=True,
                 column_config={

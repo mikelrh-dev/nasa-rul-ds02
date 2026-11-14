@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pandas as pd
 import plotly.graph_objects as go
+import streamlit as st
 
 from app.lib import ui_data_loader as L
 
@@ -290,3 +291,13 @@ def caption_deriva_vida(resumen: pd.DataFrame, channels: list[str] | None = None
     return (f"Deriva media de las unidades test alineada por RUL real. Solo {cifras} "
             f"supera el criterio de deriva {criterio}; el resto queda por debajo. "
             + metodo)
+
+
+def nombra_grid(descripcion: str) -> None:
+    """Rotulo visible inmediatamente encima de una rejilla.
+
+    Streamlit 1.66 no publica el parametro `alt` de `st.dataframe` como nombre
+    accesible del contenedor y `st.html` no ejecuta JavaScript, asi que el rotulo
+    visible es la unica via para que una rejilla no quede anonima.
+    """
+    st.markdown(f"**{descripcion}**")

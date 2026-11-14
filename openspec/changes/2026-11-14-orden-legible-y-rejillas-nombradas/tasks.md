@@ -24,25 +24,25 @@ Chain strategy: pending
 
 ## Phase 1: RED contracts
 
-- [ ] 1.1 Assert `tabla_orden` returns title-case headers and no braces in any cell. Acceptance: RED (module absent).
-- [ ] 1.2 Assert `tabla_orden` keeps every blocking field (estimated RUL, both limits, action). Acceptance: RED.
-- [ ] 1.3 Assert `resumen_ciclos_hasta_fallo` says «ya por debajo» for a unit already under the threshold and never returns a positive number for it. Acceptance: RED.
-- [ ] 1.4 Assert `resumen_ciclos_hasta_fallo` keeps «nunca…» and «N ciclos» for the other cases. Acceptance: RED.
-- [ ] 1.5 Assert every `st.dataframe(` call in `app/ui` passes `alt=`. Acceptance: RED (`_paneles.py`).
-- [ ] 1.6 Record the failure list.
+- [x] 1.1 Assert `tabla_orden` returns title-case headers and no braces in any cell. Acceptance: RED -> GREEN.
+- [x] 1.2 Assert `tabla_orden` keeps every blocking field (estimated RUL, both limits, action). Acceptance: RED -> GREEN.
+- [x] 1.3 Assert `resumen_ciclos_hasta_fallo` says «ya por debajo» for a unit already under the threshold and never returns a positive number for it. Acceptance: RED -> GREEN.
+- [x] 1.4 Assert `resumen_ciclos_hasta_fallo` keeps «nunca…» and «N ciclos» for the other cases. Acceptance: RED -> GREEN.
+- [x] 1.5 Assert every `st.dataframe(` call in `app/ui` passes `alt=`. Acceptance: RED (`_paneles.py`) -> GREEN.
+- [x] 1.6 Record the failure list — collection error (module absent), then 5 passed after the helpers landed.
 
 ## Phase 2: Helpers
 
-- [ ] 2.1 Add `app/lib/vista_orden.py` and `simulacion.resumen_ciclos_hasta_fallo`.
-- [ ] 2.2 Add `theme.nombra_grid`.
-- [ ] 2.3 Acceptance: 1.1–1.4 green.
+- [x] 2.1 Add `app/lib/vista_orden.py` and `simulacion.resumen_ciclos_hasta_fallo`.
+- [x] 2.2 Add `theme.nombra_grid`.
+- [x] 2.3 Acceptance: 1.1–1.4 green.
 
 ## Phase 3: Wire the UI
 
-- [ ] 3.1 Use `tabla_orden` in the Flota order preview.
-- [ ] 3.2 Use the countdown summary in the fleet caption.
-- [ ] 3.3 Label the batch triage grid and the order preview; add `alt` to the SHAP grid.
-- [ ] 3.4 Acceptance: 1.5 green.
+- [x] 3.1 Use `tabla_orden` in the Flota order preview.
+- [x] 3.2 Use the countdown summary in the fleet caption.
+- [x] 3.3 Label the batch triage grid and the order preview; add `alt` to the SHAP grid.
+- [x] 3.4 Acceptance: 1.5 green — affected suites 101 passed.
 
 ## Phase 4: Gate and visual evidence
 

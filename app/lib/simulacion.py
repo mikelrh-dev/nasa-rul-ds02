@@ -61,3 +61,21 @@ def ciclos_hasta_fallo(frame: pd.DataFrame, ciclo: int, umbrales: dict) -> dict:
         faltan[int(unidad)] = (int(cruce["cycle"].min() - ciclo)
                                if not cruce.empty else None)
     return faltan
+
+
+def resumen_ciclos_hasta_fallo(faltan: dict, actuales: dict, umbral: float) -> dict:
+    """Frase por unidad para la cuenta atras del panel de flota.
+
+    `ciclos_hasta_fallo` responde «cuando vuelve a cruzar»; esta funcion responde
+    «que debe leer el operador ahora»: una unidad ya por debajo no es que se acerque.
+    """
+    resumen = {}
+    for unidad, falta in faltan.items():
+        actual = actuales.get(unidad)
+        if actual is not None and float(actual) < float(umbral):
+            resumen[unidad] = "ya por debajo del umbral"
+        elif falta is None:
+            resumen[unidad] = "nunca en la vida registrada"
+        else:
+            resumen[unidad] = f"{falta} ciclos"
+    return resumen
