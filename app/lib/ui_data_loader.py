@@ -544,7 +544,7 @@ def per_unit_metrics(windows: pd.DataFrame) -> pd.DataFrame:
 
 
 def global_metrics(windows: pd.DataFrame) -> dict:
-    """Window-weighted metrics plus the per-engine macro-RMSE."""
+    """Window-weighted metrics plus the per-engine macro-RMSE and R2."""
     y = windows["y_true"].to_numpy()
     p = windows["pred"].to_numpy()
     per_unit = per_unit_metrics(windows)
@@ -555,6 +555,9 @@ def global_metrics(windows: pd.DataFrame) -> dict:
         "mae": float(np.mean(np.abs(p - y))),
         "bias": float(np.mean(p - y)),
         "macro_rmse": float(per_unit["rmse"].mean()),
+        "r2": float(
+            1.0 - ((p - y) ** 2).sum() / ((y - y.mean()) ** 2).sum()
+        ),
         "nasa_score": float(
             np.sum(np.where(p - y < 0, np.exp(-(p - y) / 13.0) - 1.0,
                             np.exp((p - y) / 10.0) - 1.0))

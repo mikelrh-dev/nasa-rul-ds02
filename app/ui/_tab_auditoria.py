@@ -26,6 +26,11 @@ from app.lib.theme import (
     CHART_CONFIG, INK, SKY, GREEN, ROSE, ROSE_SOFT, SKY_SOFT, SLATE_DARK,
 )
 
+from app.lib.ui_format import (
+    con_signo_3, con_signo_4, cuatro_decimales, entero,
+    formatea, tres_decimales, un_decimal,
+)
+
 from app.lib.context import AppCtx
 
 __all__ = ["_tab_auditoria"]
@@ -157,14 +162,18 @@ def _tab_auditoria(ctx: AppCtx) -> None:
                 band_fig, theme=None, config=CHART_CONFIG,
                 alt="MAE por tramo de RUL real: mínimo en el tramo crítico 0-25 y máximo en vida alta.",
             )
-            st.dataframe(
+            _tramos = formatea(
                 populated.rename(columns={"band": "Tramo"}),
+                {"windows": entero, "mae": tres_decimales, "bias": con_signo_3},
+            )
+            st.dataframe(
+                _tramos,
                 hide_index=True,
                 column_config={
                     "Tramo": st.column_config.TextColumn("Tramo"),
-                    "windows": st.column_config.NumberColumn("Ventanas", format="%d"),
-                    "mae": st.column_config.NumberColumn("MAE", format="%.3f"),
-                    "bias": st.column_config.NumberColumn("Sesgo", format="%+.3f"),
+                    "windows": st.column_config.TextColumn("Ventanas"),
+                    "mae": st.column_config.TextColumn("MAE"),
+                    "bias": st.column_config.TextColumn("Sesgo"),
                 },
                 alt="MAE y sesgo por tramo de RUL real.",
             )
@@ -190,21 +199,22 @@ def _tab_auditoria(ctx: AppCtx) -> None:
                         if a is not None else None
                     ),
                 })
-            st.dataframe(
+            _alarmas = formatea(
                 pd.DataFrame(rows),
+                {"Alarma": entero, "RUL real < umbral": entero,
+                 "Adelanto": entero, "RUL real al alarmar": un_decimal},
+            )
+            st.dataframe(
+                _alarmas,
                 hide_index=True,
                 column_config={
                     "Motor": st.column_config.TextColumn("Motor"),
-                    "Alarma": st.column_config.NumberColumn("Ciclo de alarma", format="%d"),
-                    "RUL real < umbral": st.column_config.NumberColumn(
-                        "Ciclo con RUL real < umbral", format="%d"
+                    "Alarma": st.column_config.TextColumn("Ciclo de alarma"),
+                    "RUL real < umbral": st.column_config.TextColumn(
+                        "Ciclo con RUL real < umbral"
                     ),
-                    "Adelanto": st.column_config.NumberColumn(
-                        "Adelanto (ciclos)", format="%d"
-                    ),
-                    "RUL real al alarmar": st.column_config.NumberColumn(
-                        "RUL real al alarmar", format="%.1f"
-                    ),
+                    "Adelanto": st.column_config.TextColumn("Adelanto (ciclos)"),
+                    "RUL real al alarmar": st.column_config.TextColumn("RUL real al alarmar"),
                 },
                 alt="Ciclo de alarma frente al ciclo en que la RUL real cruza el umbral, por unidad.",
             )
@@ -228,6 +238,22 @@ def _tab_auditoria(ctx: AppCtx) -> None:
                 delta_color="off", icon=":material/balance:",
                 help="El macro-RMSE da el mismo peso a cada motor; el ponderado lo da a cada ventana.")
             st.metric(
+                "MAE ponderado", f"{global_metrics['mae']:.3f} ciclos",
+                "por ventana", border=True,
+                delta_color="off", icon=":material/speed:",
+                help="Error absoluto medio ponderado por ventana sobre la caché.")
+            st.metric(
+                "NASA score", f"{global_metrics['nasa_score']:.1f}",
+                "asimétrico", border=True,
+                delta_color="off", icon=":material/science:",
+                help="Suma asimétrica sobre las mismas ventanas: penaliza sobreestimar vida.")
+        with st.container(horizontal=True):
+            st.metric(
+                "R²", f"{global_metrics['r2']:.4f}",
+                "coeficiente de determinación", border=True,
+                delta_color="off", icon=":material/tune:",
+                help="1 menos el error residual relativo a la varianza de la RUL real.")
+            st.metric(
                 "MAE en zona crítica", f"{critical_mae:.2f} ciclos",
                 f"RUL real < {threshold_aog:.0f}", border=True,
                 delta_color="off", icon=":material/target:",
@@ -245,18 +271,21 @@ def _tab_auditoria(ctx: AppCtx) -> None:
             }
         )
         compare["Δ"] = compare["En vivo (caché)"] - compare["Registrado (manifest)"]
+        compare = formatea(
+            compare,
+            {"En vivo (caché)": cuatro_decimales,
+             "Registrado (manifest)": cuatro_decimales, "Δ": con_signo_4},
+        )
         st.dataframe(
             compare,
             hide_index=True,
             column_config={
                 "Motor": st.column_config.TextColumn("Motor"),
-                "En vivo (caché)": st.column_config.NumberColumn(
-                    "RMSE en vivo (caché)", format="%.4f"
+                "En vivo (caché)": st.column_config.TextColumn("RMSE en vivo (caché)"),
+                "Registrado (manifest)": st.column_config.TextColumn(
+                    "RMSE registrado (manifest)"
                 ),
-                "Registrado (manifest)": st.column_config.NumberColumn(
-                    "RMSE registrado (manifest)", format="%.4f"
-                ),
-                "Δ": st.column_config.NumberColumn("Δ", format="%+.4f"),
+                "Δ": st.column_config.TextColumn("Δ"),
             },
             alt="Comparación entre el RMSE recalculado de la caché y el registrado en el manifiesto.",
         )
@@ -400,11 +429,13 @@ def _tab_auditoria(ctx: AppCtx) -> None:
         except Exception:
             _vista_reglas = pd.DataFrame()
         if not _vista_reglas.empty:
+            # La vista de reglas trae claves en minúscula (regla, prioridad, porque).
+            _reglas_tabla = formatea(_vista_reglas, {"prioridad": entero})
             st.dataframe(
-                _vista_reglas,
+                _reglas_tabla,
                 hide_index=True,
                 column_config={
-                    "Prioridad": st.column_config.NumberColumn("Prioridad", format="%d"),
+                    "prioridad": st.column_config.TextColumn("Prioridad"),
                 },
                 alt="Las seis reglas de decisión con su prioridad y su justificación.",
             )

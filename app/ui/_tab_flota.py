@@ -40,6 +40,10 @@ from app.lib.theme import (
     STATE_BG, RANGO_ESTADO,
     BADGE_COLOR, BADGE_ICON,
 )
+from app.lib.ui_format import (
+    dos_decimales, entero, formatea, un_decimal,
+)
+
 from app.lib.context import AppCtx
 
 __all__ = ["_tab_flota"]
@@ -358,6 +362,11 @@ def _tab_flota(ctx: AppCtx) -> None:
                 }
             )
 
+            display = formatea(display, {
+                "Ciclo": entero, "RUL real": un_decimal, "RUL p35": un_decimal,
+                "L_inf (riesgo)": un_decimal, "L_sup": un_decimal,
+            })
+
             def _row_style(row: pd.Series) -> list[str]:
                 label = row["Estado"]
                 state = next((s for s, name in L.STATE_LABELS.items() if name == label), L.NO_DATA)
@@ -368,15 +377,15 @@ def _tab_flota(ctx: AppCtx) -> None:
                 styled,
                 hide_index=True,
                 column_config={
-                    "Ciclo": st.column_config.NumberColumn("Ciclo", format="%d"),
-                    "RUL real": st.column_config.NumberColumn("RUL real", format="%.1f"),
-                    "RUL p35": st.column_config.NumberColumn("RUL p35", format="%.1f",
-                                                    help="Cuantil 0.35 de la RUL (ADR-003)."),
-                    "L_inf (riesgo)": st.column_config.NumberColumn(
-                        "L_inf (riesgo)", format="%.1f",
+                    "Ciclo": st.column_config.TextColumn("Ciclo"),
+                    "RUL real": st.column_config.TextColumn("RUL real"),
+                    "RUL p35": st.column_config.TextColumn(
+                        "RUL p35", help="Cuantil 0.35 de la RUL (ADR-003)."),
+                    "L_inf (riesgo)": st.column_config.TextColumn(
+                        "L_inf (riesgo)",
                         help="Límite inferior de la banda conformal: es lo que decide el estado.",
                     ),
-                    "L_sup": st.column_config.NumberColumn("L_sup", format="%.1f"),
+                    "L_sup": st.column_config.TextColumn("L_sup"),
                     "Regla": st.column_config.TextColumn(
                         "Regla",
                         help="Regla de la pasada A que firmó el estado (mia.motor).",
@@ -464,12 +473,12 @@ def _tab_flota(ctx: AppCtx) -> None:
                     "el hash del artefacto y los umbrales en vigor."
                 )
                 # app-ux-bundle-fix: vista previa de la orden antes de descargar.
+                _orden = formatea(pd.DataFrame(blocked), {"limite_inferior": dos_decimales})
                 st.dataframe(
-                    pd.DataFrame(blocked),
+                    _orden,
                     hide_index=True,
                     column_config={
-                        "limite_inferior": st.column_config.NumberColumn(
-                            "L_inf", format="%.2f"),
+                        "limite_inferior": st.column_config.TextColumn("L_inf"),
                     },
                     alt="Vista previa de la orden de trabajo: unidades bloqueadas con su límite inferior y acción.",
                 )
@@ -552,12 +561,14 @@ def _tab_flota(ctx: AppCtx) -> None:
                                    f"{'dentro' if metricas_g['cubierta'] else 'fuera'}"),
                         "Huella": gemelo["fingerprint"][:8],
                     })
+                _gemelos_tabla = formatea(
+                    pd.DataFrame(filas_gemelos), {"Ciclo": entero, "L_inf": dos_decimales})
                 st.dataframe(
-                    pd.DataFrame(filas_gemelos),
+                    _gemelos_tabla,
                     hide_index=True,
                     column_config={
-                        "Ciclo": st.column_config.NumberColumn("Ciclo", format="%d"),
-                        "L_inf": st.column_config.NumberColumn("L_inf", format="%.2f"),
+                        "Ciclo": st.column_config.TextColumn("Ciclo"),
+                        "L_inf": st.column_config.TextColumn("L_inf"),
                         "Huella": st.column_config.TextColumn("Huella", help="SHA-256 de la tabla puntuada."),
                     },
                     alt="Motores externos registrados con su estado recalculado, la regla aplicada y la banda usada.",
@@ -811,14 +822,15 @@ def _tab_flota(ctx: AppCtx) -> None:
                         "Regla": registro["entrada"]["regla"],
                         "Hoy": "coincide" if not revision["cambia"] else revision["hoy"],
                     })
-                st.dataframe(
+                _hangar_tabla = formatea(
                     pd.DataFrame(filas_hangar),
+                    {"L_inf de entrada": dos_decimales, "Umbral de entrada": entero})
+                st.dataframe(
+                    _hangar_tabla,
                     hide_index=True,
                     column_config={
-                        "L_inf de entrada": st.column_config.NumberColumn(
-                            "L_inf de entrada", format="%.2f"),
-                        "Umbral de entrada": st.column_config.NumberColumn(
-                            "Umbral de entrada", format="%.0f"),
+                        "L_inf de entrada": st.column_config.TextColumn("L_inf de entrada"),
+                        "Umbral de entrada": st.column_config.TextColumn("Umbral de entrada"),
                     },
                     alt="Cola de hangar ordenada por urgencia, con la decisión congelada y la de hoy.",
                 )

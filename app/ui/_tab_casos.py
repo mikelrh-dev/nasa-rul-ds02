@@ -32,6 +32,10 @@ from app.lib.theme import (
 )
 
 from app.ui._sandbox_estres import _sandbox_estres
+from app.lib.ui_format import (
+    cuatro_sig, entero, formatea, tres_decimales, un_decimal,
+)
+
 from app.lib.context import AppCtx
 
 
@@ -160,16 +164,19 @@ def _tab_casos(ctx: AppCtx) -> None:
                 "lower": "L_inf (decide)", "upper": "L_sup", "estado": "Estado",
                 "regla": "Regla",
             })
+            _ver = formatea(_ver, {
+                "Ciclo": entero, "RUL p35": un_decimal,
+                "L_inf (decide)": un_decimal, "L_sup": un_decimal,
+            })
             st.dataframe(
                 _ver, hide_index=True,
                 column_config={
-                    "Ciclo": st.column_config.NumberColumn("Ciclo", format="%d"),
-                    "RUL p35": st.column_config.NumberColumn(
-                        "RUL p35", format="%.1f"),
-                    "L_inf (decide)": st.column_config.NumberColumn(
-                        "L_inf (decide)", format="%.1f",
+                    "Ciclo": st.column_config.TextColumn("Ciclo"),
+                    "RUL p35": st.column_config.TextColumn("RUL p35"),
+                    "L_inf (decide)": st.column_config.TextColumn(
+                        "L_inf (decide)",
                         help="Límite inferior de la banda: es lo que decide el estado."),
-                    "L_sup": st.column_config.NumberColumn("L_sup", format="%.1f"),
+                    "L_sup": st.column_config.TextColumn("L_sup"),
                 },
                 alt="Triage del lote: una fila por motor con su predicción, su banda y "
                     "su estado.",
@@ -379,8 +386,13 @@ def _tab_casos(ctx: AppCtx) -> None:
                 for _av in st.session_state.get("explorar_avisos", []) or []:
                     st.warning(_av, icon=":material/warning:")
                 with st.expander("Ver tramo generado", expanded=False):
-                    st.dataframe(
+                    _tramo_mostrar = formatea(
                         _exp_tab,
+                        {"cycle": entero,
+                         **{c: tres_decimales for c in _exp_tab.columns if c != "cycle"}},
+                    )
+                    st.dataframe(
+                        _tramo_mostrar,
                         hide_index=True,
                         alt="Tramo generado para explorar por ciclo: ciclos y sensores.",
                     )
@@ -524,15 +536,17 @@ def _tab_casos(ctx: AppCtx) -> None:
         table_to_score = None
         data_meta = example_meta
         labels = INF.channel_labels()
+        # Los editores conservan su dtype numérico: se pueden teclear valores.
+        # El formato declarado aquí estaría muerto (este Streamlit lo ignora).
         number_columns = {
             "cycle": st.column_config.NumberColumn(
-                "cycle", format="%d",
+                "cycle",
                 help="Ciclo de vuelo del registro. Se repite en varias filas porque la "
                      "ventana es una rejilla remuestreada, no una lectura por ciclo.",
             )
         }
         number_columns.update({
-            c: st.column_config.NumberColumn(c, format="%.3f", help=labels.get(c, c))
+            c: st.column_config.NumberColumn(c, help=labels.get(c, c))
             for c in example_table.columns if c != "cycle"
         })
 
@@ -545,17 +559,21 @@ def _tab_casos(ctx: AppCtx) -> None:
                 "documentación; `aviso` es ese rango con un 5 % de margen, el punto en "
                 "que la app te avisa de que estás fuera del dominio de entrenamiento."
             )
+            _envolvente = formatea(INF.observed_envelope(), {
+                "mínimo": cuatro_sig, "máximo": cuatro_sig,
+                "aviso_desde": cuatro_sig, "aviso_hasta": cuatro_sig,
+            })
             st.dataframe(
-                INF.observed_envelope(),
+                _envolvente,
                 hide_index=True,
                 height=420,
                 column_config={
                     "canal": st.column_config.TextColumn("canal", width="small"),
                     "qué mide": st.column_config.TextColumn("qué mide", width="large"),
-                    "mínimo": st.column_config.NumberColumn("mínimo DS02", format="%.4g"),
-                    "máximo": st.column_config.NumberColumn("máximo DS02", format="%.4g"),
-                    "aviso_desde": st.column_config.NumberColumn("aviso desde", format="%.4g"),
-                    "aviso_hasta": st.column_config.NumberColumn("aviso hasta", format="%.4g"),
+                    "mínimo": st.column_config.TextColumn("mínimo DS02"),
+                    "máximo": st.column_config.TextColumn("máximo DS02"),
+                    "aviso_desde": st.column_config.TextColumn("aviso desde"),
+                    "aviso_hasta": st.column_config.TextColumn("aviso hasta"),
                 },
                 alt="Glosario de los 18 canales con su significado físico y el rango "
                     "observado en DS02.",
