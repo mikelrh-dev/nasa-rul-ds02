@@ -143,11 +143,11 @@ def drift_por_rul(channels: list[str], bin_width: int = 10):
 
     Devuelve `(frame, resumen)`:
       frame   -> unit, cycle, rul, canal, deriva, bin, rul_centro
-      resumen -> por canal: inicio_vida, fin_vida, salto, corr_rul, resaltar
+      resumen -> por canal: inicio_vida, fin_vida, salto, corr_rul, monotono, resaltar
     """
     columnas = ["unit", "cycle", "rul", "canal", "deriva", "bin", "rul_centro"]
     resumen_vacio = pd.DataFrame(
-        columns=["inicio_vida", "fin_vida", "salto", "corr_rul", "resaltar"]
+        columns=["inicio_vida", "fin_vida", "salto", "corr_rul", "monotono", "resaltar"]
     )
     filas = get_rows()
     ventanas = get_windows()
@@ -202,15 +202,17 @@ def drift_por_rul(channels: list[str], bin_width: int = 10):
         fin = float(serie["media"].iloc[0])
         corr = float(puntos["deriva"].corr(puntos["rul"]))
         salto = fin - inicio
+        cambios = serie["media"].diff().dropna()
+        monotono = bool((cambios > 0).all() or (cambios < 0).all()) if len(cambios) else False
         filas_resumen.append({
             "canal": canal, "inicio_vida": inicio, "fin_vida": fin,
-            "salto": salto, "corr_rul": corr,
+            "salto": salto, "corr_rul": corr, "monotono": monotono,
             "resaltar": abs(corr) >= DRIFT_DESTACO_CORR
             and abs(salto) >= DRIFT_SALTO_MIN,
         })
     tabla = pd.DataFrame(
         filas_resumen,
-        columns=["canal", "inicio_vida", "fin_vida", "salto", "corr_rul", "resaltar"],
+        columns=["canal", "inicio_vida", "fin_vida", "salto", "corr_rul", "monotono", "resaltar"],
     )
     if tabla.empty:
         return frame, resumen_vacio

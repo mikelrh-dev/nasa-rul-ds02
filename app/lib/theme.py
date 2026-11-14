@@ -27,6 +27,51 @@ SKY_SOFT = "#7dd3fc"
 SLATE_DARK = "#475569"
 MUTED_LINE = "#94a3b8"
 
+# ---------------------------------------------------------------- channel identity
+# Medido en `app/cache/ds02_rows.parquet`: P15 y P21 tienen correlacion 1.000 en las
+# tres unidades test (maxima diferencia absoluta 0.25 psia) y Ps30/P40 igual. Se
+# muestran como una sola traza para no repetir informacion.
+CANALES_DUPLICADOS: dict[str, str] = {"P21": "P15", "P40": "Ps30"}
+
+# Un color por codigo de canal, compartido por la vista por ciclo y la alineada: la
+# misma serie debe poder seguirse sin volver a leer la leyenda.
+COLOR_CANAL: dict[str, str] = {
+    "T2": "#a78bfa",
+    "T24": SKY,
+    "T30": SKY_SOFT,
+    "T48": "#fb923c",
+    "T50": AMBER,
+    "P15": GREEN,
+    "P2": "#2dd4bf",
+    "P24": SLATE,
+    "Ps30": "#f472b6",
+    "P50": "#c084fc",
+    "Nf": "#4ade80",
+    "Nc": "#a3e635",
+    "Wf": "#e879f9",
+    "alt": MUTED,
+    "Mach": "#fbbf24",
+    "TRA": "#cbd5e1",
+}
+
+
+def canales_unicos(channels: list[str]) -> tuple[list[str], dict[str, str]]:
+    """Colapsa los canales duplicados y devuelve (bases en orden, etiquetas).
+
+    La etiqueta acumula los codigos fusionados: ["P15", "P21"] sale como una sola
+    traza llamada "P15 · P21", igual si la entrada va al reves.
+    """
+    orden: list[str] = []
+    etiquetas: dict[str, str] = {}
+    for canal in channels:
+        base = CANALES_DUPLICADOS.get(canal, canal)
+        if base not in etiquetas:
+            orden.append(base)
+            etiquetas[base] = base
+        if canal != base:
+            etiquetas[base] = f"{etiquetas[base]} \u00b7 {canal}"
+    return orden, etiquetas
+
 STATE_COLORS = {
     L.AIRWORTHY: GREEN,
     L.PREVENTIVE: AMBER,
@@ -145,18 +190,23 @@ def fig_deriva(per_cycle: pd.DataFrame, channels: list[str], last_cycle: int,
     Extraída de la pestaña de sensores para que el gemelo la muestre sin duplicar
     el cálculo: la misma señal, el mismo baseline y la misma anotación.
     """
-    baseline_cycles = 5
-    baseline = per_cycle.head(baseline_cycles)[channels].mean()
-    drift = (per_cycle[channels] / baseline - 1.0) * 100.0
     fig = go.Figure()
-    for ch in channels:
+    canales_base, etiquetas = canales_unicos(
+        [c for c in channels if c in per_cycle.columns]
+    )
+    if not canales_base:
+        return fig
+    baseline_cycles = 5
+    baseline = per_cycle.head(baseline_cycles)[canales_base].mean()
+    drift = (per_cycle[canales_base] / baseline - 1.0) * 100.0
+    for ch in canales_base:
         fig.add_trace(
             go.Scatter(
                 x=per_cycle["cycle"], y=drift[ch], mode="lines",
                 # Solo el codigo en la leyenda: con las descripciones largas
                 # el pressures chart envolvia 5 filas y el propio Plotly
                 # encogia el area de trazado para hacerles sitio.
-                name=L.CHANNEL_LABELS.get(ch, ch).split(" \u00b7 ")[0], line=dict(width=2),
+                name=etiquetas[ch], line=dict(width=2, color=COLOR_CANAL.get(ch, MUTED_LINE)),
             )
         )
     fig.add_hline(y=0, line_color=MUTED, line_width=1)
@@ -181,11 +231,6 @@ def fig_deriva(per_cycle: pd.DataFrame, channels: list[str], last_cycle: int,
     return fig
 
 
-# Color de los canales que si derivan cuando hay mas de uno; el orden lo da la
-# seleccion, no el diccionario.
-COLORES_DESTACO = [SKY, AMBER, ROSE]
-
-
 def fig_deriva_vida(frame: pd.DataFrame, resumen: pd.DataFrame,
                     channels: list[str], threshold_aog: float,
                     height: int = 280) -> go.Figure:
@@ -197,15 +242,17 @@ def fig_deriva_vida(frame: pd.DataFrame, resumen: pd.DataFrame,
     fig = go.Figure()
     if frame is None or frame.empty or resumen is None or resumen.empty:
         return fig
+    canales_base, etiquetas = canales_unicos(
+        [c for c in channels if c in frame["canal"].unique()]
+    )
+    if not canales_base:
+        return fig
+    sub = frame[frame["canal"].isin(canales_base)]
     destacados = set(resumen.index[resumen["resaltar"]]) \
         if "resaltar" in resumen.columns else set()
-    colores = {
-        canal: COLORES_DESTACO[i % len(COLORES_DESTACO)]
-        for i, canal in enumerate(c for c in channels if c in destacados)
-    }
-    for canal in channels:
+    for canal in canales_base:
         serie = (
-            frame[frame["canal"] == canal]
+            sub[sub["canal"] == canal]
             .groupby("rul_centro", as_index=False)["deriva"].mean()
             .sort_values("rul_centro")
         )
@@ -214,9 +261,9 @@ def fig_deriva_vida(frame: pd.DataFrame, resumen: pd.DataFrame,
         es_destacado = canal in destacados
         fig.add_trace(go.Scatter(
             x=serie["rul_centro"], y=serie["deriva"], mode="lines",
-            name=canal,
+            name=etiquetas[canal],
             line=dict(width=2.5 if es_destacado else 1.2,
-                      color=colores.get(canal, MUTED_LINE)),
+                      color=COLOR_CANAL.get(canal, MUTED_LINE)),
         ))
     fig.add_hline(y=0, line_color=MUTED, line_width=1)
     fig.add_vrect(
@@ -244,17 +291,28 @@ def caption_deriva_vida(resumen: pd.DataFrame, channels: list[str] | None = None
               "ds02_windows).")
     if resumen is None or resumen.empty:
         return ("Deriva media de las unidades test alineada por RUL real. " + metodo)
-    vista = resumen.loc[resumen.index.intersection(channels)] if channels else resumen
+    if channels:
+        bases, _ = canales_unicos(list(channels))
+        vista = resumen.loc[resumen.index.intersection(bases)]
+    else:
+        vista = resumen
     if vista.empty:
         return "No hay datos para estos canales. " + metodo
     destacados = vista.index[vista["resaltar"]].tolist()
+    criterio = "(|corr con el RUL| >= 0,3 y salto >= 0,5 ppt)"
     if not destacados:
-        return ("Deriva media de las unidades test alineada por RUL real. Ninguno de "
-                "estos canales muestra una deriva sostenida: oscila con las condiciones "
-                "de vuelo. " + metodo)
+        mayor = float(vista["salto"].abs().max())
+        if "monotono" in vista.columns and len(vista):
+            forma = ("la forma es monótona" if bool(vista["monotono"].all())
+                     else "la forma no es monótona")
+        else:
+            forma = "la forma no es monótona"
+        return (f"Deriva media de las unidades test alineada por RUL real. Ninguno de "
+                f"estos canales supera el criterio de deriva {criterio}: el mayor cambio "
+                f"entre tramos es de {mayor:.1f} ppt y {forma}. " + metodo)
     cifras = ", ".join(
         f"{canal} {vista.loc[canal, 'salto']:+.2f} ppt" for canal in destacados
     )
     return (f"Deriva media de las unidades test alineada por RUL real. Solo {cifras} "
-            f"muestra una deriva sostenida entre el primer y el último tramo de vida; "
-            f"el resto oscila con las condiciones de vuelo. " + metodo)
+            f"supera el criterio de deriva {criterio}; el resto queda por debajo. "
+            + metodo)

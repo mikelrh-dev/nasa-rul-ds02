@@ -89,6 +89,49 @@ def test_el_resaltado_es_exactamente_el_conjunto_calculado_por_correlacion():
     assert "T50" in marcados
 
 
+
+# ------------------------------------------- identidad de canal y duplicados
+@needs_cache
+def test_los_canales_duplicados_se_fusionan_en_ambas_ordenes():
+    unicos, etiquetas = TH.canales_unicos(["P15", "P21", "Ps30", "P40"])
+    assert unicos == ["P15", "Ps30"]
+    assert etiquetas["P15"] == "P15 · P21"
+    assert etiquetas["Ps30"] == "Ps30 · P40"
+
+    al_reves, etiquetas_reversas = TH.canales_unicos(["P21", "P15", "P40", "Ps30"])
+    assert al_reves == ["P15", "Ps30"]
+    assert etiquetas_reversas == etiquetas
+
+
+@needs_cache
+def test_la_paleta_asigna_un_color_distinto_a_cada_canal_visible():
+    colores = [TH.COLOR_CANAL[c] for c in CANALES if c in TH.COLOR_CANAL]
+    assert len(colores) >= 8
+    assert len(colores) == len(set(colores)), "dos canales comparten color"
+
+
+@needs_cache
+def test_la_vista_alineada_no_dibuja_los_duplicados_dos_veces():
+    frame, resumen = L.drift_por_rul(PRESIONES)
+    fig = TH.fig_deriva_vida(frame, resumen, PRESIONES, threshold_aog=20.0)
+
+    nombres = [str(t.name) for t in fig.data]
+    assert len(nombres) == 5, f"las presiones deben quedar en 5 trazas: {nombres}"
+    assert "P15 · P21" in nombres
+    assert "Ps30 · P40" in nombres
+
+
+@needs_cache
+def test_el_caption_de_presiones_no_acusa_a_las_condiciones_de_vuelo():
+    _, resumen = L.drift_por_rul(CANALES)
+    texto = TH.caption_deriva_vida(resumen, PRESIONES)
+
+    bases, _ = TH.canales_unicos(PRESIONES)
+    mayor = resumen.loc[bases, "salto"].abs().max()
+    assert f"{mayor:.1f} ppt" in texto
+    assert "monótona" in texto, "el caption debe declarar la monotonicidad medida"
+    assert "condiciones de vuelo" not in texto
+
 # ------------------------------------------------------------- figura y texto
 @needs_cache
 def test_la_figura_alineada_marca_la_zona_critica_y_resalta_lo_que_deriva():
