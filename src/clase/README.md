@@ -148,7 +148,7 @@ flowchart LR
 BiLSTM y meta) sobre 200 filas de validación del fold-0, con aditividad comprobada
 a ~1e-6. Es el SHAP que se defiende; el de XGB de arriba describe el track de clase.
 
-**MLflow (PIA-4):** 17 runs en `mlruns/` (9 fila + 4 ventana + 4 ablación), export en [`docs/evidencia/mlflow/comparativa.csv`](../../docs/evidencia/mlflow/comparativa.csv) y capturas `compare_fila.png`, `compare_ventana.png` y `run_prod.png`. El store es texto, está versionado en git y no guarda binarios; los binarios siguen en `models/` y se identifican por SHA. El flujo n8n ya está incluido en `n8n/flujo.json`. La tabla comparativa sigue en `resultados/comparativa.csv` (pandas).
+**MLflow (PIA-4):** 17 runs en `mlruns/` (9 fila + 4 ventana + 4 ablación), export en [`docs/evidencia/mlflow/comparativa.csv`](../../docs/evidencia/mlflow/comparativa.csv) y capturas `compare_fila.jpg`, `compare_ventana.jpg` y `compare_ablacion.jpg`. El store es texto, está versionado en git y no guarda binarios; los binarios siguen en `models/` y se identifican por SHA. El flujo n8n ya está incluido en `n8n/flujo.json`. La tabla comparativa sigue en `resultados/comparativa.csv` (pandas).
 
 ## Tests
 

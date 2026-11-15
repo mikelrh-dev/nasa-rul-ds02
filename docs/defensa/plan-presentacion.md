@@ -5,7 +5,7 @@
 > Plantilla elegida: **Cobalt Grid** (bold-template-pack). Deck generado en
 > `docs/presentacion/index.html`.
 >
-> Arco narrativo: **dinero → dato → modelo → regla → acción**.
+> Arco narrativo: **dinero → riesgo → dato → modelo → regla → acción**.
 > Densidad: **alta / reading-first** (es una defensa con tribunal: las slides
 > tienen que sostenerse solas, con tablas y figuras reales).
 
@@ -25,7 +25,7 @@ acento posible son las cifras. El cobalto marca titulares y reglas; el mono
 resuelve la trazabilidad que este proyecto presume: `d6c70142…`,
 `src/mia/reglas.py`, `rmse_val`.
 
-**24 slides** (21 de contenido + 3 separadores), 1920×1080 fijo, un solo HTML.
+**33 slides** (3 separadores + 29 de contenido + 1 de respaldo), 1920×1080 fijo, un solo HTML. Los borradores antiguos están en `docs/presentacion/_archivo/`.
 
 ---
 
@@ -48,7 +48,6 @@ resuelve la trazabilidad que este proyecto presume: `d6c70142…`,
 
   | Concepto | Valor |
   |---|---:|
-  | Coste AOG | 10.000–15.000 USD/h |
   | Horas por ciclo | 1–2 h (supuesto) |
   | Coste por ciclo de error | 10.000–30.000 USD |
   | RMSE del bundle C | **4,338 ciclos** = 17 % del umbral de hangar |
@@ -56,12 +55,31 @@ resuelve la trazabilidad que este proyecto presume: `d6c70142…`,
 - **Lo que hay que decir:** «evitar una sola parada al año paga el sistema».
 - **Rúbrica:** **MIA-1 (10)** — dato + qué mejora supondría.
 
-### 3 · El sistema, y por qué es una IA débil
+### 3 · El dato: nueve motores y una etiqueta
+- **Layout:** cuatro cifras grandes en fila; debajo, dos columnas — los tres grupos de columnas y el split por motor.
+- **Cifras:** `65.173` lecturas (1 de cada 100 ciclos) · `9` motores · `22` columnas · `1` etiqueta.
+- **Los tres grupos:** 14 sensores (`T24`…`T50`, `P2`…`P50`, `Nf`/`Nc`/`Wf`) · 4 de régimen (`alt`, `Mach`, `TRA`, `T2`) · 4 de contexto (`unit`, `cycle`, `fase_vuelo`, `RUL`).
+- **Split por motor:** dev 52.635 (uds 2/5/10/18/20/16) · test 12.538 (uds 11/14/15).
+- **Definiciones:** un ciclo es un despegue y su aterrizaje; la RUL es cuántos le quedan.
+- **Límite declarado:** no es una flota real, son motores simulados; el cliente natural es el taller del operador, no el fabricante.
+- **Remate:** «un motor nunca cae a la vez en train y test; si cayera, la métrica mentiría».
+- **Rúbrica:** PIA-1 (datos documentados) y el criterio de fuga del split por motor.
+
+### 4 · El sistema, y por qué es una IA débil
 - **Layout:** cadena horizontal de 5 nodos con filetes finos; debajo, dos tarjetas de contraste.
 - **Cadena:** `telemetría → RUL (p) → 8 reglas → APTO/INSPECCIÓN/HANGAR → webhook → acción`
 - **Tarjeta A — IA débil:** predice RUL de DS02 con lo aprendido de *su* telemetría; no transfiere a otro motor ni dominio. **Contraste exigido por el 10:** una IA fuerte generalizaría el concepto de degradación; aquí hay una función ajustada a 9 motores.
 - **Tarjeta B — aprendizaje:** supervisado de **regresión** (RUL continua, etiqueta real, métrica contra verdad). **Contraste:** el no supervisado agruparía regímenes sin saber cuántos ciclos quedan.
 - **Rúbrica:** SAA-1 (5 %), SAA-2 (10 %).
+
+### 5 · Equivocarse en cada dirección
+- **Layout:** tabla de dos filas (tarde / pronto) con su coste; debajo, dos notas y el remate.
+- **Fila tarde:** el motor falla en pista — AOG, cancelación, repuesto urgente → `10–15k USD/hora`.
+- **Fila pronto:** se abre un motor sano — mano de obra y repuesto innecesario → horas de taller, no AOG.
+- **Las dos notas:** el RMSE cobra igual un ciclo de más que uno de menos; por eso se decide sobre la banda inferior.
+- **Remate:** «decidimos sobre el pesimista porque el error caro solo tiene una dirección».
+- **Para qué sirve:** es la premisa que hace legible la slide del pesimista (28) y la elección de `L_inf`.
+- **Rúbrica:** MIA-1 (10 %) y MIA-2; justifica por qué la decisión no usa la predicción puntual.
 
 ### ▸ Separador A — «Datos»
 Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de 9 motores, y 1.185 huecos que no son ruido.»
@@ -70,7 +88,7 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
 
 ## Acto II · Datos
 
-### 5 · Qué mide cada columna
+### 7 · Qué mide cada columna
 - **Layout:** glosario de las 22 columnas en cuatro familias físicas, dos columnas de tabla y una franja de identificadores.
 - **Por qué está aquí:** el SHAP y la residualización hablan de sensores por su nombre; sin esto no se pueden leer. Antes la tabla listaba 7 campos y de los 14 sensores solo nombraba dos.
 - **Temperaturas (°R):** `T2` entrada del fan (va con el régimen) · `T24` salida LPC · `T30` salida HPC (**la única con nulos**) · `T48` salida HPT (la que separa régimen) · `T50` salida LPT (2.ª del SHAP del árbol).
@@ -80,9 +98,9 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
 - **Franja inferior:** `unit` (grupo del split, no predictor) · `cycle` · `fase_vuelo` (one-hot) · `RUL` (objetivo).
 - **Frase:** «el régimen y el desgaste viajan en las mismas columnas; el trabajo es separarlos».
 - **Rúbrica:** PIA-1, SAA-4.
-- **Layout:** tabla grande a la izquierda, tres cifras de contexto a la derecha.
+- **Respaldo (no se presenta):** tabla de nulos por campo, para preguntas sobre una columna concreta; la slide lleva solo el glosario.
 - **Cifras:** `65.173` filas (STRIDE 100) · `9` motores · `18` canales + `RUL`.
-- **Tabla real (recortada a 7 filas de las 20 del README):**
+- **Tabla de respaldo (7 de las 20 filas del README):**
 
   | Campo | Qué significa | Tipo | Nulos antes → después |
   |---|---|---|---|
@@ -97,7 +115,7 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
 - **Columna "qué campos quitas y por qué" (exigida por el 10):** `unit` (grupo del split; usarlo sería fuga), `RUL` (es el objetivo), `split_origen` (trazabilidad), `fase_vuelo` (el bundle C está residualizado sin categórica).
 - **Rúbrica:** SAA-3 (5 %).
 
-### 6 · Calidad y nulos: 1.185 huecos con causa física
+### 8 · Calidad y nulos: 1.185 huecos con causa física
 - **Layout:** tres bloques — duplicados / imposibles / nulos — y una banda inferior con el split.
 - **Duplicados:** 0 funcionales.
 - **Imposibles:** Mach ∈ [0,33; 0,74], alt ∈ [10k, 35k]; el 30k/0,8 teórico **no existe** en DS02 (0 filas).
@@ -107,14 +125,14 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
 - **Variables nuevas:** `fase_vuelo` (de `alt`/`Mach`) y `cyc_norm = cycle/100`.
 - **Rúbrica:** SAA-5 (5 %), SAA-4.
 
-### 7 · Cinco gráficos, cinco lecturas
+### 9 · Cinco gráficos, cinco lecturas
 - **Layout:** galería única: tres figuras arriba y dos abajo con el panel de variables nuevas.
 - **Antes eran dos slides** («Lo que dicen los datos» y «Dónde se esconde la información»); se fundieron para que el acto de datos quepa.
 - **Los cinco exigidos, cada uno con lectura:** barras por fase → el crucero domina · histograma de RUL → la cola manda · boxplot de T48 por fase → crudo separa fases · dispersión alt-Mach → el régimen es una nube estructurada · heatmap → 18 canales no aportan 18 veces.
 - **Panel:** `fase_vuelo` y `cyc_norm = cycle/100`, las dos variables que no venían.
 - **Rúbrica:** SAA-4 (EDA), PIA-2.
 
-### 8 · El régimen no es salud (residualización)
+### 10 · El régimen no es salud (residualización)
 - **Layout:** cuatro bloques a la izquierda; a la derecha, el antes y el después de la misma figura.
 - **La idea física:** un motor se calienta porque se rompe **o** porque el avión sube a tope. Si no se separan las dos cosas, el modelo aprende pilotaje.
 - **Qué se resta:** un Ridge **por sensor (14)** sobre un polinomio de grado 2 en `alt · Mach · TRA · T2`. Lo que sobra es el residuo: la degradación.
@@ -132,7 +150,7 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
 
 ## Acto III · Modelos
 
-### 10 · Siete cuadernos, una decisión (recorrido)
+### 12 · Siete cuadernos, una decisión (recorrido)
 - **Layout:** tabla de 7 filas: cuaderno · qué pregunta resuelve · qué deja.
 - **Por qué existe:** en la defensa se pregunta «¿dónde está esto?». Esta slide es el mapa para no buscar en vivo.
 
@@ -142,40 +160,51 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
   | 02 · Clásicos y MLP | ¿cuánto da una fila? | XGB 8,22 val |
   | 03 · Ablación | ¿el reloj ayuda? | OFF 6,297 · ON 7,067 |
   | 04 · OOF y meta | β, stacking, banda | **β = 1,00** |
-  | 05 · Semillas | ¿fue suerte? | 4,324 ± 0,107 |
+  | 05 · Semillas | ¿fue suerte? | 4,333 ± 0,040 |
   | 06 · Bundle C | entreno oficial y cierre | 4,338 · SHA |
   | 07 · SHAP | las tres ramas | `cyc_norm` domina |
 
 - **Frase:** cada cuaderno responde una pregunta y deja un artefacto; **ninguno entrena el bundle** — eso lo hace `src/ds02_rul/bundle_c.py` y lo firma el manifiesto.
 - **Rúbrica:** PIA-1/PIA-4 (trazabilidad), y prepara las preguntas individuales.
 
-### 11 · Un pipeline, cinco modelos
-- **Layout:** tabla de 5 filas + dos notas al margen.
-- **Tabla real (`resultados/comparativa.csv`):**
+### 13 · Un pipeline, cinco modelos
+- **Layout:** frase en serif; tabla de 5 filas y 4 columnas ordenada por `rmse_val`; cuatro notas en dos columnas.
+- **Tabla real (`resultados/comparativa.csv` + `ESPEC`), ordenada por validación:**
 
-  | Modelo | Mejores params | RMSE train | RMSE val | Tiempo |
-  |---|---:|---:|---:|---:|
-  | KNN | `n_neighbors=31` | 6,984 | 9,409 | 9,1 s |
-  | Regresión | `alpha=10.0` | 8,200 | 8,276 | 3,5 s |
-  | Random Forest | `max_depth=8` | 7,157 | 9,070 | 79,6 s |
-  | SVM | `C=10, ε=1` | 7,525 | 8,293 | 2,7 s |
-  | **XGBoost** | `max_depth=4` | 7,189 | **8,217** | 7,2 s |
+  | Modelo | Familia | Lo que se movió (valor y grid) | RMSE val |
+  |---|---|---|---:|
+  | **XGBoost** | Boosting | profundidad **4**, probada 4 y 6 · 300 árboles fijos | **8,217** |
+  | Ridge (lineal) | Lineal | α **10** entre 0,1 · 1 · 10 — encoge los pesos | 8,276 |
+  | SVM | Margen | ε **1** y C **10** — tolera un ciclo de error | 8,293 |
+  | Random Forest | Árboles | profundidad **8**, probada 8 · 15 · sin límite · 200 árboles | 9,070 |
+  | KNN | Vecinos | k **31**, probado 5 · 15 · 31 — vecinos que promedia | 9,409 |
 
-- **Nota 1 — la brecha train/val es el hallazgo:** RF baja de 7,157 a 9,070 (sobreajuste) y es el más caro en tiempo; XGB generaliza mejor con 7,2 s.
-- **Nota 2 — por qué `rmse_val` y no test:** el test se lee **una vez por familia**; elegir con test es hacer trampa.
-- **Figura de apoyo:** `docs/evidencia/mlflow/compare_fila.png` (vista Compare, 9 runs por `rmse_val`).
-- **Rúbrica:** SAA-6 (30 %), PIA-3 (pipeline), PIA-4 (MLflow).
+- **Por qué así:** el valor va en negrita y el grid en la misma celda. Sin el grid, "profundidad 4" parece una corazonada; con él, se ve que ganó entre los probados.
+- **Nota 1 — 4 y 8 no se contradicen:** XGB encadena 300 árboles que corrigen al anterior (cada uno poco profundo); RF promedia 200 independientes (puede permitirse árboles hondos). Dato de `ESPEC`.
+- **Nota 2 — un parámetro por modelo** (dos en el SVM); el resto quedó fijo. Cada valor es el ganador de su grid por `rmse_val`.
+- **Nota 3 — el SVM** se ajustó sobre 5.000 filas: no comparable.
+- **Nota 4 — tiempos:** el lineal 3,5 s, RF 79,6 s; el más caro no es el mejor.
+- **Sin columna Tiempo y sin glosario al pie:** el tiempo pasa a nota y la glosa vive en la celda, no a 16 px al final.
+- **Rúbrica:** SAA-2 (30 %), PIA-3 (pipeline).
 
-### 12 · Dos contratos de entrada
+### 14 · Quince configuraciones, un ganador
+- **Layout:** frase en serif arriba; a la izquierda la cifra `45` y tres notas; a la derecha el gráfico train→val.
+- **La cifra:** **45** ajustes = 15 combinaciones × 3 pliegues; los pliegues van por motor.
+- **Notas:** gana el de menor `rmse_val`; los pliegues nunca mezclan motores; ganador XGBoost 8,217 y el SVM sale de una muestra.
+- **La figura:** `clasicos_train_val.png` — hueco = train, relleno = validación; `+0,08` (Ridge) frente a `+2,43` (KNN).
+- **Sin lista de grids:** los grids ya están fila a fila en la 13; repetirlos aquí era duplicación.
+- **Rúbrica:** SAA-2 (30 %); 10 % por el error de generalización.
+
+### 15 · Dos contratos de entrada
 - **Layout:** dos columnas enfrentadas, 22 contra 19, y una frase de cierre.
 - **Track de clase (fila):** 19 numéricas (`cycle` + régimen + 14 sensores) con `StandardScaler` + `fase_vuelo` con `OneHotEncoder` → **3 columnas 0/1** = 22 entradas. Un solo `ColumnTransformer` para los 5 clásicos y el MLP, guardado en el joblib.
 - **Bundle C (ventana):** **14 Ridge independientes**, uno **por sensor**, α = 1,0, sobre los **14 términos** del polinomio de grado 2 en `alt · Mach · TRA · T2`; 19 canales × 50 pasos y **sin categórica**.
 - **El porqué, en una línea:** cada sensor responde al régimen a su manera (la altura mueve `T48` de una forma y `Nf` de otra), así que catorce rectas y no una.
 - **Frase:** «la categórica etiqueta el régimen; el Ridge lo resta. Coexisten: la app sirve el segundo».
-- **Código:** `src/clase/pipeline_clase.py:39`, `src/ds02_rul/features.py:42-48`, `src/ds02_rul/residualizer.py`.
+- **Código:** `src/clase/pipeline_clase.py:36-45`, `src/ds02_rul/features.py:43-58`, `src/ds02_rul/residualizer.py`.
 - **Rúbrica:** PIA-3, SAA-4/SAA-8.
 
-### 13 · MLP: una base y tres experimentos con hipótesis
+### 16 · MLP: una base y tres experimentos con hipótesis
 - **Layout:** tabla de 4 filas con la columna «hipótesis» visible — es literalmente lo que pide el 10.
 - **Tabla real (`resultados/mlp_comparativa.csv`):**
 
@@ -190,14 +219,21 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
 - **Test (una lectura):** MLP-E2 `7,7211 / MAE 5,8132 / R² 0,8343`.
 - **Rúbrica:** SAA-7 (20 %).
 
-### 14 · El techo del modelo de fila
+### 17 · Qué mira el MLP que se queda
+- **Layout:** barra de `mean |SHAP|` del E2 + tres lecturas a la derecha + remate.
+- **Las tres lecturas:** `cycle` pesa 28 · `T50` 20,5 · la fase de vuelo casi no entra.
+- **Lo que hay que decir:** mismo diagnóstico que el árbol, con otra arquitectura; el MLP también mira el reloj.
+- **Figura:** `mlp_shap_e2_bar.png` (permutación sobre 200 filas de validación, no prueba causal).
+- **Rúbrica:** SAA-2 (10 %) interpretabilidad del MLP.
+
+### 18 · El techo del modelo de fila
 - **Layout:** dos columnas enfrente — «fila» y «ventana» — con la misma métrica y distinto grano.
 - **Contraste:** `12.538` lecturas sueltas vs `6.196` ventanas de `50 × 19`.
 - **La frase:** una lectura no ve degradación; la degradación es una secuencia.
 - **La advertencia (y anticipación de la pregunta individual):** los granos **no se mezclan**; 11,034 (fila) y 4,338 (ventana) no miden lo mismo.
 - **Rúbrica:** SAA-6/SAA-8.
 
-### 15 · BiLSTM y la ablación de `cyc_norm`
+### 19 · BiLSTM y la ablación de `cyc_norm`
 - **Layout:** tabla 2×2 + figura de barras.
 - **La pregunta:** ¿el reloj ayuda o es un atajo?
 - **Tabla real (`resultados/ablacion_cycnorm.csv`):**
@@ -213,7 +249,7 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
 - **Conclusión:** en el secuencial las cuatro variantes caen en **5,878–5,974** (0,10 de horquilla): el reloj no cambia el resultado. En LGBM **cuesta +0,77**. Por eso `cyc_norm` es canal del BiLSTM y **no entra** en LGBM ni en el meta.
 - **Rúbrica:** **SAA-6, columna de 10** — «prueba algo no visto en clase y demuestra si mejora o no».
 
-### 16 · Cada ventana la puntúa otro meta (OOF)
+### 20 · Cada ventana la puntúa otro meta (OOF)
 - **Layout:** izquierda el argumento, derecha el diagrama de pliegues.
 - **El problema:** elegir β sobre las mismas filas que ajustaron al meta es la fuga clásica; el RMSE de validación se hunde a **0,308** y deja de medir nada.
 - **El protocolo:** OOF de **3 pliegues agrupados por motor** sobre los seis motores de desarrollo (`2·5·10·16·18·20`); cada pliegue entrena con cuatro y puntúa a ciegas con los otros dos; el preprocesado se reajusta dentro del pliegue.
@@ -222,7 +258,7 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
 - **Frase:** «la validación no es donde el modelo queda bien: es donde se le puede creer».
 - **Rúbrica:** SAA-6, PIA-4 (evaluación honesta).
 
-### 17 · El meta por dentro
+### 21 · El meta por dentro
 - **Layout:** tres piezas a la izquierda, pesos del bundle instalado a la derecha.
 - **Pieza 1 — RidgeCV** sobre `[p_lstm, p_lgb]`: elige **α = 88,6** en el propio holdout. α alto porque las dos ramas están correlacionadas; sin regularizar, los pesos se disparan.
 - **Pieza 2 — LightGBM** sobre las mismas dos columnas: corrige cuando una rama se desvía. No ve sensores, ni ciclos, ni RUL.
@@ -231,7 +267,7 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
 - **Frase:** cuando se le dio el reloj al meta se lo quedó todo (100 % del peso en `cyc_norm`); por eso el juez solo ve dos columnas.
 - **Rúbrica:** SAA-6/SAA-8, PIA-4.
 
-### 18 · β = 1,00 y lo que rechazamos
+### 22 · β = 1,00 y lo que rechazamos
 - **Layout:** la fórmula a la izquierda; a la derecha, las barras del meta que se descartó.
 - **La mezcla:** `p = p_lstm + β · (p_meta − p_lstm)`. β = 0 deja el campeón sin riesgo; β = 1 manda el meta. Se elige **fuera de fold** y salió **1,00** (mediana de los tres pliegues).
 - **Se dice en voz alta:** con β = 1,00 el sistema no conserva nada del BiLSTM en la salida; queda escrito en el manifiesto.
@@ -240,23 +276,23 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
 - **Frase:** «probar lo contrario y publicar el número es parte del método».
 - **Rúbrica:** SAA-6, PIA-4.
 
-### 19 · ¿Fue suerte, o es el motor 14?
+### 23 · ¿Fue suerte, o es el motor 14?
 - **Layout:** tres cifras arriba, tabla por unidad y `bundle_c_rmse_por_motor.png`.
-- **Multisemilla:** **4,324 ± 0,107** RMSE y **2341,0 ± 54,1** NASA sobre las semillas 42 · 7 · 123 (README es la fuente autoritativa).
+- **Multisemilla:** **4,333 ± 0,040** RMSE y **2335,1 ± 28,7** NASA sobre las semillas 42 · 7 · 123 (42 del manifiesto; 7 y 123 de `resultados/bundle_c_multiseed.csv`). 4,324 ± 0,107 es del CSV anterior y no se cita.
 - **Reparto:** U11 3,6328 (3.293 ventanas) · **U14 8,5761 (760)** · U15 2,8371 (2.143) · global 4,338 · macro 5,0153.
-- **La frase que hay que decir:** U14 son el 12 % de las ventanas y se lleva el 45 % del error cuadrático; por eso se publican global y macro.
+- **La frase que hay que decir:** U14 son el 12 % de las ventanas y se lleva el 47,9 % del error cuadrático; por eso se publican global y macro.
 - **Puente con la asignatura (SAA-8):** el LGBM sobre base adaptada cae en **7,067** (NASA 5731,3), exactamente el primer peldaño de la cascada — la misma cifra por dos caminos.
-- **Aviso interno:** `resultados/bundle_c_multiseed.csv` en disco da 4,371 y 4,291 (media 4,333); la cifra del deck es la del README. No mezclarlas en la misma slide.
+- **Aviso interno:** `resultados/bundle_c_multiseed.csv` da 4,371 y 4,291; con la semilla 42 del manifiesto la media es 4,333 ± 0,040. `resultados/comparativa_c_multisemilla.csv` (4,368) está obsoleto y no se cita.
 - **Rúbrica:** SAA-7, PIA-4.
 
-### 20 · De 7,067 a 4,338, sin tocar el test
+### 24 · De 7,067 a 4,338, sin tocar el test
 - **Layout:** cuatro KPI, `bundle_c_cascada_rmse.png` y `real_vs_predicho_bundle_c.png`, con la serie completa al pie.
 - **Cascada:** LGBM-C 7,067 → BiLSTM-C 5,654 → +EMA5 5,618 → Híbrido-C **4,338**.
 - **Métricas del manifiesto:** RMSE 4,338 · MAE 3,227 · R² 0,9461 · NASA 2336,2.
 - **Lo que se dice en voz alta:** el test se leyó **una vez**; todo se eligió por validación y lo firma el manifiesto, no el deck.
 - **Rúbrica:** SAA-7, PIA-4.
 
-### 21 · El juez se fía del árbol (SHAP de las tres ramas)
+### 25 · El juez se fía del árbol (SHAP de las tres ramas)
 - **Layout:** izquierda barras del meta + diagnóstico del residuo; derecha `bar_bilstm.png` y `bar_lgbm.png`.
 - **La métrica la elige el negocio:** no RMSE sino **NASA score**, asimétrico — predecir de más deja un motor fundido en vuelo; de menos manda a hangar sin necesidad.
 - **SHAP del meta (`resultados/shap_bundle_C/shap_meta.csv`):** `p_lgb` 20,15 · `p_lstm` 8,09 → **71 % árbol / 29 % red**. Sale de un método distinto al Ridge y da el mismo reparto que el 28/72: dos caminos, una conclusión. **Esta coincidencia es el argumento fuerte de la slide.**
@@ -268,7 +304,10 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
 
 ## Acto IV · Decisión y acción
 
-### 23 · Ocho reglas, una de seguridad
+### ▸ Separador C — «Decisión»
+Filete oro, la palabra `DECISIÓN` en serif enorme, una línea: «El modelo no decide. Las reglas deciden, y se pueden auditar.»
+
+### 27 · Ocho reglas, una de seguridad
 - **Layout:** tabla de 6 filas con la columna `prioridad` en mono, y la fila de R1 marcada en oro.
 - **Tabla real (`src/mia/reglas.py`):**
 
@@ -285,29 +324,30 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
 - **Frase:** «con la escalera de umbrales invertida cualquier decisión sería arbitraria, así que no se decide».
 - **Rúbrica:** **MIA-2 (30 % de MIA)**.
 
-### 24 · Decidimos sobre el pesimista, no sobre la predicción
+### 28 · Decidimos sobre el pesimista, no sobre la predicción
 - **Layout:** una sola idea, tipografía grande, un esquema de banda.
 - **El esquema:** predicción `27` con banda `[23 · 31]`; la regla lee **23** → HANGAR. Sin banda habría salido APTO.
 - **Por qué:** equivocarse por optimismo es una parada en pista; por pesimismo, una inspección programada.
 - **Coherencia:** conecta la cobertura empírica del conformal con R9/R8/R7. Sin esta slide la banda parece decoración.
 - **Rúbrica:** MIA-2 + SAA-8 (umbrales 30/25 de ADR-008).
 
-### 25 · n8n: la decisión se convierte en acción
-- **Layout:** diagrama del flujo (15 nodos) arriba, tabla de 3 ramas abajo.
+### 29 · n8n: la decisión se convierte en acción
+- **Layout:** diagrama del flujo (20 nodos: 13 funcionales + 7 notas) arriba, tabla de 4 ramas abajo.
 - **Flujo real:** webhook `POST /ds02/decision` → `Switch` (3 salidas) → acción. `responseMode: onReceived` (200 inmediato, compatible con el timeout de 5 s de la app).
 - **Tabla:**
 
   | Rama | Acción |
   |---|---|
-  | APTO | registro/log de la decisión |
-  | INSPECCION | Google Sheets + aviso para la próxima parada |
-  | **HANGAR** | **Postgres `ds02_decisiones`** + Calendar + Gmail |
+  | APTO | log de la decisión + Telegram |
+  | INSPECCION | Google Sheets + Telegram (próxima parada) |
+  | **HANGAR** | **Postgres `ds02_decisiones`** → Calendar → Gmail → Telegram |
+  | FALLBACK | decisión no reconocida: Set de error + Telegram, sin acción |
 
-- **Lo que separa el 7 del 10:** la rama HANGAR **no** hace lo de clase: escribe en Postgres y llama a nuestra API.
-- **Transparencia:** el JSON está `active: false` por diseño, sin secretos (solo `id`+`name`), `columns.schema` del nodo Postgres relleno para que importe y funcione; `onError: continueRegularOutput` en la API para no romper la rama si el servicio no está levantado.
+- **Lo que separa el 7 del 10:** HANGAR encadena Postgres → Calendar → Gmail, y el flujo tiene una rama FALLBACK que ninguna decisión conocida dispara: si el Switch no reconoce el valor, alerta en vez de callar. **No hay nodo HTTP:** el JSON no llama a ninguna API.
+- **Transparencia:** el JSON está `active: false` por diseño y sin secretos (solo `id`+`name`); `columns.schema` del nodo Postgres va relleno para que importe y funcione. El envío desde la app está en `src/n8n.py`: timeout 5 s, reintentos solo en 5xx y nunca lanza a la UI.
 - **Rúbrica:** **MIA-3 (35 % de MIA)**.
 
-### 26 · La app: el caso nuevo
+### 30 · La app: el caso nuevo
 - **Layout:** `docs/assets/dashboard_ds02.png` grande + 3 anotaciones.
 - **Qué se ve:** RUL, banda conformal, decisión con motivo, SHA del bundle, SHAP local.
 - **Control de errores (el 10 de PIA-5):** entrada vacía o imposible → R1 devuelve `SIN_DECISION` con motivo. **Demostrar el caso malo**, no el bueno.
@@ -315,7 +355,7 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
 
 ## Acto V · Cierre
 
-### 27 · Límites, dichos por nosotros
+### 31 · Límites, dichos por nosotros
 - Layout: lista corta en mono, sin adornos.
 - TensorFlow en CPU no es determinista bit a bit → el **manifiesto** es la fuente de verdad.
 - El coste AOG es **supuesto declarado**, no medición.
@@ -324,12 +364,12 @@ Filete oro, la palabra `DATOS` en serif enorme, una línea: «65.173 lecturas de
 - SHAP cubre las tres ramas, pero el BiLSTM se agrega por canal (se pierde el detalle dentro de la ventana) y la EMA queda fuera de la atribución.
 - **Para qué sirve esta slide:** desarma las preguntas hostiles y demuestra criterio.
 
-### 28 · Mapa rúbrica → evidencia
+### 32 · Mapa rúbrica → evidencia
 - Layout: tres columnas SAA / PIA / MIA, cada celda con su ruta real.
 - La frase de 20 s: la rúbrica cita `src/reglas.py` y `src/utils.py`; aquí la lógica está en `src/mia/reglas.py` y el entrypoint en `app/entrypoints/streamlit_app.py`, y **un test de arquitectura prohíbe las fachadas**.
 - **Rúbrica:** PIA-1 (10 %) y prepara las 3 preguntas individuales.
 
-### 29 · Respaldo (no se presenta)
+### 33 · Respaldo (no se presenta)
 Slides de apoyo para las preguntas individuales:
 - **SAA:** ¿por qué `cyc_norm` fuera de LGBM? (ablación, +0,77) · ¿por qué 11,034 no se compara con 4,338? (granos) · ¿por qué U14 falla? (760 ventanas, peor caso).
 - **PIA:** ¿dónde está el pipeline? (`src/clase/pipeline_clase.py`) · ¿qué garantiza MLflow? (17 runs curados; `--check` falla si hay `live__*`) · ¿qué pasa si el SHA no coincide? (`load_ensemble` verifica antes de deserializar).
@@ -362,7 +402,7 @@ se funden (el OOF justifica β).
 | `resultados/eda_barras_fase.png` · `eda_hist_rul.png` · `eda_box_t48_fase.png` | 7 (arriba) |
 | `resultados/eda_scatter_alt_mach.png` · `eda_heatmap_corr.png` | 7 (abajo) |
 | `resultados/eda_t48_resid_fase.png` | 8 (después de residualizar) |
-| `docs/evidencia/mlflow/compare_fila.png` | 11 |
+| `docs/evidencia/mlflow/compare_fila.jpg` | 11 |
 | `resultados/clasicos_real_vs_pred.png` · `mlp_real_vs_pred.png` | 14 |
 | `resultados/importancia_permutacion.png` | 14 |
 | `resultados/ablacion_cycnorm_rmse.png` | 15 |
@@ -370,7 +410,7 @@ se funden (el OOF justifica β).
 | `resultados/bundle_c_rmse_por_motor.png` | 19 |
 | `resultados/bundle_c_cascada_rmse.png` | 20 |
 | `docs/assets/real_vs_predicho_bundle_c.png` | 20 |
-| `docs/evidencia/mlflow/compare_ventana.png` · `run_prod.png` | 20 / respaldo |
+| `docs/evidencia/mlflow/compare_ventana.jpg` · `compare_ablacion.jpg` | 20 / respaldo |
 | `resultados/shap_bundle_C/bar_bilstm.png` · `bar_lgbm.png` | 21 |
 | `resultados/loss_curve_c.png` | 15 (apoyo: early stopping) |
 
@@ -380,4 +420,4 @@ Sin usar a propósito: `ridge_meta_pesos_04.png` es el mismo gráfico que el 06
 
 ## Estado
 
-29 slides, ordenadas como los siete cuadernos (01 → 07).
+33 slides, ordenadas como los siete cuadernos (01 → 07).

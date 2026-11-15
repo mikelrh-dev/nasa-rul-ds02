@@ -293,6 +293,13 @@ Grains never mix: row RMSE and window RMSE do not measure the same thing, and th
 store states it with the `grano` tag. Ablation runs are isolated by
 `familia=ablacion_cycnorm`.
 
+### Window grain compared inside MLflow
+
+The four bundle runs (LGBM, BiLSTM, BiLSTM+EMA5 and the deployed hybrid) share one
+experiment and compare on `rmse_test`: 7.067 / 5.654 / 5.618 / 4.338.
+
+![MLflow Compare: four window-grain runs, from LGBM to the deployed bundle C](docs/evidencia/mlflow/compare_ventana.jpg)
+
 ### Ablation compared inside MLflow
 
 | `cyc_norm` variant | Test RMSE |
@@ -306,7 +313,7 @@ It was measured in `nb03` (test 11/14/15, seed 42) and registered **without
 retraining**: four comparable runs inside the tool, not a lone notebook figure.
 The full 4×3 grid lives in `resultados/ablacion_cycnorm.csv`.
 
-<img src="docs/evidencia/mlflow/compare_ablacion.png" width="760" alt="MLflow Compare view of the four cyc_norm ablation runs: rmse_test 5.974, 5.910, 5.896 and 5.878">
+<img src="docs/evidencia/mlflow/compare_ablacion.jpg" width="760" alt="MLflow Compare view of the four cyc_norm ablation runs: rmse_test 5.974, 5.910, 5.896 and 5.878">
 
 ### Why the store is plain text
 
@@ -321,10 +328,9 @@ All screenshots live in `docs/evidencia/mlflow/`:
 
 | Screenshot | What it shows |
 |---|---|
-| [`compare_fila.png`](docs/evidencia/mlflow/compare_fila.png) | **Compare** view of 9 models, plotted by `rmse_val` |
-| [`compare_ventana.png`](docs/evidencia/mlflow/compare_ventana.png) | Compare view of the 4 window runs, by `rmse_test` |
-| [`compare_ablacion.png`](docs/evidencia/mlflow/compare_ablacion.png) | Compare view of the 4 `cyc_norm` runs, by `rmse_test` |
-| [`run_prod.png`](docs/evidencia/mlflow/run_prod.png) | deployed `prod__bundle_c` run page: 22 parameters, 9 metrics and traceability tags |
+| [`compare_fila.jpg`](docs/evidencia/mlflow/compare_fila.jpg) | **Compare** view of 9 models, plotted by `rmse_val` |
+| [`compare_ventana.jpg`](docs/evidencia/mlflow/compare_ventana.jpg) | Compare view of the 4 window runs, by `rmse_test` (LGBM, BiLSTM, BiLSTM+EMA5, bundle C) |
+| [`compare_ablacion.jpg`](docs/evidencia/mlflow/compare_ablacion.jpg) | Compare view of the 4 `cyc_norm` runs, by `rmse_test` |
 
 Each Compare view is filtered by `tags.grano` and carries the parallel
 coordinates chart plus the parameters, metrics and tags tables side by side, so

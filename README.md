@@ -371,7 +371,14 @@ Los granos no se mezclan: el RMSE de fila y el de ventana no miden lo mismo, y e
 store lo declara con el tag `grano`. La ablación se aísla con
 `familia=ablacion_cycnorm`.
 
-![Vista Compare de MLflow con los nueve modelos de grano fila](docs/evidencia/mlflow/compare_fila.png)
+![MLflow Compare: nueve modelos de grano fila (5 clásicos + 4 MLP) por `rmse_val`](docs/evidencia/mlflow/compare_fila.jpg)
+
+### El grano ventana se compara dentro de MLflow
+
+Los cuatro runs del bundle (LGBM, BiLSTM, BiLSTM+EMA5 y el híbrido desplegado)
+comparten experimento y se comparan por `rmse_test`: 7.067 / 5.654 / 5.618 / 4.338.
+
+![MLflow Compare: cuatro runs de grano ventana, del LGBM al bundle C desplegado](docs/evidencia/mlflow/compare_ventana.jpg)
 
 ### La ablación se compara dentro de MLflow
 
@@ -386,7 +393,7 @@ Se midió en `nb03` (test 11/14/15, semilla 42) y se registró **sin reentrenar*
 son cuatro runs comparables dentro de la herramienta, no una figura suelta del
 notebook. El grid 4×3 completo está en `resultados/ablacion_cycnorm.csv`.
 
-<img src="docs/evidencia/mlflow/compare_ablacion.png" width="760" alt="Vista Compare de MLflow con los cuatro runs de la ablación cyc_norm: rmse_test 5.974, 5.910, 5.896 y 5.878">
+<img src="docs/evidencia/mlflow/compare_ablacion.jpg" width="760" alt="Vista Compare de MLflow con los cuatro runs de la ablación cyc_norm: rmse_test 5.974, 5.910, 5.896 y 5.878">
 
 ### Por qué el store es de texto
 
@@ -401,10 +408,9 @@ Las capturas están todas en `docs/evidencia/mlflow/`:
 
 | Captura | Qué enseña |
 |---|---|
-| [`compare_fila.png`](docs/evidencia/mlflow/compare_fila.png) | vista **Compare** de 9 modelos, graficados por `rmse_val` |
-| [`compare_ventana.png`](docs/evidencia/mlflow/compare_ventana.png) | vista Compare de 4 runs de ventana, por `rmse_test` |
-| [`compare_ablacion.png`](docs/evidencia/mlflow/compare_ablacion.png) | vista Compare de los 4 runs de `cyc_norm`, por `rmse_test` |
-| [`run_prod.png`](docs/evidencia/mlflow/run_prod.png) | ficha del run desplegado `prod__bundle_c`: 22 parámetros, 9 métricas y los tags de trazabilidad |
+| [`compare_fila.jpg`](docs/evidencia/mlflow/compare_fila.jpg) | vista **Compare** de 9 modelos, graficados por `rmse_val` |
+| [`compare_ventana.jpg`](docs/evidencia/mlflow/compare_ventana.jpg) | vista Compare de 4 runs de ventana, por `rmse_test` (LGBM, BiLSTM, BiLSTM+EMA5, bundle C) |
+| [`compare_ablacion.jpg`](docs/evidencia/mlflow/compare_ablacion.jpg) | vista Compare de los 4 runs de `cyc_norm`, por `rmse_test` |
 
 Cada Compare se filtra por `tags.grano` y trae el gráfico de coordenadas
 paralelas más las tablas de parámetros, métricas y tags lado a lado, así que la
