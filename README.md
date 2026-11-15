@@ -371,14 +371,14 @@ Los granos no se mezclan: el RMSE de fila y el de ventana no miden lo mismo, y e
 store lo declara con el tag `grano`. La ablación se aísla con
 `familia=ablacion_cycnorm`.
 
-![MLflow Compare: nueve modelos de grano fila (5 clásicos + 4 MLP) por `rmse_val`](docs/evidencia/mlflow/compare_fila.jpg)
+<img src="docs/evidencia/mlflow/compare_fila.jpg" width="720" alt="MLflow Compare: nueve modelos de grano fila (5 clásicos + 4 MLP) por rmse_val">
 
 ### El grano ventana se compara dentro de MLflow
 
 Los cuatro runs del bundle (LGBM, BiLSTM, BiLSTM+EMA5 y el híbrido desplegado)
 comparten experimento y se comparan por `rmse_test`: 7.067 / 5.654 / 5.618 / 4.338.
 
-![MLflow Compare: cuatro runs de grano ventana, del LGBM al bundle C desplegado](docs/evidencia/mlflow/compare_ventana.jpg)
+<img src="docs/evidencia/mlflow/compare_ventana.jpg" width="720" alt="MLflow Compare: cuatro runs de grano ventana, del LGBM al bundle C desplegado">
 
 ### La ablación se compara dentro de MLflow
 
@@ -393,7 +393,7 @@ Se midió en `nb03` (test 11/14/15, semilla 42) y se registró **sin reentrenar*
 son cuatro runs comparables dentro de la herramienta, no una figura suelta del
 notebook. El grid 4×3 completo está en `resultados/ablacion_cycnorm.csv`.
 
-<img src="docs/evidencia/mlflow/compare_ablacion.jpg" width="760" alt="Vista Compare de MLflow con los cuatro runs de la ablación cyc_norm: rmse_test 5.974, 5.910, 5.896 y 5.878">
+<img src="docs/evidencia/mlflow/compare_ablacion.jpg" width="720" alt="Vista Compare de MLflow con los cuatro runs de la ablación cyc_norm: rmse_test 5.974, 5.910, 5.896 y 5.878">
 
 ### Por qué el store es de texto
 
