@@ -421,7 +421,7 @@ Los resúmenes (Figuras 1, 3 y 5) se generan con `scripts/operativo/figuras_mlfl
 <p align="center"><em>Figura 1 · Resumen del grano fila (RMSE val; naranja = elegido).</em></p>
 
 <p align="center">
-  <a href="docs/evidencia/mlflow/compare_fila.jpg"><img src="docs/evidencia/mlflow/compare_fila.jpg" width="800" alt="MLflow Compare: nueve modelos de grano fila (5 clásicos + 4 MLP) por rmse_val"></a>
+  <a href="docs/evidencia/mlflow/compare_fila.jpg"><img src="docs/evidencia/mlflow/compare_fila.jpg" width="900" alt="MLflow Compare: nueve modelos de grano fila (5 clásicos + 4 MLP) por rmse_val, en alta resolución"></a>
 </p>
 
 <p align="center"><em>Figura 2 · Evidencia: Compare del grano fila en MLflow (clic para tamaño completo).</em></p>
@@ -438,7 +438,7 @@ comparten experimento y se comparan por `rmse_test`: 7.067 / 5.654 / 5.618 / 4.3
 <p align="center"><em>Figura 3 · Resumen del grano ventana (RMSE test; naranja = bundle desplegado).</em></p>
 
 <p align="center">
-  <a href="docs/evidencia/mlflow/compare_ventana.jpg"><img src="docs/evidencia/mlflow/compare_ventana.jpg" width="800" alt="MLflow Compare: cuatro runs de grano ventana, del LGBM al bundle C desplegado"></a>
+  <a href="docs/evidencia/mlflow/compare_ventana.jpg"><img src="docs/evidencia/mlflow/compare_ventana.jpg" width="900" alt="MLflow Compare: cuatro runs de grano ventana, del LGBM al bundle C desplegado, en alta resolución"></a>
 </p>
 
 <p align="center"><em>Figura 4 · Evidencia: Compare del grano ventana en MLflow.</em></p>
@@ -463,7 +463,7 @@ notebook. El grid 4×3 completo está en `resultados/ablacion_cycnorm.csv`.
 <p align="center"><em>Figura 5 · Resumen de la ablación `cyc_norm` (RMSE test).</em></p>
 
 <p align="center">
-  <a href="docs/evidencia/mlflow/compare_ablacion.jpg"><img src="docs/evidencia/mlflow/compare_ablacion.jpg" width="800" alt="Vista Compare de MLflow con los cuatro runs de la ablación cyc_norm: rmse_test 5.974, 5.910, 5.896 y 5.878"></a>
+  <a href="docs/evidencia/mlflow/compare_ablacion.jpg"><img src="docs/evidencia/mlflow/compare_ablacion.jpg" width="900" alt="Vista Compare de MLflow con los cuatro runs de la ablación cyc_norm: rmse_test 5.974, 5.910, 5.896 y 5.878, en alta resolución"></a>
 </p>
 
 <p align="center"><em>Figura 6 · Evidencia: ablación `cyc_norm` comparada en MLflow.</em></p>
