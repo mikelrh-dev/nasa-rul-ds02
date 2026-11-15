@@ -49,6 +49,12 @@ en `docs/assets/dashboard_ds02.png`.*
 | ¿Cómo se arranca? | `uvicorn app.services.api:app` y `streamlit run app/entrypoints/dashboard_ds02.py`. |
 | ¿Qué falta o es supuesto? | El coste AOG es un rango externo; el flujo n8n versionado está inactivo por diseño; la variabilidad multisemilla depende del CSV versionado. |
 
+<p align="center">
+  <a href="docs/evidencia/video/pipeline.mp4"><img src="docs/evidencia/video/pipeline.gif" width="720" alt="Resumen animado del proyecto: datos DS02, limpieza, ventanas de 50 ciclos, métricas del bundle C y despliegue"></a>
+</p>
+
+<p align="center"><em>Resumen animado del pipeline (13 s, silencio) · <a href="docs/evidencia/video/pipeline.mp4">vídeo original en calidad completa</a>.</em></p>
+
 ```bash
 # API local
 uvicorn app.services.api:app --host 127.0.0.1 --port 8000

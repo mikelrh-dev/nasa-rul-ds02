@@ -29,6 +29,12 @@ conformal band. The app serves the frozen bundle C.*
 | Evidence? | `models/ds02_manifest.json`, `resultados/`, `mlruns/` (17 curated runs) and `notebooks/01–07`. |
 | How to start? | `uvicorn app.services.api:app` and `streamlit run app/entrypoints/dashboard_ds02.py`. |
 
+<p align="center">
+  <a href="docs/evidencia/video/pipeline.mp4"><img src="docs/evidencia/video/pipeline.gif" width="720" alt="Animated project summary: DS02 data, cleaning, 50-cycle windows, bundle C metrics and deployment"></a>
+</p>
+
+<p align="center"><em>Animated pipeline summary (13 s, silent) · <a href="docs/evidencia/video/pipeline.mp4">full-quality original video</a>.</em></p>
+
 ```bash
 uvicorn app.services.api:app --host 127.0.0.1 --port 8000
 streamlit run app/entrypoints/dashboard_ds02.py --server.address 127.0.0.1 --server.port 8501
