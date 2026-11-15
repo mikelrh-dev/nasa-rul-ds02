@@ -412,11 +412,19 @@ store lo declara con el tag `grano`. La ablación se aísla con
 
 La selección es por validación; solo los elegidos tienen test (XGB 11.034 y MLP E2 7.7211).
 
+Los resúmenes (Figuras 1, 3 y 5) se generan con `scripts/operativo/figuras_mlflow.py` desde el export de MLflow; las capturas (Figuras 2, 4 y 6) son la evidencia dentro de la herramienta.
+
+<p align="center">
+  <img src="docs/evidencia/mlflow/figura_fila_rmse.png" width="720" alt="Resumen del grano fila: RMSE de validación por modelo">
+</p>
+
+<p align="center"><em>Figura 1 · Resumen del grano fila (RMSE val; naranja = elegido).</em></p>
+
 <p align="center">
   <a href="docs/evidencia/mlflow/compare_fila.jpg"><img src="docs/evidencia/mlflow/compare_fila.jpg" width="800" alt="MLflow Compare: nueve modelos de grano fila (5 clásicos + 4 MLP) por rmse_val"></a>
 </p>
 
-<p align="center"><em>Figura 1 · Compare del grano fila en MLflow (clic para tamaño completo).</em></p>
+<p align="center"><em>Figura 2 · Evidencia: Compare del grano fila en MLflow (clic para tamaño completo).</em></p>
 
 ### El grano ventana se compara dentro de MLflow
 
@@ -424,10 +432,16 @@ Los cuatro runs del bundle (LGBM, BiLSTM, BiLSTM+EMA5 y el híbrido desplegado)
 comparten experimento y se comparan por `rmse_test`: 7.067 / 5.654 / 5.618 / 4.338.
 
 <p align="center">
+  <img src="docs/evidencia/mlflow/figura_ventana_rmse.png" width="720" alt="Resumen del grano ventana: RMSE test por run">
+</p>
+
+<p align="center"><em>Figura 3 · Resumen del grano ventana (RMSE test; naranja = bundle desplegado).</em></p>
+
+<p align="center">
   <a href="docs/evidencia/mlflow/compare_ventana.jpg"><img src="docs/evidencia/mlflow/compare_ventana.jpg" width="800" alt="MLflow Compare: cuatro runs de grano ventana, del LGBM al bundle C desplegado"></a>
 </p>
 
-<p align="center"><em>Figura 2 · Compare del grano ventana en MLflow.</em></p>
+<p align="center"><em>Figura 4 · Evidencia: Compare del grano ventana en MLflow.</em></p>
 
 ### La ablación se compara dentro de MLflow
 
@@ -443,10 +457,16 @@ son cuatro runs comparables dentro de la herramienta, no una figura suelta del
 notebook. El grid 4×3 completo está en `resultados/ablacion_cycnorm.csv`.
 
 <p align="center">
+  <img src="docs/evidencia/mlflow/figura_ablacion_rmse.png" width="720" alt="Resumen de la ablación cyc_norm: RMSE test por variante">
+</p>
+
+<p align="center"><em>Figura 5 · Resumen de la ablación `cyc_norm` (RMSE test).</em></p>
+
+<p align="center">
   <a href="docs/evidencia/mlflow/compare_ablacion.jpg"><img src="docs/evidencia/mlflow/compare_ablacion.jpg" width="800" alt="Vista Compare de MLflow con los cuatro runs de la ablación cyc_norm: rmse_test 5.974, 5.910, 5.896 y 5.878"></a>
 </p>
 
-<p align="center"><em>Figura 3 · Ablación `cyc_norm` comparada en MLflow.</em></p>
+<p align="center"><em>Figura 6 · Evidencia: ablación `cyc_norm` comparada en MLflow.</em></p>
 
 ### Por qué el store es de texto
 

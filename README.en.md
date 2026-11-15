@@ -309,11 +309,19 @@ store states it with the `grano` tag. Ablation runs are isolated by
 
 Selection is by validation; only the chosen ones carry a test read (XGB 11.034 and MLP E2 7.7211).
 
+The summaries (Figures 1, 3 and 5) are generated with `scripts/operativo/figuras_mlflow.py` from the MLflow export; the captures (Figures 2, 4 and 6) are the evidence inside the tool.
+
+<p align="center">
+  <img src="docs/evidencia/mlflow/figura_fila_rmse.png" width="720" alt="Row-grain summary: validation RMSE per model">
+</p>
+
+<p align="center"><em>Figure 1 · Row-grain summary (val RMSE; orange = selected).</em></p>
+
 <p align="center">
   <a href="docs/evidencia/mlflow/compare_fila.jpg"><img src="docs/evidencia/mlflow/compare_fila.jpg" width="800" alt="MLflow Compare view of nine row-grain models (5 classical + 4 MLP) by rmse_val"></a>
 </p>
 
-<p align="center"><em>Figure 1 · Row-grain Compare in MLflow (click for full size).</em></p>
+<p align="center"><em>Figure 2 · Evidence: row-grain Compare in MLflow (click for full size).</em></p>
 
 ### Window grain compared inside MLflow
 
@@ -321,10 +329,16 @@ The four bundle runs (LGBM, BiLSTM, BiLSTM+EMA5 and the deployed hybrid) share o
 experiment and compare on `rmse_test`: 7.067 / 5.654 / 5.618 / 4.338.
 
 <p align="center">
+  <img src="docs/evidencia/mlflow/figura_ventana_rmse.png" width="720" alt="Window-grain summary: test RMSE per run">
+</p>
+
+<p align="center"><em>Figure 3 · Window-grain summary (test RMSE; orange = deployed bundle).</em></p>
+
+<p align="center">
   <a href="docs/evidencia/mlflow/compare_ventana.jpg"><img src="docs/evidencia/mlflow/compare_ventana.jpg" width="800" alt="MLflow Compare: four window-grain runs, from LGBM to the deployed bundle C"></a>
 </p>
 
-<p align="center"><em>Figure 2 · Window-grain Compare in MLflow.</em></p>
+<p align="center"><em>Figure 4 · Evidence: window-grain Compare in MLflow.</em></p>
 
 ### Ablation compared inside MLflow
 
@@ -340,10 +354,16 @@ retraining**: four comparable runs inside the tool, not a lone notebook figure.
 The full 4×3 grid lives in `resultados/ablacion_cycnorm.csv`.
 
 <p align="center">
+  <img src="docs/evidencia/mlflow/figura_ablacion_rmse.png" width="720" alt="cyc_norm ablation summary: test RMSE per variant">
+</p>
+
+<p align="center"><em>Figure 5 · `cyc_norm` ablation summary (test RMSE).</em></p>
+
+<p align="center">
   <a href="docs/evidencia/mlflow/compare_ablacion.jpg"><img src="docs/evidencia/mlflow/compare_ablacion.jpg" width="800" alt="MLflow Compare view of the four cyc_norm ablation runs: rmse_test 5.974, 5.910, 5.896 and 5.878"></a>
 </p>
 
-<p align="center"><em>Figure 3 · `cyc_norm` ablation compared in MLflow.</em></p>
+<p align="center"><em>Figure 6 · Evidence: `cyc_norm` ablation compared in MLflow.</em></p>
 
 ### Why the store is plain text
 
