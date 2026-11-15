@@ -30,7 +30,7 @@
 - Producción: ensemble C **4,338** (macro-RMSE 5,02; U14 8,58 es el agujero). Banda R6 opcional
   recalibrada sobre **14.915** filas OOF puras (sin la unidad 16, que entrenó el meta); la lectura
   por defecto usa la banda del artefacto (17.450).
-- Multisemilla [42, 7, 123]: **4,322 ± 0,064** RMSE · 2342,3 ± 43,4 NASA (NB06); NB05 4,330 ± 0,053 · 2343,2 ± 24,1.
+- Multisemilla [42, 7, 123]: **4,333 ± 0,040** RMSE · 2335,1 ± 28,7 NASA (manifiesto + `bundle_c_multiseed.csv`). 4,322/4,330 de NB05/NB06 son histórico no regenerable; 4,324 ± 0,107 es del CSV anterior.
 - Clase no compite con producción: la entiende; C es el que se despliega.
 - Negocio: un AOG ≈ 10.000–15.000 USD/h (rango Boeing; ver `costes_reales_aeronauticos.md` §1); el equivalente 240.000–360.000 USD/día vale solo como hipotético de 24 h continuas. Evitar un AOG paga el sistema. RMSE manda porque un motor parado cuesta más que segundos de CPU.
 - SHAP + permutación (en validación): **cycle ≫ T50 > Nc**.
@@ -48,7 +48,7 @@
 - **No sabes el detalle** → navega: *"te lo enseño: NB02 celda 15, vive en `src/clase/train_mlp.py`"*. Abrir el fichero y leer el docstring puntúa como 10 de la pregunta individual.
 - **Duda de número** → no inventes: *"está en `resultados/comparativa.csv`, fila XGB, columna rmse_val: 8,22"*.
 - **Demo app** → `streamlit run app/entrypoints/streamlit_app.py`: métricas del elegido + caso nuevo con decisión (la p=RUL sale junto a la decisión).
-- **MLflow / n8n** → MLflow: 17 runs en `mlruns/` (9 fila + 4 ventana + 4 ablación de `cyc_norm`), export en `docs/evidencia/mlflow/comparativa.csv` y capturas; el store es texto, versionado en git y sin binarios. n8n: flujo incluido en `n8n/flujo.json`, inactivo hasta credenciales; no vendas una ejecución real que no existe.
+- **MLflow / n8n** → MLflow: 17 runs en `mlruns/` (9 fila + 4 ventana + 4 ablación de `cyc_norm`), export en `docs/evidencia/mlflow/comparativa.csv` y capturas; el store es texto, versionado en git y sin binarios. n8n: el JSON versionado está `active: false` y tiene 20 nodos (13 funcionales + 7 notas) y 4 ramas (APTO/INSPECCION/HANGAR/FALLBACK). La instancia local lo ejecutó 29 veces el 2026-11-07 (25 success / 4 error; 14 con curl y 15 con Python), con efectos en Postgres, Calendar y Gmail; ninguna atribuible a la app.
 
 ## Noche antes (checklist)
 

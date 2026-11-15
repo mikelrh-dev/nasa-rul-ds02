@@ -211,7 +211,7 @@ desplegado solo se lee y la tabla solo se verifica.»
 | c37 (`exec=11`) | Lee `bundle_c_por_motor.csv` + PNG | Lectura | «Leo la tabla por motor ya guardada.» |
 | c39 (`exec=20`) | Fig. RMSE por motor CSV → PNG | Display CSV | «Solo presentación: U14 8.576 n760 se lee del CSV.» |
 | c43 (`exec=12`) | Multiseed 7/123 `run_seed`+meta+`Ensemble` → `bundle_c_multiseed.csv` | **Escribe CSV desde el notebook**, NO llama `scripts/evaluate_bundle_stability` | «Multiseed en vivo que sí escribe su CSV; es doble escritor con `scripts/evaluate_bundle_stability.py` (beta 1.00 a mano).» |
-| c45 (`exec=13`) | Media multiseed lee base+ms | Agregación | «Mi media 4.322 es agregación manual, distinta de la de NB05.» |
+| c45 (`exec=13`) | Media multiseed lee base+ms | Agregación | «Mi media 4.333 ± 0.040 es la vigente; 4.322/4.330 son histórico impreso.» |
 | c49 (`exec=22`) | Lee `tabla_final_clase.csv`, elige campeón por grano | Lectura `tabla_final.py` | «En fila manda MLP-E2 (7.72); en ventana, C (4.338). No los mezclo.» |
 | c52 (`exec=16`, 1idx 53) | **TABLA VIVA** `construir_tabla` 4 CSV + `assert_frame_equal` | **Sí usa** `tabla_final.construir_tabla` (bien) | «Reconstruyo la tabla con la función oficial `construir_tabla` y exijo igualdad con el CSV; no escribo.» |
 | c53 (`exec=16`) | Autónoma: construye test + `load_ensemble` + viz → `real_vs_predicho_viz_c.png` | `construir_raw` / `load_ensemble` / `build_windows` / `real_vs_predicho` | «Celda autónoma: reconstruye todo desde disco sin reentrenar.» |

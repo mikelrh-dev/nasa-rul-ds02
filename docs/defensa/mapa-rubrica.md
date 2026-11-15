@@ -33,8 +33,19 @@ vuelva. La ruta que se defiende es `src.mia.reglas`.
 | `src/n8n.py` | `src/n8n.py` | Cliente/construcción del payload de n8n. |
 | `app/streamlit_app.py` | `app/entrypoints/streamlit_app.py` | Entrypoint real de Streamlit. |
 | `models/mejor_modelo.joblib` | `models/mejor_modelo.joblib` | Copia manual del mejor clásico; el bundle desplegado es `models/ensemble.joblib`. |
-| `n8n/flujo.json` | `n8n/flujo.json` | 15 nodos; 3 ramas APTO/INSPECCION/HANGAR. |
+| `n8n/flujo.json` | `n8n/flujo.json` | 20 nodos (13 funcionales + 7 notas); 4 ramas: APTO/INSPECCION/HANGAR + FALLBACK. |
 | `resultados/` | `resultados/` | CSV, PNG y tablas finales. |
+
+## SAA-2 — modelos clásicos y MLP
+
+| Criterio (peso) | Slide | Dónde vive | Qué enseña la slide |
+|---|---|---|---|
+| Cinco modelos (30 %) | 13 | `src/clase/train_clasicos.py:38-70` (Ridge, KNN, RF, XGB, SVR + grids), `:128-150` (GridSearchCV + 3 pliegues GroupKFold) | Tabla con familia, parámetro, RMSE val y tiempo; los grids completos y el salto train→val de los cinco (gráfico de la 14) |
+| MLP base + 3 experimentos (20 %) | 14 y 38 | `src/clase/train_mlp.py:38-44`, `resultados/mlp_comparativa.csv`, `resultados/mlp_shap_E2/bar.png` | Cuatro filas con hipótesis, params, RMSE train/val y tiempo; E1 enseña el sobreajuste; el SHAP del E2 dice qué mira |
+| Métricas y errores (10 %) | 15 y 21 | `resultados/tabla_final_clase.csv`, `clasicos_real_vs_pred.png`, `mlp_real_vs_pred.png` | MAE y R² de XGB junto al real-vs-predicho, con los dos granos separados |
+| Mejor modelo + SHAP (5 %) | 19, 20 y 21 | `tabla_final_clase.csv` (selección por `rmse_val`, desempate al simple), `shap_clase_e2.py:123-124` | Serie completa 11,034 → 7,721 → 7,067 → 5,654 → 5,618 → 4,338 |
+
+**Frase de 20 s:** «La rúbrica pide cinco clásicos y un MLP con tres experimentos: están en las slides 13 a 15 con sus grids, sus tiempos y la prueba de que E1 sobreajusta. De ahí sale el 7,721 que después se compara con la ventana sin mezclar granos.»
 
 ## Frase de defensa (20 s)
 

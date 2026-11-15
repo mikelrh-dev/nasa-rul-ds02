@@ -122,5 +122,5 @@ es solo una de las semillas del análisis.
 - **Test una vez.** La frase es siempre: «el test se evalúa una sola vez y
   solo para el elegido». Ver `src/clase/train_clasicos.py` y
   `src/clase/train_mlp.py:107`.
-- **Acción novedosa en n8n (MIA-3).** Pendiente de definir: la rama HANGAR debe terminar en una acción no vista en clase (ni Sheets, ni Postgres, ni Calendar, ni Gmail).
+- **Acción novedosa en n8n (MIA-3).** El flujo tiene 20 nodos (13 funcionales + 7 notas) y 4 ramas. Lo que no es de clase: la rama FALLBACK (decisión no reconocida → Set de error + alerta Telegram, sin ejecutar acción) y el aviso Telegram en las tres ramas. Si el tribunal no acepta Telegram como novedad, el argumento es el FALLBACK y el contrato de decisión (decisión + motivo + L_inf + SHA), no la rama HANGAR: Postgres, Calendar y Gmail sí son de clase. No digas que el flujo llama a nuestra API: el JSON no tiene nodo HTTP.
 - **MLflow / n8n.** «MLflow tiene 17 runs en `mlruns/`: 9 de fila, 4 de ventana y 4 de ablación, con export y capturas; el store es texto y no guarda binarios. n8n está incluido; el flujo versionado está inactivo por diseño (un test lo exige así), pero la instancia local lo ejecutó 29 veces (2026-11-07) con efectos reales. No vendas una ejecución de la app: no la hay.»
