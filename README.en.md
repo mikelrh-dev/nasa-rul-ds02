@@ -293,9 +293,27 @@ Grains never mix: row RMSE and window RMSE do not measure the same thing, and th
 store states it with the `grano` tag. Ablation runs are isolated by
 `familia=ablacion_cycnorm`.
 
+**Row grain (out-of-fold validation, GroupKFold by engine):**
+
+| Model | RMSE val | MAE val | R² val | Time (s) |
+|---|---:|---:|---:|---:|
+| Ridge | 8.2762 | 7.6611 | 0.8502 | 3.5 |
+| KNN | 9.4092 | 8.1856 | 0.8181 | 9.1 |
+| Random Forest | 9.0704 | 8.1534 | 0.8270 | 79.6 |
+| SVR | 8.2927 | 7.5299 | 0.8565 | 2.7 |
+| XGBoost | **8.2173** | 7.4688 | 0.8543 | 7.2 |
+| MLP base | 7.3580 | 5.6405 | 0.8918 | 27.5 |
+| MLP E1 capacity | 7.4808 | 5.7735 | 0.8882 | 70.7 |
+| MLP E2 reg-lr | **7.3404** | 5.6481 | **0.8924** | 33.3 |
+| MLP E3 batch | 7.3554 | 5.7035 | 0.8919 | 38.6 |
+
+Selection is by validation; only the chosen ones carry a test read (XGB 11.034 and MLP E2 7.7211).
+
 <p align="center">
-  <img src="docs/evidencia/mlflow/compare_fila.jpg" width="800" alt="MLflow Compare view of nine row-grain models (5 classical + 4 MLP) by rmse_val">
+  <a href="docs/evidencia/mlflow/compare_fila.jpg"><img src="docs/evidencia/mlflow/compare_fila.jpg" width="800" alt="MLflow Compare view of nine row-grain models (5 classical + 4 MLP) by rmse_val"></a>
 </p>
+
+<p align="center"><em>Figure 1 · Row-grain Compare in MLflow (click for full size).</em></p>
 
 ### Window grain compared inside MLflow
 
@@ -303,8 +321,10 @@ The four bundle runs (LGBM, BiLSTM, BiLSTM+EMA5 and the deployed hybrid) share o
 experiment and compare on `rmse_test`: 7.067 / 5.654 / 5.618 / 4.338.
 
 <p align="center">
-  <img src="docs/evidencia/mlflow/compare_ventana.jpg" width="800" alt="MLflow Compare: four window-grain runs, from LGBM to the deployed bundle C">
+  <a href="docs/evidencia/mlflow/compare_ventana.jpg"><img src="docs/evidencia/mlflow/compare_ventana.jpg" width="800" alt="MLflow Compare: four window-grain runs, from LGBM to the deployed bundle C"></a>
 </p>
+
+<p align="center"><em>Figure 2 · Window-grain Compare in MLflow.</em></p>
 
 ### Ablation compared inside MLflow
 
@@ -320,8 +340,10 @@ retraining**: four comparable runs inside the tool, not a lone notebook figure.
 The full 4×3 grid lives in `resultados/ablacion_cycnorm.csv`.
 
 <p align="center">
-  <img src="docs/evidencia/mlflow/compare_ablacion.jpg" width="800" alt="MLflow Compare view of the four cyc_norm ablation runs: rmse_test 5.974, 5.910, 5.896 and 5.878">
+  <a href="docs/evidencia/mlflow/compare_ablacion.jpg"><img src="docs/evidencia/mlflow/compare_ablacion.jpg" width="800" alt="MLflow Compare view of the four cyc_norm ablation runs: rmse_test 5.974, 5.910, 5.896 and 5.878"></a>
 </p>
+
+<p align="center"><em>Figure 3 · `cyc_norm` ablation compared in MLflow.</em></p>
 
 ### Why the store is plain text
 
