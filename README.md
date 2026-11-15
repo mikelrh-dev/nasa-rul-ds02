@@ -58,6 +58,10 @@ streamlit run app/entrypoints/dashboard_ds02.py --server.address 127.0.0.1 --ser
 
 # Entrypoint de la rúbrica: solo delega en la app anterior
 streamlit run app/entrypoints/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
+
+# MLflow: lectura del store versionado (texto, 17 runs)
+export MLFLOW_ALLOW_FILE_STORE=true
+mlflow server --backend-store-uri ./mlruns --host 127.0.0.1 --port 5001
 ```
 
 ## Rúbrica → evidencia
@@ -87,9 +91,19 @@ Hoy la decisión de hangar depende de juicio experto sin número.
 reglas y, cuando se autorice, en acción automática vía n8n. Evitar una sola
 parada no planificada al año paga el sistema.
 
+## Qué hemos construido
+
+Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir
+de su telemetría y propone **APTO / INSPECCIÓN / HANGAR**, convirtiendo la
+predicción en decisión por reglas y, cuando se autorice, en acción automática.
+
 **Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su
-telemetría; no transfiere a otros dominios. Es aprendizaje **supervisado** de
-**regresión** (RUL continua), con etiqueta y métrica contra verdad (RMSE/MAE/R²).
+telemetría; no transfiere a otros dominios. Frente a una **IA fuerte** (AGI capaz
+de razonar en cualquier dominio, inexistente aquí), la nuestra no sirve fuera de
+DS02 y por eso es barata, rápida y auditable. Es aprendizaje **supervisado** de
+**regresión** (RUL continua), con etiqueta y métrica contra verdad (RMSE/MAE/R²);
+a diferencia del aprendizaje **no supervisado**, que trabaja sin etiqueta y no
+puede medirse contra una verdad.
 Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost, LightGBM,
 Streamlit, SHAP y MLflow. n8n está implementado en `src/n8n.py` + `n8n/flujo.json`.
 
@@ -154,9 +168,9 @@ flowchart LR
     G --> H[EMA causal<br/>span = 5]
     H --> I[Banda conformal<br/>asimétrica 90%]
     I --> J{Decisión<br/>sobre L_inf}
-    J -->|L_inf ≥ 30| K[APTO]
-    J -->|25 ≤ L_inf < 30| L[INSPECCIÓN]
-    J -->|L_inf < 25| M[HANGAR]
+    J -->|L_inf ≥ 25| K[APTO]
+    J -->|20 ≤ L_inf < 25| L[INSPECCIÓN]
+    J -->|L_inf < 20| M[HANGAR]
 ```
 
 El **canal 19** es `cyc_norm = cycle/100`; el LightGBM recibe 93 features
@@ -210,14 +224,17 @@ deben citarse como actuales 4.301, 4.289, 4.344 ni 4.368: son bundles histórico
 
 ### Track de clase (modelos de la asignatura)
 
-| Grano | Modelo | RMSE test | MAE | R² | NASA |
-|---|---|---:|---:|---:|---:|
-| fila | XGB (mejor clásico por val) | 11.034 | 9.9098 | 0.6616 | — |
-| fila | MLP E2 (mejor MLP por val) | 7.7211 | 5.8132 | 0.8343 | — |
-| ventana | LGBM adaptada | 7.067 | 5.545 | 0.8570 | 5731.3 |
-| ventana | BiLSTM-C | 5.654 | 4.295 | 0.9084 | 3674.0 |
-| ventana | BiLSTM-C + EMA5 | 5.618 | 4.268 | 0.9096 | 3649.4 |
-| ventana | **Híbrido-C + EMA5** | **4.338** | **3.227** | **0.9461** | **2336.2** |
+| Grano | Modelo | RMSE test | MAE | R² | NASA | Tiempo (s) |
+|---|---|---:|---:|---:|---:|---:|
+| fila | XGB (mejor clásico por val) | 11.034 | 9.9098 | 0.6616 | — | 7,2 |
+| fila | MLP E2 (mejor MLP por val) | 7.7211 | 5.8132 | 0.8343 | — | 33,3 |
+| ventana | LGBM adaptada | 7.067 | 5.545 | 0.8570 | 5731.3 | 0,4 |
+| ventana | BiLSTM-C | 5.654 | 4.295 | 0.9084 | 3674.0 | — |
+| ventana | BiLSTM-C + EMA5 | 5.618 | 4.268 | 0.9096 | 3649.4 | — |
+| ventana | **Híbrido-C + EMA5** | **4.338** | **3.227** | **0.9461** | **2336.2** | 447 (total) |
+
+Los tiempos del track de clase salen de `resultados/tabla_final_clase.csv`; el
+bundle C registra 447 s totales de entrenamiento en `models/ds02_manifest.json`.
 
 **No se comparan granos:** fila = una lectura (12.538 filas de test); ventana =
 50 lecturas (6.196 ventanas). La comparación válida es intra-grano. El test se
@@ -249,8 +266,9 @@ declarado**, no una medición.
 | Coste si todo el error cae en AOG | RMSE × coste/ciclo | ≈ 43.000–130.000 USD |
 | Peor unidad (U14) | 8.5761 × coste/ciclo | ≈ 86.000–257.000 USD |
 
-Con umbrales `hangar` 25 y `apto` 30 ciclos (`src/mia/reglas.py`), un RMSE de
-4.338 es ≈17% del umbral de hangar. La fuente detallada es local y **no está
+Con umbrales `hangar` 20 y `apto` 25 ciclos (ADR-013; `app/lib/_constantes.py`;
+`src/mia/reglas.py` documenta los mismos 25/20), un RMSE de 4.338 es ≈21,7% del
+umbral de hangar. La fuente detallada es local y **no está
 versionada**: se declara como supuesto, no como medición.
 
 ### Ablación de `cyc_norm`
@@ -278,13 +296,14 @@ de seguridad con prioridad 10: si hay una alerta de dato imposible, se anula la
 decisión (`SIN_DECISION`) y se deja el motivo; nunca se devuelve un APTO sin
 evidencia. El gate que las aplica está en `src/mia/motor.py`.
 
-`n8n/flujo.json` contiene **15 nodos** y un `Switch` con tres salidas conectadas:
+`n8n/flujo.json` contiene **20 nodos** (13 funcionales + 7 notas) y un `Switch` con **cuatro** salidas conectadas:
 
 | Rama | Acción |
 |---|---|
-| APTO | Registro/log de la decisión. |
-| INSPECCION | Aviso para revisar en la próxima parada. |
-| HANGAR | Postgres `ds02_decisiones` + Calendar + Gmail. |
+| APTO | Log de la decisión + aviso Telegram. |
+| INSPECCION | Google Sheets + aviso Telegram para la próxima parada. |
+| HANGAR | Postgres `ds02_decisiones` → Calendar → Gmail → Telegram. |
+| FALLBACK | Decisión no reconocida: Set de error + alerta Telegram, sin acción. |
 
 El JSON versionado está **inactivo por diseño** (`active: false`); ejecutarlo
 requiere credenciales y puede producir efectos reales (correo, calendario,
@@ -482,7 +501,7 @@ src/
   n8n.py                         cliente/construcción del payload (MIA-3)
 notebooks/                       01–07, con outputs y README de secuencia
 models/                          bundle C + manifiesto + joblibs de clase
-n8n/flujo.json                   flujo versionado (15 nodos, 3 ramas, inactivo)
+n8n/flujo.json                   flujo versionado (20 nodos, 4 ramas, inactivo)
 mlruns/                          17 runs curados; live__* no versionados
 data/raw/                        HDF5 original
 data/processed/                  parquet procesados (ignorado en git, regenerable)

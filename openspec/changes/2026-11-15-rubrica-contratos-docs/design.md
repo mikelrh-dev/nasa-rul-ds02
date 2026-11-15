@@ -87,7 +87,7 @@ graph LR
 | `README.md` | Anchors, time column, `25/20`, current multiseed, MLflow view command |
 | `README.en.md` | Same thresholds and multiseed figures |
 | `src/clase/README.md` | Dead paths, test count, node/branch counts |
-| `MLProyectVault/50-Evidencia/e00-cifras-autoritativas.md` | Current CSV rows, coverage `0.901643`, thresholds |
+| `MLProyectVault/50-Evidencia/e00-cifras-autoritativas.md` | Modified (local, gitignored) | Current CSV rows, coverage `0.901643`, thresholds |
 | `requirements.txt`, `pyproject.toml` | Pin `pyarrow==<installed>` |
 | `notebooks/00_datos.ipynb` | Cell 0 header, TF env order, live-log cell (not executed) |
 | `tests/test_mlflow_live.py` | Count `7 -> 8` |

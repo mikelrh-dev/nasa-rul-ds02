@@ -36,9 +36,9 @@
 - **Task:** fix dead paths (`app/ui_shap.py` -> `app/lib/ui_shap.py`, `app/dashboard_ds02.py` -> `app/entrypoints/dashboard_ds02.py`, `scripts/evaluate_bundle_stability.py` -> `scripts/operativo/...`), replace "~35 tests" with the real count and "15 nodos / 3 ramas" with "20 nodos / 4 salidas".
 - **Acceptance:** every cited path exists; counts match the current suite and flow.
 
-### 3.4 Vault evidence note
+### 3.4 Vault evidence note (local, not versioned)
 - **Task:** correct `e00-cifras-autoritativas.md`: current CSV rows `4.371 / 4.291`, vigente mean `4.333 ± 0.040`, coverage `0.901643`, thresholds `25/20`.
-- **Acceptance:** figures match `bundle_c_multiseed.csv`, the manifest and `freeze_rules_evidence.py --check`.
+- **Acceptance:** figures match `bundle_c_multiseed.csv`, the manifest and `freeze_rules_evidence.py --check`; the test skips when the vault is absent.
 
 ## Phase 4 — Dependency pins
 

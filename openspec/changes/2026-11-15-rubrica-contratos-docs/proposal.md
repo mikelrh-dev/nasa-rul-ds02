@@ -30,7 +30,7 @@ published documentation and its own test contracts:
 - `README.md`: restore the "Qué hemos construido" anchors (weak AI vs strong AI,
   supervised vs unsupervised), add the training-time column, align thresholds to
   `25/20`, publish the current multiseed row set and the MLflow view command.
-- `README.en.md`, `src/clase/README.md`, `MLProyectVault/50-Evidencia/e00-cifras-autoritativas.md`:
+- `README.en.md`, `src/clase/README.md`, `MLProyectVault/50-Evidencia/e00-cifras-autoritativas.md` (local, gitignored):
   align the same figures and remove dead paths.
 - `requirements.txt` + `pyproject.toml`: pin `pyarrow` to the installed version.
 - `notebooks/00_datos.ipynb`: MLflow header in cell 0, TF variables before any TF

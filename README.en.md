@@ -99,9 +99,9 @@ flowchart LR
     G --> H[Causal EMA<br/>span = 5]
     H --> I[Conformal band<br/>asymmetric 90%]
     I --> J{Decision<br/>on L_inf}
-    J -->|L_inf ≥ 30| K[GO]
-    J -->|25 ≤ L_inf < 30| L[INSPECT]
-    J -->|L_inf < 25| M[HANGAR]
+    J -->|L_inf ≥ 25| K[GO]
+    J -->|20 ≤ L_inf < 25| L[INSPECT]
+    J -->|L_inf < 20| M[HANGAR]
 ```
 
 Channel 19 is `cyc_norm = cycle/100`; LightGBM sees 93 residualised tabular
@@ -219,13 +219,14 @@ with `id`, `priority`, `why` and `action`. **R1** is the safety rule at priority
 reason; no GO is ever returned without evidence. The gate is in
 `src/mia/motor.py`.
 
-`n8n/flujo.json` has **15 nodes** and a `Switch` with three connected branches:
+`n8n/flujo.json` has **20 nodes** (13 functional + 7 notes) and a `Switch` with **four** connected branches:
 
 | Branch | Action |
 |---|---|
-| GO | Log the decision. |
-| INSPECT | Notify for review at the next stop. |
-| HANGAR | Postgres `ds02_decisiones` + Calendar + Gmail. |
+| GO | Log the decision + Telegram alert. |
+| INSPECT | Google Sheets + Telegram alert for the next stop. |
+| HANGAR | Postgres `ds02_decisiones` → Calendar → Gmail → Telegram. |
+| FALLBACK | Unrecognised decision: error Set + Telegram alert, no action. |
 
 The versioned JSON is **inactive by design** (`active: false`). Running it needs
 credentials and can produce real effects (email, calendar, Postgres). No secrets
@@ -414,7 +415,7 @@ src/
   n8n.py                         payload client/builder (MIA-3)
 notebooks/                       01–07, with outputs and sequence README
 models/                          bundle C + manifest + class joblibs
-n8n/flujo.json                   versioned flow (15 nodes, 3 branches, inactive)
+n8n/flujo.json                   versioned flow (20 nodes, 4 branches, inactive)
 mlruns/                          17 curated runs; live__* not versioned
 data/raw/                        original HDF5
 data/processed/                  processed parquet (git-ignored, regenerable)

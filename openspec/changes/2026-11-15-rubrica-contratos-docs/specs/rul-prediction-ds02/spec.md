@@ -97,15 +97,6 @@ matching notebooks.
 - AND the notebook body references `log_live_run` and `persist_timings`
 - AND `len(NOTEBOOKS) == 8`.
 
-### Requirement: Vault figures match the instrument
-
-`MLProyectVault/50-Evidencia/e00-cifras-autoritativas.md` MUST publish the
-current CSV rows (`4.371 / 4.291`), the vigente aggregation (`4.333 ± 0.040`)
-and the measured OOF coverage `0.901643` from
-`scripts/freeze_rules_evidence.py --check`.
-
-#### Scenario: Coverage matches the check
-
-- GIVEN `freeze_rules_evidence.py --check` exits 0 reporting `0.901643`
-- WHEN the vault figure is read
-- THEN the vault states `0.901643`.
+> Nota local (fuera de git): la corrección de
+> `MLProyectVault/50-Evidencia/e00-cifras-autoritativas.md` queda en el vault
+> personal, que está ignorado por git; el test asociado se salta si no existe.

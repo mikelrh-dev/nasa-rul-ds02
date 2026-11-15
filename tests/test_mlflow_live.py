@@ -247,7 +247,7 @@ def test_gitignore_ignores_live_store():
 # --- notebooks static contract ---------------------------------------------
 
 def test_all_notebooks_have_mlflow_header_and_log_cell():
-    assert len(NOTEBOOKS) == 7
+    assert len(NOTEBOOKS) == 8
     for path in NOTEBOOKS:
         cells = _nb_cells(path)
         header = _cell_source(cells[0])

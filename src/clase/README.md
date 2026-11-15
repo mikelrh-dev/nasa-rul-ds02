@@ -152,7 +152,7 @@ a ~1e-6. Es el SHAP que se defiende; el de XGB de arriba describe el track de cl
 
 ## Tests
 
-~35 tests (`tests/test_clase_*.py` + `tests/test_live_eval.py` + `test_clase_c_multisemilla/test_shap_c/test_dss/test_fleet/test_hangar/test_simulacion/test_twin`). Cobertura: dataset, pipeline, clásicos, MLP, SHAP, tablas, ventanas, bundle C, agregación multiseed (suite completa en la verificación final).
+~498 tests (`tests/test_clase_*.py` + `tests/test_live_eval.py` + `test_clase_c_multisemilla/test_shap_c/test_dss/test_fleet/test_hangar/test_simulacion/test_twin`). Cobertura: dataset, pipeline, clásicos, MLP, SHAP, tablas, ventanas, bundle C, agregación multiseed (suite completa en la verificación final).
 
 ## Estructura del track
 
@@ -163,7 +163,7 @@ a ~1e-6. Es el SHAP que se defiende; el de XGB de arriba describe el track de cl
 src/clase/            dataset_clase.py, pipeline_clase.py, train_clasicos.py, train_mlp.py, README.md
                         shap_clase.py, tabla_final.py, ventanas_adaptadas.py, train_lgbm_adaptada.py
 src/ds02_rul/          bundle_c.py (entrenador del bundle C), puente_c.py, data.py, metrics.py, ...
-scripts/               evaluate_bundle_stability.py
+scripts/operativo/     evaluate_bundle_stability.py
 data/raw|processed/     HDF5 fuera de git; train_con_nulos + imputados + X/y + auditoria_nulos.json + dataset_manifest.json
 notebooks/              01_eda_y_contexto.ipynb, 02_modelos_clasicos_y_mlp.ipynb, 03_feature_engineering_secuencial.ipynb,
                         04_arquitectura_bilstm_oof.ipynb, 05_meta_ensemble_y_conformal.ipynb,
@@ -176,8 +176,8 @@ docs/evidencia/mlflow/  comparativa.csv + capturas MLflow (comparaciones y produ
 n8n/                    flujo.json (flujo MIA 3: webhook → switch APTO/INSPECCION/HANGAR)
 resultados/             eda_*.png, comparativa.csv, mlp_*.png/csv, importancia_*.png/csv, shap_*.png/csv
 src/n8n.py              cliente del webhook n8n (urllib, timeout 5 s, nunca lanza a la UI)
-app/ui_shap.py          SHAP en la app de producción (TreeExplainer, global + waterfall)
-app/dashboard_ds02.py   app de producción: evalúa el modelo desplegado (bundle C) en test, predice casos nuevos
+app/lib/ui_shap.py      SHAP en la app de producción (TreeExplainer, global + waterfall)
+app/entrypoints/dashboard_ds02.py  app de producción: evalúa el modelo desplegado (bundle C) en test, predice casos nuevos
                         con decisión de reglas y muestra la p (RUL) junto a la decisión (PIA-5; los modelos de clase
                         se evalúan en notebooks + test de lectura única reportado arriba)
 ```
@@ -199,7 +199,7 @@ python -m src.clase.train_mlp           # MLP base+3 + importancia (~8 min con v
 python -m src.clase.shap_clase          # SHAP TreeExplainer + PNG/CSV
 python scripts/operativo/evaluate_bundle_stability.py  # seeds 42/7/123 -> resultados/comparativa_c_multisemilla.csv
 python scripts/operativo/backfill_mlflow.py --check    # 17 runs + export; sin artefactos
-streamlit run app/dashboard_ds02.py        # app de producción (bundle C + SHAP)
+streamlit run app/entrypoints/dashboard_ds02.py  # app de producción (bundle C + SHAP)
 python -m pytest tests/test_clase_*.py tests/test_live_eval.py -q
 ```
 
