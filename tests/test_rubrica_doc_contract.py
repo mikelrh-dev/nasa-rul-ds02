@@ -10,6 +10,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -71,6 +73,9 @@ def test_rutas_citadas_del_track_existen() -> None:
 
 
 def test_notas_del_vault_coherentes_con_el_instrumento() -> None:
-    texto = _norm(_leer(ROOT / "MLProyectVault" / "50-Evidencia" / "e00-cifras-autoritativas.md"))
+    vault = ROOT / "MLProyectVault" / "50-Evidencia" / "e00-cifras-autoritativas.md"
+    if not vault.exists():
+        pytest.skip("vault personal no presente en este checkout")
+    texto = _norm(_leer(vault))
     assert "4.371" in texto and "4.291" in texto
     assert "0.901643" in texto
