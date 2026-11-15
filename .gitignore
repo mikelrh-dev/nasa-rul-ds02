@@ -1,7 +1,9 @@
 # environment
 .venv/
 *.egg-info/
-build/
+# `build/` anclado a la raiz: sin anclar capturaba `scripts/build/`, que tiene
+# dos scripts versionados.
+/build/
 dist/
 # secrets — never commit real env values; .env.example templates only.
 .env
@@ -16,7 +18,9 @@ __pycache__/
 .pytest_cache/
 
 # datasets and archives — never commit 15 GB
-archive/
+# `archive/` anclado a la raiz: sin anclar ocultaba `openspec/changes/archive/`,
+# donde viven las specs archivadas que si se versionan.
+/archive/
 archive.zip
 *.h5
 
@@ -125,8 +129,24 @@ resultados/*
 !resultados/*.csv
 !resultados/*.png
 resultados/*.log
+!resultados/bundle_c_train.log
 track_clase/models/
 
 # documentacion local: se queda en disco, no se versiona
 MLProyectVault/
 /costes_reales_aeronauticos.md
+
+# respaldos y salidas de herramienta del deck (2026-11-15): quedan en disco,
+# no son entregables
+docs/presentacion/_archivo/
+docs/presentacion/_backup/
+docs/presentacion/_audit_shots/
+docs/presentacion/_audit.json
+docs/presentacion/_audit_slides.txt
+
+# copia de seguridad de los cuadernos (version previa a la edicion del markdown)
+notebooks/notebook_backup/
+
+# skill packs instalados por el agente y su lock
+.claude/
+skills-lock.json
