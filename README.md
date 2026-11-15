@@ -107,6 +107,21 @@ puede medirse contra una verdad.
 Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost, LightGBM,
 Streamlit, SHAP y MLflow. n8n está implementado en `src/n8n.py` + `n8n/flujo.json`.
 
+```mermaid
+flowchart LR
+    accTitle: Del caso nuevo a la acción
+    accDescr: Streamlit recibe el caso, el modelo predice la RUL, las reglas deciden y n8n ejecuta la acción de la rama.
+
+    A[Caso nuevo<br/>telemetría DS02] --> B[Modelo<br/>p = RUL]
+    B --> C[Reglas MIA<br/>R1 · R7 · R8 · R9]
+    C -->|APTO / INSPECCION / HANGAR| D[Webhook n8n]
+    C -->|SIN_DECISION| X[No se envía]
+    D --> E[APTO: log + Telegram]
+    D --> F[INSPECCION: Sheets + Telegram]
+    D --> G[HANGAR: Postgres → Calendar → Gmail → Telegram]
+    D --> H[Decisión no reconocida: alerta Telegram]
+```
+
 ## Datos
 
 65.173 filas downsampleadas (STRIDE 100), **9 motores**; train = dev (52.635,
@@ -150,6 +165,16 @@ motor**, nunca por fila.
 | `RUL` | `X` (queda como `y`) | Es el objetivo supervisado. | `src/clase/dataset_clase.py:59` |
 | `split_origen` | `X_train` / `X_test` | Solo trazabilidad train/test. | `src/clase/dataset_clase.py:60` |
 | `fase_vuelo` | Bundle C (93 features) | El track de clase la usa (OneHot); el bundle desplegado es residualizado/ventanado sin categórica. | `src/clase/pipeline_clase.py:23-24`, `src/clase/ventanas_adaptadas.py:6` |
+
+**Lo que vimos en el EDA.** Dos gráficos que explican decisiones del modelo; el resto (barras por fase, boxplot de T48, dispersión alt/Mach y residuo por fase) está en `notebooks/01_eda_y_contexto.ipynb`.
+
+![Distribución de la RUL en train: 0-88 ciclos, media 37,33 y mediana 36](docs/assets/eda_hist_rul.png)
+
+*Qué veo:* la RUL de train va de 0 a 88 ciclos (media 37,33; mediana 36) y el **26,5 % de las filas está por debajo de 20 ciclos**. *Qué concluyo:* la distribución es asimétrica y la alarma se juega en la cola baja, así que el error se mide en ciclos (RMSE/MAE), no en aciertos.
+
+![Heatmap de correlación entre entradas y RUL](docs/assets/eda_heatmap_corr.png)
+
+*Qué veo:* ninguna variable instantánea explica la RUL (|r| ≤ 0,07), pero las entradas están fuertemente correlacionadas entre sí (alt–P15 −0,96; T48–Nf 0,93). *Qué concluyo:* una fila no basta; el modelo necesita historia y tendencia, de ahí las ventanas, el BiLSTM y la validación por motor.
 
 ## Arquitectura
 
@@ -371,14 +396,18 @@ Los granos no se mezclan: el RMSE de fila y el de ventana no miden lo mismo, y e
 store lo declara con el tag `grano`. La ablación se aísla con
 `familia=ablacion_cycnorm`.
 
-<img src="docs/evidencia/mlflow/compare_fila.jpg" width="720" alt="MLflow Compare: nueve modelos de grano fila (5 clásicos + 4 MLP) por rmse_val">
+<p align="center">
+  <img src="docs/evidencia/mlflow/compare_fila.jpg" width="800" alt="MLflow Compare: nueve modelos de grano fila (5 clásicos + 4 MLP) por rmse_val">
+</p>
 
 ### El grano ventana se compara dentro de MLflow
 
 Los cuatro runs del bundle (LGBM, BiLSTM, BiLSTM+EMA5 y el híbrido desplegado)
 comparten experimento y se comparan por `rmse_test`: 7.067 / 5.654 / 5.618 / 4.338.
 
-<img src="docs/evidencia/mlflow/compare_ventana.jpg" width="720" alt="MLflow Compare: cuatro runs de grano ventana, del LGBM al bundle C desplegado">
+<p align="center">
+  <img src="docs/evidencia/mlflow/compare_ventana.jpg" width="800" alt="MLflow Compare: cuatro runs de grano ventana, del LGBM al bundle C desplegado">
+</p>
 
 ### La ablación se compara dentro de MLflow
 
@@ -393,7 +422,9 @@ Se midió en `nb03` (test 11/14/15, semilla 42) y se registró **sin reentrenar*
 son cuatro runs comparables dentro de la herramienta, no una figura suelta del
 notebook. El grid 4×3 completo está en `resultados/ablacion_cycnorm.csv`.
 
-<img src="docs/evidencia/mlflow/compare_ablacion.jpg" width="720" alt="Vista Compare de MLflow con los cuatro runs de la ablación cyc_norm: rmse_test 5.974, 5.910, 5.896 y 5.878">
+<p align="center">
+  <img src="docs/evidencia/mlflow/compare_ablacion.jpg" width="800" alt="Vista Compare de MLflow con los cuatro runs de la ablación cyc_norm: rmse_test 5.974, 5.910, 5.896 y 5.878">
+</p>
 
 ### Por qué el store es de texto
 
