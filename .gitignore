@@ -162,6 +162,10 @@ skills-lock.json
 .codegraph/
 .vscode/
 
+# Notas locales: la informacion de datos vive en README.md y data/README.md
+AGENT.md
+DATA.md
+
 # OpenSpec: cuaderno de trabajo local (SDD), no forma parte de la entrega
 openspec/
 

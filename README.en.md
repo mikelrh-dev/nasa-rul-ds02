@@ -512,8 +512,12 @@ scripts/operativo/               MLflow backfill, stability, gate and prediction
   architecture test forbids them and the map explains the canonical path.
 - **Grains:** row (12,538) and window (6,196) are never mixed; each league has its
   own champion.
-- **Processed data:** `data/processed/` ships via Git LFS (30 MB); the raw HDF5
-  is not in git. Details and SHA in [`DATA.md`](DATA.md).
+- **Data:** `data/processed/` ships via Git LFS (30 MB); the raw HDF5
+  (`data/raw/N-CMAPSS_DS02-006.h5`, 2.28 GiB, SHA-256
+  `47971a68b239ecb756833218a95d68ded6eb7e63ee84e86671c8b188de1ca765`) is not in
+  git. Regenerate with `python -m src.clase.dataset_clase` (and `--fast-check`)
+  then `python scripts/build/build_ui_cache.py`; per-file SHA in
+  `data/processed/dataset_manifest.json`.
 
 ## Documentation and defence
 

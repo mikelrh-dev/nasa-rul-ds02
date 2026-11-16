@@ -626,8 +626,12 @@ scripts/operativo/               backfill MLflow, estabilidad, gate y predicció
   arquitectura lo prohíbe y el mapa explica la ruta canónica.
 - **Granos:** fila (12.538) y ventana (6.196) no se mezclan; cada liga elige su
   campeón.
-- **Datos procesados:** `data/processed/` se versiona por Git LFS (30 MB); el
-  HDF5 crudo no viaja en git. Detalle y SHA en [`DATA.md`](DATA.md).
+- **Datos:** `data/processed/` viaja por Git LFS (30 MB); el HDF5 crudo
+  (`data/raw/N-CMAPSS_DS02-006.h5`, 2,28 GiB, SHA-256
+  `47971a68b239ecb756833218a95d68ded6eb7e63ee84e86671c8b188de1ca765`) no está
+  en git. Regenerar: `python -m src.clase.dataset_clase` (y `--fast-check`) y
+  `python scripts/build/build_ui_cache.py`; el SHA de cada parquet vive en
+  `data/processed/dataset_manifest.json`.
 
 ## Documentación y defensa
 
