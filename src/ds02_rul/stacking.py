@@ -167,7 +167,7 @@ def fit_meta_learners(Z, y, seed: int = 42):
     that does not transfer to the shorter test engines. On unit 16 it predicts a
     mean of 39.9 against a true 31.5 and RMSE grows monotonically with `beta`
     (4.04 at 0, 10.17 at 1). Kept because it is the instrument that made that
-    negative result reproducible — see `docs/informes/informe-2026-10-21-motor16-vs-oof.md`.
+    negative result reproducible — see `docs/evidencia/informes/informe-2026-10-21-motor16-vs-oof.md`.
     """
     from lightgbm import LGBMRegressor
 

@@ -12,7 +12,7 @@ Cada regla es una tupla de cinco datos, siempre en este orden:
 * `porque` — frase corta que explica la regla a quien pregunte.
 
 Los números `R2b` y `R6` conservan la numeración del informe de medición
-(`docs/informes/informe-2026-10-21-reglas-oof.md`); `R1` es la regla de seguridad y `R7/R8/R9` son los
+(`docs/evidencia/informes/informe-2026-10-21-reglas-oof.md`); `R1` es la regla de seguridad y `R7/R8/R9` son los
 umbrales conformales 25/20 documentados en ADR-013.
 
 Los números de esta capa los reproduce scripts/auditoria/freeze_rules_evidence.py; si

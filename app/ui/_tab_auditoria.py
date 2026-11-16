@@ -124,7 +124,7 @@ def _tab_auditoria(ctx: AppCtx) -> None:
                 "motores a esa misma densidad, con todo lo demás fijo."
             )
             st.caption(
-                "`docs/informes/informe-2026-10-21-p0-p1-prior-de-vida.md`: el sesgo del meta cambió −0.93 / −0.03 / "
+                "`docs/evidencia/informes/informe-2026-10-21-p0-p1-prior-de-vida.md`: el sesgo del meta cambió −0.93 / −0.03 / "
                 "+0.34 ciclos. La densidad no explica el error; se reporta como hipótesis refutada."
             )
         with card_c:

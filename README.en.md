@@ -513,7 +513,7 @@ scripts/operativo/               MLflow backfill, stability, gate and prediction
 - **Grains:** row (12,538) and window (6,196) are never mixed; each league has its
   own champion.
 - **Processed data:** `data/processed/` ships via Git LFS (30 MB); the raw HDF5
-  is not in git. Details and SHA in [`docs/DATA.md`](docs/DATA.md).
+  is not in git. Details and SHA in [`DATA.md`](DATA.md).
 
 ## Documentation and defence
 

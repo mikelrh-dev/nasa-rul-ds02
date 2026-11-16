@@ -627,7 +627,7 @@ scripts/operativo/               backfill MLflow, estabilidad, gate y predicció
 - **Granos:** fila (12.538) y ventana (6.196) no se mezclan; cada liga elige su
   campeón.
 - **Datos procesados:** `data/processed/` se versiona por Git LFS (30 MB); el
-  HDF5 crudo no viaja en git. Detalle y SHA en [`docs/DATA.md`](docs/DATA.md).
+  HDF5 crudo no viaja en git. Detalle y SHA en [`DATA.md`](DATA.md).
 
 ## Documentación y defensa
 

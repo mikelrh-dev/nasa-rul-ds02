@@ -158,6 +158,10 @@ notebooks/notebook_backup/
 .claude/
 skills-lock.json
 
+# Herramientas locales de editor/agente
+.codegraph/
+.vscode/
+
 # OpenSpec: cuaderno de trabajo local (SDD), no forma parte de la entrega
 openspec/
 
@@ -165,7 +169,11 @@ openspec/
 docs/defensa/
 docs/chuleta-defensa.md
 
-# Presentación: solo el PDF exportado entra en git; HTML, fotos y assets quedan
-# en local (pesan 9,7 MB y no son reproducibles desde el repo)
+# docs/: solo lo imprescindible (assets, evidencia y el PDF de la presentación).
+# Planes, informes internos, ADRs, defensa y borradores se quedan en local.
+docs/*
+!docs/assets/
+!docs/evidencia/
+!docs/presentacion/
 docs/presentacion/*
 !docs/presentacion/*.pdf
