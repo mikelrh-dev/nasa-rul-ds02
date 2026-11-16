@@ -115,6 +115,10 @@ app/registros_sesiones/
 app/registros_flota.json.bak
 app/registros_n8n.json
 
+# Export crudo de n8n: lleva el chat ID de Telegram y los IDs reales de las
+# credenciales. El canónico saneado es `n8n/flujo.json`.
+n8n/DS02 Decision MIA-3.json
+
 # respaldos que deja conftest al apartar los registros (flota y sesiones)
 *.hermes-respaldo
 

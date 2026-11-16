@@ -3,35 +3,21 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## DS02 Decision MIA-3\nLa app predice un caso y manda la decision por webhook.\nAPTO = solo log + Telegram. INSPECCION = Google Sheets + Telegram. HANGAR = Postgres + Calendar + Gmail + Telegram.\nTelegram es fire-and-forget: sin botones ni respuesta esperada, en paralelo de cada accion.\nEl Switch tiene salida extra FALLBACK para SIN_DECISION / decisions no reconocidas (registro + Telegram).\nHeader Auth obligatorio (X-DS02-Token). Credenciales: revisar en n8n antes de activar. El JSON se exporta con active:false.",
-        "height": 180,
-        "width": 620
-      },
-      "id": "sticky_intro",
-      "name": "Nota intro",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        120,
-        40
-      ]
-    },
-    {
-      "parameters": {
         "httpMethod": "POST",
         "path": "ds02/decision",
-        "responseMode": "onReceived",
         "options": {},
-        "authentication": "headerAuth"
+        "authentication": "headerAuth",
+        "responseMode": "onReceived"
       },
       "id": "webhook_ds02",
       "name": "Webhook ds02/decision",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
       "position": [
-        200,
+        208,
         320
       ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "5e7bbf43-d418-4e9d-a526-53211a25a22b",
       "notes": "Entrada: la app DS02 hace POST con decision, unidad, ciclo, RUL, L_inf, usadas, porque y fingerprint.",
       "credentials": {
         "httpHeaderAuth": {
@@ -42,7 +28,6 @@
     },
     {
       "parameters": {
-        "dataType": "string",
         "rules": {
           "values": [
             {
@@ -50,17 +35,18 @@
                 "options": {
                   "caseSensitive": true,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "strict",
+                  "version": 2
                 },
                 "conditions": [
                   {
                     "id": "c_apto",
                     "leftValue": "={{ $json.body.decision || $json.decision }}",
-                    "rightValue": "APTO",
                     "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "APTO"
                   }
                 ],
                 "combinator": "and"
@@ -73,17 +59,18 @@
                 "options": {
                   "caseSensitive": true,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "strict",
+                  "version": 2
                 },
                 "conditions": [
                   {
                     "id": "c_inspeccion",
                     "leftValue": "={{ $json.body.decision || $json.decision }}",
-                    "rightValue": "INSPECCION",
                     "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "INSPECCION"
                   }
                 ],
                 "combinator": "and"
@@ -96,17 +83,18 @@
                 "options": {
                   "caseSensitive": true,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "strict",
+                  "version": 2
                 },
                 "conditions": [
                   {
                     "id": "c_hangar",
                     "leftValue": "={{ $json.body.decision || $json.decision }}",
-                    "rightValue": "HANGAR",
                     "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "HANGAR"
                   }
                 ],
                 "combinator": "and"
@@ -117,18 +105,20 @@
           ]
         },
         "options": {
-          "fallbackOutput": "extra"
-        }
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "SIN_DECISION"
+        },
+        "dataType": "string"
       },
       "id": "switch_decision",
       "name": "Switch por decision",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3.2,
       "position": [
-        520,
+        528,
         320
       ],
-      "notes": "Switch: 3 reglas (APTO, INSPECCION, HANGAR) + salida extra fallbackOutput=extra (indice 3) para SIN_DECISION y cualquier decision no reconocida. Cada salida avisa por Telegram en paralelo de su accion (fire-and-forget, sin botones)."
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "notes": "Switch: una rama por decision. APTO arriba, INSPECCION en medio, HANGAR abajo."
     },
     {
       "parameters": {
@@ -137,8 +127,8 @@
             {
               "id": "a_log",
               "name": "log",
-              "value": "={{ 'APTO unidad ' + ($json.body.unidad || $json.unidad) + ' ciclo ' + ($json.body.ciclo || $json.ciclo) + ': sin accion' }}",
-              "type": "string"
+              "type": "string",
+              "value": "={{ 'APTO unidad ' + ($json.body.unidad || $json.unidad) + ' ciclo ' + ($json.body.ciclo || $json.ciclo) + ': sin accion' }}"
             }
           ]
         },
@@ -146,38 +136,354 @@
       },
       "id": "set_apto",
       "name": "APTO Set log",
+      "position": [
+        688,
+        -192
+      ],
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [
-        880,
-        140
-      ],
       "notes": "APTO: sin accion externa, solo deja constancia en el log."
     },
     {
       "parameters": {
-        "resource": "message",
-        "operation": "sendMessage",
-        "chatId": "={{ $env.DS02_TELEGRAM_CHAT_ID }}",
-        "text": "=✅ DS02 APTO · U{{ $json.body.unidad ?? $json.unidad }} · ciclo {{ $json.body.ciclo ?? $json.ciclo }} · RUL {{ $json.body.rul_punto ?? $json.rul_punto }} · L_inf {{ $json.body.limite_inferior ?? $json.limite_inferior }} · {{ $json.body.motivo ?? $json.motivo }} · fp {{ $json.body.fingerprint ?? $json.fingerprint }}. Sin accion externa.",
-        "additionalFields": {}
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "cachedResultName": "DS02 Decisiones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HDpoYm8NBhKvU0yOxLlBeLEPTmI2BcR30kSSfAN2mXc/edit?usp=drivesdk",
+          "mode": "list",
+          "value": "1HDpoYm8NBhKvU0yOxLlBeLEPTmI2BcR30kSSfAN2mXc"
+        },
+        "sheetName": {
+          "__rl": true,
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HDpoYm8NBhKvU0yOxLlBeLEPTmI2BcR30kSSfAN2mXc/edit#gid=0",
+          "mode": "list",
+          "value": "gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "decision",
+              "id": "decision",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "unidad",
+              "id": "unidad",
+              "required": false,
+              "type": "number"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "ciclo",
+              "id": "ciclo",
+              "required": false,
+              "type": "number"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "rul_punto",
+              "id": "rul_punto",
+              "required": false,
+              "type": "number"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "limite_inferior",
+              "id": "limite_inferior",
+              "required": false,
+              "type": "number"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "motivo",
+              "id": "motivo",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "fingerprint",
+              "id": "fingerprint",
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "value": {
+            "ciclo": "={{ $json.ciclo }}",
+            "decision": "={{ $json.decision }}",
+            "fingerprint": "={{ $json.fingerprint }}",
+            "limite_inferior": "={{ $json.limite_inferior }}",
+            "motivo": "={{ $json.motivo }}",
+            "rul_punto": "={{ $json.rul_punto }}",
+            "unidad": "={{ $json.unidad }}"
+          }
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED",
+          "useAppend": true
+        },
+        "authentication": "oAuth2",
+        "resource": "sheet"
       },
-      "id": "telegram_apto",
-      "name": "APTO Telegram aviso",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
+      "id": "sheets_inspeccion",
+      "name": "INSPECCION Google Sheets append",
       "position": [
-        1160,
-        140
+        1408,
+        16
       ],
-      "notes": "Aviso Telegram fire-and-forget: un envio unidireccional, sin botones ni respuesta esperada. Corre en paralelo de la accion de la rama; si falla, continueRegularOutput evita romper el flujo. Chat ID por env DS02_TELEGRAM_CHAT_ID; el token vive en la credencial de n8n.",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
       "credentials": {
-        "telegramApi": {
+        "googleSheetsOAuth2Api": {
           "id": "REEMPLAZAR_CREDENCIAL",
-          "name": "DS02 Telegram"
+          "name": "DS02 Google Sheets"
         }
       },
-      "onError": "continueRegularOutput"
+      "notes": "INSPECCION: anade la fila en Google Sheets para revision. Revisa la credencial de Sheets."
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "name",
+          "value": "ds02_decisiones"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "artefacto_sha256": "={{ $json.body.artefacto_sha256 || $json.artefacto_sha256 }}",
+            "ciclo": "={{ $json.body.ciclo ?? $json.ciclo }}",
+            "decision": "={{ $json.body.decision || $json.decision }}",
+            "fingerprint": "={{ $json.body.fingerprint || $json.fingerprint }}",
+            "limite_inferior": "={{ $json.body.limite_inferior ?? $json.limite_inferior }}",
+            "limite_superior": "={{ $json.body.limite_superior ?? $json.limite_superior }}",
+            "motivo": "={{ $json.body.motivo || $json.motivo }}",
+            "rul_punto": "={{ $json.body.rul_punto ?? $json.rul_punto }}",
+            "unidad": "={{ $json.body.unidad ?? $json.unidad }}",
+            "idempotency_key": "={{ $json.body.idempotency_key || $json.idempotency_key }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "decision",
+              "displayName": "decision",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "unidad",
+              "displayName": "unidad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ciclo",
+              "displayName": "ciclo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "rul_punto",
+              "displayName": "rul_punto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "limite_inferior",
+              "displayName": "limite_inferior",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "limite_superior",
+              "displayName": "limite_superior",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "motivo",
+              "displayName": "motivo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fingerprint",
+              "displayName": "fingerprint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "artefacto_sha256",
+              "displayName": "artefacto_sha256",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "idempotency_key",
+              "displayName": "idempotency_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {},
+        "operation": "insert"
+      },
+      "id": "postgres_hangar",
+      "name": "HANGAR Postgres insert",
+      "position": [
+        1312,
+        384
+      ],
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR_CREDENCIAL",
+          "name": "DS02 Postgres"
+        }
+      },
+      "notes": "HANGAR paso 1: inserta la orden en Postgres tabla ds02_decisiones. Revisa la credencial de Postgres."
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": {
+            "mode": "id",
+            "value": "primary"
+          },
+          "mode": "list",
+          "value": "primary"
+        },
+        "additionalFields": {},
+        "summary": "={{ 'HANGAR DS02 unidad ' + ($json.body.unidad || $json.unidad) + ' ciclo ' + ($json.body.ciclo || $json.ciclo) }}",
+        "timeZone": "Europe/Madrid",
+        "operation": "create",
+        "resource": "event",
+        "start": "={{ $now }}",
+        "end": "={{ $now.plus(1, 'hour') }}"
+      },
+      "id": "calendar_hangar",
+      "name": "HANGAR Google Calendar",
+      "position": [
+        1488,
+        384
+      ],
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "REEMPLAZAR_CREDENCIAL",
+          "name": "DS02 Google Calendar"
+        }
+      },
+      "notes": "HANGAR paso 2: crea el evento de hangar en Google Calendar. Revisa la credencial de Calendar."
+    },
+    {
+      "parameters": {
+        "sendTo": "alternativemarkleonard@gmail.com",
+        "subject": "=HANGAR DS02 · U{{ $('Webhook ds02/decision').first().json.body.unidad }} · ciclo {{ $('Webhook ds02/decision').first().json.body.ciclo }} · RUL {{ Math.round(($('Webhook ds02/decision').first().json.body.rul_punto ?? 0)*10)/10 }} · L_inf {{ Math.round(($('Webhook ds02/decision').first().json.body.limite_inferior ?? 0)*10)/10 }}",
+        "message": "={{ (() => { const w = $('Webhook ds02/decision').first().json; const b = w.body || w || $json.body || $json; const u = (b.unidad ?? $json.unidad ?? '—'); const c = (b.ciclo ?? $json.ciclo ?? '—'); const rul = (b.rul_punto ?? $json.rul_punto ?? '—'); const linf = (b.limite_inferior ?? $json.limite_inferior ?? '—'); const lsup = (b.limite_superior ?? $json.limite_superior ?? '—'); const um = b.umbrales || {}; const umA = (um.apto ?? 25); const umH = (um.hangar ?? 20); const usadas = Array.isArray(b.usadas) ? b.usadas.join(', ') : (b.usadas || '—'); const porque = Array.isArray(b.porque) ? b.porque.join(' · ') : (b.porque || b.motivo || '—'); const motivo = b.motivo || porque; const alertas = Array.isArray(b.alertas_datos) && b.alertas_datos.length ? b.alertas_datos.join('; ') : 'Sin alertas de datos'; const fp = String(b.fingerprint || b.idempotency_key || '').slice(0,12); const sha = String(b.artefacto_sha256 || '').slice(0,12); const dec = b.decision || 'HANGAR'; const fmt = (v) => (typeof v === 'number' ? (Math.round(v*10)/10).toString() : String(v)); const plain = 'HANGAR DS02 - Gemelo digital\\nDecision: ' + dec + '\\nUnidad: U' + u + '\\nCiclo: ' + c + '\\nRUL punto: ' + fmt(rul) + ' ciclos\\nLimite inferior (L_inf): ' + fmt(linf) + '\\nLimite superior (L_sup): ' + fmt(lsup) + '\\nUmbrales: apto>=' + fmt(umA) + ' / hangar<' + fmt(umH) + '\\nReglas usadas: ' + usadas + '\\nMotivo: ' + motivo + '\\nAlertas de datos: ' + alertas + '\\nFingerprint: ' + fp + '...\\nArtefacto SHA-256: ' + sha + '...\\nGenerado por n8n ds02/decision (DS02 Decision MIA-3)'; const row = (k,v) => '<tr><td style=\"padding:8px 12px;background:#f1f5f9;color:#334155;font-weight:bold;border:1px solid #e2e8f0;width:42%\">'+k+'</td><td style=\"padding:8px 12px;color:#0f172a;border:1px solid #e2e8f0\">'+v+'</td></tr>'; return '<!DOCTYPE html><html><body style=\"margin:0;padding:0;background:#e2e8f0;font-family:Arial,Helvetica,sans-serif\"><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#e2e8f0;padding:20px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"640\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#ffffff;border-radius:10px;overflow:hidden;max-width:640px\"><tr><td style=\"background:#0b2a4a;color:#ffffff;padding:22px 24px\"><div style=\"font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#93c5fd\">DS02 · Gemelo digital</div><div style=\"font-size:24px;font-weight:bold;margin-top:6px\">Decisión HANGAR — derivación a taller</div><div style=\"font-size:14px;margin-top:8px;color:#dbeafe\">Unidad U'+u+' · Ciclo '+c+' · '+dec+'</div></td></tr><tr><td style=\"padding:20px 24px\"><p style=\"margin:0 0 14px;color:#334155;font-size:15px\">La unidad no vuela hasta revisión en hangar. Resumen de la decisión del gemelo DS02:</p><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:collapse;font-size:14px\">'+row('Unidad','U'+u+' (real, no -1)')+row('Ciclo',c)+row('RUL punto (ciclos)',fmt(rul))+row('Límite inferior L_inf',fmt(linf))+row('Límite superior L_sup',fmt(lsup))+row('Umbrales (apto / hangar)',fmt(umA)+' / '+fmt(umH))+row('Reglas usadas',usadas)+row('Motivo / porque',motivo)+row('Alertas de datos',alertas)+row('Fingerprint (corto)',fp+'…')+row('Artefacto SHA-256 (corto)',sha+'…')+'</table><p style=\"margin:16px 0 0;color:#475569;font-size:13px\">Acción: Postgres ds02_decisiones + Calendar + este aviso Gmail. Revisa el gemelo DS02 antes de liberar la aeronave.</p><hr style=\"border:none;border-top:1px solid #e2e8f0;margin:20px 0\"><p style=\"margin:0 0 8px;color:#334155;font-size:13px\"><strong>Versión en texto plano (respaldo):</strong></p><pre style=\"white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px;color:#334155;background:#f8fafc;padding:12px;border-radius:6px\">'+plain+'</pre></td></tr><tr><td style=\"background:#0b2a4a;color:#cbd5e1;padding:14px 24px;font-size:12px\">Generado automáticamente por n8n · flujo ds02/decision · DS02 Decision MIA-3 (hLlkHl3X33roWPEQ) · This email was sent automatically with n8n</td></tr></table></td></tr></table></body></html>'; })() }}",
+        "options": {},
+        "resource": "message",
+        "operation": "send",
+        "emailType": "html"
+      },
+      "id": "gmail_hangar",
+      "name": "HANGAR Gmail",
+      "position": [
+        1792,
+        368
+      ],
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "webhookId": "ac390724-ca32-4abd-8e57-04666f25d9ca",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REEMPLAZAR_CREDENCIAL",
+          "name": "DS02 Gmail"
+        }
+      },
+      "notes": "HANGAR paso 3: avisa por correo a operaciones (alternativemarkleonard@gmail.com). Revisa la credencial de Gmail y el destinatario."
     },
     {
       "parameters": {
@@ -234,146 +540,56 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        700,
-        320
+        1136,
+        16
       ]
     },
     {
       "parameters": {
-        "authentication": "oAuth2",
-        "resource": "sheet",
-        "operation": "append",
-        "documentId": {
-          "__rl": true,
-          "mode": "list",
-          "value": "1HDpoYm8NBhKvU0yOxLlBeLEPTmI2BcR30kSSfAN2mXc",
-          "cachedResultName": "DS02 Decisiones",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HDpoYm8NBhKvU0yOxLlBeLEPTmI2BcR30kSSfAN2mXc/edit?usp=drivesdk"
+        "chatId": "={{ $env.DS02_TELEGRAM_CHAT_ID }}",
+        "text": "=✅ <b>DS02 · APTO</b> — sigue en servicio\n\n<b>🕒 Decisión:</b> {{ $now.setZone('Europe/Madrid').toFormat('dd/MM/yyyy HH:mm') }}\n\n<b>🛩️ Unidad:</b> U{{ $json.body.unidad ?? $json.unidad }} · <b>🔄 ciclo:</b> {{ $json.body.ciclo ?? $json.ciclo }}\n<b>📉 RUL punto:</b> {{ $json.body.rul_punto ?? $json.rul_punto }} ciclos\n<b>📊 Límite inferior:</b> {{ $json.body.limite_inferior ?? $json.limite_inferior }} · <b>superior:</b> {{ $json.body.limite_superior ?? $json.limite_superior }}\n<b>🎯 Umbrales:</b> apto ≥ 30 / hangar &lt; 25\n\n<b>🧠 Reglas / motivo:</b> {{ $json.body.motivo ?? $json.motivo }}\n\n<b>✅ Acciones:</b> solo registro (sin acción externa)\n<b>🔑 Huella datos:</b> <code>{{ ($json.body.fingerprint ?? $json.fingerprint ?? '').slice(0, 12) }}</code>",
+        "additionalFields": {
+          "parse_mode": "HTML"
         },
-        "sheetName": {
-          "__rl": true,
-          "mode": "list",
-          "value": "gid=0",
-          "cachedResultName": "Hoja 1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HDpoYm8NBhKvU0yOxLlBeLEPTmI2BcR30kSSfAN2mXc/edit#gid=0"
-        },
-        "options": {
-          "cellFormat": "USER_ENTERED",
-          "useAppend": true
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "decision",
-              "displayName": "decision",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "unidad",
-              "displayName": "unidad",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "ciclo",
-              "displayName": "ciclo",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "rul_punto",
-              "displayName": "rul_punto",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "limite_inferior",
-              "displayName": "limite_inferior",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "motivo",
-              "displayName": "motivo",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "fingerprint",
-              "displayName": "fingerprint",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            }
-          ],
-          "value": {
-            "decision": "={{ $json.decision }}",
-            "unidad": "={{ $json.unidad }}",
-            "ciclo": "={{ $json.ciclo }}",
-            "rul_punto": "={{ $json.rul_punto }}",
-            "limite_inferior": "={{ $json.limite_inferior }}",
-            "motivo": "={{ $json.motivo }}",
-            "fingerprint": "={{ $json.fingerprint }}"
-          }
-        }
+        "resource": "message",
+        "operation": "sendMessage"
       },
-      "id": "sheets_inspeccion",
-      "name": "INSPECCION Google Sheets append",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.2,
+      "id": "459c4ed3-50fb-4a55-9c79-43f55205124e",
+      "name": "APTO Telegram aviso",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
       "position": [
-        880,
-        320
+        704,
+        -32
       ],
-      "notes": "INSPECCION: anade la fila en Google Sheets para revision. Revisa la credencial de Sheets.",
+      "webhookId": "bdb0fd5e-093e-42bc-be81-4802cedaa4b1",
       "credentials": {
-        "googleSheetsOAuth2Api": {
+        "telegramApi": {
           "id": "REEMPLAZAR_CREDENCIAL",
-          "name": "DS02 Google Sheets"
+          "name": "DS02 Telegram"
         }
       },
-      "onError": "stop"
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "resource": "message",
-        "operation": "sendMessage",
         "chatId": "={{ $env.DS02_TELEGRAM_CHAT_ID }}",
-        "text": "=🔎 DS02 INSPECCION · U{{ $json.body.unidad ?? $json.unidad }} · ciclo {{ $json.body.ciclo ?? $json.ciclo }} · RUL {{ $json.body.rul_punto ?? $json.rul_punto }} · L_inf {{ $json.body.limite_inferior ?? $json.limite_inferior }} · {{ $json.body.motivo ?? $json.motivo }} · fp {{ $json.body.fingerprint ?? $json.fingerprint }}. Revision en Google Sheets.",
-        "additionalFields": {}
+        "text": "=🔎 <b>DS02 · INSPECCIÓN</b> — revisión programada\n\n<b>🕒 Decisión:</b> {{ $now.setZone('Europe/Madrid').toFormat('dd/MM/yyyy HH:mm') }}\n\n<b>🛩️ Unidad:</b> U{{ $json.body.unidad ?? $json.unidad }} · <b>🔄 ciclo:</b> {{ $json.body.ciclo ?? $json.ciclo }}\n<b>📉 RUL punto:</b> {{ $json.body.rul_punto ?? $json.rul_punto }} ciclos\n<b>📊 Límite inferior:</b> {{ $json.body.limite_inferior ?? $json.limite_inferior }} · <b>superior:</b> {{ $json.body.limite_superior ?? $json.limite_superior }}\n<b>🎯 Umbrales:</b> apto ≥ 30 / hangar &lt; 25\n\n<b>🧠 Reglas / motivo:</b> {{ $json.body.motivo ?? $json.motivo }}\n\n<b>✅ Acciones:</b> Google Sheets (fila para revisión) + Telegram\n<b>🔑 Huella datos:</b> <code>{{ ($json.body.fingerprint ?? $json.fingerprint ?? '').slice(0, 12) }}</code>",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "resource": "message",
+        "operation": "sendMessage"
       },
-      "id": "telegram_inspeccion",
+      "id": "b9374cad-5b19-493b-882c-65c5e0580840",
       "name": "INSPECCION Telegram aviso",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1160,
-        320
+        1136,
+        160
       ],
-      "notes": "Aviso Telegram fire-and-forget: un envio unidireccional, sin botones ni respuesta esperada. Corre en paralelo de la accion de la rama; si falla, continueRegularOutput evita romper el flujo. Chat ID por env DS02_TELEGRAM_CHAT_ID; el token vive en la credencial de n8n.",
+      "webhookId": "04110681-e3d1-4d93-b73f-be5b8348f24b",
       "credentials": {
         "telegramApi": {
           "id": "REEMPLAZAR_CREDENCIAL",
@@ -384,215 +600,23 @@
     },
     {
       "parameters": {
-        "operation": "insert",
-        "table": {
-          "__rl": true,
-          "value": "ds02_decisiones",
-          "mode": "name"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "decision": "={{ $json.body.decision || $json.decision }}",
-            "unidad": "={{ $json.body.unidad ?? $json.unidad }}",
-            "ciclo": "={{ $json.body.ciclo ?? $json.ciclo }}",
-            "rul_punto": "={{ $json.body.rul_punto ?? $json.rul_punto }}",
-            "limite_inferior": "={{ $json.body.limite_inferior ?? $json.limite_inferior }}",
-            "limite_superior": "={{ $json.body.limite_superior ?? $json.limite_superior }}",
-            "motivo": "={{ $json.body.motivo || $json.motivo }}",
-            "artefacto_sha256": "={{ $json.body.artefacto_sha256 || $json.artefacto_sha256 }}",
-            "fingerprint": "={{ $json.body.fingerprint || $json.fingerprint }}",
-            "idempotency_key": "={{ $json.body.idempotency_key || $json.idempotency_key }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "decision",
-              "displayName": "decision",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": false
-            },
-            {
-              "id": "unidad",
-              "displayName": "unidad",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": false
-            },
-            {
-              "id": "ciclo",
-              "displayName": "ciclo",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": false
-            },
-            {
-              "id": "rul_punto",
-              "displayName": "rul_punto",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": false
-            },
-            {
-              "id": "limite_inferior",
-              "displayName": "limite_inferior",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": false
-            },
-            {
-              "id": "limite_superior",
-              "displayName": "limite_superior",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": false
-            },
-            {
-              "id": "motivo",
-              "displayName": "motivo",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": false
-            },
-            {
-              "id": "artefacto_sha256",
-              "displayName": "artefacto_sha256",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": false
-            },
-            {
-              "id": "fingerprint",
-              "displayName": "fingerprint",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": false
-            },
-            {
-              "id": "idempotency_key",
-              "displayName": "idempotency_key",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": false
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "postgres_hangar",
-      "name": "HANGAR Postgres insert",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        880,
-        512
-      ],
-      "notes": "HANGAR paso 1: inserta la orden en Postgres tabla ds02_decisiones. Revisa la credencial de Postgres.",
-      "credentials": {
-        "postgres": {
-          "id": "REEMPLAZAR_CREDENCIAL",
-          "name": "DS02 Postgres"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "calendar": {
-          "__rl": {
-            "mode": "id",
-            "value": "primary"
-          },
-          "mode": "list",
-          "value": "primary"
-        },
-        "additionalFields": {},
-        "operation": "create",
-        "resource": "event",
-        "summary": "={{ 'HANGAR DS02 unidad ' + ($json.body.unidad || $json.unidad) + ' ciclo ' + ($json.body.ciclo || $json.ciclo) }}",
-        "end": "={{ $now.plus(1, 'hour') }}",
-        "start": "={{ $now }}",
-        "timeZone": "Europe/Madrid"
-      },
-      "id": "calendar_hangar",
-      "name": "HANGAR Google Calendar",
-      "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1.3,
-      "position": [
-        1168,
-        512
-      ],
-      "notes": "HANGAR paso 2: crea el evento de hangar en Google Calendar. Revisa la credencial de Calendar.",
-      "credentials": {
-        "googleCalendarOAuth2Api": {
-          "id": "REEMPLAZAR_CREDENCIAL",
-          "name": "DS02 Google Calendar"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "resource": "message",
-        "operation": "send",
-        "sendTo": "alternativemarkleonard@gmail.com",
-        "subject": "=HANGAR DS02 · U{{ $('Webhook ds02/decision').first().json.body.unidad }} · ciclo {{ $('Webhook ds02/decision').first().json.body.ciclo }} · RUL {{ Math.round(($('Webhook ds02/decision').first().json.body.rul_punto ?? 0)*10)/10 }} · L_inf {{ Math.round(($('Webhook ds02/decision').first().json.body.limite_inferior ?? 0)*10)/10 }}",
-        "emailType": "html",
-        "message": "={{ (() => { const w = $('Webhook ds02/decision').first().json; const b = w.body || w || $json.body || $json; const u = (b.unidad ?? $json.unidad ?? '—'); const c = (b.ciclo ?? $json.ciclo ?? '—'); const rul = (b.rul_punto ?? $json.rul_punto ?? '—'); const linf = (b.limite_inferior ?? $json.limite_inferior ?? '—'); const lsup = (b.limite_superior ?? $json.limite_superior ?? '—'); const um = b.umbrales || {}; const umA = (um.apto ?? 25); const umH = (um.hangar ?? 20); const usadas = Array.isArray(b.usadas) ? b.usadas.join(', ') : (b.usadas || '—'); const porque = Array.isArray(b.porque) ? b.porque.join(' · ') : (b.porque || b.motivo || '—'); const motivo = b.motivo || porque; const alertas = Array.isArray(b.alertas_datos) && b.alertas_datos.length ? b.alertas_datos.join('; ') : 'Sin alertas de datos'; const fp = String(b.fingerprint || b.idempotency_key || '').slice(0,12); const sha = String(b.artefacto_sha256 || '').slice(0,12); const dec = b.decision || 'HANGAR'; const fmt = (v) => (typeof v === 'number' ? (Math.round(v*10)/10).toString() : String(v)); const plain = 'HANGAR DS02 - Gemelo digital\\nDecision: ' + dec + '\\nUnidad: U' + u + '\\nCiclo: ' + c + '\\nRUL punto: ' + fmt(rul) + ' ciclos\\nLimite inferior (L_inf): ' + fmt(linf) + '\\nLimite superior (L_sup): ' + fmt(lsup) + '\\nUmbrales: apto>=' + fmt(umA) + ' / hangar<' + fmt(umH) + '\\nReglas usadas: ' + usadas + '\\nMotivo: ' + motivo + '\\nAlertas de datos: ' + alertas + '\\nFingerprint: ' + fp + '...\\nArtefacto SHA-256: ' + sha + '...\\nGenerado por n8n ds02/decision (DS02 Decision MIA-3)'; const row = (k,v) => '<tr><td style=\"padding:8px 12px;background:#f1f5f9;color:#334155;font-weight:bold;border:1px solid #e2e8f0;width:42%\">'+k+'</td><td style=\"padding:8px 12px;color:#0f172a;border:1px solid #e2e8f0\">'+v+'</td></tr>'; return '<!DOCTYPE html><html><body style=\"margin:0;padding:0;background:#e2e8f0;font-family:Arial,Helvetica,sans-serif\"><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#e2e8f0;padding:20px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"640\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#ffffff;border-radius:10px;overflow:hidden;max-width:640px\"><tr><td style=\"background:#0b2a4a;color:#ffffff;padding:22px 24px\"><div style=\"font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#93c5fd\">DS02 · Gemelo digital</div><div style=\"font-size:24px;font-weight:bold;margin-top:6px\">Decisión HANGAR — derivación a taller</div><div style=\"font-size:14px;margin-top:8px;color:#dbeafe\">Unidad U'+u+' · Ciclo '+c+' · '+dec+'</div></td></tr><tr><td style=\"padding:20px 24px\"><p style=\"margin:0 0 14px;color:#334155;font-size:15px\">La unidad no vuela hasta revisión en hangar. Resumen de la decisión del gemelo DS02:</p><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:collapse;font-size:14px\">'+row('Unidad','U'+u+' (real, no -1)')+row('Ciclo',c)+row('RUL punto (ciclos)',fmt(rul))+row('Límite inferior L_inf',fmt(linf))+row('Límite superior L_sup',fmt(lsup))+row('Umbrales (apto / hangar)',fmt(umA)+' / '+fmt(umH))+row('Reglas usadas',usadas)+row('Motivo / porque',motivo)+row('Alertas de datos',alertas)+row('Fingerprint (corto)',fp+'…')+row('Artefacto SHA-256 (corto)',sha+'…')+'</table><p style=\"margin:16px 0 0;color:#475569;font-size:13px\">Acción: Postgres ds02_decisiones + Calendar + este aviso Gmail. Revisa el gemelo DS02 antes de liberar la aeronave.</p><hr style=\"border:none;border-top:1px solid #e2e8f0;margin:20px 0\"><p style=\"margin:0 0 8px;color:#334155;font-size:13px\"><strong>Versión en texto plano (respaldo):</strong></p><pre style=\"white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px;color:#334155;background:#f8fafc;padding:12px;border-radius:6px\">'+plain+'</pre></td></tr><tr><td style=\"background:#0b2a4a;color:#cbd5e1;padding:14px 24px;font-size:12px\">Generado automáticamente por n8n · flujo ds02/decision · DS02 Decision MIA-3 (hLlkHl3X33roWPEQ) · This email was sent automatically with n8n</td></tr></table></td></tr></table></body></html>'; })() }}",
-        "options": {}
-      },
-      "id": "gmail_hangar",
-      "name": "HANGAR Gmail",
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.1,
-      "credentials": {
-        "gmailOAuth2": {
-          "id": "REEMPLAZAR_CREDENCIAL",
-          "name": "DS02 Gmail"
-        }
-      },
-      "position": [
-        1440,
-        512
-      ],
-      "notes": "HANGAR paso 3: plantilla profesional gemelo DS02 (HTML + texto plano respaldo). Fuente primaria: $('Webhook ds02/decision').first().json.body.* (unidad real, ciclo, RUL, L_inf/L_sup, umbrales 30/25, usadas, motivo, fingerprint/artefacto cortos). Footer n8n ds02/decision."
-    },
-    {
-      "parameters": {
-        "resource": "message",
-        "operation": "sendMessage",
         "chatId": "={{ $env.DS02_TELEGRAM_CHAT_ID }}",
-        "text": "=🚨 DS02 HANGAR · U{{ $json.body.unidad ?? $json.unidad }} · ciclo {{ $json.body.ciclo ?? $json.ciclo }} · RUL {{ $json.body.rul_punto ?? $json.rul_punto }} · L_inf {{ $json.body.limite_inferior ?? $json.limite_inferior }} · L_sup {{ $json.body.limite_superior ?? $json.limite_superior }} · {{ $json.body.motivo ?? $json.motivo }} · fp {{ $json.body.fingerprint ?? $json.fingerprint }}. Orden de taller: Postgres + Calendar + Gmail.",
-        "additionalFields": {}
+        "text": "=🚨 <b>DS02 · HANGAR</b> — derivación a taller\n\n<b>🕒 Decisión:</b> {{ $now.setZone('Europe/Madrid').toFormat('dd/MM/yyyy HH:mm') }}\n\n<b>🛩️ Unidad:</b> U{{ $json.body.unidad ?? $json.unidad }} · <b>🔄 ciclo:</b> {{ $json.body.ciclo ?? $json.ciclo }}\n<b>📉 RUL punto:</b> {{ $json.body.rul_punto ?? $json.rul_punto }} ciclos\n<b>📊 Límite inferior:</b> {{ $json.body.limite_inferior ?? $json.limite_inferior }} · <b>superior:</b> {{ $json.body.limite_superior ?? $json.limite_superior }}\n<b>🎯 Umbrales:</b> apto ≥ 30 / hangar &lt; 25\n\n<b>🧠 Reglas / motivo:</b> {{ $json.body.motivo ?? $json.motivo }}\n\n<b>✅ Acciones:</b> Postgres ds02_decisiones + Calendar + Gmail + Telegram\n<b>🔑 Huella datos:</b> <code>{{ ($json.body.fingerprint ?? $json.fingerprint ?? '').slice(0, 12) }}</code>",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "resource": "message",
+        "operation": "sendMessage"
       },
-      "id": "telegram_hangar",
+      "id": "530f859d-d673-4d4a-a148-9ba2ab78e96c",
       "name": "HANGAR Telegram aviso",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1440,
-        640
+        1312,
+        544
       ],
-      "notes": "Aviso Telegram fire-and-forget: un envio unidireccional, sin botones ni respuesta esperada. Corre en paralelo de la accion de la rama; si falla, continueRegularOutput evita romper el flujo. Chat ID por env DS02_TELEGRAM_CHAT_ID; el token vive en la credencial de n8n.",
+      "webhookId": "ec219c2c-1a78-490c-bea6-04b0cbfbcdd5",
       "credentials": {
         "telegramApi": {
           "id": "REEMPLAZAR_CREDENCIAL",
@@ -600,21 +624,6 @@
         }
       },
       "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "content": "## Credenciales por revisar\n- Google Sheets (INSPECCION)\n- Postgres (HANGAR)\n- Google Calendar (HANGAR)\n- Gmail (HANGAR)\n- Telegram (aviso fire-and-forget en las 4 salidas): token en la credencial; chat id en el env DS02_TELEGRAM_CHAT_ID\nEl repo no guarda secretos.",
-        "height": 140,
-        "width": 620
-      },
-      "id": "sticky_creds",
-      "name": "Nota credenciales",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        880,
-        680
-      ]
     },
     {
       "parameters": {
@@ -623,40 +632,41 @@
             {
               "id": "a_fallback_log",
               "name": "log",
-              "value": "={{ (() => { const d = ($json.body.decision ?? $json.decision ?? 'SIN_DECISION'); return (d === 'SIN_DECISION') ? ('SIN_DECISION · sin accion critica; solo registro y aviso · U' + ($json.body.unidad ?? $json.unidad ?? '?') + ' · ciclo ' + ($json.body.ciclo ?? $json.ciclo ?? '?')) : ('DECISION NO RECONOCIDA: ' + d + ' · U' + ($json.body.unidad ?? $json.unidad ?? '?') + ' · ciclo ' + ($json.body.ciclo ?? $json.ciclo ?? '?') + ' · revisar payload'); })() }}",
-              "type": "string"
+              "type": "string",
+              "value": "={{ (() => { const d = ($json.body.decision ?? $json.decision ?? 'SIN_DECISION'); return (d === 'SIN_DECISION') ? ('SIN_DECISION · sin accion critica; solo registro y aviso · U' + ($json.body.unidad ?? $json.unidad ?? '?') + ' · ciclo ' + ($json.body.ciclo ?? $json.ciclo ?? '?')) : ('DECISION NO RECONOCIDA: ' + d + ' · U' + ($json.body.unidad ?? $json.unidad ?? '?') + ' · ciclo ' + ($json.body.ciclo ?? $json.ciclo ?? '?') + ' · revisar payload'); })() }}"
             }
           ]
         },
         "options": {}
       },
-      "id": "set_fallback_log",
+      "id": "798ff6e2-eb3c-4924-bf36-13b1d9ddac27",
       "name": "FALLBACK Set no reconocida",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        880,
-        700
-      ],
-      "notes": "Salida extra del Switch: deja constancia de la decision no reconocida."
+        704,
+        864
+      ]
     },
     {
       "parameters": {
-        "resource": "message",
-        "operation": "sendMessage",
         "chatId": "={{ $env.DS02_TELEGRAM_CHAT_ID }}",
-        "text": "=⚠️ DS02 {{ (() => { const d = ($json.body.decision ?? $json.decision ?? 'SIN_DECISION'); return (d === 'SIN_DECISION') ? ('SIN_DECISION (sin accion critica): U' + ($json.body.unidad ?? $json.unidad ?? '?') + ' · ciclo ' + ($json.body.ciclo ?? $json.ciclo ?? '?') + ' · fp ' + ($json.body.fingerprint ?? $json.fingerprint ?? '') + '. Solo registro; no se ejecutan acciones.') : ('DECISION NO RECONOCIDA: \"' + d + '\" · U' + ($json.body.unidad ?? $json.unidad ?? '?') + ' · ciclo ' + ($json.body.ciclo ?? $json.ciclo ?? '?') + ' · fp ' + ($json.body.fingerprint ?? $json.fingerprint ?? '') + '. Se esperaba APTO, INSPECCION o HANGAR (o SIN_DECISION); revisar payload.'); })() }}",
-        "additionalFields": {}
+        "text": "=⚠️ <b>DS02 · {{ (() => { const d = ($json.body.decision ?? $json.decision ?? 'SIN_DECISION'); return (d === 'SIN_DECISION') ? 'SIN_DECISION (sin acción crítica)' : 'DECISIÓN NO RECONOCIDA'; })() }}</b>\n\n<b>🕒 Decisión:</b> {{ $now.setZone('Europe/Madrid').toFormat('dd/MM/yyyy HH:mm') }}\n\n<b>🛩️ Unidad:</b> U{{ $json.body.unidad ?? $json.unidad }} · <b>🔄 ciclo:</b> {{ $json.body.ciclo ?? $json.ciclo }}\n<b>📉 RUL punto:</b> {{ $json.body.rul_punto ?? $json.rul_punto }} · <b>📊 L_inf:</b> {{ $json.body.limite_inferior ?? $json.limite_inferior }}\n\n<b>⚖️ Decisión recibida:</b> <code>{{ $json.body.decision ?? $json.decision ?? 'SIN_DECISION' }}</code>\n<b>Se esperaba:</b> APTO, INSPECCION o HANGAR (o SIN_DECISION)\n\n<b>✅ Acciones:</b> solo registro + aviso Telegram\n<b>🔑 Huella datos:</b> <code>{{ ($json.body.fingerprint ?? $json.fingerprint ?? '').slice(0, 12) }}</code>",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "resource": "message",
+        "operation": "sendMessage"
       },
-      "id": "telegram_fallback",
+      "id": "3511be6c-61f5-45d8-802c-35fc6eef234a",
       "name": "FALLBACK Telegram alerta",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1160,
-        700
+        720,
+        720
       ],
-      "notes": "Aviso Telegram fire-and-forget: un envio unidireccional, sin botones ni respuesta esperada. Corre en paralelo de la accion de la rama; si falla, continueRegularOutput evita romper el flujo. Chat ID por env DS02_TELEGRAM_CHAT_ID; el token vive en la credencial de n8n. Salida extra del Switch: alerta de SIN_DECISION / decision no reconocida.",
+      "webhookId": "0893d3e0-983c-4961-9d42-4a63d1512121",
       "credentials": {
         "telegramApi": {
           "id": "REEMPLAZAR_CREDENCIAL",
@@ -664,91 +674,28 @@
         }
       },
       "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "content": "## 1 Entrada y decision\nPOST ds02/decision con decision APTO/INSPECCION/HANGAR, unidad, ciclo, RUL, L_inf, usadas, porque y fingerprint. El switch reparte por decision; lo no reconocido (incluido SIN_DECISION) va a la salida FALLBACK (indice 3).",
-        "height": 200,
-        "width": 700
-      },
-      "id": "nota_entrada",
-      "name": "Nota entrada",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        140,
-        220
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## APTO: solo log + Telegram\nSin accion externa. Deja constancia en el log y avisa por Telegram (mensaje unidireccional, sin botones).",
-        "height": 160,
-        "width": 420
-      },
-      "id": "nota_apto",
-      "name": "Nota APTO",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        820,
-        80
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## INSPECCION: Google Sheets + Telegram\nAnade fila en DS02 Decisiones / Decisiones para revision y avisa por Telegram en paralelo.",
-        "height": 160,
-        "width": 420
-      },
-      "id": "nota_inspeccion",
-      "name": "Nota INSPECCION",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        820,
-        260
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## HANGAR: taller en 3 pasos + Telegram\n1 Postgres insert ds02_decisiones. 2 Google Calendar evento. 3 Gmail a operaciones. El aviso de Telegram va en paralelo.",
-        "height": 160,
-        "width": 900
-      },
-      "id": "nota_hangar",
-      "name": "Nota HANGAR",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        820,
-        440
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## FALLBACK: SIN_DECISION / no reconocida\nfallbackOutput=extra crea la salida 3 del Switch: recoge SIN_DECISION y cualquier valor fuera de APTO/INSPECCION/HANGAR. No ejecuta acciones: deja registro en el Set y avisa por Telegram.",
-        "height": 180,
-        "width": 520
-      },
-      "id": "nota_fallback",
-      "name": "Nota FALLBACK",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        140,
-        620
-      ]
     }
   ],
+  "pinData": {},
   "connections": {
-    "Webhook ds02/decision": {
+    "HANGAR Google Calendar": {
       "main": [
         [
           {
-            "node": "Switch por decision",
-            "type": "main",
-            "index": 0
+            "index": 0,
+            "node": "HANGAR Gmail",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "HANGAR Postgres insert": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "HANGAR Google Calendar",
+            "type": "main"
           }
         ]
       ]
@@ -757,9 +704,9 @@
       "main": [
         [
           {
+            "index": 0,
             "node": "APTO Set log",
-            "type": "main",
-            "index": 0
+            "type": "main"
           },
           {
             "node": "APTO Telegram aviso",
@@ -781,9 +728,9 @@
         ],
         [
           {
+            "index": 0,
             "node": "HANGAR Postgres insert",
-            "type": "main",
-            "index": 0
+            "type": "main"
           },
           {
             "node": "HANGAR Telegram aviso",
@@ -805,30 +752,16 @@
         ]
       ]
     },
-    "HANGAR Postgres insert": {
+    "Webhook ds02/decision": {
       "main": [
         [
           {
-            "node": "HANGAR Google Calendar",
-            "type": "main",
-            "index": 0
+            "index": 0,
+            "node": "Switch por decision",
+            "type": "main"
           }
         ]
       ]
-    },
-    "HANGAR Google Calendar": {
-      "main": [
-        [
-          {
-            "node": "HANGAR Gmail",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HANGAR Gmail": {
-      "main": []
     },
     "Set INSPECCION flat": {
       "main": [
@@ -844,18 +777,20 @@
   },
   "active": false,
   "settings": {
-    "saveExecutionProgress": true,
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
     "saveManualExecutions": true,
-    "executionOrder": "v1"
+    "saveExecutionProgress": true,
+    "timezone": "Europe/Madrid"
   },
-  "versionId": "ds02-mia3-v3",
+  "versionId": "a3f36772-ab56-438d-adda-88beabb1f853",
   "meta": {
-    "templateCredsSetupCompleted": false,
-    "instanceId": "instancia-local"
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6202aef211a9db78598adf61e1b18883946a881e56a8a5b5f472c28ee9dcf0a7"
   },
-  "tags": [
-    {
-      "name": "DS02 MIA-3"
-    }
-  ]
+  "nodeGroups": [],
+  "id": "hLlkHl3X33roWPEQ",
+  "tags": []
 }
