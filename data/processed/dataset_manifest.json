@@ -1,0 +1,81 @@
+{
+ "format_version": 1,
+ "pandas": "3.0.6",
+ "pyarrow": "26.0.1",
+ "artefactos": {
+  "train_con_nulos.parquet": {
+   "sha256": "a47b9a46e2f32bcf41ffc6809a299dd7eab246014c1f3fe669b7dacbeaba37a3",
+   "huella_contenido": "27d8fa2cf4fba9d48a005be43ce4b190bbabae44a72f5093575c39e571458708",
+   "filas": 52635,
+   "columnas": 23
+  },
+  "test_con_nulos.parquet": {
+   "sha256": "2f37b2af9fe324984f8e6e1077cb6d74f936d4020655793ae3f6868939f40c0c",
+   "huella_contenido": "559664ebc2a380d79aba99a4f8441b3ad60145d6f998a1932cf9b70ff84c3b7b",
+   "filas": 12538,
+   "columnas": 23
+  },
+  "train.parquet": {
+   "sha256": "ba1a463592abc7d12d21e36c6178c78861691369d870d51ea4c75cc14139f48e",
+   "huella_contenido": "1526770443466a599b296f70891774b05362c9c82b2b3118dfa5fc3233bdfe26",
+   "filas": 52635,
+   "columnas": 23
+  },
+  "test.parquet": {
+   "sha256": "afdf152a40564c82a27e320685de5dc470465c68ed119f7d773fb2699f7d53f2",
+   "huella_contenido": "3287e263d742522f5353de8a29abba2f4c6130844843832ae640d833e99ec6a8",
+   "filas": 12538,
+   "columnas": 23
+  },
+  "X_train.parquet": {
+   "sha256": "d61b96c6d52ff6a916c6e91c28bcbb207b0c4c51dc155c3110b686860044d2ea",
+   "huella_contenido": "b2bc11ae4d5fe4fd7a930ee4adeab4a0fb2785574289ab1c50ea20f61f20572a",
+   "filas": 52635,
+   "columnas": 21
+  },
+  "X_test.parquet": {
+   "sha256": "bb25e9a3f1ebd800f40a6f3cd6a138def7598991f3a8265aeb8823a7377ed31d",
+   "huella_contenido": "98fad59c3821fe4fb4d54fb8e2366cf227d6a46f1e0d76ba85c02dc8fa3cc0b5",
+   "filas": 12538,
+   "columnas": 21
+  },
+  "y_train.parquet": {
+   "sha256": "7856e9c6c3dbe26d7f2d7b1dfe9f9d03225527a5134d2a346d2acc610755c5ab",
+   "huella_contenido": "cbb8feab4b9700f3ec2af139ef37f7214beb27efbedb687f88d533174b60b06f",
+   "filas": 52635,
+   "columnas": 1
+  },
+  "y_test.parquet": {
+   "sha256": "6b5c9f210f4a4113becc3921d53a553c20a43f5da72f4854ca68a854b63aa7c3",
+   "huella_contenido": "931ec71011294b92532810ad953626ef874f626a390cc3211af5c59af7085172",
+   "filas": 12538,
+   "columnas": 1
+  }
+ },
+ "auditoria_sha256": "f9c5637b8be77130455c2964142b306f25b0715af73d2d8a6dd9fe1eba11cf42",
+ "mascara_sha256": "8087e60b0deb7b7652260a1936aba8b6f052a21f841390f6c07b643a06ad51af",
+ "receta": {
+  "seed": 7,
+  "test_units": [
+   11.0,
+   14.0,
+   15.0
+  ],
+  "medianas": {
+   "Nc": 8205.84045440101,
+   "Nf": 2058.66197409809,
+   "P15": 10.3650866718992,
+   "P2": 7.831789485961949,
+   "P21": 10.522930631369801,
+   "P24": 13.0565034648415,
+   "P40": 200.842068791007,
+   "P50": 7.543582550927192,
+   "Ps30": 197.383751211843,
+   "T24": 556.313702221126,
+   "T30": 1318.77702981243,
+   "T48": 1652.94810006399,
+   "T50": 1097.65569922295,
+   "Wf": 2.11313649110709
+  }
+ }
+}

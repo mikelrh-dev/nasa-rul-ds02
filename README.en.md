@@ -49,13 +49,12 @@ streamlit run app/entrypoints/streamlit_app.py --server.address 127.0.0.1 --serv
 |---|---|---|
 | **SAA** | EDA, 5 classical models, MLP experiments, ablation, comparison and SHAP | `notebooks/01`–`03`, `resultados/comparativa.csv`, `resultados/mlp_comparativa.csv`, `resultados/ablacion_cycnorm.csv`, `resultados/shap_importancia.csv` |
 | **PIA** | README, structure, sklearn pipeline, MLflow, Streamlit app | This file, `src/clase/`, `mlruns/`, `app/entrypoints/dashboard_ds02.py` |
-| **MIA** | Business case, rules, n8n and individual question | Business section below, `src/mia/reglas.py`, `n8n/flujo.json`, [`docs/defensa/mapa-rubrica.md`](docs/defensa/mapa-rubrica.md) |
+| **MIA** | Business case, rules, n8n and individual question | Business section below, `src/mia/reglas.py`, `n8n/flujo.json`, rubric map (defence material) |
 
 > The rubric names example paths (`src/reglas.py`, `src/utils.py`,
 > `app/streamlit_app.py`, `notebooks/01_eda.ipynb`). The repo keeps the same
-> function under canonical paths and **does not reintroduce facades**; the full
-> route map is [`docs/defensa/mapa-rubrica.md`](docs/defensa/mapa-rubrica.md).
-> Cell-level map: [`docs/defensa/mapa-nb01-nb07.md`](docs/defensa/mapa-nb01-nb07.md).
+> function under canonical paths and **does not reintroduce facades**; the route
+> and cell-level maps are part of the defence material (not versioned).
 
 ## Business problem
 
@@ -484,7 +483,6 @@ data/processed/                  processed parquet (git-ignored, regenerable)
 resultados/                      CSV, PNG and evidence tables
 docs/                            assets, MLflow evidence, defence and maps
 tests/                           contract, architecture, app and pipeline tests
-archive/                         archived bundle B
 scripts/operativo/               MLflow backfill, stability, gate and prediction
 ```
 
@@ -514,17 +512,16 @@ scripts/operativo/               MLflow backfill, stability, gate and prediction
   architecture test forbids them and the map explains the canonical path.
 - **Grains:** row (12,538) and window (6,196) are never mixed; each league has its
   own champion.
-- **Processed data:** `data/processed/` is git-ignored and regenerated from the
-  HDF5 with the documented pipeline.
+- **Processed data:** `data/processed/` ships via Git LFS (30 MB); the raw HDF5
+  is not in git. Details and SHA in [`docs/DATA.md`](docs/DATA.md).
 
 ## Documentation and defence
 
-- Rubric→path map: [`docs/defensa/mapa-rubrica.md`](docs/defensa/mapa-rubrica.md)
-- Notebook cell map: [`docs/defensa/mapa-nb01-nb07.md`](docs/defensa/mapa-nb01-nb07.md)
+- Rubric and notebook cell maps: defence material (not versioned).
 - Class track: [`src/clase/README.md`](src/clase/README.md)
 - Notebook sequence: [`notebooks/README.md`](notebooks/README.md)
 - MLflow evidence: [`docs/evidencia/mlflow/comparativa.csv`](docs/evidencia/mlflow/comparativa.csv)
-- Rubric: `docClase/Reto1_SAA_PIA_MIA_2026-27_v5.pdf`
+- Rubric: course brief (outside the repository).
 - AOG cost: `costes_reales_aeronauticos.md` §1 (local, not versioned)
 
 ## Authorship

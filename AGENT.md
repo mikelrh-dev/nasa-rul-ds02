@@ -17,6 +17,6 @@
 - Spanish communication with user; concise, student-style.
 
 ## References
-- Project spec: openspec/project.md
-- OpenSpec artifacts: openspec/changes/2026-10-19-ds02-production-hardening/
+- Project spec: `openspec/project.md` (workspace local; OpenSpec no se versiona)
+- OpenSpec artifacts: `openspec/changes/…` (local)
 - Memory: Engram project "nasa-rul-ds02" (decisions/discoveries). This file = stable pointers only.

@@ -11,8 +11,8 @@
 > **En 30 segundos:** 65.173 filas de telemetría DS02, 9 motores y un bundle C
 > congelado que predice RUL y la convierte en APTO / INSPECCIÓN / HANGAR.
 > Métricas del manifiesto: **RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2**
-> (seed 42, 6.196 ventanas de test). El mapa rúbrica→ruta real está en
-> [`docs/defensa/mapa-rubrica.md`](docs/defensa/mapa-rubrica.md).
+> (seed 42, 6.196 ventanas de test). El mapa rúbrica→ruta real forma parte del
+> material de defensa (no versionado en este repo).
 
 ![Dashboard DS02 — bundle C](docs/assets/dashboard_ds02.png)
 
@@ -76,14 +76,13 @@ mlflow server --backend-store-uri ./mlruns --host 127.0.0.1 --port 5001
 |---|---|---|
 | **SAA** | EDA, 5 modelos clásicos, MLP con experimentos, ablación, comparativa y SHAP | `notebooks/01`–`03`, `resultados/comparativa.csv`, `resultados/mlp_comparativa.csv`, `resultados/ablacion_cycnorm.csv`, `resultados/shap_importancia.csv` |
 | **PIA** | README, estructura, pipeline de sklearn, MLflow, app Streamlit | Este README, `src/clase/`, `mlruns/`, `app/entrypoints/dashboard_ds02.py` |
-| **MIA** | Negocio con dato, reglas, n8n y pregunta individual | `Problema y objetivo`, `src/mia/reglas.py`, `n8n/flujo.json`, [`docs/defensa/mapa-rubrica.md`](docs/defensa/mapa-rubrica.md) |
+| **MIA** | Negocio con dato, reglas, n8n y pregunta individual | `Problema y objetivo`, `src/mia/reglas.py`, `n8n/flujo.json`, mapa rúbrica (material de defensa) |
 
 > La rúbrica cita rutas de ejemplo (`src/reglas.py`, `src/utils.py`,
 > `app/streamlit_app.py`, `notebooks/01_eda.ipynb`). El repo conserva la misma
-> función en rutas canónicas y **no reintroduce fachadas**; el mapa completo está
-> en [`docs/defensa/mapa-rubrica.md`](docs/defensa/mapa-rubrica.md). El mapa de
-> celdas y piezas de los notebooks está en
-> [`docs/defensa/mapa-nb01-nb07.md`](docs/defensa/mapa-nb01-nb07.md).
+> función en rutas canónicas y **no reintroduce fachadas**; el mapa completo y el
+> de celdas de los notebooks forman parte del material de defensa (no
+> versionado).
 
 ## Problema y objetivo
 
@@ -595,7 +594,6 @@ data/processed/                  parquet procesados (ignorado en git, regenerabl
 resultados/                      CSV, PNG y tablas de evidencia
 docs/                            assets, evidencia MLflow, defensa y mapas
 tests/                           tests de contrato, arquitectura, app y pipeline
-archive/                         bundle B archivado
 scripts/operativo/               backfill MLflow, estabilidad, gate y predicción
 ```
 
@@ -628,17 +626,16 @@ scripts/operativo/               backfill MLflow, estabilidad, gate y predicció
   arquitectura lo prohíbe y el mapa explica la ruta canónica.
 - **Granos:** fila (12.538) y ventana (6.196) no se mezclan; cada liga elige su
   campeón.
-- **Datos procesados:** `data/processed/` está ignorado en git; se regenera desde
-  el HDF5 con el pipeline documentado.
+- **Datos procesados:** `data/processed/` se versiona por Git LFS (30 MB); el
+  HDF5 crudo no viaja en git. Detalle y SHA en [`docs/DATA.md`](docs/DATA.md).
 
 ## Documentación y defensa
 
-- Mapa rúbrica→ruta real: [`docs/defensa/mapa-rubrica.md`](docs/defensa/mapa-rubrica.md)
-- Mapa de celdas y piezas de notebooks: [`docs/defensa/mapa-nb01-nb07.md`](docs/defensa/mapa-nb01-nb07.md)
+- Mapas de rúbrica y de celdas de notebooks: material de defensa (no versionado).
 - Track de clase: [`src/clase/README.md`](src/clase/README.md)
 - Secuencia de notebooks: [`notebooks/README.md`](notebooks/README.md)
 - Evidencia MLflow: [`docs/evidencia/mlflow/comparativa.csv`](docs/evidencia/mlflow/comparativa.csv)
-- Rúbrica: `docClase/Reto1_SAA_PIA_MIA_2026-27_v5.pdf`
+- Rúbrica: enunciado del curso (fuera del repositorio).
 - Coste AOG: `costes_reales_aeronauticos.md` §1 (local, no versionado)
 
 ## Autoría

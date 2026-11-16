@@ -176,7 +176,7 @@ ninguna y el apartado literal baja PIA-1 a 3.
 # esperar /_stcore/health == 200
 "/c/Program Files/Google/Chrome/Application/chrome.exe" --headless=new --disable-gpu \
   --hide-scrollbars --window-size=1440,2200 --virtual-time-budget=20000 \
-  --screenshot=docs/assets/dashboard_c.png http://127.0.0.1:8501
+  --screenshot=docs/assets/dashboard_ds02.png http://127.0.0.1:8501
 ```
 
 Añadir en `README.md`, justo después del título:
@@ -184,7 +184,7 @@ Añadir en `README.md`, justo después del título:
 ```markdown
 ## Captura de la app
 
-![Dashboard DS02 — bundle C](docs/assets/dashboard_c.png)
+![Dashboard DS02 — bundle C](docs/assets/dashboard_ds02.png)
 
 *Dashboard de producción: métricas del bundle C (RMSE 4.338 / NASA 2336.2) y caso
 nuevo con decisión APTO / INSPECCIÓN / HANGAR.*

@@ -8,7 +8,7 @@
 | **Dataset** | N-CMAPSS **DS02** (`data/raw/N-CMAPSS_DS02-006.h5`, 2.34 GB) |
 | **Target** | Remaining Useful Life (RUL) per engine, in cycles |
 | **Evaluation** | Test units **11, 14, 15** (3 engines), scored with RMSE / MAE / R² / NASA score |
-| **Related** | `openspec/specs/rul-prediction-ds02/spec.md` · `openspec/changes/2026-10-19-ds02-production-hardening/` · `docs/decisions/` |
+| **Related** | spec y changes en el workspace local de OpenSpec (no versionado) · `docs/decisions/` |
 
 ---
 

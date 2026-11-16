@@ -18,8 +18,8 @@ __pycache__/
 .pytest_cache/
 
 # datasets and archives — never commit 15 GB
-# `archive/` anclado a la raiz: sin anclar ocultaba `openspec/changes/archive/`,
-# donde viven las specs archivadas que si se versionan.
+# `archive/` anclado a la raíz para no ocultar carpetas homónimas dentro del
+# repo. OpenSpec (incluidas sus specs archivadas) se queda en local.
 /archive/
 archive.zip
 *.h5
@@ -119,11 +119,11 @@ app/registros_n8n.json
 # the deliverable: regenerable exercise folders and their data
 notebooks/ds02_ensemble/RequisitosClase/Ejemplos/
 
-# class track generated data and results — regenerable, never commit:
-# data/processed/ is rebuilt by src/clase/dataset_clase.py and the notebooks;
-# resultados/ (CSV/PNG) is rebuilt by src/clase/train_*.py, shap_*.py and the
-# notebooks. Both are build output, like notebooksMD/*.md from the .ipynb files.
-data/
+# Datos crudos: nunca en git (HDF5 de 2,3 GB; su SHA va en el manifiesto).
+# `data/processed/` SÍ se versiona por LFS: un clon limpio corre los tests de
+# clase sin necesitar el HDF5 ni regenerar nada.
+data/raw/
+data/processed/*.log
 # resultados/: se versionan los CSV/PNG citados por README y tests; los logs no.
 resultados/*
 !resultados/*.csv
@@ -150,3 +150,15 @@ notebooks/notebook_backup/
 # skill packs instalados por el agente y su lock
 .claude/
 skills-lock.json
+
+# OpenSpec: cuaderno de trabajo local (SDD), no forma parte de la entrega
+openspec/
+
+# Material de defensa: se queda en local, no se versiona
+docs/defensa/
+docs/chuleta-defensa.md
+
+# Presentación: solo el PDF exportado entra en git; HTML, fotos y assets quedan
+# en local (pesan 9,7 MB y no son reproducibles desde el repo)
+docs/presentacion/*
+!docs/presentacion/*.pdf

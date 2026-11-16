@@ -34,6 +34,10 @@
 *.png     binary
 *.pdf     binary
 
+# data/processed/ por LFS: el clon no arrastra 30 MB de parquet en cada rebuild.
+# Los JSON (manifiesto y auditoría) son texto y van en git normal.
+data/processed/*.parquet filter=lfs diff=lfs merge=lfs -text
+
 # El manifiesto de caché se genera con CRLF en Windows y se valida por SHA en
 # disco; el CR es terminador de línea, no whitespace sobrante.
 app/cache/cache_manifest.json whitespace=cr-at-eol

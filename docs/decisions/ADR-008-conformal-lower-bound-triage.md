@@ -14,7 +14,7 @@ historical decision that ADR-013 revisits with OOF evidence.
 ## Context
 
 The DS02 bundle ships a split-conformal band
-([ADR on the calibrated band in the macro-and-conformal change](../../openspec/changes/2026-10-21-ds02-macro-and-conformal/proposal.md)),
+(ADR on the calibrated band in the macro-and-conformal change, recorded in the local OpenSpec workspace),
 so the maintenance state can be decided on a bound instead of a point estimate.
 That is the right direction: the point estimate carries a per-engine bias of
 +3.03 (unit 11), −5.19 (unit 14) and −2.27 (unit 15), and a decision rule that

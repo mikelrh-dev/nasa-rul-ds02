@@ -5,8 +5,8 @@ experimento o de una auditoría: qué se midió, con qué instrumento, y si la
 hipótesis pasó o se rechazó. Los que deciden lo hacen con `dev`; el test solo
 comprueba.
 
-Los ADR viven aparte, en [`../decisions/`](../decisions/). Las specs desplegadas,
-en [`../../openspec/specs/`](../../openspec/specs/). Los planes, en
+Los ADR viven aparte, en [`../decisions/`](../decisions/). Las specs desplegadas
+viven en el workspace local de OpenSpec, que no se versiona. Los planes, en
 [`../plans/`](../plans/).
 
 ---
