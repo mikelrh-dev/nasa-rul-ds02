@@ -152,7 +152,7 @@ a ~1e-6. Es el SHAP que se defiende; el de XGB de arriba describe el track de cl
 
 ## Tests
 
-~498 tests (`tests/test_clase_*.py` + `tests/test_live_eval.py` + `test_clase_c_multisemilla/test_shap_c/test_dss/test_fleet/test_hangar/test_simulacion/test_twin`). Cobertura: dataset, pipeline, clásicos, MLP, SHAP, tablas, ventanas, bundle C, agregación multiseed (suite completa en la verificación final).
+504 tests (`tests/test_clase_*.py` + `tests/test_live_eval.py` + `test_clase_c_multisemilla/test_shap_c/test_dss/test_fleet/test_hangar/test_simulacion/test_twin`). Cobertura: dataset, pipeline, clásicos, MLP, SHAP, tablas, ventanas, bundle C, agregación multiseed (suite completa en la verificación final).
 
 ## Estructura del track
 

@@ -12,11 +12,9 @@ import pathlib
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import GroupKFold
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 CLIP = 125
-WINDOW = 30
 KEY = ['s2', 's3', 's4', 's7', 's11', 's12', 's15']
 COLS = ['engine_id', 'cycle', 'setting1', 'setting2', 'setting3'] + [f's{i}' for i in range(1, 22)]
 SENSORS = [f's{i}' for i in range(1, 22)]
@@ -56,39 +54,6 @@ def add_health_features(df):
     return df, feats
 
 
-# ---------------------------------------------------------------- ventanas
-def make_windows(df, feats, window=WINDOW, only_last=False):
-    """Devuelve X (n, window, n_feat), y, meta con engine_id, ciclo_fin, es_ultima."""
-    X, y, eng, cyc, last = [], [], [], [], []
-    for eid, g in df.groupby('engine_id', sort=True):
-        idx = g.index
-        A = feats.loc[idx].values
-        Y = g['RUL'].values
-        C = g['cycle'].values
-        n = len(A)
-        if n < window:
-            continue
-        starts = [n - window] if only_last else range(n - window + 1)
-        for i in starts:
-            X.append(A[i:i + window])
-            y.append(Y[i + window - 1])
-            eng.append(int(eid))
-            cyc.append(int(C[i + window - 1]))
-            last.append(bool(i + window == n))
-    meta = pd.DataFrame({'engine_id': eng, 'ciclo_fin': cyc, 'es_ultima': last})
-    return np.asarray(X), np.asarray(y), meta
-
-
-def test_last(df, feats, rul_df, window=WINDOW):
-    """Selecciona la ultima lectura de cada motor en test."""
-    X, y, meta = make_windows(df, feats, window, only_last=True)
-    X = X[meta['es_ultima'].values]
-    meta = meta[meta['es_ultima']].reset_index(drop=True)
-    meta = meta.merge(rul_df.rename(columns={'RUL': 'RUL_real'}), on='engine_id', how='left')
-    meta['RUL_real'] = meta['RUL_real'].clip(upper=CLIP)
-    return X, meta
-
-
 # ---------------------------------------------------------------- métricas
 def rmse(a, b):
     """RMSE entre verdad y prediccion."""
@@ -98,56 +63,6 @@ def rmse(a, b):
 def mae(a, b):
     """MAE entre verdad y prediccion."""
     return float(mean_absolute_error(a, b))
-
-
-def oof_predict(X, y, groups, make_model, folds=5, seeds=(42,), flat=True):
-    """OOF por motor. Devuelve dict seed -> predicciones OOF."""
-    Xf = X.reshape(len(X), -1) if flat else X
-    res = {}
-    for seed in seeds:
-        oof = np.zeros(len(y))
-        for tr, va in GroupKFold(folds).split(Xf, y, groups):
-            m = make_model(seed)
-            m.fit(Xf[tr], y[tr])
-            oof[va] = m.predict(Xf[va])
-        res[seed] = oof
-    return res
-
-
-def calibrate_threshold(oof_pred, y_true, cfn=20, cfp=1, event=15, grid=None):
-    """Umbral que minimiza coste cfn*FN + cfp*FP para 'RUL real < event'."""
-    y_true = np.asarray(y_true)
-    oof_pred = np.asarray(oof_pred)
-    pos = y_true < event
-    if grid is None:
-        grid = np.arange(5, 45.5, 0.5)
-    best = (None, np.inf, None)
-    for T in grid:
-        pred = oof_pred < T
-        tp = int((pred & pos).sum())
-        fp = int((pred & ~pos).sum())
-        fn = int((~pred & pos).sum())
-        c = cfn * fn + cfp * fp
-        if c < best[1]:
-            best = (float(T), c, (tp, fp, fn))
-    return {'T': best[0], 'coste': int(best[1]), 'tp': best[2][0], 'fp': best[2][1], 'fn': best[2][2],
-            'recall': round(100 * best[2][0] / max(1, best[2][0] + best[2][2]), 1),
-            'precision': round(100 * best[2][0] / max(1, best[2][0] + best[2][1]), 1)}
-
-
-def eval_alarm(pred, real, T, cfn=20, cfp=1, event=15):
-    """Evalua la alarma por coste: recall, precision y confusion."""
-    pred = np.asarray(pred)
-    real = np.asarray(real)
-    pos = real < event
-    alarma = pred < T
-    tp = int((alarma & pos).sum())
-    fp = int((alarma & ~pos).sum())
-    fn = int((~alarma & pos).sum())
-    return {'T': float(T), 'alarmas': int(alarma.sum()), 'tp': tp, 'fp': fp, 'fn': fn,
-            'recall': round(100 * tp / max(1, tp + fn), 1),
-            'precision': round(100 * tp / max(1, tp + fp), 1),
-            'coste': int(cfn * fn + cfp * fp)}
 
 
 def resumen(y_pred, meta, label, oof=None, y_oof=None):

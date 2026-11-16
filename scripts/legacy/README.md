@@ -5,8 +5,9 @@ historia del proyecto sea auditable. El sistema vigente es `src/ds02_rul/`
 (bundle C) + `notebooks/01–07`.
 
 Cinco de los ocho se archivaron el **2026-11-15** en `archive/scripts_legacy/`
-(ni un test ni un módulo los importaba). Los tres que quedan aquí lo hacen por
-**contrato de test**, no por valor.
+(ni un test ni un módulo los importaba); esa carpeta salió del repo el
+**2026-11-16** y solo vive en el backup externo. Los tres que quedan aquí lo
+hacen por **contrato de test**, no por valor.
 
 > **No ejecutar.** Al moverse un nivel, sus rutas relativas (`parents[1]`) ya no
 > apuntan a la raíz del repo sino a `scripts/`. Además dependen de artefactos que

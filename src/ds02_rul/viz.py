@@ -97,32 +97,6 @@ def real_vs_predicho(y_real, y_pred, titulo, figsize=(6.5, 6)):
     plt.show()
 
 
-def residuos(y_real, y_pred, titulo='Residuos', figsize=(9, 4)):
-    """Error (predicho − real) frente a la predicción, con la banda de ±1 desviación.
-
-    Si la nube está centrada en cero, el modelo no tiene sesgo global. Si se
-    abre a un lado, el error depende del nivel de RUL.
-    """
-    y_real = np.asarray(y_real, dtype=float)
-    y_pred = np.asarray(y_pred, dtype=float)
-    residuo = y_pred - y_real
-
-    fig, ax = plt.subplots(figsize=figsize)
-    ax.scatter(y_pred, residuo, s=9, alpha=0.3, color='#4C72B0', edgecolors='none')
-    ax.axhline(0, color='black', lw=1.2)
-    ax.axhline(residuo.mean(), color='#C44E52', lw=1.3, ls='--',
-               label=f'sesgo {residuo.mean():+.2f}')
-    ax.fill_between([0, float(y_pred.max())], -residuo.std(), residuo.std(),
-                    color='#4C72B0', alpha=0.10, label=f'±1 desv ({residuo.std():.2f})')
-    ax.set_xlabel('RUL predicha (ciclos)')
-    ax.set_ylabel('predicho − real')
-    ax.set_title(titulo)
-    ax.grid(True, ls='--', alpha=0.4)
-    ax.legend(loc='upper right')
-    plt.tight_layout()
-    plt.show()
-
-
 # Fase A — envoltorios estilo clase (SOLO presentacion: no re-entrena, no cambia metricas)
 def evaluar_clase(nombre, y_true, y_pred):
     """Alias de evaluate_predictions: misma fila, nombre estilo clase."""

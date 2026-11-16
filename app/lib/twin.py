@@ -23,7 +23,6 @@ from app.lib import hangar as HGR
 from app.lib import rules as UR
 from app.lib.hangar import _ahora  # dueno unico del reloj UTC
 
-REGISTRY_KEY = "twins"
 MIN_ID = 3
 
 

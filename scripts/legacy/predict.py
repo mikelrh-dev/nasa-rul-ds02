@@ -43,36 +43,6 @@ def _load():
     return b
 
 
-def psi(ref, values):
-    """PSI con bordes y proporciones de referencia medidas en train."""
-    if ref.get('skip'):
-        return 0.0
-    edges = np.array([-np.inf] + ref['edges'] + [np.inf])
-    cur = np.histogram(values, bins=edges)[0]
-    cur_p = cur / max(1, cur.sum())
-    ref_p = np.asarray(ref['props'])
-    cur_p = np.clip(cur_p, 1e-3, None)
-    ref_p = np.clip(ref_p, 1e-3, None)
-    return float(np.sum((cur_p - ref_p) * np.log(cur_p / ref_p)))
-
-
-def drift_batch(df, ultimos=30):
-    """PSI a nivel de flota: valores recientes de todos los motores vs train.
-
-    Comparar UN motor contra la flota no es drift (es heterogeneidad), por eso el PSI
-    se calcula con la flota agrupada.
-    """
-    b = _load()
-    df = df.sort_values(['engine_id', 'cycle'])
-    recent = df.groupby('engine_id').tail(ultimos)
-    out = {}
-    for s in c.SENSORS:
-        out[s] = round(psi(b['psi']['sensors'][s], recent[s].values), 3)
-    peor = max(out, key=out.get)
-    return {'psi': out, 'peor_sensor': peor, 'psi_max': out[peor],
-            'alerta_drift': out[peor] > 0.25, 'n_filas': int(len(recent))}
-
-
 def out_of_range(history):
     """Porcentaje de valores del motor fuera del rango [p01, p99] de train."""
     b = _load()

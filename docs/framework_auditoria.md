@@ -549,7 +549,7 @@ Rutas que el framework debe mirar aquí, sin sustituir los bloques:
 | J | `app/services/api.py`, `tests/test_security_api.py` |
 | K | `app/entrypoints/{dashboard_ds02,streamlit_app}.py`, `app/ui/_*.py`, `app/registros_sesiones*` |
 | L | `n8n/`, `src/n8n.py`, `app/lib/ui_n8n.py`, `tests/test_n8n_decision.py` |
-| M | `tests/` (38 ficheros), `scripts/verify_gate.py`, `scripts/freeze_rules_evidence.py`, `scripts/freeze_oof_instrument.py` |
+| M | `tests/` (55 ficheros), `scripts/operativo/verify_gate.py`, `scripts/auditoria/freeze_rules_evidence.py`, `scripts/auditoria/freeze_oof_instrument.py` |
 | N | `README.md`, `README.en.md`, `docs/`, `openspec/`, `src/clase/README.md`, `scripts/README.md` |
 | O | `costes_reales_aeronauticos.md`, `docs/informe_estrat_gico_y_arquitectura_mro_ds02.md`, `models/psi_reference.json` |
 | P | `README.md` («Qué hemos construido»), ADRs, `docs/defensa/` |

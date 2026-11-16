@@ -73,26 +73,12 @@ def canales_unicos(channels: list[str]) -> tuple[list[str], dict[str, str]]:
             etiquetas[base] = f"{etiquetas[base]} \u00b7 {canal}"
     return orden, etiquetas
 
-STATE_COLORS = {
-    L.AIRWORTHY: GREEN,
-    L.PREVENTIVE: AMBER,
-    L.AOG: ROSE,
-    L.NO_DATA: SLATE,
-    L.SIN_DECISION: SLATE,
-}
 STATE_BG = {
     L.AIRWORTHY: "background-color: rgba(52, 211, 153, 0.14)",
     L.PREVENTIVE: "background-color: rgba(245, 158, 11, 0.14)",
     L.AOG: "background-color: rgba(248, 113, 113, 0.14)",
     L.NO_DATA: "background-color: rgba(100, 116, 139, 0.14)",
     L.SIN_DECISION: "background-color: rgba(148, 163, 184, 0.18)",
-}
-STATE_WORD = {
-    L.AIRWORTHY: "apto",
-    L.PREVENTIVE: "inspección",
-    L.AOG: "hangar",
-    L.NO_DATA: "en espera",
-    L.SIN_DECISION: "sin decisión",
 }
 # Qué tarjeta manda en el muro: una en hangar se atiende antes que una en
 # inspección. Es el orden por defecto del muro y el de las órdenes.
