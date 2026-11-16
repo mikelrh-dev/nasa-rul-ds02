@@ -1,24 +1,20 @@
-# N-CMAPSS DS02 — RUL and hangar decision
+# N-CMAPSS DS02: RUL and hangar decision
 
-> **English** | [Español](README.md)
+<p align="center">
+  <a href="README.md"><img src="https://img.shields.io/badge/Espa%C3%B1ol-README-6e7781?style=flat-square" alt="Español"></a>
+  <a href="README.en.md"><img src="https://img.shields.io/badge/English-current-1f6feb?style=flat-square" alt="English"></a>
+</p>
 
-> **Reto 1 delivery (SAA + PIA + MIA).** The class track lives in `src/clase/`
-> (code), `notebooks/01–07` (narrative), `data/processed/` (MAR-null dataset +
-> `fase_vuelo`) and `resultados/` (metrics and figures). Production app:
-> `app/entrypoints/dashboard_ds02.py`; the rubric entrypoint,
-> `app/entrypoints/streamlit_app.py`, only delegates to it.
->
-> **In 30 seconds:** 65,173 DS02 telemetry rows, 9 engines and a frozen bundle C
-> that predicts RUL and turns it into GO / INSPECT / HANGAR. Manifest metrics:
-> **RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2** (seed 42, 6,196 test
-> windows). Full Spanish README: [`README.md`](README.md).
+An end-to-end system that estimates the remaining useful life (RUL) of DS02 turbofan engines from their telemetry and turns it into a maintenance decision: **GO**, **INSPECT** or **HANGAR**. It ships the model, the app, the API and the evidence needed to reproduce it.
 
-![DS02 dashboard — bundle C](docs/assets/dashboard_ds02.png)
+**At a glance:** 65,173 telemetry rows, 9 engines and a frozen bundle C. Manifest metrics: **RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2** (seed 42, 6,196 test windows).
+
+![DS02 dashboard, bundle C](docs/assets/dashboard_ds02.png)
 
 *DS02 control centre: ensemble SHA-256 `d6c70142…`, 6,196 windows and a 90 %
 conformal band. The app serves the frozen bundle C.*
 
-## Quick facts
+## At a glance
 
 | Question | Answer |
 |---|---|
@@ -39,29 +35,25 @@ conformal band. The app serves the frozen bundle C.*
 uvicorn app.services.api:app --host 127.0.0.1 --port 8000
 streamlit run app/entrypoints/dashboard_ds02.py --server.address 127.0.0.1 --server.port 8501
 
-# Rubric entrypoint: delegates to the production app
+# Startup alias: delegates to the production app
 streamlit run app/entrypoints/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
 ```
 
-## Rubric → evidence
+## Where to start
 
-| Block | What is required | Where to look |
-|---|---|---|
-| **SAA** | EDA, 5 classical models, MLP experiments, ablation, comparison and SHAP | `notebooks/01`–`03`, `resultados/comparativa.csv`, `resultados/mlp_comparativa.csv`, `resultados/ablacion_cycnorm.csv`, `resultados/shap_importancia.csv` |
-| **PIA** | README, structure, sklearn pipeline, MLflow, Streamlit app | This file, `src/clase/`, `mlruns/`, `app/entrypoints/dashboard_ds02.py` |
-| **MIA** | Business case, rules, n8n and individual question | Business section below, `src/mia/reglas.py`, `n8n/flujo.json`, rubric map (defence material) |
-
-> The rubric names example paths (`src/reglas.py`, `src/utils.py`,
-> `app/streamlit_app.py`, `notebooks/01_eda.ipynb`). The repo keeps the same
-> function under canonical paths and **does not reintroduce facades**; the route
-> and cell-level maps are part of the defence material (not versioned).
+| If you want to... | Look at... |
+|---|---|
+| See the product | `app/entrypoints/dashboard_ds02.py` and the screenshot above |
+| Understand the model | [Architecture](#architecture) and [Results](#results) |
+| Reproduce it | [How to run](#how-to-run) and `tests/` |
+| Check the evidence | `models/ds02_manifest.json`, `resultados/` and `mlruns/` |
 
 ## Business problem
 
 An MRO shop with a DS02 fleet loses about **USD 10,000–15,000 per hour** of
 aircraft-on-ground (AOG) time (Boeing range, Medium credibility; see
 `costes_reales_aeronauticos.md` §1). A timely inspection costs a fraction of
-that. Today the hangar decision depends on expert judgement without a number.
+that. Today the shop lead makes that call by judgement, without a number to back it.
 
 **Goal:** predict each engine's RUL so the shop lead can choose **GO / INSPECT /
 HANGAR**, with the prediction converted into a decision by rules and, when
@@ -81,14 +73,14 @@ under `data/raw/`.
 
 - **Features:** 18 physical channels (`alt`, `Mach`, `TRA`, `T2`, `T24`, `T30`,
   `T48`, `T50`, `P15`, `P2`, `P21`, `P24`, `Ps30`, `P40`, `P50`, `Nf`, `Nc`,
-  `Wf`) plus `fase_vuelo` in the class track. The deployed bundle C uses 93
+  `Wf`) plus `fase_vuelo` in the baseline models. The deployed bundle C uses 93
   residualised tabular features and 19 window channels.
 - **Target:** `RUL` (0–88 cycles).
 - **Quality:** 0 duplicate functional rows; 1,185 T30 nulls (~1.8 %), MAR with a
   physical pattern (sensor dropout at high cruise), imputed by causal ffill per
   unit + training median. The split is **by engine**, never by row.
 - `unit` is the group key (never a predictor); `split_origen` is traceability;
-  `fase_vuelo` is used by the class track but not by the deployed bundle.
+  `fase_vuelo` is used by the baseline models but not by the deployed bundle.
 
 ## Architecture
 
@@ -153,7 +145,7 @@ means printed in NB06 (4.322 ± 0.064) and NB05 (4.330 ± 0.053) are historical 
 not regenerable and must not be cited as current. The same applies to 4.301,
 4.289, 4.344 and 4.368: those are historical bundles.
 
-### Class track
+### Baseline models
 
 | Grain | Model | Test RMSE | MAE | R² | NASA |
 |---|---|---:|---:|---:|---:|
@@ -164,7 +156,7 @@ not regenerable and must not be cited as current. The same applies to 4.301,
 | window | BiLSTM-C + EMA5 | 5.618 | 4.268 | 0.9096 | 3649.4 |
 | window | **Hybrid-C + EMA5** | **4.338** | **3.227** | **0.9461** | **2336.2** |
 
-**Do not compare grains:** row = one reading (12,538 test rows); window = 50
+Grains are kept apart: row is one reading (12,538 test rows); window is 50
 readings (6,196 windows). Only intra-grain comparisons are valid. Test was read
 once per family; model selection used `rmse_val`.
 
@@ -239,9 +231,7 @@ are included.
 
 ## App and SHAP
 
-`app/entrypoints/dashboard_ds02.py` is the production app: RUL, conformal band,
-decision, bundle SHA and a SHAP section. The rubric entrypoint,
-`app/entrypoints/streamlit_app.py`, only delegates to it.
+`app/entrypoints/dashboard_ds02.py` is the production app: RUL, conformal band, decision, bundle SHA and a SHAP section. The `app/entrypoints/streamlit_app.py` alias keeps an alternative entry point and delegates to it.
 
 ![The hangar wall as the cycle advances: the decision moves from APTO to INSPECCIÓN and HANGAR](docs/assets/muro-decision-ciclo.gif)
 
@@ -436,13 +426,13 @@ uvicorn app.services.api:app --host 127.0.0.1 --port 8000
 # Production app
 streamlit run app/entrypoints/dashboard_ds02.py
 
-# Rubric entrypoint (delegates)
+# Startup alias (delegates)
 streamlit run app/entrypoints/streamlit_app.py
 
 # Tests
 python -m pytest tests/ -q
 
-# Class track
+# Baseline models
 python -m src.clase.train_clasicos
 python -m src.clase.train_mlp
 python -m src.clase.shap_clase
@@ -464,24 +454,24 @@ The MLflow command is bash syntax; on PowerShell 7 use
 
 ```text
 app/
-  entrypoints/streamlit_app.py   rubric entrypoint (delegates)
+  entrypoints/streamlit_app.py   startup alias (delegates)
   entrypoints/dashboard_ds02.py  production app (bundle C + SHAP)
   lib/                           data, inference, rules
   services/                      API
   ui/                            tabs
 src/
-  clase/                         class track (dataset, pipeline, 5 models, MLP, SHAP)
+  clase/                         baseline models (dataset, pipeline, 5 classical, MLP, SHAP)
   ds02_rul/                      bundle C: bundle_c, puente_c, ensemble, stacking, conformal
-  mia/                           rules and decision engine (MIA-2)
-  n8n.py                         payload client/builder (MIA-3)
+  mia/                           rules and decision engine
+  n8n.py                         payload client and builder
 notebooks/                       01–07, with outputs and sequence README
-models/                          bundle C + manifest + class joblibs
+models/                          bundle C + manifest + baseline joblibs
 n8n/flujo.json                   versioned flow (20 nodes, 4 branches, inactive)
 mlruns/                          17 curated runs; live__* not versioned
 data/raw/                        original HDF5
 data/processed/                  processed parquet (git-ignored, regenerable)
 resultados/                      CSV, PNG and evidence tables
-docs/                            assets, MLflow evidence, defence and maps
+docs/                            assets, evidence, presentation and PDF
 tests/                           contract, architecture, app and pipeline tests
 scripts/operativo/               MLflow backfill, stability, gate and prediction
 ```
@@ -519,16 +509,14 @@ scripts/operativo/               MLflow backfill, stability, gate and prediction
   then `python scripts/build/build_ui_cache.py`; per-file SHA in
   `data/processed/dataset_manifest.json`.
 
-## Documentation and defence
+## Documentation
 
-- Rubric and notebook cell maps: defence material (not versioned).
-- Class track: [`src/clase/README.md`](src/clase/README.md)
+- Presentation: [`docs/presentacion/DS02-presentacion.pdf`](docs/presentacion/DS02-presentacion.pdf)
+- Baseline models: [`src/clase/README.md`](src/clase/README.md)
 - Notebook sequence: [`notebooks/README.md`](notebooks/README.md)
 - MLflow evidence: [`docs/evidencia/mlflow/comparativa.csv`](docs/evidencia/mlflow/comparativa.csv)
-- Rubric: course brief (outside the repository).
 - AOG cost: `costes_reales_aeronauticos.md` §1 (local, not versioned)
 
 ## Authorship
 
-N-CMAPSS DS02 project · IA and Big Data course 2026-27 · delivery branch
-`refactor/estructura-ds02-clase-2026-11-10`.
+Portfolio project on N-CMAPSS DS02 · [@mikelrh-dev](https://github.com/mikelrh-dev)

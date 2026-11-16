@@ -1,20 +1,15 @@
-# N-CMAPSS DS02 — RUL y decisión de hangar
+# N-CMAPSS DS02: RUL y decisión de hangar
 
-> **Español** | [English](README.en.md)
+<p align="center">
+  <a href="README.md"><img src="https://img.shields.io/badge/Espa%C3%B1ol-actual-2ea44f?style=flat-square" alt="Español"></a>
+  <a href="README.en.md"><img src="https://img.shields.io/badge/English-README-6e7781?style=flat-square" alt="English"></a>
+</p>
 
-> **Entrega del Reto 1 (SAA + PIA + MIA).** El track académico vive en
-> `src/clase/` (código), `notebooks/01–07` (relato), `data/processed/` (dataset
-> con nulos MAR + `fase_vuelo`) y `resultados/` (métricas y figuras). La app de
-> producción es `app/entrypoints/dashboard_ds02.py`; el entrypoint que pide la
-> rúbrica, `app/entrypoints/streamlit_app.py`, solo delega en ella.
->
-> **En 30 segundos:** 65.173 filas de telemetría DS02, 9 motores y un bundle C
-> congelado que predice RUL y la convierte en APTO / INSPECCIÓN / HANGAR.
-> Métricas del manifiesto: **RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2**
-> (seed 42, 6.196 ventanas de test). El mapa rúbrica→ruta real forma parte del
-> material de defensa (no versionado en este repo).
+Sistema completo para estimar la vida útil restante (RUL) de motores turbofán DS02 desde su telemetría y convertirla en una decisión de mantenimiento: **APTO**, **INSPECCIÓN** o **HANGAR**. Incluye el modelo, la app, la API y la evidencia para reproducirlo.
 
-![Dashboard DS02 — bundle C](docs/assets/dashboard_ds02.png)
+**En cifras:** 65.173 filas de telemetría, 9 motores y un bundle C congelado. Métricas del manifiesto: **RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2** (seed 42, 6.196 ventanas de test).
+
+![Dashboard DS02, bundle C](docs/assets/dashboard_ds02.png)
 
 *Centro de control DS02: SHA-256 `d6c70142…` del ensemble, 6.196 ventanas y banda
 conformal del 90 %. La app sirve el bundle C congelado; la captura está versionada
@@ -22,8 +17,8 @@ en `docs/assets/dashboard_ds02.png`.*
 
 ## Índice
 
-- [En 30 segundos](#en-30-segundos)
-- [Rúbrica → evidencia](#rúbrica--evidencia)
+- [Resumen](#resumen)
+- [Por dónde empezar](#por-dónde-empezar)
 - [Problema y objetivo](#problema-y-objetivo)
 - [Datos](#datos)
 - [Arquitectura](#arquitectura)
@@ -34,10 +29,10 @@ en `docs/assets/dashboard_ds02.png`.*
 - [Cómo ejecutar](#cómo-ejecutar)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Limitaciones y decisiones](#limitaciones-y-decisiones)
-- [Documentación y defensa](#documentación-y-defensa)
+- [Documentación](#documentación)
 - [Autoría](#autoría)
 
-## En 30 segundos
+## Resumen
 
 | Pregunta | Respuesta |
 |---|---|
@@ -62,7 +57,7 @@ uvicorn app.services.api:app --host 127.0.0.1 --port 8000
 # App de producción (bundle C + SHAP)
 streamlit run app/entrypoints/dashboard_ds02.py --server.address 127.0.0.1 --server.port 8501
 
-# Entrypoint de la rúbrica: solo delega en la app anterior
+# Alias de arranque: delega en la app anterior
 streamlit run app/entrypoints/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
 
 # MLflow: lectura del store versionado (texto, 17 runs)
@@ -70,26 +65,21 @@ export MLFLOW_ALLOW_FILE_STORE=true
 mlflow server --backend-store-uri ./mlruns --host 127.0.0.1 --port 5001
 ```
 
-## Rúbrica → evidencia
+## Por dónde empezar
 
-| Bloque | Qué se pide | Dónde mirar |
-|---|---|---|
-| **SAA** | EDA, 5 modelos clásicos, MLP con experimentos, ablación, comparativa y SHAP | `notebooks/01`–`03`, `resultados/comparativa.csv`, `resultados/mlp_comparativa.csv`, `resultados/ablacion_cycnorm.csv`, `resultados/shap_importancia.csv` |
-| **PIA** | README, estructura, pipeline de sklearn, MLflow, app Streamlit | Este README, `src/clase/`, `mlruns/`, `app/entrypoints/dashboard_ds02.py` |
-| **MIA** | Negocio con dato, reglas, n8n y pregunta individual | `Problema y objetivo`, `src/mia/reglas.py`, `n8n/flujo.json`, mapa rúbrica (material de defensa) |
-
-> La rúbrica cita rutas de ejemplo (`src/reglas.py`, `src/utils.py`,
-> `app/streamlit_app.py`, `notebooks/01_eda.ipynb`). El repo conserva la misma
-> función en rutas canónicas y **no reintroduce fachadas**; el mapa completo y el
-> de celdas de los notebooks forman parte del material de defensa (no
-> versionado).
+| Si quieres... | Mira... |
+|---|---|
+| Ver el producto | `app/entrypoints/dashboard_ds02.py` y la captura de arriba |
+| Entender el modelo | [Arquitectura](#arquitectura) y [Resultados](#resultados) |
+| Reproducirlo | [Cómo ejecutar](#cómo-ejecutar) y `tests/` |
+| Revisar la evidencia | `models/ds02_manifest.json`, `resultados/` y `mlruns/` |
 
 ## Problema y objetivo
 
 Taller MRO con flota DS02: un motor parado en pista (AOG) cuesta del orden de
 **10.000–15.000 USD/h** (rango Boeing, credibilidad Media; ver
 `costes_reales_aeronauticos.md` §1). Una inspección a tiempo cuesta una fracción.
-Hoy la decisión de hangar depende de juicio experto sin número.
+Hoy esa decisión depende del criterio del jefe de taller, sin una cifra que la respalde.
 
 **Objetivo:** predecir la RUL de cada motor para que el jefe de taller decida
 **APTO / INSPECCIÓN / HANGAR**, con la predicción convertida en decisión por
@@ -98,19 +88,11 @@ parada no planificada al año paga el sistema.
 
 ## Qué hemos construido
 
-Sistema que estima la vida útil restante (RUL) de motores turbofán DS02 a partir
-de su telemetría y propone **APTO / INSPECCIÓN / HANGAR**, convirtiendo la
-predicción en decisión por reglas y, cuando se autorice, en acción automática.
+El sistema estima la RUL de cada motor a partir de su telemetría y la convierte en **APTO / INSPECCIÓN / HANGAR** mediante reglas. Cuando se autoriza, esas reglas disparan una acción automática.
 
-**Tipo de IA.** Es una IA débil: solo predice RUL de DS02 con lo aprendido de su
-telemetría; no transfiere a otros dominios. Frente a una **IA fuerte** (AGI capaz
-de razonar en cualquier dominio, inexistente aquí), la nuestra no sirve fuera de
-DS02 y por eso es barata, rápida y auditable. Es aprendizaje **supervisado** de
-**regresión** (RUL continua), con etiqueta y métrica contra verdad (RMSE/MAE/R²);
-a diferencia del aprendizaje **no supervisado**, que trabaja sin etiqueta y no
-puede medirse contra una verdad.
-Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost, LightGBM,
-Streamlit, SHAP y MLflow. n8n está implementado en `src/n8n.py` + `n8n/flujo.json`.
+**Tipo de IA.** Es una IA débil: solo predice la RUL de DS02 con lo aprendido de su telemetría y no transfiere a otros dominios. La comparación con una **IA fuerte** (una AGI capaz de razonar en cualquier dominio, que aquí no existe) sirve para acotar el alcance: al no prometer nada fuera de DS02, el sistema es barato, rápido y auditable. Es aprendizaje **supervisado** de **regresión**, con etiqueta y métricas contra la verdad (RMSE/MAE/R²). No es aprendizaje **no supervisado**: sin etiqueta no habría forma de medirlo así.
+
+Herramientas: scikit-learn (5 clásicos + MLP + pipeline), XGBoost, LightGBM, Streamlit, SHAP y MLflow. n8n está implementado en `src/n8n.py` + `n8n/flujo.json`.
 
 ```mermaid
 flowchart LR
@@ -118,7 +100,7 @@ flowchart LR
     accDescr: Streamlit recibe el caso, el modelo predice la RUL, las reglas deciden y n8n ejecuta la acción de la rama.
 
     A[Caso nuevo<br/>telemetría DS02] --> B[Modelo<br/>p = RUL]
-    B --> C[Reglas MIA<br/>R1 · R7 · R8 · R9]
+    B --> C[Reglas de decisión<br/>R1 · R7 · R8 · R9]
     C -->|APTO / INSPECCION / HANGAR| D[Webhook n8n]
     C -->|SIN_DECISION| X[No se envía]
     D --> E[APTO: log + Telegram]
@@ -156,22 +138,22 @@ procesado vive en `data/processed/` y se regenera; el HDF5 original está en
 | `fase_vuelo` | Ascenso/Crucero/Descenso (nueva, de alt/Mach) | categórica | 0% | 0% |
 | `RUL` | **Objetivo:** ciclos restantes | numérica | 0% (nunca se inyecta) | 0% |
 
-**Calidad:** 0 duplicados funcionales; Mach en [0,33; 0,74], alt en [10k, 35k]
+Calidad: 0 duplicados funcionales; Mach en [0,33; 0,74], alt en [10k, 35k]
 (el 30k/0,8 teórico no existe en DS02: 0 filas). Los **1.185 nulos** de T30 son
 MAR con patrón físico (dropout de sonda en crucero alto) y se imputan con ffill
 causal por unidad + mediana de train (solo el primer NaN). El split es **por
 motor**, nunca por fila.
 
-**Campos fuera del predictor:**
+Campos fuera del predictor:
 
 | Campo | Sale de | Por qué | Evidencia |
 |---|---|---|---|
 | `unit` | `X` / `FEATURE_COLS` | Es el grupo del split y de GroupKFold; usarlo permitiría fuga por motor. | `src/clase/pipeline_clase.py:7,22-24` |
 | `RUL` | `X` (queda como `y`) | Es el objetivo supervisado. | `src/clase/dataset_clase.py:59` |
 | `split_origen` | `X_train` / `X_test` | Solo trazabilidad train/test. | `src/clase/dataset_clase.py:60` |
-| `fase_vuelo` | Bundle C (93 features) | El track de clase la usa (OneHot); el bundle desplegado es residualizado/ventanado sin categórica. | `src/clase/pipeline_clase.py:23-24`, `src/clase/ventanas_adaptadas.py:6` |
+| `fase_vuelo` | Bundle C (93 features) | Los modelos base la usan (OneHot); el bundle desplegado es residualizado y ventanado sin categórica. | `src/clase/pipeline_clase.py:23-24`, `src/clase/ventanas_adaptadas.py:6` |
 
-**Lo que vimos en el EDA.** Dos gráficos que explican decisiones del modelo; el resto (barras por fase, boxplot de T48, dispersión alt/Mach y residuo por fase) está en `notebooks/01_eda_y_contexto.ipynb`.
+Lo que vimos en el EDA. Dos gráficos que explican decisiones del modelo; el resto (barras por fase, boxplot de T48, dispersión alt/Mach y residuo por fase) está en `notebooks/01_eda_y_contexto.ipynb`.
 
 ![Distribución de la RUL en train: 0-88 ciclos, media 37,33 y mediana 36](docs/assets/eda_hist_rul.png)
 
@@ -209,20 +191,19 @@ tabulares residualizadas. El meta-learner solo ve `[p_lstm, p_lgb]` (2 columnas)
 
 ## Resultados
 
-### Bundle C — modelo desplegado (seed 42)
+### Bundle C, modelo desplegado (seed 42)
 
 | Modelo | RMSE | MAE | R² | NASA score | Ventanas |
 |---|---:|---:|---:|---:|---:|
 | **Híbrido-C + EMA5** | **4.338** | **3.227** | **0.9461** | **2336.2** | 6.196 |
 
-Fuente: `models/ds02_manifest.json` (`metrics.reference_row`). No es una media
-multisemilla: es la fila del artefacto congelado que sirve la app.
+Fuente: `models/ds02_manifest.json` (`metrics.reference_row`). La cifra sale de la fila congelada del artefacto que sirve la app, no de una media multisemilla.
 
 ![RUL real frente a RUL predicho por el bundle C, con la recta y=x de referencia](docs/assets/real_vs_predicho_bundle_c.png)
 
-El gráfico es la misma fila congelada del manifiesto, no una reejecución.
+El gráfico dibuja esa misma fila del manifiesto; el modelo no se reejecutó.
 
-**Por motor (el global esconde el reparto):**
+Por motor, porque el global esconde el reparto:
 
 | Unidad | RMSE | Ventanas |
 |---|---:|---:|
@@ -252,7 +233,7 @@ moverla. La cifra histórica **4.324 ± 0.107 / 2341.0 ± 54.1** sale del CSV an
 **histórico no regenerable** y no deben citarse como la cifra vigente. Tampoco
 deben citarse como actuales 4.301, 4.289, 4.344 ni 4.368: son bundles históricos.
 
-### Track de clase (modelos de la asignatura)
+### Modelos base
 
 | Grano | Modelo | RMSE test | MAE | R² | NASA | Tiempo (s) |
 |---|---|---:|---:|---:|---:|---:|
@@ -263,12 +244,9 @@ deben citarse como actuales 4.301, 4.289, 4.344 ni 4.368: son bundles histórico
 | ventana | BiLSTM-C + EMA5 | 5.618 | 4.268 | 0.9096 | 3649.4 | — |
 | ventana | **Híbrido-C + EMA5** | **4.338** | **3.227** | **0.9461** | **2336.2** | 447 (total) |
 
-Los tiempos del track de clase salen de `resultados/tabla_final_clase.csv`; el
-bundle C registra 447 s totales de entrenamiento en `models/ds02_manifest.json`.
+Los tiempos de los modelos base salen de `resultados/tabla_final_clase.csv`; el bundle C registra 447 s totales de entrenamiento en `models/ds02_manifest.json`.
 
-**No se comparan granos:** fila = una lectura (12.538 filas de test); ventana =
-50 lecturas (6.196 ventanas). La comparación válida es intra-grano. El test se
-leyó una sola vez por familia y la elección se hizo por `rmse_val`.
+Los granos no se mezclan: fila es una lectura (12.538 filas de test) y ventana son 50 lecturas (6.196 ventanas). Solo tiene sentido comparar dentro del mismo grano. El test se leyó una vez por familia y la elección se hizo por `rmse_val`.
 
 <details>
 <summary>Histórico de bundles A/B (no vigente)</summary>
@@ -284,8 +262,7 @@ Se conservan solo como comparación. El bundle vigente es **C (4.338)**.
 
 ### Coste del error
 
-El DS02 no publica horas por ciclo: la conversión ciclos→horas es un **supuesto
-declarado**, no una medición.
+El DS02 no publica horas por ciclo. La conversión de ciclos a horas es un **supuesto declarado**, no una medición.
 
 | Concepto | Fórmula | Valor |
 |---|---|---:|
@@ -343,9 +320,7 @@ Postgres). No se incluyen secretos.
 
 ## App y SHAP
 
-`app/entrypoints/dashboard_ds02.py` es la app de producción: muestra RUL, banda
-conformal, decisión, SHA del bundle y una sección de SHAP. El entrypoint de la
-rúbrica, `app/entrypoints/streamlit_app.py`, solo delega en ella.
+`app/entrypoints/dashboard_ds02.py` es la app de producción: muestra RUL, banda conformal, decisión, SHA del bundle y una sección de SHAP. El alias `app/entrypoints/streamlit_app.py` mantiene una entrada alternativa y delega en ella.
 
 ![El muro del hangar al avanzar el ciclo: la decisión pasa de APTO a INSPECCIÓN y a HANGAR](docs/assets/muro-decision-ciclo.gif)
 
@@ -382,14 +357,11 @@ $env:MLFLOW_ALLOW_FILE_STORE = "true"
 .venv\Scripts\python.exe -m mlflow ui --backend-store-uri ./mlruns
 ```
 
-`MLFLOW_ALLOW_FILE_STORE=true` no es opcional: MLflow 3.18 deja el file store
-en maintenance mode y se niega a arrancar sin esa variable. Usa el python del
+MLflow 3.18 deja el file store en maintenance mode y no arranca sin `MLFLOW_ALLOW_FILE_STORE=true`. Usa el python del
 `.venv`, no el `mlflow` del PATH, para no mezclar el store con el Python de
 sistema.
 
-`--check` no es decorativo: recorre el experimento con `ViewType.ALL` y **falla**
-si aparece un run `live__*` o un tombstone (`lifecycle_stage: deleted`). La pureza
-del store es una invariante ejecutable, no una promesa del README.
+`--check` recorre el experimento con `ViewType.ALL` y **falla** si aparece un run `live__*` o un tombstone (`lifecycle_stage: deleted`). La pureza del store se comprueba, no se promete.
 
 ### Tres granos, tres preguntas
 
@@ -403,7 +375,7 @@ Los granos no se mezclan: el RMSE de fila y el de ventana no miden lo mismo, y e
 store lo declara con el tag `grano`. La ablación se aísla con
 `familia=ablacion_cycnorm`.
 
-**Grano fila (validación out-of-fold, GroupKFold por motor):**
+Grano fila (validación out-of-fold, GroupKFold por motor):
 
 | Modelo | RMSE val | MAE val | R² val | Tiempo (s) |
 |---|---:|---:|---:|---:|
@@ -460,8 +432,7 @@ comparten experimento y se comparan por `rmse_test`: 7.067 / 5.654 / 5.618 / 4.3
 | ON + delta | 5.974 |
 
 Se midió en `nb03` (test 11/14/15, semilla 42) y se registró **sin reentrenar**:
-son cuatro runs comparables dentro de la herramienta, no una figura suelta del
-notebook. El grid 4×3 completo está en `resultados/ablacion_cycnorm.csv`.
+son cuatro runs comparables dentro de la herramienta, no una figura aislada del notebook. El grid 4×3 completo está en `resultados/ablacion_cycnorm.csv`.
 
 <p align="center">
   <img src="docs/evidencia/mlflow/figura_ablacion_rmse.png" width="720" alt="Resumen de la ablación cyc_norm: RMSE test por variante">
@@ -477,8 +448,7 @@ notebook. El grid 4×3 completo está en `resultados/ablacion_cycnorm.csv`.
 
 ### Por qué el store es de texto
 
-Cada run guarda params, métricas y tags —incluidos `git_commit`, `git_dirty` y el
-SHA del dataset— así que se puede auditar años después. No hay binarios: los
+Cada run guarda params, métricas y tags (incluidos `git_commit`, `git_dirty` y el SHA del dataset), así que se puede auditar años después. No hay binarios: los
 modelos viven en `models/` y se identifican por SHA, y `mlruns/**/artifacts/`
 queda vacío a propósito para que el store sea revisable en un diff.
 
@@ -504,14 +474,14 @@ Si preferís preguntar en vez de mirar la UI, el MCP `mlflow mcp run` expone
 <details>
 <summary>Ver los 17 run_key</summary>
 
-**Fila — 9 runs (GroupKFold por motor):** `clasico__knn`, `clasico__regresion`,
+Fila, 9 runs (GroupKFold por motor): `clasico__knn`, `clasico__regresion`,
 `clasico__rf`, `clasico__svm`, `clasico__xgb`, `mlp__base`, `mlp__E1_capacidad`,
 `mlp__E2_reg_lr`, `mlp__E3_batch`.
 
-**Ventana — 4 runs (OOF agrupado; test 6.196):** `bundle__lgbm_c`,
+Ventana, 4 runs (OOF agrupado; test 6.196): `bundle__lgbm_c`,
 `bundle__bilstm_c`, `bundle__bilstm_ema5`, `prod__bundle_c`.
 
-**Ablación — 4 runs:** `ablacion__off__bilstm_ema5`,
+Ablación, 4 runs: `ablacion__off__bilstm_ema5`,
 `ablacion__off_delta__bilstm_ema5`, `ablacion__on__bilstm_ema5`,
 `ablacion__on_delta__bilstm_ema5`.
 
@@ -534,7 +504,7 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-`pip install -e .` no es opcional: notebooks y app importan `ds02_rul` y
+`pip install -e .` es necesario: notebooks y app importan `ds02_rul` y
 `src.clase` como paquetes instalados. En VS Code, abre **la carpeta del repo
 (`nasa/`) como raíz del workspace**, no una carpeta padre.
 
@@ -547,13 +517,13 @@ uvicorn app.services.api:app --host 127.0.0.1 --port 8000
 # App de producción (bundle C + SHAP)
 streamlit run app/entrypoints/dashboard_ds02.py
 
-# Entrypoint de la rúbrica (delega)
+# Alias de arranque (delega)
 streamlit run app/entrypoints/streamlit_app.py
 
 # Tests
 python -m pytest tests/ -q
 
-# Track de clase
+# Modelos base
 python -m src.clase.train_clasicos
 python -m src.clase.train_mlp
 python -m src.clase.shap_clase
@@ -575,24 +545,24 @@ El comando de MLflow es sintaxis de bash; en PowerShell 7 usa
 
 ```text
 app/
-  entrypoints/streamlit_app.py   entrypoint de la rúbrica (delega)
+  entrypoints/streamlit_app.py   alias de arranque (delega)
   entrypoints/dashboard_ds02.py  app de producción (bundle C + SHAP)
   lib/                           datos, inferencia, reglas
   services/                      API
   ui/                            pestañas
 src/
-  clase/                         track académico (dataset, pipeline, 5 modelos, MLP, SHAP)
+  clase/                         modelos base (dataset, pipeline, 5 clásicos, MLP, SHAP)
   ds02_rul/                      bundle C: bundle_c, puente_c, ensemble, stacking, conformal
-  mia/                           reglas y motor de decisión (MIA-2)
-  n8n.py                         cliente/construcción del payload (MIA-3)
+  mia/                           reglas y motor de decisión
+  n8n.py                         cliente y construcción del payload
 notebooks/                       01–07, con outputs y README de secuencia
-models/                          bundle C + manifiesto + joblibs de clase
+models/                          bundle C + manifiesto + joblibs de modelos base
 n8n/flujo.json                   flujo versionado (20 nodos, 4 ramas, inactivo)
 mlruns/                          17 runs curados; live__* no versionados
 data/raw/                        HDF5 original
 data/processed/                  parquet procesados (ignorado en git, regenerable)
 resultados/                      CSV, PNG y tablas de evidencia
-docs/                            assets, evidencia MLflow, defensa y mapas
+docs/                            assets, evidencia, presentación y PDF
 tests/                           tests de contrato, arquitectura, app y pipeline
 scripts/operativo/               backfill MLflow, estabilidad, gate y predicción
 ```
@@ -633,16 +603,14 @@ scripts/operativo/               backfill MLflow, estabilidad, gate y predicció
   `python scripts/build/build_ui_cache.py`; el SHA de cada parquet vive en
   `data/processed/dataset_manifest.json`.
 
-## Documentación y defensa
+## Documentación
 
-- Mapas de rúbrica y de celdas de notebooks: material de defensa (no versionado).
-- Track de clase: [`src/clase/README.md`](src/clase/README.md)
+- Presentación: [`docs/presentacion/DS02-presentacion.pdf`](docs/presentacion/DS02-presentacion.pdf)
+- Modelos base: [`src/clase/README.md`](src/clase/README.md)
 - Secuencia de notebooks: [`notebooks/README.md`](notebooks/README.md)
 - Evidencia MLflow: [`docs/evidencia/mlflow/comparativa.csv`](docs/evidencia/mlflow/comparativa.csv)
-- Rúbrica: enunciado del curso (fuera del repositorio).
 - Coste AOG: `costes_reales_aeronauticos.md` §1 (local, no versionado)
 
 ## Autoría
 
-Proyecto N-CMAPSS DS02 · Curso IA y Big Data 2026-27 · rama de entrega
-`refactor/estructura-ds02-clase-2026-11-10`.
+Proyecto de portafolio sobre N-CMAPSS DS02 · [@mikelrh-dev](https://github.com/mikelrh-dev)
