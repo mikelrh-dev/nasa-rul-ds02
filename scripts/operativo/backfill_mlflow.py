@@ -685,7 +685,11 @@ def check(client: MlflowClient, exp_id: str) -> int:
     if tombstones:
         errors.append(f"hay {len(tombstones)} tombstones en el store")
 
-    if any(path.is_file() for path in STORE.rglob("artifacts/*")):
+    # `.gitkeep` no es un artefacto: mantiene el directorio en git porque
+    # MLflow 3.18 exige metrics/, params/ y artifacts/ para reconocer el run.
+    if any(
+        path.is_file() for path in STORE.rglob("artifacts/*") if path.name != ".gitkeep"
+    ):
         errors.append("hay artefactos en mlruns/**/artifacts/ (debe ser texto)")
 
     if not EXPORT.exists():

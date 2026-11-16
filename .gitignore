@@ -87,7 +87,10 @@ _run_v3.ipynb
 nbconvert_output.txt
 cell_counts.txt
 
-# MLflow file store — text metadata only; artifacts and trash are never committed
+# MLflow file store — text metadata only; artifacts and trash are never committed.
+# Excepción trackeada a propósito: `artifacts/.gitkeep` de cada run (git no
+# versiona directorios vacíos y MLflow 3.18 exige el directorio para reconocer
+# el run en un clon limpio). Se añaden con `git add -f`.
 mlruns/**/artifacts/
 mlruns/.trash/
 # live notebook tracking — local only, never the deliverable

@@ -151,7 +151,12 @@ def test_selected_models_are_tagged(runs):
 
 
 def test_store_has_no_artifacts():
-    assert not any(path.is_file() for path in STORE.rglob("artifacts/*"))
+    # `artifacts/.gitkeep` mantiene el directorio en git: MLflow 3.18 solo
+    # reconoce un run si existen metrics/, params/ y artifacts/. No es un
+    # artefacto y no debe contar como tal.
+    assert not any(
+        path.is_file() for path in STORE.rglob("artifacts/*") if path.name != ".gitkeep"
+    )
 
 
 def test_export_matches_the_store(client, exp_id, runs):
