@@ -17,6 +17,7 @@ son las que más pesan porque concentran los criterios 6, 7 y 9.
 
 ## Cómo se pasó en la revisión del 15 nov
 
-- La reestructuración dejó 28 slides de núcleo y 9 de respaldo: las tablas largas y los mapas se movieron a respaldo, y el núcleo se queda con una idea por slide.
+- La reestructuración dejó 28 slides de núcleo y 14 de respaldo: las tablas largas y los mapas se movieron a respaldo, y el núcleo se queda con una idea por slide.
 - Slides 13, 14 y 15: clásicos, MLP y techo de fila. Se comprobó que cada cifra sale del CSV y que el ganador está declarado con criterio.
-- Slides 18 y 24: OOF/meta/β y pesimista. Se añadió la cobertura empírica 99,7 % y el ancho 25,9 para que la banda no se lea como decoración.
+- Slides 18 y 24: OOF/meta/β y pesimista. Se añadió la cobertura medida del artefacto (6.196 de 6.196, ancho 25,3) para que la banda no se lea como decoración. El 99,7 % / 25,9 es de la banda del cuaderno 04 y queda como diagnóstico.
+- Slides 40–42: las tres piezas que el núcleo solo nombra —BiLSTM con triple pooling, LightGBM al cuantil 0,35 y construcción de la banda—.

@@ -345,11 +345,13 @@ body.overview-on .ov{display:block}
       </div>
     </div>
 
-    <div class="rule-t" style="margin-top:80px">
+    <div class="rule-t" style="margin-top:40px">
       <p style="font-family:var(--serif);font-size:32px;line-height:1.2;max-width:1440px">
-        4,338 ciclos es el <b>21,7 %</b> del umbral de hangar (17,4 % del de apto). Monetizado: <b>43.000–130.000 USD</b> por ciclo de error. El sistema se paga si cuesta menos que una parada evitada al año.
+        4,338 ciclos es el <b>21,7 %</b> del umbral de hangar (17,4 % del de apto). Monetizado con ese supuesto: <b>43.000–130.000 USD</b> por ciclo de error, una cota y no una factura. El sistema se paga si cuesta menos que una parada evitada al año.
       </p>
     </div>
+
+    <p class="note" style="margin-top:26px;max-width:1560px">Coste AOG: rango <b>Boeing</b> de 10–15k USD/hora, <b>credibilidad Media</b>; el documento de costes es local y no está versionado. Es un supuesto declarado, no una medición del proyecto.</p>
   </div>
 </section>
 
@@ -366,7 +368,7 @@ body.overview-on .ov{display:block}
     </p>
 
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:36px;margin-top:34px">
-      <div><div class="vbig" style="font-size:76px">65.173</div><div class="unit">lecturas · 1 de cada 100 ciclos</div></div>
+      <div><div class="vbig" style="font-size:76px">65.173</div><div class="unit">lecturas · 1 de cada 100 muestras</div></div>
       <div><div class="vbig" style="font-size:76px">9</div><div class="unit">motores · sin pares compartidos</div></div>
       <div><div class="vbig" style="font-size:76px">22</div><div class="unit">columnas en tres grupos</div></div>
       <div><div class="vbig" style="font-size:76px">1</div><div class="unit">etiqueta: RUL</div></div>
@@ -384,7 +386,7 @@ body.overview-on .ov{display:block}
       <div>
         <div class="lab">Qué aprende</div>
         <p style="margin-top:12px;font-size:21px">La degradación no está en una lectura: está en cómo cambian los sensores ciclo a ciclo.</p>
-        <p class="note" style="margin-top:16px">Por eso hay dos granos: <b>fila</b> (una lectura) y <b>ventana</b> (50 lecturas). Se comparan por separado.</p>
+        <p class="note" style="margin-top:16px">Por eso hay dos granos: <b>fila</b> (una lectura) y <b>ventana</b> (50 lecturas, ≈113 por ciclo: cubre <b>0,44 vuelos</b>). Se comparan por separado.</p>
         <p class="note" style="margin-top:12px">No es una flota real: son motores simulados. El cliente natural es el taller del operador.</p>
       </div>
     </div>
@@ -459,10 +461,12 @@ body.overview-on .ov{display:block}
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:56px;margin-top:44px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:56px;margin-top:32px">
       <p class="note">El RMSE es simétrico: cobra igual un ciclo de más que uno de menos. El negocio no.</p>
       <p class="note">Por eso la decisión se toma sobre la banda inferior de la predicción, no sobre su media.</p>
     </div>
+
+    <p class="note" style="margin-top:18px;max-width:1560px">Aquí es un simulador, así que el error se cobra en dinero. En una flota real el error optimista deja de ser un coste y pasa a ser <b>seguridad</b>: un motor que se para en vuelo no se paga con horas de taller.</p>
 
     <div class="grow"></div>
 
@@ -761,7 +765,7 @@ body.overview-on .ov{display:block}
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:56px;margin-top:24px;border-top:1.5px solid var(--ink);padding-top:16px">
-      <p class="note"><b>45 ajustes</b> = 15 configuraciones × 3 pliegues. Gana el menor <span class="mono">rmse_val</span>; a igualdad, el más simple (Ridge antes que XGB).</p>
+      <p class="note"><b>45 ajustes</b> = 15 configuraciones × 3 pliegues <b>por motor</b>: si un motor cayera a la vez en train y validación, la validación mediría memoria. Gana el menor <span class="mono">rmse_val</span>; a igualdad, el más simple (Ridge antes que XGB).</p>
       <p class="note">El SVM se ajustó sobre <b>5.000 filas</b>: su 8,293 no es comparable con los otros cuatro. El más caro no es el mejor.</p>
     </div>
 
@@ -790,7 +794,7 @@ body.overview-on .ov{display:block}
         <span class="tx mono">256·128·64 · L2 0,001</span><span class="num">5,229</span><span class="num">7,481</span>
       </div>
       <div class="lt-row hi" style="grid-template-columns:.55fr 1.9fr .95fr .55fr .55fr">
-        <span class="nm">E2 reg_lr</span><span class="tx">Más regularización frena 22 features ruidosas.</span>
+        <span class="nm">E2 reg_lr</span><span class="tx">Más L2 encoge pesos y frena el ajuste a 5 motores.</span>
         <span class="tx mono">128·64 · L2 0,01</span><span class="num">5,725</span><span class="num"><b>7,340</b></span>
       </div>
       <div class="lt-row" style="grid-template-columns:.55fr 1.9fr .95fr .55fr .55fr">
@@ -802,6 +806,7 @@ body.overview-on .ov{display:block}
     <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:56px;border-top:1.5px solid var(--ink);padding-top:18px;margin-top:30px">
       <p class="note">La columna train delata a E1: baja a <b>5,229</b> mientras validación sube a <b>7,481</b>. No es un fracaso: es el control que prueba el sobreajuste.</p>
       <p class="note">Test de <b>E2</b>, una sola lectura: <span class="mono">7,7211 · MAE 5,8132 · R² 0,8343</span>.</p>
+      <p class="note" style="margin-top:12px">E2 gana por <b>0,018</b> sobre la base: un margen, no una victoria. Lo que el experimento demuestra es que E1 empeora.</p>
     </div>
 
     <div class="grow"></div>
@@ -869,7 +874,7 @@ body.overview-on .ov{display:block}
         <div style="display:flex;align-items:baseline;gap:12px;margin-top:6px"><div class="big" style="font-size:78px">19</div><div class="tag">canales × 50</div></div>
         <p style="margin-top:16px;font-size:19px;line-height:1.35"><b>18 canales crudos</b> — 4 de régimen + 14 sensores, escalados.</p>
         <p style="margin-top:10px;font-size:19px;line-height:1.35"><b><span class="mono">cyc_norm</span></b> — el reloj, un canal más.</p>
-        <p class="note" style="margin-top:16px">Sin one-hot y <b>sin Ridge</b>: el régimen se aprende de la secuencia. BiLSTM.</p>
+        <p class="note" style="margin-top:16px">Sin one-hot y <b>sin Ridge</b>: el régimen se aprende de la secuencia. BiLSTM con triple pooling.</p>
       </div>
 
       <div>
@@ -910,7 +915,7 @@ body.overview-on .ov{display:block}
         </div>
 
         <p class="note" style="margin-top:24px">En el secuencial las cuatro variantes caen en <b>5,878–5,974</b>: el reloj no cambia el resultado. En LGBM cuesta <b>+0,77</b>.</p>
-        <p class="note" style="margin-top:14px">Decisión: <span class="mono">cyc_norm</span> se queda en el contrato del BiLSTM —no empeora dentro del ruido— y <b>no entra</b> en LGBM ni en el meta.</p>
+        <p class="note" style="margin-top:14px">Decisión: <span class="mono">cyc_norm</span> vive en las <b>dos ramas base</b> —canal 19 de la red y feature 1 de 93 del árbol— y <b>se retira del meta</b>, donde se llevaba ~100 % del peso. La ablación puntúa el LGBM <b>solo</b>: ahí cuesta 0,77 y el híbrido sin reloj no se ha re-medido.</p>
       </div>
 
       <div>
@@ -921,7 +926,7 @@ body.overview-on .ov{display:block}
 
     <div class="rule-t" style="margin-top:36px">
       <p style="font-family:var(--serif);font-size:29px;line-height:1.2;max-width:1480px">
-        Probamos algo que no dimos en clase y lo medimos. Saber descartarlo vale más que añadirlo.
+        Probamos algo que no dimos en clase y lo medimos. El reloj no compra precisión: se queda donde el contrato lo exige y sale del meta.
       </p>
     </div>
   </div>
@@ -935,13 +940,15 @@ body.overview-on .ov{display:block}
       <div class="lab">3 pliegues por motor · β fuera de fold</div>
     </div>
 
-    <div class="chain" style="grid-template-columns:repeat(3,1fr);margin-top:26px">
+    <div class="chain" style="grid-template-columns:repeat(3,1fr);margin-top:18px">
       <div class="step"><div class="n">01 · OOF</div><div class="t">3 pliegues</div><div class="d">Cada pliegue entrena con 4 motores y puntúa 2 a ciegas.</div></div>
       <div class="step"><div class="n">02 · META</div><div class="t">Ridge + LGBM</div><div class="d">Solo ve <span class="mono">p_lstm</span> y <span class="mono">p_lgb</span>; α = 88,6; 50/50.</div></div>
       <div class="step"><div class="n">03 · β</div><div class="t">β = 1,00</div><div class="d">Mediana de los tres pliegues. Manda el meta entero.</div></div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;margin-top:28px;align-items:start">
+    <p class="note" style="margin-top:12px;max-width:1600px"><span class="mono">p_meta = ½ Ridge + ½ LGBM</span> sobre las dos columnas; <span class="mono">p = p_lstm + β · (p_meta − p_lstm)</span>. Con <b>β = 1,00</b> manda el meta; con β = 0 mandaría la red. Después, EMA5 causal por motor.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;margin-top:22px;align-items:start">
       <div>
         <div class="lab">Los tres pliegues · 6 motores de desarrollo</div>
         <div class="lt" style="margin-top:10px">
@@ -949,17 +956,17 @@ body.overview-on .ov{display:block}
           <div class="lt-row" style="grid-template-columns:.8fr 1.5fr 1.2fr"><span class="nm">Pliegue 2</span><span class="tx mono">entrena 2·10·16·20</span><span class="tx mono">puntúa 5·18</span></div>
           <div class="lt-row" style="grid-template-columns:.8fr 1.5fr 1.2fr"><span class="nm">Pliegue 3</span><span class="tx mono">entrena 2·5·10·18</span><span class="tx mono">puntúa 16·20</span></div>
         </div>
-        <p class="note" style="margin-top:14px">Sin OOF, el meta se puntúa sobre lo que memorizó: validación <b>0,308</b>, deja de medir. El test se lee <b>una vez</b>.</p>
+        <p class="note" style="margin-top:14px">Sin OOF, el meta se puntúa a sí mismo: validación <b>0,308</b>, un número imposible que ya no mide. El test se lee <b>una vez</b>.</p>
       </div>
 
       <div>
-        <div class="lab">Otro experimento · meta de motores largos, rechazado</div>
+        <div class="lab">Otro experimento · meta de los 5 motores, rechazado</div>
         <div class="bars">
           <div class="bar"><span class="bn">β = 0</span><span class="bt"><i style="width:39.7%"></i></span><span class="bv">4,04</span></div>
           <div class="bar"><span class="bn">β = 0,6</span><span class="bt"><i style="width:73.5%"></i></span><span class="bv">7,48</span></div>
           <div class="bar"><span class="bn">β = 1,0</span><span class="bt"><i style="width:100%"></i></span><span class="bv">10,17</span></div>
         </div>
-        <p class="cap" style="margin-top:12px">No es el OOF de la izquierda: ajustado sobre motores largos, aprende un <b>prior de nivel</b> que no transfiere a los cortos.</p>
+        <p class="cap" style="margin-top:12px">No es el OOF de la izquierda: ajustado en los 5 motores (RUL hasta 88) y probado en el 16, aprende un <b>prior de nivel</b> que no transfiere. En el 16 predice 39,9 con 31,5 reales.</p>
       </div>
     </div>
 
@@ -998,7 +1005,7 @@ body.overview-on .ov{display:block}
           <div class="lt-row" style="grid-template-columns:1fr .8fr .8fr"><span class="nm">Global</span><span class="num">4,338</span><span class="num">6.196</span></div>
           <div class="lt-row" style="grid-template-columns:1fr .8fr .8fr"><span class="nm">Macro</span><span class="num">5,0153</span><span class="num">—</span></div>
         </div>
-        <p class="note" style="margin-top:14px">U14 pesa el 12 % de las ventanas y aporta el <b>47,9 %</b> del error cuadrático: RUL más larga, el meta extrapola. Global 4,338 vs macro 5,015: por eso se publican los dos.</p>
+        <p class="note" style="margin-top:14px">U14 pesa el 12 % de las ventanas y aporta el <b>47,9 %</b> del error: RUL 76 &gt; 63 del soporte del meta, y <b>20,6 lecturas por ciclo</b> frente a 112 en U11. Global 4,338 vs macro 5,015: por eso se publican los dos.</p>
       </div>
 
       <div>
@@ -1063,7 +1070,7 @@ body.overview-on .ov{display:block}
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:40px;margin-top:20px">
-      <div><div class="kpi">4,338</div><div class="unit">RMSE</div></div>
+      <div><div class="kpi">4,338</div><div class="unit">RMSE · ≈4,3 vuelos</div></div>
       <div><div class="kpi">3,227</div><div class="unit">MAE</div></div>
       <div><div class="kpi">0,9461</div><div class="unit">R²</div></div>
       <div><div class="kpi">2336,2</div><div class="unit">NASA score</div></div>
@@ -1081,7 +1088,7 @@ body.overview-on .ov{display:block}
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:20px;border-top:1.5px solid var(--ink);padding-top:14px">
-      <p class="note"><b>NASA</b> no es un RMSE: es una <b>suma</b> de penalizaciones exponenciales asimétricas. Castiga más pasarse que quedarse corto; solo se compara sobre las mismas filas.</p>
+      <p class="note"><b>NASA</b> no es un RMSE: es una <b>suma</b> de exponenciales asimétricas —<span class="mono">exp(−d/13)−1</span> si te quedas corto, <span class="mono">exp(d/10)−1</span> si te pasas—. Por ser suma crece con las ventanas: solo se compara sobre las mismas filas.</p>
       <p class="note"><b>EMA5</b> es una media móvil causal por motor, span 5: suaviza la predicción sin mirar el futuro. La firma el manifiesto, no este deck.</p>
     </div>
 
@@ -1161,7 +1168,7 @@ body.overview-on .ov{display:block}
   <div class="frame">
     <div class="topbar">
       <h2>L_inf = 19: HANGAR</h2>
-      <div class="lab">banda conformal · nominal 90 % · empírica 99,7 %</div>
+      <div class="lab">banda conformal · nominal 90 % · cubre el 100 %</div>
     </div>
 
     <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:80px;margin-top:52px;align-items:start">
@@ -1173,7 +1180,7 @@ body.overview-on .ov{display:block}
           Optimismo: parada en pista. Pesimismo: inspección programada.
         </p>
         <p class="note" style="margin-top:16px">
-          La banda es <b>conservadora a propósito</b>: en test cubre el 99,7 % con un ancho medio de 25,9 ciclos. No es un intervalo estrecho; es el precio de no quedarse corto.
+          La banda es <b>conservadora a propósito</b>: en test cubre <b>6.196 de 6.196</b> ventanas con un ancho medio de <b>25,3</b> ciclos. Se calibra con residuales fuera de fold y un 5 % por lado; es el precio de no quedarse corto.
         </p>
 
         <div class="rule-t" style="margin-top:30px">
@@ -1538,14 +1545,14 @@ body.overview-on .ov{display:block}
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px 64px;margin-top:30px">
-      <div class="rule-f"><span class="mono">RMSE</span><p style="margin-top:4px;font-size:19px">Raíz del error cuadrático medio. Penaliza la cola; es la métrica principal.</p></div>
+      <div class="rule-f"><span class="mono">RMSE</span><p style="margin-top:4px;font-size:19px">Raíz del error cuadrático medio. Penaliza la cola; métrica principal. 4,338 = 4,3 vuelos de error.</p></div>
       <div class="rule-f"><span class="mono">MAE</span><p style="margin-top:4px;font-size:19px">Error absoluto medio. Más intuitivo, menos sensible a la cola.</p></div>
       <div class="rule-f"><span class="mono">R²</span><p style="margin-top:4px;font-size:19px">Fracción de varianza explicada. 0,9461 sobre las 6.196 ventanas.</p></div>
-      <div class="rule-f"><span class="mono">NASA score</span><p style="margin-top:4px;font-size:19px">Suma de exponenciales asimétricas; castiga más pasarse. Solo comparable sobre las mismas filas.</p></div>
+      <div class="rule-f"><span class="mono">NASA score</span><p style="margin-top:4px;font-size:19px">Suma de exponenciales asimétricas: <span class="mono">exp(−d/13)−1</span> / <span class="mono">exp(d/10)−1</span>. Castiga más pasarse; comparable solo sobre las mismas filas.</p></div>
       <div class="rule-f"><span class="mono">GroupKFold</span><p style="margin-top:4px;font-size:19px">Validación cruzada por grupos: aquí, por motor. Evita que un motor esté en train y validación.</p></div>
       <div class="rule-f"><span class="mono">OOF</span><p style="margin-top:4px;font-size:19px">Out-of-fold: cada ventana la puntúa un meta que no la vio entrenar.</p></div>
       <div class="rule-f"><span class="mono">Stacking</span><p style="margin-top:4px;font-size:19px">Un meta-modelo combina predicciones de modelos base. Aquí Ridge + LGBM sobre dos columnas.</p></div>
-      <div class="rule-f"><span class="mono">Conformal</span><p style="margin-top:4px;font-size:19px">Banda calibrada con residuales OOF; nominal 90 %, empírica 99,7 %.</p></div>
+      <div class="rule-f"><span class="mono">Conformal</span><p style="margin-top:4px;font-size:19px">Banda calibrada con residuales OOF; nominal 90 %, en test cubre el 100 % con 25,3 de ancho.</p></div>
       <div class="rule-f"><span class="mono">SHAP</span><p style="margin-top:4px;font-size:19px">Atribución de la predicción por variable. Describe el modelo, no causa el fallo.</p></div>
       <div class="rule-f"><span class="mono">EMA5</span><p style="margin-top:4px;font-size:19px">Media móvil exponencial causal por motor, span 5. Suaviza sin mirar el futuro.</p></div>
     </div>
@@ -1652,7 +1659,7 @@ body.overview-on .ov{display:block}
           <div class="lt-row" style="grid-template-columns:1fr"><span class="tx"><b>¿Y si el webhook falla?</b> La API no rompe la rama; la app espera 5 s.</span></div>
           <div class="lt-row" style="grid-template-columns:1fr"><span class="tx"><b>¿Por qué no decides con la predicción?</b> Se decide con <span class="mono">L_inf</span>, el pesimista.</span></div>
           <div class="lt-row" style="grid-template-columns:1fr"><span class="tx"><b>¿Qué cuesta una hora de AOG?</b> 10–15k USD, credibilidad Media.</span></div>
-          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx"><b>¿La banda cubre el 90 %?</b> Nominal 90 %; en test cubre 99,7 % y mide 25,9 ciclos.</span></div>
+          <div class="lt-row" style="grid-template-columns:1fr"><span class="tx"><b>¿La banda cubre el 90 %?</b> Nominal 90 %; en test cubre las 6.196 ventanas y mide 25,3 ciclos de ancho.</span></div>
         </div>
       </div>
     </div>
@@ -1699,6 +1706,182 @@ body.overview-on .ov{display:block}
         Mismo diagnóstico que el árbol, con otra arquitectura: el modelo de fila mira el reloj porque la degradación es una secuencia.
       </p>
     </div>
+  </div>
+</section>
+<!-- ══════════════════ 39 · RESPALDO: DEL HDF5 AL PARQUET ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>Del HDF5 al parquet</h2>
+      <div class="lab">respaldo · PIA-2 · el dato que se sirve</div>
+    </div>
+
+    <p style="font-family:var(--serif);font-size:31px;line-height:1.2;max-width:1560px;margin-top:26px">
+      El HDF5 es el original; el parquet es lo que entrena, se audita y se sirve.
+    </p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;margin-top:32px;align-items:start">
+      <div>
+        <div class="rule-t">
+          <div class="lab">Qué es</div>
+          <p style="margin-top:8px;font-size:19px">Formato <b>columnar</b>, comprimido y tipado: se lee por columnas y conserva los tipos. No es un CSV ni un Excel.</p>
+        </div>
+        <div class="rule-t" style="margin-top:18px">
+          <div class="lab">Cuánto ahorra · medido</div>
+          <p style="margin-top:8px;font-size:19px"><span class="mono">train.parquet</span>: <b>8,2 MB</b> y <b>55 ms</b> de carga. El HDF5 son <b>2,45 GB</b> y 2,4 s con <span class="mono">stride=100</span>: <b>×43</b>.</p>
+        </div>
+        <div class="rule-t" style="margin-top:18px">
+          <div class="lab">Quién lo escribe</div>
+          <p style="margin-top:8px;font-size:19px"><span class="mono">src/clase/dataset_clase.py</span> y los cuadernos 01–02; el bundle lo relee en <span class="mono">construir_raw_adaptado()</span>.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="lt-head" style="grid-template-columns:1.5fr .7fr 1fr"><span>Archivo</span><span>Forma</span><span>Para qué</span></div>
+        <div class="lt" style="margin-top:0">
+          <div class="lt-row" style="grid-template-columns:1.5fr .7fr 1fr"><span class="nm mono" style="font-size:16px">processed/train.parquet</span><span class="num">52.635 × 23</span><span class="tx">entrenar</span></div>
+          <div class="lt-row" style="grid-template-columns:1.5fr .7fr 1fr"><span class="nm mono" style="font-size:16px">processed/test.parquet</span><span class="num">12.538 × 23</span><span class="tx">test</span></div>
+          <div class="lt-row" style="grid-template-columns:1.5fr .7fr 1fr"><span class="nm mono" style="font-size:16px">*_con_nulos.parquet</span><span class="num">sin imputar</span><span class="tx">auditar MAR</span></div>
+          <div class="lt-row" style="grid-template-columns:1.5fr .7fr 1fr"><span class="nm mono" style="font-size:16px">cache/ds02_rows.parquet</span><span class="num">12.538</span><span class="tx">inferencia</span></div>
+          <div class="lt-row" style="grid-template-columns:1.5fr .7fr 1fr"><span class="nm mono" style="font-size:16px">cache/ds02_windows.parquet</span><span class="num">6.196</span><span class="tx">inferencia</span></div>
+        </div>
+        <p class="note" style="margin-top:16px">El <span class="mono">sha256</span> de cada fuente vive en <span class="mono">cache_manifest.json</span>. <span class="mono">data/</span> se regenera y no va a git; <span class="mono">app/cache/*.parquet</span> sí viaja: es lo que carga la app.</p>
+      </div>
+    </div>
+
+    <div class="grow"></div>
+  </div>
+</section>
+
+<!-- ══════════════════ 40 · RESPALDO: BILSTM + TRIPLE POOLING ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>El BiLSTM: 50 pasos a un número</h2>
+      <div class="lab">respaldo · la rama secuencial</div>
+    </div>
+
+    <p style="font-family:var(--serif);font-size:31px;line-height:1.2;max-width:1560px;margin-top:24px">
+      La red no ve la tabla: ve la película de 50 lecturas y devuelve un ciclo.
+    </p>
+
+    <div class="chain" style="grid-template-columns:repeat(3,1fr);margin-top:28px">
+      <div class="step"><div class="n">01 · ENTRADA</div><div class="t">50 × 19</div><div class="d">18 canales escalados + el reloj, normalizados por BatchNorm.</div></div>
+      <div class="step"><div class="n">02 · RECURRENCIA</div><div class="t">2 × BiLSTM(64)</div><div class="d">Cada capa lee la ventana en los dos sentidos: 128 salidas por paso, con dropout 0,2.</div></div>
+      <div class="step"><div class="n">03 · POOLING</div><div class="t">384 → 32 → 1</div><div class="d">Último paso + media + máximo: tres vistas de la misma ventana, concatenadas.</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:64px;margin-top:30px;align-items:start">
+      <div>
+        <div class="rule-t">
+          <div class="lab">Por qué tres pooling y no uno</div>
+          <p style="margin-top:8px;font-size:19px">El <b>último</b> paso dice dónde acaba la degradación; la <b>media</b>, el nivel sostenido de la ventana; el <b>máximo</b>, el pico que la media diluye. Concatenar los tres deja que la capa densa elija el resumen que sirve en cada motor, en vez de imponerle uno.</p>
+        </div>
+        <div class="rule-t" style="margin-top:16px">
+          <div class="lab">Bidireccional no es fuga</div>
+          <p style="margin-top:8px;font-size:19px">La ventana entera es pasado del instante que se predice: leerla en los dos sentidos no ve futuro, solo contexto. La fuga estaría en mezclar motores, y el split es por motor.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="lt-head" style="grid-template-columns:1.3fr 1fr"><span>Detalle</span><span style="text-align:right">Valor</span></div>
+        <div class="lt" style="margin-top:0">
+          <div class="lt-row" style="grid-template-columns:1.3fr 1fr"><span class="tx">Parámetros</span><span class="num" style="text-align:right">154.253</span></div>
+          <div class="lt-row" style="grid-template-columns:1.3fr 1fr"><span class="tx">Pérdida</span><span class="num" style="text-align:right">Huber δ 10</span></div>
+          <div class="lt-row hi" style="grid-template-columns:1.3fr 1fr"><span class="tx">Test · +EMA5</span><span class="num" style="text-align:right">5,618</span></div>
+          <div class="lt-row" style="grid-template-columns:1.3fr 1fr"><span class="tx">Entreno</span><span class="num" style="text-align:right">22 épocas · 128</span></div>
+        </div>
+        <p class="note" style="margin-top:14px">Huber y no MSE: la cola de RUL alta no debe arrastrar el ajuste. El modelo se guarda por valor (<span class="mono">LastStepPooling</span>), no como <span class="mono">Lambda</span>, para que el <span class="mono">.keras</span> cargue sin el cuaderno.</p>
+      </div>
+    </div>
+
+    <div class="grow"></div>
+  </div>
+</section>
+
+<!-- ══════════════════ 41 · RESPALDO: LIGHTGBM ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>LightGBM: 300 árboles al cuantil 0,35</h2>
+      <div class="lab">respaldo · la rama tabular</div>
+    </div>
+
+    <p style="font-family:var(--serif);font-size:31px;line-height:1.2;max-width:1560px;margin-top:24px">
+      El árbol no promedia ventanas: encadena árboles pequeños que corrigen el error del anterior.
+    </p>
+
+    <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:64px;margin-top:30px;align-items:start">
+      <div>
+        <div class="rule-t">
+          <div class="lab">Qué hace</div>
+          <p style="margin-top:8px;font-size:19px"><b>Gradient boosting</b>: cada árbol se ajusta al residuo del anterior, con paso pequeño (0,02) para que ninguno mande. 300 árboles de 15 hojas y profundidad 4, mínimo 50 muestras por hoja.</p>
+        </div>
+        <div class="rule-t" style="margin-top:16px">
+          <div class="lab">Por qué al cuantil 0,35</div>
+          <p style="margin-top:8px;font-size:19px">No predice la media: predice el <b>percentil 35</b>, así que se queda corto a propósito. Es el mismo argumento que la decisión por <span class="mono">L_inf</span> —equivocarse por optimismo es el lado caro— llevado a la función de pérdida.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="lt-head" style="grid-template-columns:1.3fr 1fr"><span>Detalle</span><span style="text-align:right">Valor</span></div>
+        <div class="lt" style="margin-top:0">
+          <div class="lt-row" style="grid-template-columns:1.3fr 1fr"><span class="tx">Features de entrada</span><span class="num" style="text-align:right">93</span></div>
+          <div class="lt-row" style="grid-template-columns:1.3fr 1fr"><span class="tx">Escalado</span><span class="num" style="text-align:right">no hace falta</span></div>
+          <div class="lt-row" style="grid-template-columns:1.3fr 1fr"><span class="tx">Hojas · profundidad</span><span class="num" style="text-align:right">15 · 4</span></div>
+          <div class="lt-row hi" style="grid-template-columns:1.3fr 1fr"><span class="tx">Test · rama sola</span><span class="num" style="text-align:right">7,067</span></div>
+        </div>
+        <p class="note" style="margin-top:14px">No extrapola: fuera del rango de RUL que vio, aplana. Por eso no va solo y el híbrido lo acompaña con la red. Hay <b>dos</b> LGBM: el de la rama (93 features) y el del meta (2 columnas).</p>
+      </div>
+    </div>
+
+    <div class="grow"></div>
+  </div>
+</section>
+
+<!-- ══════════════════ 42 · RESPALDO: BANDA CONFORMAL ══════════════════ -->
+<section class="slide">
+  <div class="frame">
+    <div class="topbar">
+      <h2>La banda, paso a paso</h2>
+      <div class="lab">respaldo · conformal, no gaussiana</div>
+    </div>
+
+    <p style="font-family:var(--serif);font-size:31px;line-height:1.2;max-width:1560px;margin-top:24px">
+      La banda no se supone: se mide con los errores que el modelo ya cometió.
+    </p>
+
+    <div class="chain" style="grid-template-columns:repeat(3,1fr);margin-top:28px">
+      <div class="step"><div class="n">01 · RESIDUALES</div><div class="t">fuera de fold</div><div class="d">Cada ventana se puntúa con un modelo que no la vio; el residual es verdad − punto con EMA5.</div></div>
+      <div class="step"><div class="n">02 · CUANTILES</div><div class="t">5 % por lado</div><div class="d">Por tramos de RUL predicha (0–25 · 25–50 · 50–75 · 75+): la banda no es igual arriba que abajo.</div></div>
+      <div class="step"><div class="n">03 · APLICAR</div><div class="t">punto + cuantil</div><div class="d">L_inf e L_sup, recortados para no cruzar el punto: la banda siempre contiene la predicción.</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:64px;margin-top:30px;align-items:start">
+      <div>
+        <div class="rule-t">
+          <div class="lab">Lo medido en el artefacto</div>
+          <p style="margin-top:8px;font-size:19px">6.196 de 6.196 ventanas dentro, con ancho medio de <b>25,3</b> ciclos (de 6,8 a 44,5). No es un intervalo afinado: es una cota que no deja fuera ninguna ventana de test.</p>
+        </div>
+        <div class="rule-t" style="margin-top:16px">
+          <div class="lab">Por qué cubre más que el 90 % nominal</div>
+          <p style="margin-top:8px;font-size:19px">Se calibró con modelos de fold <b>más débiles</b> que el desplegado, así que sus residuales eran mayores y la banda sale ancha. Estrecharla mirando test sería elegir sobre test: se publica el trade-off.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="lt-head" style="grid-template-columns:1.3fr 1fr"><span>Parámetro</span><span style="text-align:right">Valor</span></div>
+        <div class="lt" style="margin-top:0">
+          <div class="lt-row" style="grid-template-columns:1.3fr 1fr"><span class="tx">Cobertura nominal</span><span class="num" style="text-align:right">90 %</span></div>
+          <div class="lt-row" style="grid-template-columns:1.3fr 1fr"><span class="tx">α por lado</span><span class="num" style="text-align:right">0,05</span></div>
+          <div class="lt-row" style="grid-template-columns:1.3fr 1fr"><span class="tx">Filas de calibración</span><span class="num" style="text-align:right">17.450</span></div>
+          <div class="lt-row hi" style="grid-template-columns:1.3fr 1fr"><span class="tx">Cobertura en test</span><span class="num" style="text-align:right">100 %</span></div>
+        </div>
+        <p class="note" style="margin-top:14px">El cuaderno 04 mide <b>otra</b> banda, calibrada con 52.341 residuales fuera de fold: 99,7 % y 25,9 de ancho. Es diagnóstico, no la que sirve el artefacto.</p>
+      </div>
+    </div>
+
+    <div class="grow"></div>
   </div>
 </section>
 </main>
@@ -1820,7 +2003,7 @@ class Deck {
 const deck = new Deck();
 
 /* ============================================
-   MODO PRESENTADOR — 28 de núcleo + 9 de respaldo
+   MODO PRESENTADOR — 28 de núcleo + 14 de respaldo
    N = notas · O = mapa · T = tiempo · R = reset
    ============================================ */
 const ACTS = [
@@ -1834,10 +2017,10 @@ const ACTS = [
 const TOTAL_S = 1200;
 const NOTES = [
   {t:'Portada', a:0, s:15, l:`Predigo la RUL de la flota y la convierto en APTO, INSPECCIÓN o HANGAR con reglas auditables.`, x:`No abras con el modelo ni con el RMSE.`},
-  {t:'Una hora en pista cuesta 10–15k', a:0, s:30, l:`Una hora de AOG cuesta 10–15k; 4,338 ciclos es el 21,7 % del umbral de hangar. El sistema se paga si cuesta menos que una parada evitada al año.`, x:`No prometas ahorro medido: el coste es supuesto.`},
-  {t:'9 motores, 65.173 lecturas y una etiqueta', a:0, s:40, l:`Nueve motores simulados, 65.173 lecturas, 22 columnas y una etiqueta; el split es por motor y ningún motor cae en los dos lados.`, x:`No lo vendas como flota real ni nombres fabricantes.`},
+  {t:'Una hora en pista cuesta 10–15k', a:0, s:30, l:`Una hora de AOG cuesta 10–15k: rango Boeing, credibilidad Media, sin documento versionado en el repo. Es un supuesto declarado. El error, 4,338 ciclos, es el 21,7 % del umbral de hangar. El sistema se paga si cuesta menos que una parada evitada al año.`, x:`No prometas ahorro medido ni presentes el coste como dato propio.`},
+  {t:'9 motores, 65.173 lecturas y una etiqueta', a:0, s:40, l:`Nueve motores simulados, 65.173 lecturas —una de cada 100 muestras, ≈113 por ciclo—, 22 columnas y una etiqueta; el split es por motor y ninguna unidad cae en los dos lados. Una ventana de 50 cubre 0,44 ciclos.`, x:`No lo vendas como flota real ni nombres fabricantes.`},
   {t:'El modelo propone; las reglas deciden', a:0, s:40, l:`El modelo propone, ocho reglas deciden, n8n ejecuta; si falta evidencia, no se decide.`, x:`No digas «IA fuerte» ni «generaliza».`},
-  {t:'Equivocarse tarde cuesta más', a:0, s:40, l:`Tarde cuesta 10–15k por hora; pronto, horas de taller. El RMSE cobra igual los dos, por eso decidimos con la banda inferior.`, x:`No digas que el sistema evita el AOG: dice cuándo mirar.`},
+  {t:'Equivocarse tarde cuesta más', a:0, s:40, l:`Tarde cuesta 10–15k por hora; pronto, horas de taller. El RMSE cobra igual los dos, por eso decidimos con la banda inferior. Y en una flota real el error optimista no es dinero: es seguridad, un motor que se para en vuelo.`, x:`No digas que el sistema evita el AOG: dice cuándo mirar.`},
   {t:'Datos', a:1, s:12, l:`1.185 huecos que tienen causa física.`, x:''},
   {t:'22 columnas en tres grupos', a:1, s:35, l:`14 sensores, 4 de régimen y 4 de contexto; el régimen y el desgaste viajan juntos.`, x:`No leas el glosario entero.`},
   {t:'1.185 huecos con causa física', a:1, s:45, l:`1.185 nulos, todos en T30, MAR con patrón de crucero alto; ffill causal por unidad.`, x:`No digas que los nulos son ruido ni que se inyectaron.`},
@@ -1845,18 +2028,18 @@ const NOTES = [
   {t:'El régimen no es salud', a:1, s:55, l:`Un motor se calienta porque se rompe o porque sube: catorce Ridge separan las dos cosas y solo miran los motores de ajuste. El Ridge alimenta al árbol; la red lee 18 canales crudos + reloj.`, x:`No digas que la red usa los residuos ni confundas este Ridge con el del baseline o el meta.`},
   {t:'Modelos', a:2, s:10, l:`De una fila a una secuencia: seis peldaños.`, x:''},
   {t:'La escalera: de 11,034 a 4,338', a:2, s:40, l:`Seis peldaños: XGB 11,034, MLP 7,721, LGBM 7,067, BiLSTM 5,654, EMA 5,618, híbrido 4,338. Los dos primeros son de fila; los cuatro siguientes, de ventana.`, x:`No compares 11,034 con 4,338: distinto grano.`},
-  {t:'XGB gana por 0,06 ciclos', a:2, s:60, l:`45 ajustes y tres pliegues por motor. XGB gana con 8,217; el lineal se queda a 0,06 y es el que menos se mueve al generalizar. A igualdad, gana el más simple.`, x:`No digas que el lineal es el mejor: es el que menos empeora.`},
-  {t:'E1 memoriza; E2 gana', a:2, s:55, l:`E1 sube capacidad y memoriza: train 5,229, validación 7,481. E2 regulariza y gana: 7,340 en validación y 7,721 en test.`, x:`No mezcles E1 y E2 ni llames fracaso a E1.`},
+  {t:'XGB gana por 0,06 ciclos', a:2, s:60, l:`45 ajustes y tres pliegues por motor, nunca por fila: si un motor cayera en train y validación, la validación mediría memoria. XGB gana con 8,217; el lineal se queda a 0,06 y es el que menos se mueve al generalizar. A igualdad, gana el más simple.`, x:`No digas que el lineal es el mejor: es el que menos empeora.`},
+  {t:'E1 memoriza; E2 gana', a:2, s:55, l:`E1 sube capacidad y memoriza: train 5,229, validación 7,481. E2 regulariza: 7,340 de validación, solo 0,018 mejor que la base; es un margen, no una victoria. Test 7,721, una lectura.`, x:`No mezcles E1 y E2 ni llames fracaso a E1.`},
   {t:'Una fila se queda en 7,72', a:2, s:40, l:`Una lectura no ve degradación; por eso 11,034 y 4,338 no se comparan. Se mide con RMSE porque penaliza la cola; MAPE explota cuando la RUL tiende a cero.`, x:`No presentes el 11,03 como «el modelo malo».`},
   {t:'Una fila no basta: tres contratos', a:2, s:50, l:`Tres entradas: 22 columnas con one-hot, 19 canales crudos + reloj y 93 features residualizadas. La red no usa el Ridge; el árbol sí.`, x:`No mezcles la ventana de 19 con la de 93 ni digas que la red usa los residuos.`},
-  {t:'El reloj no ayuda en ventana', a:2, s:45, l:`El reloj no cambia el secuencial, 5,878–5,974, y cuesta +0,77 en LGBM.`, x:`No digas que la ablación «demuestra» que el reloj sobra: dice que no aporta.`},
-  {t:'OOF: el meta se valida con motores que no ha visto', a:2, s:85, l:`Tres pliegues por motor; sin OOF la validación se hunde a 0,308. El meta es Ridge α = 88,6 + LGBM 50/50 y solo ve dos columnas. β = 1,00; el meta rechazado subía de 4,04 a 10,17.`, x:`No mezcles la corrida OOF con la del bundle ni digas que β se eligió a ojo.`},
-  {t:'4,333 ± 0,040, y U14', a:2, s:50, l:`4,333 ± 0,040 en tres semillas; U14 es el 12 % de las ventanas y el 47,9 % del error. Global 4,338, macro 5,015; la tabla es semilla 42.`, x:`No cites 4,324 ± 0,107 ni mezcles la tabla de una semilla con la media.`},
+  {t:'El reloj no ayuda en ventana', a:2, s:45, l:`El reloj no cambia el secuencial —5,878 a 5,974— y en el LGBM solo cuesta 0,77. Vive en las dos ramas base: canal 19 de la red y feature 1 de 93 del árbol. Se retira del meta porque ahí se llevaba el 100 % del peso.`, x:`No digas que el bundle no lleva el reloj en el árbol: lo lleva. Y no digas que la ablación mide el híbrido: mide el LGBM solo.`},
+  {t:'OOF: el meta se valida con motores que no ha visto', a:2, s:85, l:`Tres pliegues por motor; sin OOF la validación se vuelve 0,308, un número imposible: el meta se puntúa a sí mismo. El meta es media de Ridge y LGBM sobre dos columnas, α 88,6. La final es p = p_lstm + β·(p_meta − p_lstm): con β = 1,00 manda el meta entero. Después, EMA5 causal. El otro experimento, el meta de los cinco motores, sube de 4,04 a 10,17 al darle todo el peso.`, x:`No mezcles la corrida OOF con la del bundle ni digas que β se eligió a ojo.`},
+  {t:'4,333 ± 0,040, y U14', a:2, s:50, l:`4,333 ± 0,040 en tres semillas; U14 es el 12 % de las ventanas y el 47,9 % del error: RUL 76 frente a 63 del soporte, y 20,6 lecturas por ciclo frente a 112 en U11. Global 4,338, macro 5,015; la tabla es semilla 42.`, x:`No cites 4,324 ± 0,107 ni mezcles la tabla de una semilla con la media.`},
   {t:'SHAP: manda el ciclo, después T50', a:2, s:55, l:`El 71 % del peso del meta es del árbol; las dos ramas miran cyc_norm y T50. SHAP describe el modelo, no el motor.`, x:`No vendas la coincidencia 28/72 como validación ni hables de causas.`},
-  {t:'4,338 y qué significa', a:2, s:55, l:`RMSE 4,338, MAE 3,227, R² 0,9461, NASA 2336,2. NASA es una suma asimétrica; EMA5 es media móvil causal span 5. El test se leyó una vez.`, x:`No compares NASA entre modelos con distinto número de filas.`},
+  {t:'4,338 y qué significa', a:2, s:55, l:`RMSE 4,338 —unos 4,3 vuelos—, MAE 3,227, R² 0,9461, NASA 2336,2. NASA suma exp(−d/13)−1 y exp(d/10)−1, así que crece con las ventanas. EMA5 es media móvil causal span 5. El test se leyó una vez.`, x:`No compares NASA entre modelos con distinto número de filas.`},
   {t:'Decisión', a:3, s:10, l:`El modelo no decide; las reglas deciden y se pueden auditar.`, x:''},
   {t:'Ocho reglas, una de seguridad', a:3, s:45, l:`Ocho reglas con prioridad; R1 es seguridad y sin evidencia no hay APTO. Umbrales 20 y 25.`, x:`No digas que las reglas «mejoran» el RMSE.`},
-  {t:'L_inf = 19: HANGAR', a:3, s:45, l:`Decidimos sobre L_inf = 19, no sobre 27. La banda es nominal 90 %, empírica 99,7 % y ancho 25,9: conservadora a propósito.`, x:`No digas que la banda es estrecha ni que es decorativa.`},
+  {t:'L_inf = 19: HANGAR', a:3, s:45, l:`Decidimos sobre L_inf = 19, no sobre 27. La banda se calibra con residuales fuera de fold, por tramos de RUL y 5 % por lado; en test cubre 6.196 de 6.196 con ancho 25,3. Sobre-cubre porque la calibraron modelos de fold más débiles: estrecharla contra test sería elegir sobre test.`, x:`No digas que la banda es estrecha ni decorativa; y no cites 99,7: es otra banda.`},
   {t:'La decisión se convierte en acción', a:3, s:40, l:`20 nodos y 4 ramas; HANGAR escribe en Postgres y el FALLBACK alerta. La instancia local lo ejecutó 29 veces: 25 success y 4 error.`, x:`No digas que el flujo llama a nuestra API: no hay nodo HTTP.`},
   {t:'El caso nuevo (y el caso malo)', a:3, s:35, l:`La app enseña p, banda, motivo, SHA y SHAP local; el caso malo no rompe, no decide.`, x:`No hagas la demo sin red: si falla, usa la captura.`},
   {t:'Lo que este sistema no hace', a:4, s:35, l:`Seis límites declarados; dos campeones: E2 7,721 en clase y C 4,338 en producción.`, x:`No los llames «trabajo futuro»; son límites.`},
@@ -1870,7 +2053,11 @@ const NOTES = [
   {t:'MLflow: 17 runs curados', a:5, s:0, l:`Compare de fila, compare de ventana y run de producción.`, x:`No se presenta.`},
   {t:'n8n: lo que se ejecutó', a:5, s:0, l:`29 ejecuciones, 25 success / 4 error, efectos reales.`, x:`No se presenta.`},
   {t:'Preguntas frecuentes', a:5, s:0, l:`Respuestas cortas de SAA, PIA y MIA.`, x:`No se presenta.`},
-  {t:'Qué mira el MLP E2', a:5, s:0, l:`Permutación: cycle 28, T50 20,5; la fase casi no entra.`, x:`No se presenta.`}
+  {t:'Qué mira el MLP E2', a:5, s:0, l:`Permutación: cycle 28, T50 20,5; la fase casi no entra.`, x:`No se presenta.`},
+  {t:'Del HDF5 al parquet', a:5, s:0, l:`Columnar, comprimido y tipado. train.parquet 8,2 MB y 55 ms frente a 2,45 GB y 2,4 s: ×43. El sha256 vive en cache_manifest.json.`, x:`No se presenta; solo si preguntan por data/processed o por el desbalance de ficheros.`},
+  {t:'El BiLSTM: 50 pasos a un número', a:5, s:0, l:`BatchNorm, dos BiLSTM de 64 en los dos sentidos (128 por paso) y triple pooling: último paso + media + máximo, 384 → Dense 32 → 1. 154.253 parámetros, pérdida Huber δ 10. Bidireccional no es fuga: dentro de la ventana todo es pasado.`, x:`No digas que la red lee el futuro ni que el pooling es un detalle.`},
+  {t:'LightGBM: 300 árboles al cuantil 0,35', a:5, s:0, l:`Gradient boosting: cada árbol corrige el residuo del anterior, 300 árboles de 15 hojas y profundidad 4, con paso 0,02. Objetivo cuantil 0,35: se queda corto a propósito, el lado barato del error. 93 features y no extrapola.`, x:`No digas que el árbol predice la media ni que va solo.`},
+  {t:'La banda, paso a paso', a:5, s:0, l:`Conformal: residuales fuera de fold, cuantiles por tramos de RUL con 5 % por lado, y L_inf = punto + cuantil sin cruzar el punto. En el artefacto cubre 6.196 de 6.196 con ancho 25,3; la banda del cuaderno 04, con 52.341 residuales, da 99,7 % y 25,9.`, x:`No mezcles las dos bandas ni digas que 99,7 es la del artefacto.`},
 ];
 let pvOpen = false, ovOpen = false, tBase = 0, tStart = null;
 const $id = (id) => document.getElementById(id);
@@ -1917,7 +2104,7 @@ function toggleTimer() {
 }
 function resetTimer() { tBase = 0; tStart = null; updatePV(); }
 
-$id('ovHead').textContent = 'MAPA · ' + NOTES.length + ' SLIDES (28 + 10 respaldo)';
+$id('ovHead').textContent = 'MAPA · ' + NOTES.length + ' SLIDES (28 + 14 respaldo)';
 const ovGrid = $id('ovGrid');
 NOTES.forEach((n, i) => {
   const b = document.createElement('button');

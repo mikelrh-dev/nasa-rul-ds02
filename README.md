@@ -316,8 +316,10 @@ Test 11/14/15, semilla 42, mismo protocolo. La tabla completa está en
 
 En el secuencial las cuatro variantes caen en 5,878–5,974 (0,10 de horquilla): el
 reloj no cambia el resultado. En LGBM sí: activarlo cuesta +0,77 RMSE y añadir el
-baseline delta +2,47, así que ambos se quedan fuera del modelo tabular. Conclusión:
-`cyc_norm` se mantiene como canal 19 del BiLSTM y no entra en LGBM ni en el meta.
+baseline delta +2,47. Conclusión: `cyc_norm` se mantiene como **canal 19 del BiLSTM
+y feature 1/93 del LightGBM** en el artefacto congelado (`lgb_n_features: 93`, ver
+`ensemble.py`), y **no entra en el meta** (`meta_features: 2`). Retirarlo del árbol
+es una mejora medida y pendiente de reentrenar, no un cambio ya aplicado.
 
 ## Decisión y automatización
 

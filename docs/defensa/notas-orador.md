@@ -1,8 +1,8 @@
-# Notas de orador — 28 slides de núcleo + 10 de respaldo, 20 minutos
+# Notas de orador — 28 slides de núcleo + 14 de respaldo, 20 minutos
 
 Presupuesto: 1.200 s. Las frases de abajo suman **1.117 s = 18 min 37 s**, así que quedan ~83 s para transiciones y preguntas. Una frase por slide: si se dice la frase, la slide está cubierta; el resto es decoración que el tribunal ya lee.
 
-Las slides 1–28 se presentan. Las 29–38 son **respaldo**: no se abren salvo que pregunten.
+Las slides 1–28 se presentan. Las 29–42 son **respaldo**: no se abren salvo que pregunten.
 
 Reglas: no leer tablas en voz alta; no repetir el número que ya está en pantalla; tres remates en todo el deck, no quince.
 
@@ -13,10 +13,10 @@ Atajos del deck: `N` notas · `O` mapa · `T` tiempo · `R` reset · `?` ayuda.
 | # | Slide | Frase de apertura | s | Qué no decir |
 |---|---|---|---:|---|
 | 1 | Portada | «Predigo la RUL de la flota y la convierto en APTO, INSPECCIÓN o HANGAR con reglas auditables.» | 15 | No abras con el modelo ni con el RMSE. |
-| 2 | Una hora en pista cuesta 10–15k | «Una hora de AOG cuesta 10–15k; 4,338 ciclos es el 21,7 % del umbral de hangar. El sistema se paga si cuesta menos que una parada evitada al año.» | 30 | No prometas ahorro medido: el coste es supuesto. |
-| 3 | 9 motores, 65.173 lecturas | «Nueve motores simulados, 65.173 lecturas, 22 columnas y una etiqueta; el split es por motor y ningún motor cae en los dos lados.» | 40 | No lo vendas como flota real ni nombres fabricantes. |
+| 2 | Una hora en pista cuesta 10–15k | «Una hora de AOG cuesta 10–15k: rango Boeing, credibilidad Media, sin documento versionado, así que es un supuesto. El error, 4,338 ciclos, es el 21,7 % del umbral de hangar. El sistema se paga si cuesta menos que una parada evitada al año.» | 30 | No prometas ahorro medido ni presentes el coste como dato propio. |
+| 3 | 9 motores, 65.173 lecturas | «Nueve motores simulados, 65.173 lecturas —una de cada 100 muestras, ≈113 por ciclo—, 22 columnas y una etiqueta; el split es por motor y ninguna unidad cae en los dos lados. Una ventana de 50 cubre 0,44 ciclos.» | 40 | No lo vendas como flota real ni nombres fabricantes. |
 | 4 | El modelo propone; las reglas deciden | «El modelo propone, ocho reglas deciden, n8n ejecuta; si falta evidencia, no se decide.» | 40 | No digas «IA fuerte» ni «generaliza». |
-| 5 | Equivocarse tarde cuesta más | «Tarde cuesta 10–15k por hora; pronto, horas de taller. El RMSE cobra igual los dos, por eso decidimos con la banda inferior.» | 40 | No digas que el sistema evita el AOG: dice cuándo mirar. |
+| 5 | Equivocarse tarde cuesta más | «Tarde cuesta 10–15k por hora; pronto, horas de taller. El RMSE cobra igual los dos, por eso decidimos con la banda inferior. Y en una flota real el error optimista no es dinero: es seguridad, un motor que se para en vuelo.» | 40 | No digas que el sistema evita el AOG: dice cuándo mirar. |
 
 ## Acto II · Datos (192 s)
 
@@ -34,15 +34,15 @@ Atajos del deck: `N` notas · `O` mapa · `T` tiempo · `R` reset · `?` ayuda.
 |---|---|---|---:|---|
 | 11 | Separador | «De una fila a una secuencia: seis peldaños.» | 10 | — |
 | 12 | La escalera | «Seis peldaños: XGB 11,034, MLP 7,721, LGBM 7,067, BiLSTM 5,654, EMA 5,618, híbrido 4,338. Los dos primeros son de fila; los cuatro siguientes, de ventana.» | 40 | No compares 11,034 con 4,338: distinto grano. |
-| 13 | XGB gana por 0,06 ciclos | «45 ajustes y tres pliegues por motor. XGB gana con 8,217; el lineal se queda a 0,06 y es el que menos se mueve al generalizar. A igualdad, gana el más simple.» | 60 | No digas que el lineal es el mejor: es el que menos empeora. |
-| 14 | E1 memoriza; E2 gana | «E1 sube capacidad y memoriza: train 5,229, validación 7,481. E2 regulariza y gana: 7,340 en validación y 7,721 en test.» | 55 | No mezcles E1 y E2 ni llames fracaso a E1. |
+| 13 | XGB gana por 0,06 ciclos | «45 ajustes y tres pliegues por motor, nunca por fila: si un motor cayera en train y validación, la validación mediría memoria. XGB gana con 8,217; el lineal se queda a 0,06 y es el que menos se mueve al generalizar. A igualdad, gana el más simple.» | 60 | No digas que el lineal es el mejor: es el que menos empeora. |
+| 14 | E1 memoriza; E2 gana | «E1 sube capacidad y memoriza: train 5,229, validación 7,481. E2 regulariza: 7,340 de validación, solo 0,018 mejor que la base; es un margen, no una victoria. Test 7,721, una lectura.» | 55 | No mezcles E1 y E2 ni vendas 0,018 como una mejora demostrada. |
 | 15 | Una fila se queda en 7,72 | «Una lectura no ve degradación; por eso 11,034 y 4,338 no se comparan. Se mide con RMSE porque penaliza la cola; MAPE explota cuando la RUL tiende a cero.» | 40 | No presentes el 11,03 como «el modelo malo». |
 | 16 | Una fila no basta: tres contratos | «Tres entradas: 22 columnas con one-hot, 19 canales crudos + reloj y 93 features residualizadas. La red no usa el Ridge; el árbol sí.» | 50 | No mezcles la ventana de 19 con la de 93 ni digas que la red usa los residuos. |
-| 17 | El reloj no ayuda en ventana | «El reloj no cambia el secuencial, 5,878–5,974, y cuesta +0,77 en LGBM. Se queda en el contrato del BiLSTM; no entra en LGBM ni en el meta.» | 45 | No digas que la ablación «demuestra» que el reloj sobra: dice que no aporta. |
-| 18 | OOF + meta + β | «Tres pliegues por motor; sin OOF la validación se hunde a 0,308. El meta es Ridge α = 88,6 + LGBM 50/50 y solo ve dos columnas. β = 1,00; el meta rechazado subía de 4,04 a 10,17.» | 85 | No mezcles la corrida OOF con la del bundle ni digas que β se eligió a ojo. |
-| 19 | 4,333 ± 0,040, y U14 | «4,333 ± 0,040 en tres semillas; U14 es el 12 % de las ventanas y el 47,9 % del error. Global 4,338, macro 5,015; la tabla es semilla 42.» | 50 | No cites 4,324 ± 0,107 ni mezcles la tabla de una semilla con la media. |
+| 17 | El reloj no ayuda en ventana | «El reloj no cambia el secuencial —5,878 a 5,974— y en el LGBM solo cuesta 0,77. Vive en las dos ramas base: canal 19 de la red y feature 1 de 93 del árbol. Se retira del meta porque ahí se llevaba el 100 % del peso.» | 45 | No digas que el bundle no lleva el reloj en el árbol: lo lleva. Y no digas que la ablación mide el híbrido: mide el LGBM solo. |
+| 18 | OOF + meta + β | «Tres pliegues por motor; sin OOF la validación se vuelve 0,308, un número imposible: el meta se puntúa a sí mismo. El meta es media de Ridge y LGBM sobre dos columnas, α 88,6; la final es p + β·(meta − p), y β = 1,00 sale fuera de fold. El otro experimento, el meta de los cinco motores, sube de 4,04 a 10,17 al darle todo el peso.» | 85 | No mezcles la corrida OOF con la del bundle ni digas que β se eligió a ojo. |
+| 19 | 4,333 ± 0,040, y U14 | «4,333 ± 0,040 en tres semillas; U14 es el 12 % de las ventanas y el 47,9 % del error: RUL 76 frente a 63 del soporte, y 20,6 lecturas por ciclo frente a 112 en U11. Global 4,338, macro 5,015; la tabla es semilla 42.» | 50 | No cites 4,324 ± 0,107 ni mezcles la tabla de una semilla con la media. |
 | 20 | SHAP: manda el ciclo | «El 71 % del peso del meta es del árbol; las dos ramas miran cyc_norm y T50. SHAP describe el modelo, no el motor.» | 55 | No vendas la coincidencia 28/72 como validación ni hables de causas. |
-| 21 | 4,338 y qué significa | «RMSE 4,338, MAE 3,227, R² 0,9461, NASA 2336,2. NASA es una suma asimétrica; EMA5 es media móvil causal span 5. El test se leyó una vez.» | 55 | No compares NASA entre modelos con distinto número de filas. |
+| 21 | 4,338 y qué significa | «RMSE 4,338 —unos 4,3 vuelos—, MAE 3,227, R² 0,9461, NASA 2336,2. NASA suma exp(−d/13)−1 y exp(d/10)−1, así que crece con las ventanas. EMA5 es media móvil causal span 5. El test se leyó una vez.» | 55 | No compares NASA entre modelos con distinto número de filas. |
 
 ## Acto IV · Decisión (175 s)
 
@@ -50,7 +50,7 @@ Atajos del deck: `N` notas · `O` mapa · `T` tiempo · `R` reset · `?` ayuda.
 |---|---|---|---:|---|
 | 22 | Separador | «El modelo no decide; las reglas deciden y se pueden auditar.» | 10 | — |
 | 23 | Ocho reglas, una de seguridad | «Ocho reglas con prioridad; R1 es seguridad y sin evidencia no hay APTO. Umbrales 20 y 25.» | 45 | No digas que las reglas «mejoran» el RMSE. |
-| 24 | L_inf = 19: HANGAR | «Decidimos sobre L_inf = 19, no sobre 27. La banda es nominal 90 %, empírica 99,7 % y ancho 25,9: conservadora a propósito.» | 45 | No digas que la banda es estrecha ni que es decorativa. |
+| 24 | L_inf = 19: HANGAR | «Decidimos sobre L_inf = 19, no sobre 27. La banda se calibra con residuales fuera de fold y 5 % por lado; en test cubre 6.196 de 6.196 con ancho 25,3, porque la calibraron modelos más débiles que el desplegado: sobre-cubre a propósito.» | 45 | No digas que la banda es estrecha ni que es decorativa. |
 | 25 | La decisión se convierte en acción | «20 nodos y 4 ramas; HANGAR escribe en Postgres y el FALLBACK alerta. La instancia local lo ejecutó 29 veces: 25 success y 4 error.» | 40 | No digas que el flujo llama a nuestra API: no hay nodo HTTP. |
 | 26 | El caso nuevo (y el caso malo) | «La app enseña p, banda, motivo, SHA y SHAP local; el caso malo no rompe, no decide.» | 35 | No hagas la demo sin red: si falla, usa la captura. |
 
@@ -75,6 +75,10 @@ Atajos del deck: `N` notas · `O` mapa · `T` tiempo · `R` reset · `?` ayuda.
 | 36 | n8n: lo que se ejecutó | 29 ejecuciones, 25/4, efectos reales. | 0 |
 | 37 | Preguntas frecuentes | Respuestas cortas de SAA, PIA y MIA. | 0 |
 | 38 | Qué mira el MLP E2 | Permutación: cycle 28, T50 20,5; la fase casi no entra. | 0 |
+| 39 | Del HDF5 al parquet | Columnar, comprimido y tipado; 8,2 MB y 55 ms frente a 2,45 GB y 2,4 s; `data/processed` vs `app/cache`. | 0 |
+| 40 | El BiLSTM: 50 pasos a un número | BatchNorm, 2 × BiLSTM(64) bidireccional, triple pooling (último + media + máximo) 384 → 32 → 1; 154.253 parámetros, Huber δ 10. | 0 |
+| 41 | LightGBM: 300 árboles al cuantil 0,35 | Boosting: 300 árboles, 15 hojas, prof. 4, paso 0,02; objetivo cuantil 0,35 (se queda corto a propósito); 93 features, no extrapola. | 0 |
+| 42 | La banda, paso a paso | Residuales fuera de fold, cuantiles por tramo con 5 % por lado, `L_inf` = punto + cuantil; cubre 6.196/6.196 con ancho 25,3. | 0 |
 
 ## Suma
 
