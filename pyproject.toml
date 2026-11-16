@@ -39,6 +39,7 @@ dependencies = [
     "fpdf2==2.7.7",
     # tests
     "pytest==9.1.1",
+    "httpx2==2.16.0",  # starlette.testclient (FastAPI tests) requires it
 ]
 
 [tool.setuptools.packages.find]
