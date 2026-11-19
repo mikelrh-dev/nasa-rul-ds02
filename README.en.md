@@ -37,7 +37,20 @@ streamlit run app/entrypoints/dashboard_ds02.py --server.address 127.0.0.1 --ser
 
 # Startup alias: delegates to the production app
 streamlit run app/entrypoints/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
+
+# MLflow UI: the 17 runs at http://127.0.0.1:5000
+# (the flag is mandatory: MLflow 3.x leaves the file store in maintenance mode)
+export MLFLOW_ALLOW_FILE_STORE=true
+mlflow ui --backend-store-uri ./mlruns
+
+# MLflow server on :5001 (what the mlflow MCP expects); not needed for the UI
+export MLFLOW_ALLOW_FILE_STORE=true
+mlflow server --backend-store-uri ./mlruns --host 127.0.0.1 --port 5001
 ```
+
+The block is bash syntax. On Windows, the
+[Quick start in cmd](#quick-start-in-cmd-windows) section has the same commands
+ready to paste into `cmd.exe`.
 
 ## Where to start
 
@@ -216,7 +229,9 @@ with `id`, `priority`, `why` and `action`. **R1** is the safety rule at priority
 reason; no GO is ever returned without evidence. The gate is in
 `src/mia/motor.py`.
 
-`n8n/flujo.json` has **20 nodes** (13 functional + 7 notes) and a `Switch` with **four** connected branches:
+`n8n/flujo.json` has **13 nodes**, all functional (1 webhook, 1 `Switch`,
+3 `Set`, 1 Sheets, 1 Postgres, 1 Calendar, 1 Gmail and 4 Telegram), and a
+`Switch` with **four** connected branches:
 
 | Branch | Action |
 |---|---|
@@ -225,9 +240,9 @@ reason; no GO is ever returned without evidence. The gate is in
 | HANGAR | Postgres `ds02_decisiones` → Calendar → Gmail → Telegram. |
 | FALLBACK | Unrecognised decision: error Set + Telegram alert, no action. |
 
-The versioned JSON is **inactive by design** (`active: false`). Running it needs
-credentials and can produce real effects (email, calendar, Postgres). No secrets
-are included.
+The deployed flow is **active** in the local n8n instance; `n8n/flujo.json` is the
+versioned copy, inactive. Running it needs credentials and can produce real
+effects (email, calendar, Postgres). No secrets are included.
 
 ## App and SHAP
 
@@ -466,7 +481,7 @@ src/
   n8n.py                         payload client and builder
 notebooks/                       01–07, with outputs and sequence README
 models/                          bundle C + manifest + baseline joblibs
-n8n/flujo.json                   versioned flow (20 nodes, 4 branches, inactive)
+n8n/flujo.json                   versioned copy of the flow (13 nodes); the deployed one is active
 mlruns/                          17 curated runs; live__* not versioned
 data/raw/                        original HDF5
 data/processed/                  processed parquet (git-ignored, regenerable)
@@ -496,8 +511,9 @@ scripts/operativo/               MLflow backfill, stability, gate and prediction
   differ from `HEAD`; the README follows the versioned copy.
 - **AOG cost:** USD 10,000–15,000/h is an external, Medium-credibility source;
   hours per cycle are an assumption. It is not presented as a measurement.
-- **n8n:** the JSON is inactive by design. Running it needs credentials and may
-  send email, create calendar events or write to Postgres.
+- **n8n:** the deployed flow is **active** in the local instance; `n8n/flujo.json`
+  is the versioned copy, inactive. Running it needs credentials and may send
+  email, create calendar events or write to Postgres.
 - **Facades:** `src/reglas.py` and `src/utils.py` are not reintroduced; the
   architecture test forbids them and the map explains the canonical path.
 - **Grains:** row (12,538) and window (6,196) are never mixed; each league has its
@@ -520,3 +536,64 @@ scripts/operativo/               MLflow backfill, stability, gate and prediction
 ## Authorship
 
 Portfolio project on N-CMAPSS DS02 · [@mikelrh-dev](https://github.com/mikelrh-dev)
+
+## Quick start in cmd (Windows)
+
+Commands ready to paste into `cmd.exe`, from the repo folder. Activating the
+venv is what makes `streamlit` and `mlflow` resolve to the `.venv`: without it,
+the `streamlit` on PATH is the one from Python 3.10 and `mlflow` is Anaconda's.
+
+```cmd
+cd /d C:\path\to\repo\nasa
+.venv\Scripts\activate
+
+:: Production app (bundle C + SHAP) -> http://127.0.0.1:8501
+streamlit run app/entrypoints/dashboard_ds02.py --server.address 127.0.0.1 --server.port 8501
+
+:: MLflow UI with the 17 runs -> http://127.0.0.1:5000
+set MLFLOW_ALLOW_FILE_STORE=true
+.venv\Scripts\python.exe -m mlflow ui --backend-store-uri ./mlruns
+
+:: MLflow server on :5001 (what the mlflow MCP expects); not needed for the UI
+set MLFLOW_ALLOW_FILE_STORE=true
+.venv\Scripts\python.exe -m mlflow server --backend-store-uri ./mlruns --host 127.0.0.1 --port 5001
+```
+
+`MLFLOW_ALLOW_FILE_STORE=true` is mandatory: MLflow 3.18 leaves the file store
+in maintenance mode and refuses to start without it. That is why MLflow is
+invoked as `.venv\Scripts\python.exe -m mlflow ...` and not as the `mlflow` on
+PATH.
+
+## Start the app and MLflow (nothing to install)
+
+If the venv and the dependencies are already there, there is nothing to
+reinstall. You need **two `cmd.exe` consoles**, because Streamlit and MLflow are
+servers that never return the prompt.
+
+### Console 1 of 2 · Streamlit
+
+```cmd
+cd /d C:\Users\mikel\Desktop\Pruebas\nasa
+.venv\Scripts\activate
+streamlit run app/entrypoints/dashboard_ds02.py --server.address 127.0.0.1 --server.port 8501
+```
+
+Open http://127.0.0.1:8501 and leave that console open.
+
+### Console 2 of 2 · MLflow
+
+```cmd
+cd /d C:\Users\mikel\Desktop\Pruebas\nasa
+.venv\Scripts\activate
+set MLFLOW_ALLOW_FILE_STORE=true
+.venv\Scripts\python.exe -m mlflow ui --backend-store-uri ./mlruns
+```
+
+Open http://127.0.0.1:5000 and leave that console open.
+
+Press `Ctrl+C` in its console to stop either service. If you only want one,
+start only that console.
+
+The third option, the `mlflow server` on :5001 used by the mlflow MCP, is
+optional: its own console, with the same `set MLFLOW_ALLOW_FILE_STORE=true` and
+`.venv\Scripts\python.exe -m mlflow server --backend-store-uri ./mlruns --host 127.0.0.1 --port 5001`.

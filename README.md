@@ -42,7 +42,7 @@ en `docs/assets/dashboard_ds02.png`.*
 | ¿Qué métricas tiene? | RMSE 4.338 · MAE 3.227 · R² 0.9461 · NASA 2336.2 (seed 42, manifiesto). |
 | ¿Dónde está la evidencia? | `models/ds02_manifest.json`, `resultados/`, `mlruns/` (17 runs curados) y `notebooks/01–07`. |
 | ¿Cómo se arranca? | `uvicorn app.services.api:app` y `streamlit run app/entrypoints/dashboard_ds02.py`. |
-| ¿Qué falta o es supuesto? | El coste AOG es un rango externo; el flujo n8n versionado está inactivo por diseño; la variabilidad multisemilla depende del CSV versionado. |
+| ¿Qué falta o es supuesto? | El coste AOG es un rango externo; la variabilidad multisemilla depende del CSV versionado. El flujo n8n está desplegado y activo en local (§n8n). |
 
 <p align="center">
   <a href="docs/evidencia/video/pipeline.mp4"><img src="docs/evidencia/video/pipeline.gif" width="720" alt="Resumen animado del proyecto: datos DS02, limpieza, ventanas de 50 ciclos, métricas del bundle C y despliegue"></a>
@@ -60,10 +60,19 @@ streamlit run app/entrypoints/dashboard_ds02.py --server.address 127.0.0.1 --ser
 # Alias de arranque: delega en la app anterior
 streamlit run app/entrypoints/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
 
-# MLflow: lectura del store versionado (texto, 17 runs)
+# MLflow UI: los 17 runs en http://127.0.0.1:5000
+# (el flag es obligatorio: MLflow 3.x deja el file store en maintenance mode)
+export MLFLOW_ALLOW_FILE_STORE=true
+mlflow ui --backend-store-uri ./mlruns
+
+# MLflow server en :5001 (el que espera el MCP mlflow); para la UI no hace falta
 export MLFLOW_ALLOW_FILE_STORE=true
 mlflow server --backend-store-uri ./mlruns --host 127.0.0.1 --port 5001
 ```
+
+El bloque es sintaxis de bash. En Windows, el apartado
+[Arranque rápido en cmd](#arranque-rápido-en-cmd-windows) da las mismas órdenes
+listas para pegar en `cmd.exe`.
 
 ## Por dónde empezar
 
@@ -305,7 +314,9 @@ de seguridad con prioridad 10: si hay una alerta de dato imposible, se anula la
 decisión (`SIN_DECISION`) y se deja el motivo; nunca se devuelve un APTO sin
 evidencia. El gate que las aplica está en `src/mia/motor.py`.
 
-`n8n/flujo.json` contiene **20 nodos** (13 funcionales + 7 notas) y un `Switch` con **cuatro** salidas conectadas:
+`n8n/flujo.json` contiene **13 nodos**, todos funcionales (1 webhook, 1 `Switch`,
+3 `Set`, 1 Sheets, 1 Postgres, 1 Calendar, 1 Gmail y 4 Telegram), y un `Switch`
+con **cuatro** salidas conectadas:
 
 | Rama | Acción |
 |---|---|
@@ -557,7 +568,7 @@ src/
   n8n.py                         cliente y construcción del payload
 notebooks/                       01–07, con outputs y README de secuencia
 models/                          bundle C + manifiesto + joblibs de modelos base
-n8n/flujo.json                   flujo versionado (20 nodos, 4 ramas, inactivo)
+n8n/flujo.json                   copia versionada del flujo (13 nodos); el desplegado está activo
 mlruns/                          17 runs curados; live__* no versionados
 data/raw/                        HDF5 original
 data/processed/                  parquet procesados (ignorado en git, regenerable)
@@ -590,8 +601,9 @@ scripts/operativo/               backfill MLflow, estabilidad, gate y predicció
   versionada.
 - **Coste AOG:** el rango 10.000–15.000 USD/h es una fuente externa de credibilidad
   Media; las horas por ciclo son un supuesto. No se presenta como medición.
-- **n8n:** el JSON está inactivo por diseño. Ejecutarlo requiere credenciales y
-  puede enviar correo, crear calendario o escribir en Postgres.
+- **n8n:** el flujo desplegado está **activo** en la instancia local; `n8n/flujo.json`
+  es la copia versionada, inactiva. Ejecutarlo requiere credenciales y puede
+  enviar correo, crear calendario o escribir en Postgres.
 - **Fachadas:** no se reintroducen `src/reglas.py` ni `src/utils.py`; el test de
   arquitectura lo prohíbe y el mapa explica la ruta canónica.
 - **Granos:** fila (12.538) y ventana (6.196) no se mezclan; cada liga elige su
@@ -614,3 +626,65 @@ scripts/operativo/               backfill MLflow, estabilidad, gate y predicció
 ## Autoría
 
 Proyecto de portafolio sobre N-CMAPSS DS02 · [@mikelrh-dev](https://github.com/mikelrh-dev)
+
+## Arranque rápido en cmd (Windows)
+
+Órdenes listas para pegar en `cmd.exe`, desde la carpeta del repo. Activar el
+venv es lo que hace que `streamlit` y `mlflow` sean los del `.venv`: sin
+activar, el `streamlit` del PATH es el de Python 3.10 y el `mlflow` el de
+Anaconda.
+
+```cmd
+cd /d C:\ruta\al\repo\nasa
+.venv\Scripts\activate
+
+:: App de producción (bundle C + SHAP) -> http://127.0.0.1:8501
+streamlit run app/entrypoints/dashboard_ds02.py --server.address 127.0.0.1 --server.port 8501
+
+:: MLflow UI con los 17 runs -> http://127.0.0.1:5000
+set MLFLOW_ALLOW_FILE_STORE=true
+.venv\Scripts\python.exe -m mlflow ui --backend-store-uri ./mlruns
+
+:: MLflow server en :5001 (el que espera el MCP mlflow); para la UI no hace falta
+set MLFLOW_ALLOW_FILE_STORE=true
+.venv\Scripts\python.exe -m mlflow server --backend-store-uri ./mlruns --host 127.0.0.1 --port 5001
+```
+
+`MLFLOW_ALLOW_FILE_STORE=true` es obligatorio: MLflow 3.18 deja el file store
+en maintenance mode y no arranca sin él. Por eso MLflow se invoca como
+`.venv\Scripts\python.exe -m mlflow ...` y no con el `mlflow` del PATH.
+
+## Arrancar la app y MLflow (sin instalar nada)
+
+Si el venv y las dependencias ya están, no hace falta reinstalar. Hacen falta
+**dos consolas de `cmd.exe`**, porque Streamlit y MLflow son servidores que no
+devuelven el prompt.
+
+### Consola 1 de 2 · Streamlit
+
+```cmd
+cd /d C:\Users\mikel\Desktop\Pruebas\nasa
+.venv\Scripts\activate
+streamlit run app/entrypoints/dashboard_ds02.py --server.address 127.0.0.1 --server.port 8501
+```
+
+Abre http://127.0.0.1:8501 y deja esa consola abierta.
+
+### Consola 2 de 2 · MLflow
+
+```cmd
+cd /d C:\Users\mikel\Desktop\Pruebas\nasa
+.venv\Scripts\activate
+set MLFLOW_ALLOW_FILE_STORE=true
+.venv\Scripts\python.exe -m mlflow ui --backend-store-uri ./mlruns
+```
+
+Abre http://127.0.0.1:5000 y deja esa consola abierta.
+
+Para parar cualquiera de los dos servicios, pulsa `Ctrl+C` en su consola. Si solo
+quieres uno, arranca solo esa consola: no hace falta lo otro.
+
+La tercera posibilidad, el `mlflow server` de :5001 que usa el MCP mlflow, es
+opcional y solo si lo necesitas: iría en su propia consola con el mismo
+`set MLFLOW_ALLOW_FILE_STORE=true` y
+`.venv\Scripts\python.exe -m mlflow server --backend-store-uri ./mlruns --host 127.0.0.1 --port 5001`.
