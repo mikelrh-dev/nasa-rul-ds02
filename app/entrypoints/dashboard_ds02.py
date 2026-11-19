@@ -493,23 +493,22 @@ with st.container(border=True):
     st.subheader("Primera lectura", icon=":material/visibility:")
     _total_muro = len(tarjetas_cache) + len(tarjetas_gemelos)
     hangar_en_muro = grounded + derivados_gemelos
-    with st.container(horizontal=True):
-        st.metric("Unidades monitorizadas", f"{global_metrics['units']}",
-                  f"{L.fmt_miles(global_metrics['windows'])} ventanas evaluadas",
-                  border=True, icon=":material/groups:", delta_color="off")
+    _pl, _pr = st.columns([1, 2])
+    with _pl:
         st.metric("Unidades en hangar", f"{hangar_en_muro} / {_total_muro}",
                   f"en el ciclo {cycle}", border=True,
                   icon=":material/local_shipping:", delta_color="off")
-    st.caption(
-        "La decisión de inmovilizar no la toma la predicción del modelo: la toma "
-        "el peor caso de su banda. Por eso un motor puede quedar en hangar con "
-        "vida útil estimada por encima del umbral."
-    )
-    st.caption(
-        f"El contador incluye la flota de la caché y los motores registrados: "
-        f"{grounded} de caché + {derivados_gemelos} registrados = {hangar_en_muro} "
-        f"en el muro, sobre {_total_muro} tarjetas."
-    )
+    with _pr:
+        st.caption(
+            "La decisión de inmovilizar no la toma la predicción del modelo: la toma "
+            "el peor caso de su banda. Por eso un motor puede quedar en hangar con "
+            "vida útil estimada por encima del umbral."
+        )
+        st.caption(
+            f"El contador de hangar incluye la flota de la caché y los motores registrados: "
+            f"{grounded} de caché + {derivados_gemelos} registrados = {hangar_en_muro} "
+            f"en el muro, sobre {_total_muro} tarjetas."
+        )
 
 # P1.4 · La inferencia del sandbox cacheada vive en `app/lib/sandbox.py`
 # (`_sandbox_puntua_cached`): el entrypoint la importa y la pasa por `AppCtx`.
