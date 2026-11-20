@@ -1,1 +1,1 @@
-"""Class-track scripts and data helpers for the DS02 notebooks."""
+"""Scripts y utilidades de datos del track de clase para los notebooks DS02."""

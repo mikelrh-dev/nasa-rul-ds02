@@ -3,7 +3,7 @@
 Toma el frame de ventanas ya cacheado y le aplica las dos reglas de correccion:
 
 * `R2b_ISOTONICO_CAUSAL` — ajuste isotonico causal del prefijo, por unidad y ordenado
-  por ciclo. Ojo: el ajuste es no creciente, la serie devuelta no necesariamente
+  por ciclo. Nota: el ajuste es no creciente, la serie devuelta no necesariamente
   (ver seccion 13 de `docs/evidencia/informes/informe-2026-10-21-reglas-oof.md`).
 * `R6_BANDA` — banda conformal recalibrada sobre el punto corregido, con los
   coeficientes congelados en `src/mia/calibracion_banda.json`.

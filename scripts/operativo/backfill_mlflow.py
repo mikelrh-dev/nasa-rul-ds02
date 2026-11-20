@@ -1,27 +1,26 @@
 #!/usr/bin/env python
-"""Backfill the 17 measured runs into the `ds02-clase` MLflow experiment.
+"""Registra en el experimento `ds02-clase` de MLflow las 17 ejecuciones medidas.
 
-PIA-4 (20 % of PIA) asks for every model and experiment with hyperparameters,
-metrics and a comparison; SAA asks for a table "taken from MLflow". This script
-records what is already measured in `resultados/` and `models/ds02_manifest.json`.
-It never trains, never writes `models/`, and never calls `log_model`/`autolog`.
+Este script guarda lo ya medido en `resultados/` y en `models/ds02_manifest.json`:
+modelos y experimentos con hiperparámetros, métricas y comparativa. Nunca
+entrena, nunca escribe en `models/` y nunca llama a `log_model`/`autolog`.
 
-Usage
------
-    python scripts/operativo/backfill_mlflow.py --write   # create/replace the 17 runs
-    python scripts/operativo/backfill_mlflow.py --check   # verify the store and the export
-    python scripts/operativo/backfill_mlflow.py --export  # regenerate the CSV from the store
+Uso
+---
+    python scripts/operativo/backfill_mlflow.py --write   # crea o reemplaza las 17 ejecuciones
+    python scripts/operativo/backfill_mlflow.py --check   # verifica el almacén y la exportación
+    python scripts/operativo/backfill_mlflow.py --export  # regenera el CSV desde el almacén
 
-The store is `./mlruns` (text-only file store). `--write` is idempotent by the
-`run_key` tag: it deletes an existing active run with the same key and creates it
-again from the CSV. Re-running it never creates an 18th run.
+El almacén es `./mlruns` (solo ficheros de texto). `--write` es idempotente por
+la etiqueta `run_key`: borra la ejecución activa con la misma clave y la vuelve
+a crear desde el CSV. Repetirlo nunca genera una ejecución 18.
 
-The 17 runs are: 9 row-grain models (5 classic + 4 MLP), 4 window-grain models
-(LGBM, BiLSTM, BiLSTM+EMA5 and the deployed bundle C) and the 4 `cyc_norm`
-ablation variants in `resultados/ablacion_cycnorm.csv` (one run per variant,
-always the BiLSTM+EMA5, which is the best model in all four). The full 4 x 3
-grid stays in the notebook output and in that CSV. Nothing here re-executes a
-notebook.
+Las 17 ejecuciones son: 9 modelos de grano fila (5 clásicos + 4 MLP), 4 de grano
+ventana (LGBM, BiLSTM, BiLSTM+EMA5 y el bundle C desplegado) y las 4 variantes
+de la ablación de `cyc_norm` en `resultados/ablacion_cycnorm.csv` (una ejecución
+por variante, siempre BiLSTM+EMA5, que es el mejor modelo en las cuatro). La
+rejilla completa de 4 x 3 queda en la salida del notebook y en ese CSV. Aquí no
+se reejecuta ningún notebook.
 """
 from __future__ import annotations
 
@@ -37,9 +36,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# MLflow 3.18 refuses the filesystem store unless this opt-out is explicit.
-# The plan requires a text-only store (no SQLite, no server), so set it before
-# importing mlflow. It is harmless if the caller already exported it.
+# MLflow 3.18 rechaza el almacén de ficheros si no se activa esta opción.
+# El almacén debe ser solo de texto (sin SQLite ni servidor), así que se activa
+# antes de importar mlflow. No molesta si quien llama ya la exportó.
 os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
 
 from mlflow.entities import ViewType  # noqa: E402
@@ -66,8 +65,8 @@ FUENTE_LIVE = "live_notebook"
 
 
 def _is_historic(run) -> bool:
-    """Historic backfill run: fuente=historico, or legacy run with a known
-    historic run_key and no fuente tag yet (pre mlflow-live-notebooks)."""
+    """Ejecución histórica del backfill: fuente=historico, o ejecución heredada con
+    un run_key histórico conocido y sin etiqueta fuente todavía (anterior a mlflow-live-notebooks)."""
     fuente = run.data.tags.get("fuente") if run.data.tags else None
     if fuente is not None:
         return fuente == FUENTE_HISTORICO
@@ -79,7 +78,7 @@ def _is_historic(run) -> bool:
 
 
 def historic_runs(client: MlflowClient, exp_id: str) -> list:
-    """Only the historic backfill runs; live notebook runs are ignored."""
+    """Solo las ejecuciones históricas del backfill; las de notebook en vivo se ignoran."""
     return [r for r in client.search_runs([exp_id], max_results=100) if _is_historic(r)]
 
 DESCRIPTION = (
@@ -161,7 +160,7 @@ def _data_hashes() -> str:
 
 
 def _param_text(value: Any) -> str:
-    """MLflow stores every parameter as text; keep the same spelling in --check."""
+    """MLflow guarda cada parámetro como texto; conserva la misma escritura en --check."""
     return str(value)
 
 
@@ -669,8 +668,8 @@ def check(client: MlflowClient, exp_id: str) -> int:
             if want is not None and run.data.tags.get(name) != want:
                 errors.append(f"{key}: tag {name}={run.data.tags.get(name)!r} != {want!r}")
 
-    # Store purity: `mlruns/` is the deliverable and must hold only the 17
-    # historic runs. `search_runs` hides tombstones, so ask for ALL stages.
+    # Pureza del almacén: `mlruns/` es el entregable y solo puede contener las 17
+    # ejecuciones históricas. `search_runs` oculta las lápidas, así que se piden todas las etapas.
     all_runs = client.search_runs(
         [exp_id], run_view_type=ViewType.ALL, max_results=1000
     )

@@ -1,4 +1,4 @@
-"""La recepcionista que aplica las reglas (MIA): dos pasadas limpias.
+"""Motor que aplica las reglas (MIA) en dos pasadas.
 
 Es el mismo motor del E2, con una diferencia estructural: las reglas de
 **correccion** y las de **decision** escriben campos distintos de la ficha, y
@@ -23,8 +23,8 @@ def motor(caso: dict, reglas_correccion: list, reglas_decision: list,
 
     Una condición que no encuentra su clave (KeyError, p. ej. una ficha con
     solo `rul_punto` y sin `limite_inferior`/`umbrales`) cuenta como no
-    cumplida, no como error: la pasada sigue y, si al final nadie decidió,
-    la decisión es `SIN_DECISION` en vez de `None` silencioso.
+    cumplida, no como error: la pasada sigue y, si ninguna regla decide al
+    final, la decisión es `SIN_DECISION` en vez de un `None` silencioso.
     """
 
     usadas: list[str] = []

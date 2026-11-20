@@ -1,4 +1,4 @@
-"""SAA-9 de 7 a 10: SHAP Permutation sobre el MLP E2 (no XGB)."""
+"""SHAP Permutation sobre el MLP E2 (no sobre XGB)."""
 
 import json
 import os

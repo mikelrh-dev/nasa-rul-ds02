@@ -1,18 +1,18 @@
-"""Sandbox de estres extracted from `dashboard_ds02` (dashboard-split-monolito, PR2 task 2.1).
+"""Sandbox de estrés extraído de `dashboard_ds02` (división del monolito, PR2 tarea 2.1).
 
-Pure structural move: the body of `_sandbox_estres` is byte-identical to the
-pre-split dashboard version except for the parameter list and the
-dashboard-globals resolution below. No behavior, metric or threshold change.
+Movimiento estructural puro: el cuerpo de `_sandbox_estres` es idéntico al del
+dashboard antes de la división salvo la lista de parámetros y la resolución de
+globales que hay abajo. No cambia comportamiento, métricas ni umbrales.
 
-Receives the single `AppCtx` built by the dashboard: `windows`, `telemetry`,
-`units`, `cache_sha`, `sandbox_puntua_cached`, `chart_layout`, `style_axes`
-and `st_badge_estado` are read from it. `_sandbox_puntua_cached` is owned by
-`app/lib/sandbox.py`; this module only reuses it through the context, so the
-scoring/preflight logic is not duplicated here and the module never imports
-the dashboard.
+Recibe el único `AppCtx` que construye el dashboard: de ahí lee `windows`,
+`telemetry`, `units`, `cache_sha`, `sandbox_puntua_cached`, `chart_layout`,
+`style_axes` y `st_badge_estado`. `_sandbox_puntua_cached` es de
+`app/lib/sandbox.py`; este módulo solo lo reutiliza a través del contexto, así
+que la lógica de puntuado y preflight no se duplica y el módulo nunca importa el
+dashboard.
 
-`frame_cache` (ttl=3600), the SHAP cache and the PDF `artefacto_sha256`
-signature are untouched.
+`frame_cache` (ttl=3600), la caché de SHAP y la firma `artefacto_sha256` del PDF
+no se tocan.
 """
 from __future__ import annotations
 

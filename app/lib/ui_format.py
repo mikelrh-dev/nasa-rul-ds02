@@ -1,9 +1,9 @@
-"""Formatters that turn numeric columns into display strings.
+"""Formateadores que convierten columnas numéricas en texto de presentación.
 
-The installed Streamlit 1.66.0 ignores ``NumberColumn(format=...)`` -- verified with a
-minimal probe on a scratch server -- so every read-only grid formats its values here and
-declares the formatted column as text. Editable grids keep their numeric dtype and stay
-out of this module.
+El Streamlit 1.66.0 instalado ignora ``NumberColumn(format=...)`` (verificado con
+una prueba mínima en un servidor de scratch), así que cada rejilla de solo
+lectura formatea sus valores aquí y declara la columna como texto. Las rejillas
+editables conservan su dtype numérico y no pasan por este módulo.
 """
 from __future__ import annotations
 

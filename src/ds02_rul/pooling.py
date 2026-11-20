@@ -1,10 +1,10 @@
-"""Serializable last-timestep pooling.
+"""Pooling serializable del último paso temporal.
 
-Replaces the bare `Lambda(lambda z: z[:, -1, :])` used by the original notebook.
-Keras serialises a bare lambda as marshalled Python bytecode, and `marshal`'s
-code-object format changes between Python minor versions, so an artifact built
-that way can only be loaded by the interpreter that wrote it. A Layer subclass
-with an explicit `get_config` serialises by value and is portable.
+Sustituye al `Lambda(lambda z: z[:, -1, :])` del notebook original. Keras
+serializa un lambda suelto como bytecode de Python y el formato de `marshal`
+cambia entre versiones menores, así que un artefacto creado así solo se puede
+cargar con el intérprete que lo escribió. Una subclase de Layer con `get_config`
+explícito se serializa por valor y es portable.
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from keras import layers
 
 @keras.saving.register_keras_serializable(package="ds02_rul")
 class LastStepPooling(layers.Layer):
-    """Return the last timestep of a (batch, time, features) tensor."""
+    """Devuelve el último paso temporal de un tensor (lote, tiempo, rasgos)."""
 
     def call(self, inputs):
         """Devuelve la representación del último paso temporal."""

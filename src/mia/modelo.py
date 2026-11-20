@@ -1,4 +1,4 @@
-"""Capa del modelo (SAA): carga el artefacto congelado y puntúa una ventana.
+"""Capa del modelo: carga el artefacto congelado y puntúa una ventana.
 
 `predecir(caso)` deja en la ficha:
 

@@ -1,18 +1,18 @@
-"""Turn-advance simulator: the fleet clock and the held engines.
+"""Simulador de avance de turnos: el reloj de la flota y los motores retenidos.
 
-The cache already holds a scored window per cycle (U11: 59 cycles, U14: 74,
-U15: 66). Advancing the fleet is therefore a *read*, not a computation: this
-module never calls the model.
+La caché ya guarda una ventana puntuada por ciclo (U11: 59 ciclos, U14: 74,
+U15: 66). Avanzar la flota es por tanto una *lectura*, no un cálculo: este módulo
+nunca llama al modelo.
 
-Re-scoring would not reproduce the cache anyway. The point estimate is
-EMA-smoothed causally (`ensemble.py:158`, `causal_ema_by_unit(..., span=5)`), so
-an isolated window starts the EMA cold; and the cache is built at `step=2`
-while live scoring uses `step=1`. Measured on U14 at cycle 76: 0,6692 live
-against 0,8654 cached. Making the wall and the twin disagree about the same
-engine would cost the traceability this project sells.
+Además, volver a puntuar no reproduciría la caché. La estimación puntual se
+suaviza con una EMA causal (`ensemble.py:158`, `causal_ema_by_unit(..., span=5)`),
+así que una ventana aislada arranca la EMA en frío; y la caché se construyó con
+`step=2` mientras el puntuado en vivo usa `step=1`. Medido en U14 en el ciclo 76:
+0,6692 en vivo frente a 0,8654 en caché. Que el muro y el gemelo discreparan
+sobre el mismo motor costaría la trazabilidad que vende el proyecto.
 
 No es un módulo puro: importa `flota`, que a su vez importa `ui_data_loader`
-(Streamlit). El bucle de turnos no escribe y se testea con el runtime de
+(Streamlit). El bucle de turnos no escribe y se prueba con el runtime de
 Streamlit.
 """
 from __future__ import annotations
@@ -21,10 +21,10 @@ import pandas as pd
 
 
 def _peor_ventana(grupo: pd.DataFrame, ciclo: int) -> pd.Series | None:
-    """Worst window of a unit at `ciclo` (the lowest lower bound).
+    """Peor ventana de una unidad en `ciclo` (el límite inferior más bajo).
 
-    A unit with no window at or before `ciclo` has not flown yet: it is not
-    held, it is simply clamped, exactly as `fleet_snapshot` already does.
+    Una unidad sin ventana en `ciclo` o antes todavía no ha volado: no se retiene,
+    solo se recorta, igual que ya hace `fleet_snapshot`.
     """
     hasta = grupo[grupo["cycle"] <= ciclo]
     if hasta.empty:
@@ -33,11 +33,11 @@ def _peor_ventana(grupo: pd.DataFrame, ciclo: int) -> pd.Series | None:
 
 
 def retenidos(frame: pd.DataFrame, ciclo: int, umbrales: dict) -> set[int]:
-    """Engines that may not fly: their `L_inf` at `ciclo` is below the threshold.
+    """Motores que no pueden volar: su `L_inf` en `ciclo` está bajo el umbral.
 
-    The decision rule is the same one the badge already uses — `L_inf`, never
-    the point estimate. This function only asks it of the cached rows; it does
-    not re-decide anything.
+    La regla de decisión es la misma que ya usa la insignia: `L_inf`, nunca la
+    estimación puntual. Esta función solo la aplica a las filas cacheadas; no
+    vuelve a decidir nada.
     """
     retenidos: set[int] = set()
     for unidad, grupo in frame.groupby("unit"):
@@ -48,11 +48,11 @@ def retenidos(frame: pd.DataFrame, ciclo: int, umbrales: dict) -> set[int]:
 
 
 def ciclos_hasta_fallo(frame: pd.DataFrame, ciclo: int, umbrales: dict) -> dict:
-    """Cycles from `ciclo` until each engine's `L_inf` crosses the threshold.
+    """Ciclos desde `ciclo` hasta que el `L_inf` de cada motor cruza el umbral.
 
-    Read from the cache: it answers "what happens if I keep flying" without a
-    single inference call. `None` means the engine never crosses inside the
-    recorded life.
+    Se lee de la caché: responde "qué pasa si sigo volando" sin una sola llamada
+    de inferencia. `None` significa que el motor no cruza dentro de la vida
+    registrada.
     """
     faltan: dict[int, int | None] = {}
     for unidad, grupo in frame.groupby("unit"):

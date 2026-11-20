@@ -1,20 +1,21 @@
-"""DS02 RUL prediction: importable pipeline objects.
+"""Predicción de RUL DS02: objetos del pipeline importables.
 
-Everything that must be pickled with a module-qualified name lives here, so an
-artifact can be loaded by any process — not only by the notebook that trained it.
+Aquí vive todo lo que debe serializarse con un nombre cualificado por módulo,
+para que un artefacto se pueda cargar desde cualquier proceso y no solo desde el
+notebook que lo entrenó.
 
-Public API
-----------
-SensorResidualizer      per-sensor residualisation against the flight regime
-HybridStackingEnsemble  BiLSTM + LightGBM + meta-learner + causal EMA
-LastStepPooling         serializable replacement for the bare Lambda
-causal_ema_by_unit      causal per-unit exponential moving average
-calculate_nasa_score    asymmetric exponential penalty, summed
+API pública
+-----------
+SensorResidualizer      residualización por sensor contra el régimen de vuelo
+HybridStackingEnsemble  BiLSTM + LightGBM + meta-aprendiz + EMA causal
+LastStepPooling         sustituto serializable del Lambda suelto
+causal_ema_by_unit      media móvil exponencial causal por unidad
+calculate_nasa_score    penalización exponencial asimétrica, sumada
 evaluate_predictions    RMSE / MAE / R2 / NASA
-macro_rmse              per-engine RMSEs and their unweighted mean
-fit_conformal           per-bin asymmetric prediction band (split conformal)
-apply_conformal         (lower, upper) from a calibrated band
-empirical_coverage      realised coverage of a band
+macro_rmse              RMSE por motor y su media sin ponderar
+fit_conformal           banda asimétrica por tramo (split conformal)
+apply_conformal         (inferior, superior) de una banda calibrada
+empirical_coverage      cobertura observada de una banda
 """
 
 from .conformal import apply_conformal, empirical_coverage, fit_conformal

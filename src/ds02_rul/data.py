@@ -1,8 +1,8 @@
-"""N-CMAPSS DS02 ingestion.
+"""Ingesta de N-CMAPSS DS02.
 
-If the HDF5 is not resolvable this raises and says what it looked for. No other
-dataset is substituted: a silent fallback could train a different-paradigm model
-and overwrite the DS02 artifact at the same path.
+Si el HDF5 no se resuelve, se lanza un error que dice qué rutas se buscaron. No
+se sustituye por otro dataset: un respaldo silencioso podría entrenar un modelo
+de otro paradigma y sobrescribir el artefacto DS02 en la misma ruta.
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-# Repo root: src/ds02_rul/data.py -> repo root is three levels up.
+# Raíz del repo: src/ds02_rul/data.py está tres niveles por debajo.
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 DS02_CANDIDATE_PATHS = (
@@ -43,7 +43,7 @@ TRAIN_UNITS = FIT_UNITS + HOLDOUT_UNITS
 
 
 def resolve_ds02(path: str | None = None) -> str:
-    """Return the first existing DS02 path, or raise a descriptive error."""
+    """Devuelve la primera ruta DS02 existente o lanza un error explicativo."""
     candidates = (path,) if path else DS02_CANDIDATE_PATHS
     for candidate in candidates:
         if candidate and os.path.exists(candidate):
@@ -57,11 +57,11 @@ def resolve_ds02(path: str | None = None) -> str:
 
 
 def load_ds02(path: str | None = None, stride: int = 100) -> dict:
-    """Load and downsample the DS02 dev and test splits.
+    """Carga y submuestrea las particiones dev y test de DS02.
 
-    Every array is indexed `[::stride]` so unit, cycle, `W`, `Xs` and RUL stay
-    row-aligned. No 125-cycle clamp is applied: it would silently truncate DS02
-    targets.
+    Cada array se indexa con `[::stride]` para que unidad, ciclo, `W`, `Xs` y RUL
+    sigan alineados por fila. No se aplica el recorte de 125 ciclos: truncaría
+    los objetivos DS02 sin avisar.
     """
     resolved = resolve_ds02(path)
     with h5py.File(resolved, "r") as fh:

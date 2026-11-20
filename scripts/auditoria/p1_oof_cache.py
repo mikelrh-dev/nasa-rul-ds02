@@ -1,14 +1,15 @@
-"""Build the honest dev gate instrument: grouped out-of-fold base predictions.
+"""Construye el instrumento honesto de la puerta de dev: predicciones base out-of-fold agrupadas.
 
-`oof_base_predictions` refits the scalers, the polynomial basis, the 14 sensor
-ridges and both base models inside each of the 3 grouped folds, so every dev row
-is scored by base models that never saw its engine. That is the instrument the
-dev gate needs; in-sample base predictions make any meta layer look catastrophic
-because the trees have memorised the scored engines.
+`oof_base_predictions` reajusta los escaladores, la base polinómica, las 14
+regresiones ridge de sensores y ambos modelos base dentro de cada uno de los 3
+folds agrupados, así que cada fila de dev la puntúan modelos base que nunca
+vieron su motor. Ese es el instrumento que necesita la puerta de dev; las
+predicciones base dentro de muestra hacen que cualquier capa meta parezca
+catastrófica porque los árboles han memorizado los motores puntuados.
 
-Writes `_p1_oof_cache.npz` (units, cycles, y, pred_lstm, pred_lgb, folds).
+Escribe `_p1_oof_cache.npz` (units, cycles, y, pred_lstm, pred_lgb, folds).
 
-Run:  python scripts/auditoria/p1_oof_cache.py
+Ejecutar:  python scripts/auditoria/p1_oof_cache.py
 """
 from __future__ import annotations
 

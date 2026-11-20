@@ -1,8 +1,8 @@
 """Vista previa legible de la orden de mantenimiento.
 
 El documento exportado (JSON/PDF/CSV) conserva el objeto estructurado
-`ventana_evaluada`; la vista previa lo convierte en texto para que nadie tenga que
-leer una serializacion interna.
+`ventana_evaluada`; la vista previa lo convierte en texto para no obligar a
+leer una serialización interna.
 """
 from __future__ import annotations
 

@@ -1,8 +1,8 @@
-"""Contracts for the readable order preview, the honest countdown and grid names.
+"""Contratos de la vista previa legible de la orden, la cuenta atrás honesta y los nombres de tabla.
 
-Found by the second live Playwright audit: the order preview printed an internal JSON
-object, the fleet countdown counted a future crossing for a unit already grounded, and
-data grids carried no name in the DOM.
+Los detectó la segunda auditoría con Playwright: la vista previa de la orden
+imprimía un objeto JSON interno, la cuenta atrás de la flota contaba un cruce
+futuro para una unidad ya en tierra y las tablas de datos no tenían nombre en el DOM.
 """
 from __future__ import annotations
 

@@ -1,9 +1,10 @@
-"""Presentation contracts: bounded precision in the grids and the quality metrics.
+"""Contratos de presentación: precisión acotada en las tablas y en las métricas de calidad.
 
-The installed Streamlit 1.66.0 ignores ``NumberColumn(format=...)`` — verified with a
-minimal probe on a scratch server — so the dashboard formats values before they reach
-``st.dataframe``. These tests pin the shared formatter, the live R2 metric and the
-absence of dead format declarations in the three tabs that render numeric grids.
+El Streamlit 1.66.0 instalado ignora ``NumberColumn(format=...)`` (comprobado con
+una prueba mínima en un servidor de prueba), así que el dashboard formatea los
+valores antes de que lleguen a ``st.dataframe``. Estos tests fijan el formateador
+compartido, la métrica R2 en vivo y la ausencia de declaraciones de formato
+muertas en las tres pestañas con tablas numéricas.
 """
 from __future__ import annotations
 

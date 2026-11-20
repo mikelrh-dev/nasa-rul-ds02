@@ -1,7 +1,7 @@
-"""DS02 inference entry point.
+"""Punto de entrada de inferencia DS02.
 
-Loads `models/ensemble.joblib` through the importable package — no notebook, no
-`__main__` shims, no fallback to FD001.
+Carga `models/ensemble.joblib` a través del paquete importable: sin notebook, sin
+shims de `__main__` y sin respaldo a FD001.
 
     python scripts/operativo/predict_ds02.py --unit 11 --window 0
     python scripts/operativo/predict_ds02.py --unit 11 --all --json

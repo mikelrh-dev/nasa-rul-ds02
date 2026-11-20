@@ -1,9 +1,9 @@
-"""Causal per-unit exponential moving average.
+"""Media móvil exponencial causal por unidad.
 
-Wear is monotone in cycle, but a window-by-window prediction is not. The EMA
-removes that discontinuity noise without looking forward: `adjust=False` makes
-the recursion depend only on the current and past samples, and the per-unit
-grouping keeps two engines from bleeding into each other.
+El desgaste crece con el ciclo, pero una predicción ventana a ventana no. La EMA
+quita ese ruido de discontinuidad sin mirar hacia delante: `adjust=False` hace
+que la recursión dependa solo de la muestra actual y las pasadas, y agrupar por
+unidad evita que dos motores se contaminen entre sí.
 """
 from __future__ import annotations
 
@@ -12,19 +12,19 @@ import pandas as pd
 
 
 def causal_ema_by_unit(pred, units, cycles, span: int = 5) -> np.ndarray:
-    """Smooth `pred` within each unit, over rows ordered by cycle.
+    """Suaviza `pred` dentro de cada unidad, con las filas ordenadas por ciclo.
 
-    Parameters
+    Parámetros
     ----------
-    pred : array-like of shape (n,)
-    units : array-like of shape (n,)
-    cycles : array-like of shape (n,)
+    pred : array-like de forma (n,)
+    units : array-like de forma (n,)
+    cycles : array-like de forma (n,)
     span : int
-        Pandas `ewm` span. `span=5` corresponds to alpha = 2 / (5 + 1).
+        Span de `ewm` de pandas. `span=5` equivale a alpha = 2 / (5 + 1).
 
-    Returns
-    -------
-    np.ndarray of shape (n,), same ordering as the input.
+    Devuelve
+    --------
+    np.ndarray de forma (n,), con el mismo orden que la entrada.
     """
     pred = np.asarray(pred, dtype=np.float64)
     units = np.asarray(units)

@@ -1,1 +1,1 @@
-# src package — namespace root for clase/ds02_rul/mia subpackages.
+# Paquete src: raíz de espacio de nombres para los subpaquetes clase, ds02_rul y mia.

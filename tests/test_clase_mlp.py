@@ -8,7 +8,7 @@ def test_mlp_base_mas_tres_experimentos():
     assert set(comp["experimento"]) == {"base", "E1_capacidad", "E2_reg_lr", "E3_batch"}
     for col in ["rmse_train", "mae_train", "r2_train", "tiempo_s", "hipotesis"]:
         assert col in comp.columns, f"falta {col}"
-    # Nota contract-change (SAA test-una-vez): el test solo vive en el elegido.
+    # Nota de contrato: el test solo vive en el elegido.
 
 
 def test_mlp_comparativa_trae_validacion():

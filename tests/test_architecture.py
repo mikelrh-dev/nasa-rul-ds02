@@ -1,6 +1,6 @@
 """Contrato de dirección: `clase` puede usar `ds02_rul`, nunca al revés.
 
-El bundle C vive en `src/ds02_rul/`; la rúbrica vive en `src/clase/`. Si un
+El bundle C vive en `src/ds02_rul/` y el track de clase en `src/clase/`. Si un
 módulo de `ds02_rul` vuelve a importar `clase` (como hacía `shap_c.py` antes de
 la reestructuración), el test falla antes de que el acoplamiento se consolide.
 """

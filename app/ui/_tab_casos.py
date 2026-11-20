@@ -1,10 +1,10 @@
 """Sala «Casos nuevos»: traer motores que no están en la caché.
 
-Cuatro caminos hacia el mismo validador: el lote de CSV, el ejemplo de un clic,
+Cuatro caminos hacia el mismo validador: el lote de CSV, el dataset demo,
 el explorador por ciclo y el formulario con datos propios. El resultado se pinta
 en una tarjeta común y desde ahí se registra el gemelo.
 
-`_tab_casos` es un preámbulo de alias y ocho llamadas con nombre. El formulario
+`_tab_casos` es un preámbulo de alias y seis llamadas con nombre. El formulario
 individual (`_unidad_nueva`) conserva su estado en variables locales porque las
 tres rutas de entrada desembocan en la misma puntuación. Recibe el `AppCtx` y no
 importa el dashboard.
@@ -48,7 +48,7 @@ DEMO_MANUAL = "Manual (motor y rango de ciclos)"
 def _tab_casos(ctx: AppCtx) -> None:
     """Cuatro rutas de entrada al mismo validador, en orden de pantalla.
 
-    Preámbulo de alias y ocho llamadas; cada bloque es una `def` anidada que lee
+    Preámbulo de alias y seis llamadas; cada bloque es una `def` anidada que lee
     el `AppCtx` por clausura. El formulario (`_unidad_nueva`) guarda su estado en
     locales porque las tres rutas desembocan en la misma puntuación. Ver «Cómo se
     lee una pestaña» en `app/README.md`.
@@ -222,76 +222,6 @@ def _tab_casos(ctx: AppCtx) -> None:
                             "Míralos en la primera pestaña, en «Gemelos registrados»."
                         )
                         st.rerun()
-
-    def _demo_un_clic() -> None:
-        """Onboarding: puntua un tramo real de la cache en un clic."""
-        with st.container(border=True):
-            st.subheader("Puntúa un ejemplo en 1 clic", icon=":material/rocket_launch:")
-            st.caption(
-                "El onboarding del tablero está en la primera pestaña. Esto puntúa un tramo "
-                "real de la caché y deja el resultado listo para registrar: no pega nada ni "
-                "sube CSV."
-            )
-            c1, c2, c3 = st.columns(3)
-            for _col, _nombre in zip((c1, c2, c3), list(DEMO_PRESETS)[:3]):
-                with _col:
-                    if st.button(_nombre, key=f"live_demo_{_nombre}", type="primary" if "Crítico" in _nombre else "secondary", icon=":material/play_arrow:"):
-                        _u, _p, _ciclo, _did = DEMO_PRESETS[_nombre]
-                        try:
-                            if _ciclo is None:
-                                _tab, _meta = INF.example_window(
-                                    _u, _p, rows=INF.DEMO_ROWS)
-                            else:
-                                _tab, _meta = INF.window_ending_at(
-                                    _u, _ciclo, rows=INF.DEMO_ROWS)
-                            _pf = INF.preflight(_tab)
-                            if not _pf["ok"]:
-                                raise ValueError(_pf["error"])
-                            st.session_state["live_engine_id"] = _did
-                            # El selectbox «Dataset demo» es la fuente de la tabla del
-                            # modo por defecto («Ejemplo del test set»): sin sincronizarlo,
-                            # el botón cambiaba la matrícula y el resultado, pero la rejilla,
-                            # el pie «Ventana real de U…» y el form «Evaluar unidad» seguían
-                            # con el preset anterior y machacaban el resultado del botón.
-                            st.session_state["live_demo_preset"] = _nombre
-                            st.session_state["_editor_value"] = _tab
-                            st.session_state["live_result"] = INF.score_table(_tab, engine_id=_did)
-                            st.session_state["live_meta"] = _meta
-                            st.session_state["live_warnings"] = _pf["avisos"]
-                            st.session_state["live_error"] = None
-                            st.session_state["live_flash"] = f"{_nombre} puntuado abajo (ciclos {_meta['start_cycle']}→{_meta['end_cycle']}). Puedes cambiar a Editar tabla para modificar valores y reevaluar, o pulsar Registrar gemelo."
-                        except ValueError as exc:
-                            st.session_state["live_result"] = None
-                            st.session_state["live_error"] = str(exc)
-                        st.rerun()
-            # Nota de honestidad: el límite inferior no es monótono y el tribunal lo va a
-            # ver. Los tres números salen de la caché, no están escritos a mano.
-            _fila_hangar = windows[(windows["unit"] == _u_hangar) & (windows["cycle"] == _c_hangar)]
-            _lo_min = float(_fila_hangar["lower"].min())
-            _lo_max = float(_fila_hangar["lower"].max())
-            _y_real = float(_fila_hangar["y_true"].mean())
-            _curva_h = L.unit_curve(windows, _u_hangar).sort_values("cycle")
-            _caida = _curva_h[_curva_h["lower_min"] < umbrales["apto"]]
-            _ciclo_caida = int(_caida["cycle"].min()) if not _caida.empty else None
-            _repunte = (
-                _curva_h[(_curva_h["cycle"] > _ciclo_caida)
-                         & (_curva_h["lower_min"] >= umbrales["apto"])]
-                if _ciclo_caida is not None else _curva_h.iloc[0:0]
-            )
-            _ciclo_repunte = int(_repunte["cycle"].min()) if not _repunte.empty else None
-            _nota_mono = (
-                f" La trayectoria no es monótona — cae a inspección en el ciclo "
-                f"{_ciclo_caida} y vuelve a apto en el {_ciclo_repunte} — porque el EMA "
-                "causal (ADR-006) reduce pero no elimina los saltos de un predictor por "
-                "ventanas. Se muestra tal cual."
-                if _ciclo_caida is not None and _ciclo_repunte is not None else ""
-            )
-            st.caption(
-                f"El caso crítico termina en el ciclo {_c_hangar}, donde el límite inferior "
-                f"cruza el umbral de hangar ({umbrales['hangar']:.0f}) con {_y_real:.0f} ciclos "
-                f"reales restantes: dentro del propio ciclo baja de {_lo_max:.1f} a {_lo_min:.1f}."
-                + _nota_mono
-            )
 
     def _explorar_por_ciclo() -> None:
         """Explorador por ciclo: genera un tramo y su estado."""
@@ -489,6 +419,34 @@ def _tab_casos(ctx: AppCtx) -> None:
                 "Dataset demo", [*DEMO_PRESETS, DEMO_MANUAL], key="live_demo_preset",
                 on_change=_on_preset_change,
                 help=f"Cuatro casos reales o un tramo manual. Los presets cargan {INF.DEMO_ROWS} muestras; el manual carga el rango de ciclos que elijas.",
+            )
+            # Nota de transparencia: el límite inferior no es monótono y la revisión lo va
+            # a ver. Los tres números salen de la caché, no están escritos a mano.
+            _fila_hangar = windows[(windows["unit"] == _u_hangar) & (windows["cycle"] == _c_hangar)]
+            _lo_min = float(_fila_hangar["lower"].min())
+            _lo_max = float(_fila_hangar["lower"].max())
+            _y_real = float(_fila_hangar["y_true"].mean())
+            _curva_h = L.unit_curve(windows, _u_hangar).sort_values("cycle")
+            _caida = _curva_h[_curva_h["lower_min"] < umbrales["apto"]]
+            _ciclo_caida = int(_caida["cycle"].min()) if not _caida.empty else None
+            _repunte = (
+                _curva_h[(_curva_h["cycle"] > _ciclo_caida)
+                         & (_curva_h["lower_min"] >= umbrales["apto"])]
+                if _ciclo_caida is not None else _curva_h.iloc[0:0]
+            )
+            _ciclo_repunte = int(_repunte["cycle"].min()) if not _repunte.empty else None
+            _nota_mono = (
+                f" La trayectoria no es monótona — cae a inspección en el ciclo "
+                f"{_ciclo_caida} y vuelve a apto en el {_ciclo_repunte} — porque el EMA "
+                "causal (ADR-006) reduce pero no elimina los saltos de un predictor por "
+                "ventanas. Se muestra tal cual."
+                if _ciclo_caida is not None and _ciclo_repunte is not None else ""
+            )
+            st.caption(
+                f"El caso crítico termina en el ciclo {_c_hangar}, donde el límite inferior "
+                f"cruza el umbral de hangar ({umbrales['hangar']:.0f}) con {_y_real:.0f} ciclos "
+                f"reales restantes: dentro del propio ciclo baja de {_lo_max:.1f} a {_lo_min:.1f}."
+                + _nota_mono
             )
             if demo_nombre == DEMO_MANUAL:
                 _man_cols = st.columns(3)
@@ -713,7 +671,7 @@ def _tab_casos(ctx: AppCtx) -> None:
                     if _n_bytes is not None:
                         B._check_bytes(_n_bytes, str(getattr(upload, "name", "CSV")))
                     uploaded_table = pd.read_csv(upload, nrows=INF.MAX_FILAS + 1)
-                except Exception as exc:  # noqa: BLE001 - the message is shown to the user
+                except Exception as exc:  # noqa: BLE001 - el mensaje se muestra al usuario
                     st.error(f"No se pudo leer el CSV: {exc}", icon=":material/error:")
                 if uploaded_table is not None:
                     st.caption(
@@ -784,7 +742,7 @@ def _tab_casos(ctx: AppCtx) -> None:
             # decision no es SIN_DECISION, deduplicado por fingerprint en la
             # sesion (cada rerun sin cambio de fingerprint no re-envia).
             # Notifican HANGAR, INSPECCION y APTO (APTO llega a Set log);
-            # SIN_DECISION no hace nada. Dedupe solo si el POST fue ok.
+            # SIN_DECISION no envía nada. Se deduplica solo si el POST fue correcto.
             _fp_n8n = str(live["contract"].get("fingerprint") or "")
             _enviadas_n8n = set(st.session_state.get("n8n_enviadas") or set())
             # MIA-3: unidad real para n8n (no -1 de scoring en vivo).
@@ -1025,8 +983,6 @@ def _tab_casos(ctx: AppCtx) -> None:
     _c_hangar = int(_demo_crit["ciclo"])
 
     DEMO_PRESETS = INF.demo_presets(_u_hangar, _c_hangar)
-
-    _demo_un_clic()
 
     _explorar_por_ciclo()
 

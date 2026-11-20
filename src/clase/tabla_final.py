@@ -1,9 +1,9 @@
-"""Tabla final del track de clase: una fila por modelo, grano explícito.
+"""Tabla final del track de clase: una fila por modelo y grano explícito.
 
-Regla de oro (SAA-9): prohibido el ranking mixto. Las filas `grano=fila`
-(predicción por fila imputada: 5 clásicos + MLP) y `grano=ventana`
-(ventanas de 50: LGBM adaptada + bundle C) van en la misma
-tabla para el README pero NUNCA se ordenan juntas: cada grano elige su campeón.
+No se permite un ranking mixto. Las filas `grano=fila` (predicción por fila
+imputada: 5 clásicos + MLP) y `grano=ventana` (ventanas de 50: LGBM adaptada +
+bundle C) van en la misma tabla para el README, pero NUNCA se ordenan juntas:
+cada grano elige su campeón.
 """
 
 from __future__ import annotations
@@ -79,8 +79,8 @@ def main() -> pd.DataFrame:
     print()
     for grano in ("fila", "ventana"):
         sub = tab[tab["grano"] == grano]
-        # Selección por validación, nunca por test (SAA-8). El grano ventana no
-        # tiene rmse_val en sus CSV fuente: allí rmse_test queda como único
+        # Se elige por validación, nunca por test. El grano ventana no tiene
+        # rmse_val en sus CSV de origen: allí rmse_test queda como único
         # criterio, documentado y justificado.
         # RESERVA (auditoría 2026-11-10): en el grano ventana no hay rmse_val,
         # así que el desempate cae en rmse_test; el bundle desplegado se adoptó

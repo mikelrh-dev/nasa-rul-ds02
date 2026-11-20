@@ -1,10 +1,10 @@
-"""Per-sensor residualisation against the flight regime.
+"""Residualización de cada sensor contra el régimen de vuelo.
 
-A measured sensor is the sum of (a) unit-specific degradation, which correlates
-with RUL, and (b) the operating point (altitude, Mach, throttle, total
-temperature), which does not. Subtracting a degree-2 ridge fit of the regime
-from each sensor leaves the degradation signal and stops a tree model from
-splitting on pilot manoeuvre.
+Un sensor medido suma (a) la degradación propia de la unidad, que correlaciona
+con la RUL, y (b) el punto de operación (altitud, Mach, empuje, temperatura
+total), que no. Restar a cada sensor un ajuste de cresta de grado 2 del régimen
+deja la señal de degradación y evita que un modelo de árboles corte por una
+maniobra del piloto.
 """
 from __future__ import annotations
 
@@ -12,16 +12,16 @@ import numpy as np
 
 
 class SensorResidualizer:
-    """Subtract the regime-explained part of each sensor, then standardise.
+    """Resta la parte de cada sensor explicada por el régimen y estandariza.
 
-    Attributes
-    ----------
+    Atributos
+    ---------
     poly : sklearn.preprocessing.PolynomialFeatures
-        Degree-2, `include_bias=False`, fitted on standardised `W`.
-    ridges : list of sklearn.linear_model.Ridge
-        One per sensor (14), each fitted on the polynomial regime terms.
+        Grado 2, `include_bias=False`, ajustado sobre `W` estandarizado.
+    ridges : list de sklearn.linear_model.Ridge
+        Una por sensor (14), ajustadas sobre los términos polinómicos del régimen.
     res_scaler : sklearn.preprocessing.StandardScaler
-        Fitted on the residual matrix.
+        Ajustado sobre la matriz de residuos.
     """
 
     def __init__(self, poly, ridges, res_scaler):
@@ -30,7 +30,7 @@ class SensorResidualizer:
         self.res_scaler = res_scaler
 
     def transform(self, W_scaled: np.ndarray, Xs_raw: np.ndarray) -> np.ndarray:
-        """Return standardised residuals for `Xs_raw` given standardised `W`."""
+        """Devuelve residuos estandarizados de `Xs_raw` dado `W` estandarizado."""
         P = self.poly.transform(W_scaled)
         out = np.zeros_like(Xs_raw, dtype=np.float64)
         for j, ridge in enumerate(self.ridges):

@@ -1,4 +1,4 @@
-"""Informe de auditoría en PDF: las dos tablas que un tribunal pide.
+"""Informe de auditoría en PDF: las dos tablas que necesita la revisión.
 
 Congela la huella del artefacto y las tablas de Evidencia, para que el papel y
 la pantalla digan lo mismo. No recalcula el modelo: reusa las series ya

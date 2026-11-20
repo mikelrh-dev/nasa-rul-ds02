@@ -155,7 +155,7 @@ def chart_layout(**overrides) -> dict:
 
 
 def style_axes(fig, x_title: str | None = None, y_title: str | None = None):
-    """Applies the shared themed axes style to a figure."""
+    """Aplica a una figura el estilo de ejes compartido del tema."""
     fig.update_xaxes(
         showgrid=True, gridcolor=GRID, gridwidth=1, zeroline=False,
         linecolor=GRID, tickfont=dict(color=MUTED), title_font=dict(color=MUTED),

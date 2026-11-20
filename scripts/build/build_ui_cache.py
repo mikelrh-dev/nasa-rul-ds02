@@ -1,29 +1,29 @@
-"""Precompute the telemetry cache the Streamlit DSS reads at render time.
+"""Precalcula la caché de telemetría que el DSS de Streamlit lee al renderizar.
 
     python scripts/build/build_ui_cache.py                 # base imputada (por defecto)
     python scripts/build/build_ui_cache.py --base limpia   # HDF5 sin imputar (histórico)
 
-One offline pass over the frozen bundle (`models/ensemble.joblib` +
-`models/bilstm_ds02.keras`) and the DS02 test split. **La fuente por defecto es
+Un pase offline sobre el bundle congelado (`models/ensemble.joblib` +
+`models/bilstm_ds02.keras`) y el split de test DS02. **La fuente por defecto es
 la base adaptada** (`data/processed/*_con_nulos.parquet` imputados con ffill y
 medianas de fit-units), que es con la que se entrenó el bundle desplegado: si se
 construyera desde el HDF5 limpio, la app mostraría métricas de otra población de
 datos que las que firma el manifiesto.
 
-Writes three small files under `app/cache/`:
+Escribe tres ficheros pequeños en `app/cache/`:
 
-* `ds02_windows.parquet` — one row per scored window: unit, cycle, window start,
-  ground truth, point estimate and the conformal band.
-* `ds02_rows.parquet` — one row per downsampled telemetry row: the four
-  operating conditions and the fourteen physical channels, with their real names.
-* `cache_manifest.json` — provenance: the bundle's SHA-256, the window contract,
-  per-unit counts and the metric block.
+* `ds02_windows.parquet` — una fila por ventana puntuada: unidad, ciclo, inicio de
+  ventana, verdad de referencia, estimación puntual y banda conforme.
+* `ds02_rows.parquet` — una fila por fila de telemetría submuestreada: las cuatro
+  condiciones de operación y los catorce canales físicos, con sus nombres reales.
+* `cache_manifest.json` — procedencia: SHA-256 del bundle, contrato de ventana,
+  recuentos por unidad y bloque de métricas.
 
-Why a cache at all: the HDF5 is 2.3 GB and importing Keras costs seconds. The UI
-only needs 6 196 scored windows and 12 538 telemetry rows, so the presentation
-machine needs neither. Nothing under `models/` is written — the bundle is opened
-read-only and the cache lives with the UI, per the repository rule that `models/`
-is immutable.
+Por qué una caché: el HDF5 ocupa 2.3 GB e importar Keras tarda segundos. La UI
+solo necesita 6 196 ventanas puntuadas y 12 538 filas de telemetría, así que la
+máquina de presentación no necesita ninguno de los dos. No se escribe nada bajo
+`models/`: el bundle se abre en solo lectura y la caché vive con la UI, según la
+regla del repositorio de que `models/` es inmutable.
 """
 from __future__ import annotations
 
@@ -80,12 +80,12 @@ def _fuente(raw: dict, base: str, stride: int, window: int, step: int,
 
 
 def _unit_truth(A, y, unit: float, start_index: np.ndarray, window: int) -> np.ndarray:
-    """Ground truth at each window's final row.
+    """Verdad de referencia en la fila final de cada ventana.
 
-    A window ends on a specific downsampled row, so the target is read at
-    `start_index + window - 1`. Averaging the whole window (or the whole cycle)
-    would blur the target and make the cache's metrics incomparable to the ones
-    the manifest records.
+    Una ventana termina en una fila submuestreada concreta, así que el objetivo se
+    lee en `start_index + window - 1`. Promediar toda la ventana (o todo el ciclo)
+    difuminaría el objetivo y haría incomparables las métricas de la caché con las
+    que registra el manifiesto.
     """
     mask = A[:, 0] == unit
     y_unit = np.asarray(y[mask], dtype=np.float64)
@@ -93,7 +93,7 @@ def _unit_truth(A, y, unit: float, start_index: np.ndarray, window: int) -> np.n
 
 
 def _mae_by_band(y_true: np.ndarray, pred: np.ndarray) -> dict:
-    """MAE per true-RUL band, the same cuts the reports use."""
+    """MAE por banda de RUL real, con los mismos cortes que usan los informes."""
     edges = list(BIN_EDGES) + [np.inf]
     out = {}
     for lo, hi in zip(edges[:-1], edges[1:]):
@@ -109,7 +109,7 @@ def _mae_by_band(y_true: np.ndarray, pred: np.ndarray) -> dict:
 
 
 def _density_reference(raw: dict) -> float:
-    """Rows per flight cycle on the fit engines, as a comparison baseline."""
+    """Filas por ciclo de vuelo en los motores de fit, como referencia comparativa."""
     A = raw["A_train"]
     densities = []
     for unit in np.unique(A[:, 0]):

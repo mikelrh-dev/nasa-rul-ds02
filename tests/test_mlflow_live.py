@@ -1,13 +1,13 @@
-"""Live MLflow helpers + timing contract (mlflow-live-notebooks).
+"""Helpers de MLflow en vivo y contrato de tiempos.
 
-No notebook is executed and no model is trained here. These tests pin:
-- NaN/inf metrics are never logged (puente_c frozen-bundle NaN handling);
-- run_seed / oof measure with perf_counter and return total timing;
-- ablation_table carries per-row timing columns;
-- persist_timings writes matching JSON + CSV;
-- backfill specs are historic-only (fuente=historico);
-- NB01-07 carry the MLflow header, a live-log cell, no late
-  TF_ENABLE_ONEDNN_OPTS and STEP_TRAIN_OOF rename.
+Aquí no se ejecuta ningún notebook ni se entrena ningún modelo. Los tests fijan:
+- las métricas NaN/inf nunca se registran (manejo de NaN del bundle congelado);
+- run_seed y oof miden con perf_counter y devuelven el tiempo total;
+- ablation_table lleva columnas de tiempo por fila;
+- persist_timings escribe JSON y CSV coherentes;
+- las especificaciones del backfill son solo históricas (fuente=historico);
+- los NB01-07 llevan la cabecera de MLflow, una celda de registro en vivo, sin
+  TF_ENABLE_ONEDNN_OPTS tardío y con el renombrado de STEP_TRAIN_OOF.
 """
 from __future__ import annotations
 
@@ -128,9 +128,9 @@ def test_log_live_run_skips_nan_and_tags_fuente(tmp_path, monkeypatch):
     assert ("seed", "42") in calls["params"]
     metric_keys = {k for k, _ in calls["metrics"]}
     assert "rmse_test" in metric_keys
-    # NaN tiempo_s input never logged as-is; derived total (0+1.0) is real
+    # un tiempo_s NaN nunca se registra tal cual; el total derivado (0+1.0) sí es real
     assert dict(calls["metrics"])["tiempo_s"] == pytest.approx(1.0)
-    assert "t_lgb_s" not in metric_keys  # NaN branch never logged
+    assert "t_lgb_s" not in metric_keys  # la rama NaN nunca se registra
     assert "t_bilstm_s" in metric_keys
     all_tags = {}
     for tag in calls["tags"]:
@@ -145,7 +145,7 @@ def test_log_live_run_skips_nan_and_tags_fuente(tmp_path, monkeypatch):
 def test_run_seed_uses_perf_counter():
     source = (ROOT / "src" / "ds02_rul" / "pipeline.py").read_text(encoding="utf-8")
     assert "time.perf_counter()" in source
-    # no branch timing left on wall clock
+    # no queda ningún tiempo de rama medido con reloj de pared
     assert "time.time() - t0" not in source
     assert "time.time()-t0" not in source
 
@@ -154,7 +154,7 @@ def test_ablation_table_has_timing_columns():
     source = (ROOT / "src" / "ds02_rul" / "pipeline.py").read_text(encoding="utf-8")
     for col in ("t_lgb_s", "t_bilstm_s", "tiempo_s"):
         assert col in source
-    # rows must actually carry them, not just mention them
+    # las filas deben incluirlas, no solo mencionarlas
     assert '"t_lgb_s"' in source or "'t_lgb_s'" in source
 
 
@@ -196,7 +196,7 @@ def test_ablation_table_timing_rows_with_fake_run_seed(monkeypatch):
 def test_puente_c_timing_dict_is_none_with_fuente():
     from ds02_rul.puente_c import clean_timing_value, puente_c
 
-    # clean helper contract (no bundle load needed for the pure helper)
+    # contrato del helper puro (no necesita cargar el bundle)
     assert clean_timing_value(float("nan")) is None
     assert clean_timing_value(1.25) == 1.25
     result_source = (ROOT / "src" / "ds02_rul" / "puente_c.py").read_text(encoding="utf-8")
@@ -205,7 +205,7 @@ def test_puente_c_timing_dict_is_none_with_fuente():
     assert "timing_measured" in result_source
 
 
-# --- backfill historic-only ------------------------------------------------
+# --- backfill solo histórico ------------------------------------------------
 
 def test_backfill_specs_are_historic_only():
     mod = _load_backfill()
@@ -273,7 +273,7 @@ def test_step_train_oof_renamed_nb04():
     nb04 = [p for p in NOTEBOOKS if p.name.startswith("04_")][0]
     body = "\n".join(_cell_source(c) for c in _nb_cells(nb04))
     assert "STEP_TRAIN_OOF" in body
-    # OOF call must use the renamed constant, not the protocol one
+    # la llamada OOF debe usar la constante renombrada, no la del protocolo
     assert "step_train=STEP_TRAIN_OOF" in body.replace(" ", "")
-    # the shadowing assignment is gone
+    # la asignación que ocultaba el nombre ya no está
     assert "STEP_TRAIN = 1" not in body

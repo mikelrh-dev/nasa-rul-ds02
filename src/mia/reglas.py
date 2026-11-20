@@ -53,7 +53,7 @@ def pava_causal_no_creciente(serie) -> np.ndarray:
     """Ajuste isotonico no creciente de cada prefijo (PAVA en linea).
 
     Devuelve, para cada posicion `t`, el valor del extremo del ajuste monotono
-    del prefijo `1..t`. Dos propiedades y una limitacion, dichas sin rodeos:
+    del prefijo `1..t`. Dos propiedades y una limitación:
 
     * **Es causal**: el valor en `t` depende solo de las posiciones `<= t`.
     * **El ajuste de cada prefijo es no creciente**: la tendencia estimada no

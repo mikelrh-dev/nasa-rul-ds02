@@ -1,8 +1,9 @@
-"""Pure helpers for the app-ux-bundle-fix (no Streamlit).
+"""Helpers puros para la interfaz (sin Streamlit).
 
-Kept separate from the dashboard so the CSV builder, the queue filter and
-the 6-rule view can be unit-tested without launching the app. The thresholds
-come from `app/lib/_constantes.py`, so this module stays Streamlit-free.
+Están separados del dashboard para poder probar con tests unitarios el
+generador de CSV, el filtro de cola y la vista de las 6 reglas sin levantar la
+app. Los umbrales vienen de `app/lib/_constantes.py`, así que este módulo sigue
+sin depender de Streamlit.
 """
 from __future__ import annotations
 

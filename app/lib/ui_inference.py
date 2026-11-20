@@ -1,12 +1,13 @@
-"""Evaluate a unit the user brings to the UI.
+"""Evalúa una unidad que el usuario trae a la interfaz.
 
-Three input paths (example window, editable grid, CSV) converge here: one
-validator, one scoring call, one contract. The frozen bundle is loaded lazily —
-importing this module does not import TensorFlow — and held by
-`st.cache_resource`, so the first score pays the load and later ones do not.
+Tres rutas de entrada (ventana de ejemplo, rejilla editable y CSV) convergen
+aquí: un validador, una llamada de puntuado y un contrato. El bundle congelado se
+carga de forma diferida (importar este módulo no importa TensorFlow) y se guarda
+en `st.cache_resource`, así que el primer puntuado paga la carga y los siguientes
+no.
 
-Nothing is written: the model is read from `models/`, the example comes from
-`app/cache/`, and a live evaluation leaves both untouched.
+No se escribe nada: el modelo se lee de `models/`, el ejemplo viene de
+`app/cache/` y una evaluación en vivo deja ambos intactos.
 """
 from __future__ import annotations
 
@@ -25,7 +26,7 @@ from app.lib import twin as T  # noqa: E402
 from app.lib import ui_data_loader as L  # noqa: E402
 from app.lib import rules as UR  # noqa: E402
 
-LIVE_UNIT = -1.0  # a DS02 unit can never take this value, so EMA never mixes
+LIVE_UNIT = -1.0  # una unidad DS02 nunca toma este valor, así que la EMA no mezcla
 
 # La banda de la ruta en vivo es siempre la del artefacto: no pasa por R6.
 BANDA_ARTEFACTO = "artefacto (models/ds02_manifest.json)"
@@ -63,10 +64,11 @@ def _mensaje_limite(filas: int) -> str:
 
 
 def channel_order() -> list[str]:
-    """The dataset's own channel order: operational conditions, then sensors.
+    """Orden de canales del dataset: condiciones operativas y después sensores.
 
-    Read from the cache provenance (which copied it from the HDF5), never typed
-    by hand — a silent reordering here would feed the model the wrong columns.
+    Se lee de la procedencia de la caché (que lo copió del HDF5), nunca se escribe
+a mano: un reordenamiento silencioso aquí daría al modelo las columnas
+equivocadas.
     """
     source = L.get_provenance()["source"]
     return list(source["op_names"]) + list(source["sensor_names"])
@@ -92,18 +94,18 @@ def required_columns() -> list[str]:
 
 def example_window(unit: int = 14, position: float = 0.55,
                    rows: int | None = None) -> tuple[pd.DataFrame, dict]:
-    """A real cached window, lifted from `app/cache/ds02_rows.parquet`.
+    """Una ventana real cacheada, tomada de `app/cache/ds02_rows.parquet`.
 
-    The cache already stores the downsampled grid (`[::100]`), so these 50 rows
-    are exactly the representation the model consumes. `position` picks where in
-    the engine's life the window ends: 0.55 lands mid-life, which demonstrates a
-    non-trivial state rather than the trivial end.
+    La caché ya guarda la rejilla submuestreada (`[::100]`), así que estas 50
+    filas son exactamente la representación que consume el modelo. `position`
+elige dónde termina la ventana en la vida del motor: 0.55 cae a media vida, lo
+que muestra un estado no trivial en vez del final obvio.
 
-    `rows` widens the slice backwards while keeping the same end, so the caller
-    gets a trajectory instead of a single window: the causal EMA has history to
-    smooth and the chart has a curve. It never goes below `window_size()` — the
-    model consumes a fixed-length window and a shorter slice is not one. The end
-    of the slice does not move, so widening it does not move the decision.
+    `rows` amplía el corte hacia atrás sin mover el final, así que quien llama
+recibe una trayectoria en vez de una sola ventana: la EMA causal tiene historial
+que suavizar y el gráfico tiene curva. Nunca baja de `window_size()`: el modelo
+consume una ventana de longitud fija y un corte más corto no lo es. El final del
+corte no se mueve, así que ampliarlo no cambia la decisión.
     """
     rows_frame = L.get_rows()
     frame = rows_frame[rows_frame["unit"] == int(unit)].reset_index(drop=True)
@@ -164,16 +166,16 @@ def window_between_cycles(unit: int, start_cycle: int,
 
 def window_ending_at(unit: int, cycle: int,
                      rows: int | None = None) -> tuple[pd.DataFrame, dict]:
-    """The window that ends on the last cached row of `cycle`.
+    """La ventana que termina en la última fila cacheada de `cycle`.
 
-    `example_window` picks a window by row fraction; this one picks it by the
-    flight cycle it ends on, which is the unit of reasoning the story mode and
-    the fleet panel use. Same shape either way: `window_size()` downsampled
-    samples in the dataset's channel order.
+    `example_window` elige por fracción de filas; esta elige por el ciclo de vuelo
+    en el que termina, que es la unidad de razonamiento del modo historia y del
+    panel de flota. La forma es la misma: `window_size()` muestras submuestreadas
+    en el orden de canales del dataset.
 
-    `rows` widens the slice backwards while keeping the same end, like
-    `example_window`. The end cycle does not move, so the decision does not
-    either; only the trajectory in front of it grows.
+    `rows` amplía el corte hacia atrás sin mover el final, igual que
+    `example_window`. El ciclo final no cambia, así que la decisión tampoco; solo
+    crece la trayectoria anterior.
     """
     rows_frame = L.get_rows()
     frame = rows_frame[rows_frame["unit"] == int(unit)].reset_index(drop=True)
@@ -228,24 +230,25 @@ def demo_presets(u_hangar: int, c_hangar: int,
 
 
 def channel_labels() -> dict[str, str]:
-    """What each column physically is, in the dataset's own vocabulary.
+    """Qué es físicamente cada columna, con el vocabulario del dataset.
 
-    The names are N-CMAPSS engine stations (`T24` is the LPC outlet, not a
-    temperature index), so a reader cannot guess them from the header. They are
-    declared once in the data loader and reused here, never retyped.
+    Los nombres son estaciones del motor N-CMAPSS (`T24` es la salida del
+compresor de baja, no un índice de temperatura), así que el lector no puede
+adivinarlos por la cabecera. Se declaran una vez en el cargador de datos y se
+reutilizan aquí, nunca se reescriben.
     """
     return {channel: L.CHANNEL_LABELS.get(channel, channel) for channel in channel_order()}
 
 
 @st.cache_data(show_spinner=False)
 def observed_envelope() -> pd.DataFrame:
-    """The range the frozen bundle was actually trained on, per channel.
+    """Rango real de entrenamiento del bundle congelado, por canal.
 
-    Measured from the cached DS02 rows rather than quoted from memory. The
-    alerting bounds are the observed extremes with a 5 % margin on each side: a
-    percentile cut flags genuine in-domain telemetry (a real engine crosses p1 all
-    the time), while a unit slip — psia sent as Pa, degrees R sent as K — lands
-    orders of magnitude outside.
+    Se mide sobre las filas DS02 cacheadas, no se copia de memoria. Los límites de
+    aviso son los extremos observados con un margen del 5 % por lado: un corte por
+    percentil marcaría telemetría legítima del dominio (un motor real cruza p1
+    continuamente), mientras que un fallo de unidades (psia enviado como Pa, grados
+    R como K) cae órdenes de magnitud fuera.
     """
     rows = L.get_rows()
     records = []
@@ -266,12 +269,13 @@ def observed_envelope() -> pd.DataFrame:
 
 
 def plausibility_warnings(table: pd.DataFrame) -> list[str]:
-    """Non-blocking notes when the data is scoreable but outside the training domain.
+    """Avisos no bloqueantes si el dato se puede puntuar pero sale del dominio.
 
-    A cell can be numeric, in the right column and in the right order and still be
-    meaningless (a Mach of 49, a pressure in the wrong unit). The bundle will
-    happily return a number for it, so the honest move is to say so, not to hide
-    the result and not to reject data the model can technically consume.
+    Una celda puede ser numérica, estar en la columna correcta y en el orden
+correcto y aun así no significar nada (un Mach de 49, una presión en unidades
+equivocadas). El bundle devolverá un número sin quejarse, así que lo honesto es
+decirlo: ni ocultar el resultado ni rechazar datos que el modelo puede consumir
+técnicamente.
     """
     frame = pd.DataFrame(table).copy()
     frame.columns = [str(c).strip() for c in frame.columns]
@@ -317,11 +321,11 @@ def plausibility_warnings(table: pd.DataFrame) -> list[str]:
 
 
 def template_csv(rows: int | None = None) -> str:
-    """A blank, correctly shaped CSV so nobody has to guess the 19 columns.
+    """Un CSV vacío con la forma correcta para no adivinar las 19 columnas.
 
-    Header in the dataset's order plus empty rows: filling it in Excel and
-    uploading it is the low-friction path, and empty cells are rejected by the
-    validator rather than silently scored as zero.
+    Cabecera en el orden del dataset y filas vacías: rellenarlo en Excel y subirlo
+es la vía más cómoda, y el validador rechaza las celdas vacías en vez de
+puntuarlas como cero sin avisar.
     """
     span = window_size() if rows is None else int(rows)
     columns = required_columns()
@@ -329,11 +333,11 @@ def template_csv(rows: int | None = None) -> str:
 
 
 def validate_table(table: pd.DataFrame) -> pd.DataFrame:
-    """Reject anything the frozen bundle cannot score, naming the problem.
+    """Rechaza lo que el bundle congelado no puede puntuar, diciendo qué falla.
 
-    The contract is not bureaucratic: the model consumes 50 rows × 18 channels in
-    one fixed order, and silently reordering or short-circuiting it produces a
-    confident wrong number instead of an error.
+    El contrato no es burocracia: el modelo consume 50 filas × 18 canales en un
+    orden fijo, y reordenarlos o recortarlos en silencio produce un número
+    equivocado con seguridad en vez de un error.
     """
     if table is None:
         raise ValueError("No hay tabla que evaluar.")
@@ -434,11 +438,11 @@ def reordenar_columnas(table: pd.DataFrame) -> pd.DataFrame:
 
 @st.cache_resource(show_spinner="Cargando el artefacto congelado (una sola vez)…")
 def get_ensemble():
-    """Load the frozen bundle on demand — never at page render.
+    """Carga el bundle congelado a demanda, nunca al pintar la página.
 
-    P1 security: `load_ensemble` verifies the artifact SHA-256 against
-    `models/ds02_manifest.json` / `app/cache/cache_manifest.json` and raises
-    `RuntimeError` without deserializing on mismatch. No `eval` is used.
+    Seguridad: `load_ensemble` verifica el SHA-256 del artefacto contra
+    `models/ds02_manifest.json` y `app/cache/cache_manifest.json`, y lanza
+    `RuntimeError` sin deserializar si no coincide. No se usa `eval`.
     """
     from ds02_rul.persistence import load_ensemble
 
@@ -489,21 +493,21 @@ def preflight(table: pd.DataFrame) -> dict:
 def score_table(table: pd.DataFrame, unit_id: float = LIVE_UNIT,
                 engine_id: str | None = None, ensemble=None,
                 timeout_s: float | None = 120.0) -> dict:
-    """Score every complete window in the table with the frozen bundle.
+    """Puntúa con el bundle congelado todas las ventanas completas de la tabla.
 
-    Returns the per-window frame plus the contract actually used. The band comes
-    from the artifact's own split-conformal calibration; the unit identifier is
-    `-1` so the causal EMA never mixes user data with a cached engine. When an
-    engine id is given it travels in the contract, so the work order and the twin
-    can name the engine instead of saying "externa".
+    Devuelve el frame por ventana y el contrato realmente usado. La banda sale de
+    la calibración split-conformal del propio artefacto; el identificador de
+unidad es `-1` para que la EMA causal nunca mezcle datos del usuario con un
+motor cacheado. Si se pasa un id de motor, viaja en el contrato, así que la
+orden y el gemelo pueden nombrarlo en vez de decir "externa".
 
-    `ensemble` lets a caller that already holds the artifact (the batch route)
-    reuse it instead of going through `get_ensemble()` again.
+    `ensemble` permite que quien ya tiene el artefacto (la ruta de lote) lo
+reutilice sin pasar otra vez por `get_ensemble()`.
 
-    `timeout_s` budgets the scoring wall-clock (bundle load + prediction). When
-    exceeded it raises `TimeoutError` with the row-cap context: 5 000 rows are
-    already ~4 951 windows, so the budget protects the portátil from a
-    non-interactive pause.
+    `timeout_s` limita el tiempo de puntuado (carga del bundle y predicción). Si
+se supera, lanza `TimeoutError` con el contexto del tope de filas: 5 000 filas
+ya son ~4 951 ventanas, así que el presupuesto evita que el portátil se quede
+en una pausa no interactiva.
     """
     import time
 
@@ -566,14 +570,15 @@ def live_work_order(result: dict, example_meta: dict | None,
                     banda: str = BANDA_ARTEFACTO,
                     correccion: str = CORRECCION_NINGUNA,
                     ) -> dict:
-    """Work order for a user-scored unit, with its provenance.
+    """Orden de trabajo de una unidad puntuada por el usuario, con su procedencia.
 
-    Deliberately separate from the cached-fleet order: this unit has no ground
-    truth, so the document says where the data came from and omits `rul_real`.
+    Está separada a propósito de la orden de la flota cacheada: esta unidad no
+tiene verdad, así que el documento dice de dónde salieron los datos y omite
+`rul_real`.
 
-    The state comes from `mia.motor`, the same pass the on-screen badge uses, and
-    the document keeps the rule and the motive. Classifying here independently
-    would let the paper and the screen answer with different policies.
+    El estado sale de `mia.motor`, la misma pasada que usa la insignia en
+pantalla, y el documento conserva la regla y el motivo. Clasificar aquí por
+separado haría que el papel y la pantalla respondieran con políticas distintas.
     """
     last = result["windows"].iloc[-1]
     traza = UR.traza_decision(

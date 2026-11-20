@@ -125,9 +125,9 @@ def puente_c(
         "p_lgb_test": p_test["p_lgb"],
         "t_lgb": float("nan"),
         "t_lstm": float("nan"),
-        # Refreshed NaN handling: clean timings for JSON/MLflow consumers.
-        # The legacy NaN keys above stay for back-compat; new code must use
-        # this dict (all None, never NaN) or clean_timing_value().
+        # Tratamiento de NaN renovado: tiempos limpios para JSON y MLflow.
+        # Las claves NaN anteriores se mantienen por compatibilidad; el código
+        # nuevo debe usar este dict (todo None, nunca NaN) o clean_timing_value().
         "timing": {"t_lgb_s": None, "t_bilstm_s": None, "tiempo_s": None,
                    "fuente": "bundle_congelado"},
         "timing_measured": False,

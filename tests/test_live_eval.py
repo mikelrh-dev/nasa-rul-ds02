@@ -1,11 +1,11 @@
-"""Tests for evaluating a unit the user brings to the UI.
+"""Tests de la evaluación de una unidad que el usuario trae a la UI.
 
-The claims under test: the validator rejects anything the frozen bundle cannot
-score, the example window is a real contract-valid window, scoring is banded and
-reproducible through the CSV path, the model loads only on demand, and the
-evaluation leaves `models/` and `app/cache/` untouched.
+Se comprueba que el validador rechaza todo lo que el bundle congelado no puede
+puntuar, que la ventana de ejemplo cumple el contrato, que la puntuación es
+acotada y reproducible por la ruta CSV, que el modelo solo se carga bajo demanda
+y que la evaluación deja `models/` y `app/cache/` intactos.
 
-Run:  python -m pytest tests -q
+Ejecutar:  python -m pytest tests -q
 """
 from __future__ import annotations
 
@@ -118,13 +118,13 @@ def test_non_numeric_cell_is_rejected_with_position():
 
 @needs_cache
 def test_non_finite_values_are_rejected_with_column_and_row():
-    """`inf` is not a number the bundle can score, even though `isna()` says it is.
+    """`inf` no es un número que el bundle pueda puntuar, aunque `isna()` diga que sí.
 
-    `to_numeric(errors="coerce")` turns "n/a" into NaN and rejects it, but `inf`
-    survives as a perfectly valid float. From there it reaches the scaler, the
-    residualizer and the network, and the causal EMA is a recurrence over the
-    unit's windows: one `inf` contaminates every window after it, while the UI
-    paints it as an ordinary finite number.
+    `to_numeric(errors="coerce")` convierte "n/a" en NaN y lo rechaza, pero `inf`
+    sobrevive como un float perfectamente válido. Desde ahí llega al escalador, al
+    residualizador y a la red, y la EMA causal es una recurrencia sobre las
+    ventanas de la unidad: un solo `inf` contamina todas las ventanas posteriores,
+    mientras la UI lo muestra como un número finito normal.
     """
     positiva, _ = INF.example_window()
     con_inf = positiva.copy()
@@ -161,7 +161,7 @@ def test_decreasing_cycles_are_rejected():
 
 @needs_cache
 def test_repeated_cycles_are_allowed():
-    """Several sampled rows per flight cycle are the normal DS02 layout."""
+    """Varias filas muestreadas por ciclo de vuelo son el formato normal de DS02."""
     table, _ = INF.example_window()
     assert INF.validate_table(table) is not None
     assert table["cycle"].duplicated().any()
@@ -238,7 +238,7 @@ def test_live_work_order_claims_no_ground_truth():
 # ------------------------------------------------------------ app surface
 @needs_cache
 def test_the_app_does_not_load_the_model_until_asked():
-    """Rendering the page must stay TensorFlow-free — checked in a fresh process."""
+    """Renderizar la página no debe cargar TensorFlow; se comprueba en un proceso nuevo."""
     code = (
         "import sys, os\n"
         "from streamlit.testing.v1 import AppTest\n"
@@ -271,7 +271,7 @@ def test_pressing_evaluate_renders_a_live_result():
 # --------------------------------------------------------------- explanation
 @needs_cache
 def test_every_channel_is_named_and_described():
-    """No column may reach the grid as a bare acronym."""
+    """Ninguna columna puede llegar a la tabla como sigla sin explicar."""
     labels = INF.channel_labels()
     assert list(labels) == INF.channel_order()
     assert len(labels) == 18
@@ -311,7 +311,7 @@ def test_a_value_outside_the_training_range_is_flagged_but_still_scored():
 
 @needs_cache
 def test_in_domain_values_are_never_flagged_by_a_percentile_cut():
-    """A real engine crossing the pooled p1 is in domain, not out of it."""
+    """Un motor real que cruza el p1 agrupado está dentro del dominio, no fuera."""
     table, _ = INF.example_window()
     envelope = INF.observed_envelope().set_index("canal")
     inside = all(
@@ -381,7 +381,7 @@ def test_la_plantilla_rellenada_pasa_el_validador_y_no_trae_columna_de_unidad():
 
 @needs_cache
 def test_the_paste_grid_carries_the_glossary_and_a_row_counter():
-    """The editable grid must not ask for 19 acronyms with no explanation."""
+    """La tabla editable no puede pedir 19 siglas sin explicación."""
     from streamlit.testing.v1 import AppTest
 
     app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=180)
@@ -427,7 +427,7 @@ def test_the_sidebar_explains_the_vocabulary_of_the_screen():
 
 # ------------------------------------------------------------------ sandbox
 def _sandbox_app():
-    """Renders the live tab once and returns the handle to the sandbox widgets."""
+    """Renderiza una vez la pestaña en vivo y devuelve el acceso a los widgets del sandbox."""
     from streamlit.testing.v1 import AppTest
 
     app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=300)
@@ -608,7 +608,7 @@ def test_el_preset_demo_pinta_el_estado_que_promete():
 
     Los dos tests anteriores ejercitan `decision_en_vivo` y el motor: seguirían en
     verde aunque el cableado de `dashboard_ds02.py` volviera a cruzarse. Este
-    renderiza el tablero, pulsa el preset y lee el badge que ve el usuario.
+    renderiza el tablero, elige el preset y lee el badge que ve el usuario.
 
     Tambien fija el largo del tramo: con `DEMO_ROWS` el preset abarca varios
     ciclos, asi que la cautela de ciclo unico no sale y la grafica tiene curva.
@@ -616,14 +616,23 @@ def test_el_preset_demo_pinta_el_estado_que_promete():
     """
     from streamlit.testing.v1 import AppTest
 
+    from app.lib import alta as A
+
+    demo = A.estado_demo()
+    presets = INF.demo_presets(int(demo["unidad"]), int(demo["ciclo"]))
+    nombre_medio = next(k for k in presets if "Medio U11" in k)
+
     app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"),
                             default_timeout=300)
     app.run()
     assert not app.exception, app.exception
 
-    boton = next(b for b in app.button if b.key and "Medio U11" in b.key)
-    boton.click()
-    app.run()
+    sel = next(s for s in app.selectbox if s.key == "live_demo_preset")
+    sel.set_value(nombre_medio).run()
+    assert not app.exception, app.exception
+
+    evaluar = next(b for b in app.button if b.label == "Evaluar unidad")
+    evaluar.click().run()
     assert not app.exception, app.exception
 
     badges = [(m.value or "") for m in app.markdown]
@@ -638,26 +647,31 @@ def test_el_preset_demo_pinta_el_estado_que_promete():
 
 
 @needs_cache
-def test_el_boton_preset_y_el_form_evaluar_no_se_desincronizan():
+def test_el_preset_del_selectbox_y_el_form_evaluar_no_se_desincronizan():
     """Regresión: el preset deja su tabla en el form, no solo su matrícula.
 
-    El botón guardaba su resultado y su matrícula, pero el modo por defecto
-    («Ejemplo del test set») reconstruía la tabla desde el selectbox
-    `live_demo_preset`, que el botón no tocaba. Pulsar «Evaluar unidad» después
-    del preset puntuaba el tramo viejo con la matrícula nueva: el crítico
-    devolvía el APTO del Sano.
+    El modo por defecto («Ejemplo del test set») reconstruye la tabla desde el
+    selectbox `live_demo_preset`. Si el selectbox y la tabla se desincronizan,
+    pulsar «Evaluar unidad» puntúa el tramo viejo con la matrícula nueva: el
+    crítico devolvería el APTO del Sano.
     """
     from streamlit.testing.v1 import AppTest
+
+    from app.lib import alta as A
+
+    demo = A.estado_demo()
+    presets = INF.demo_presets(int(demo["unidad"]), int(demo["ciclo"]))
+    nombre_crit = next(k for k in presets if "Crítico" in k)
 
     app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"),
                             default_timeout=300)
     app.run()
     assert not app.exception, app.exception
 
-    boton = next(b for b in app.button if b.key and "Crítico" in b.key)
-    boton.click().run()
+    sel = next(s for s in app.selectbox if s.key == "live_demo_preset")
+    sel.set_value(nombre_crit).run()
     assert not app.exception, app.exception
-    assert app.session_state["live_demo_preset"] == boton.key.removeprefix("live_demo_")
+    assert app.session_state["live_demo_preset"] == nombre_crit
 
     # El form del modo por ejemplo puntúa la tabla que está en pantalla.
     evaluar = next(b for b in app.button if b.label == "Evaluar unidad")
@@ -796,36 +810,6 @@ def test_recortar_la_rejilla_no_rompe_la_app():
     assert len(app.session_state["_editor_value"]) == INF.UMBRAL_RECORTE_EDITOR, (
         f"quedaron {len(app.session_state['_editor_value'])} filas"
     )
-
-
-@needs_cache
-def test_el_preset_demo_funciona_tambien_en_modo_editar():
-    """Los presets de demo sirven en «Editar tabla», no solo en el ejemplo.
-
-    Escribían en la clave del `data_editor`. En el modo por defecto la página no
-    se caía porque la rejilla no se llega a instanciar; en cuanto el usuario
-    cambiaba a «Editar tabla (pegar)» y pulsaba un preset, la clave ya existía y
-    la página se rompía.
-    """
-    from streamlit.testing.v1 import AppTest
-
-    base, _meta = INF.example_window(14, 0.55)
-    app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"),
-                            default_timeout=300)
-    app.session_state["_editor_value"] = pd.concat([base] * 3, ignore_index=True)
-    app.run()
-    assert not app.exception, app.exception
-
-    modo = next(s for s in app.segmented_control if s.key == "live_mode")
-    modo.set_value("Editar tabla (pegar)").run()
-    assert not app.exception, app.exception
-
-    boton = next(b for b in app.button if b.key == "live_demo_Sano U15 inicio (APTO)")
-    boton.click().run()
-    assert not app.exception, app.exception
-
-    assert len(app.session_state["_editor_value"]) == INF.DEMO_ROWS
-    assert app.session_state["live_engine_id"] == "ESN-SANO-01"
 
 
 # ------------------------------------------------------- explorar por ciclo

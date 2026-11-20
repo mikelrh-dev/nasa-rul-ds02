@@ -1,15 +1,15 @@
-"""Split-conformal prediction intervals for the RUL ensemble.
+"""Intervalos de predicción split-conformal para el ensamble de RUL.
 
-A point prediction is not deployable on its own: maintenance decides on a range.
-The intervals here are *asymmetric* on purpose. The NASA penalty is asymmetric
-too (over-estimating RUL costs `exp(d/10)`, under-estimating `exp(-d/13)`), so a
-symmetric band would spend half its width on the cheap side.
+Una predicción puntual no basta para desplegar: el mantenimiento decide sobre un
+rango. Los intervalos son asimétricos a propósito. La penalización NASA también
+lo es (sobreestimar RUL cuesta `exp(d/10)` y subestimarlo `exp(-d/13)`), así que
+una banda simétrica gastaría la mitad del ancho en el lado barato.
 
-Calibration is split-conformal: the band comes from residual quantiles measured
-on rows the meta-learner never saw, grouped by predicted RUL so the width can
-grow where the error grows. Coverage is then *reported*, not assumed — with only
-three test engines a global coverage figure is a weak claim, so the caller is
-expected to publish it per engine.
+La calibración es split-conformal: la banda sale de cuantiles de residuos
+medidos en filas que el meta-aprendiz nunca vio, agrupados por RUL predicha para
+que el ancho crezca donde crece el error. La cobertura se *reporta*, no se da por
+supuesta: con solo tres motores de test una cifra global es una afirmación débil,
+así que se espera que quien llama la publique por motor.
 """
 from __future__ import annotations
 
@@ -20,26 +20,25 @@ DEFAULT_EDGES = (0.0, 25.0, 50.0, 75.0, np.inf)
 
 def _bin_index(pred: np.ndarray, edges) -> np.ndarray:
     edges = np.asarray(edges, dtype=np.float64)
-    # `searchsorted(side='right') - 1` puts a value exactly on an edge in the
-    # bin that starts there, which is what a reader expects from "[25, 50)".
+    # `searchsorted(side='right') - 1` mete un valor justo en un borde en el
+    # tramo que empieza ahí, que es lo que se espera de "[25, 50)".
     return np.clip(np.searchsorted(edges, pred, side="right") - 1, 0, len(edges) - 2)
 
 
 def fit_conformal(y_true, pred, target: float = 0.90, edges=DEFAULT_EDGES,
                   min_rows: int = 100, debias: bool = False) -> dict:
-    """Fit a per-bin asymmetric band from signed residuals `y_true - pred`.
+    """Ajusta una banda asimétrica por tramo con residuos `y_true - pred`.
 
-    Bins with fewer than `min_rows` observations fall back to the global
-    quantiles, so a sparse tail does not produce a band drawn from a handful of
-    points.
+    Los tramos con menos de `min_rows` observaciones usan los cuantiles globales,
+    para que una cola dispersa no genere una banda sacada de cuatro puntos.
 
-    `debias=True` subtracts the per-bin median residual before taking the
-    quantiles, so the band measures *dispersion* instead of absorbing the point
-    estimate's level bias. On this project the split models under-predict at high
-    RUL, which makes both residual quantiles negative there and collapses the
-    band to one side; the de-biased variant keeps it two-sided. It is a
-    diagnostic, not the shipped calibration: a de-biased band stops covering
-    exactly where the model is biased, which is information, not a defect.
+    `debias=True` resta la mediana de residuos del tramo antes de calcular los
+    cuantiles, así que la banda mide *dispersión* en vez de absorber el sesgo de
+    nivel de la predicción. En este proyecto los modelos subestiman con RUL alta,
+    lo que hace negativos ambos cuantiles y colapsa la banda a un lado; la
+    variante sin sesgo la mantiene de dos lados. Es un diagnóstico, no la
+    calibración desplegada: una banda sin sesgo deja de cubrir justo donde el
+    modelo se desvía, y eso es información, no un defecto.
     """
     y_true = np.asarray(y_true, dtype=np.float64).ravel()
     pred = np.asarray(pred, dtype=np.float64).ravel()
@@ -66,7 +65,7 @@ def fit_conformal(y_true, pred, target: float = 0.90, edges=DEFAULT_EDGES,
         lo_edge, hi_edge = float(edges[b]), float(edges[b + 1])
         bins.append({
             "index": b,
-            # `inf` is not valid JSON; the open upper bound is written as null.
+            # `inf` no es JSON válido; el límite superior abierto se escribe como null.
             "pred_range": [lo_edge, None if np.isinf(hi_edge) else hi_edge],
             "n": n,
             "q_low": round(float(lo), 4),
@@ -88,10 +87,10 @@ def fit_conformal(y_true, pred, target: float = 0.90, edges=DEFAULT_EDGES,
 
 
 def apply_conformal(pred, calib: dict):
-    """Turn point predictions into `(lower, upper)` bounds.
+    """Convierte predicciones puntuales en límites `(inferior, superior)`.
 
-    The bounds never cross the point estimate: a quantile band that excludes its
-    own centre would be a bug, not a caveat.
+    Los límites nunca cruzan la predicción: una banda que excluyera su propio
+    centro sería un fallo, no un matiz.
     """
     pred = np.asarray(pred, dtype=np.float64).ravel()
     edges = np.asarray(calib["edges"], dtype=np.float64)
@@ -106,14 +105,14 @@ def apply_conformal(pred, calib: dict):
         upper[mask] = pred[mask] + spec["q_high"]
     lower = np.minimum(lower, pred)
     upper = np.maximum(upper, pred)
-    # RUL is non-negative, so the lower bound is clipped at zero — but only where
-    # the point estimate is itself non-negative, otherwise the clip would put the
-    # bound above its own centre and break `lower <= pred <= upper`.
+    # La RUL no es negativa, así que el límite inferior se recorta a cero, pero
+    # solo donde la predicción también lo es; si no, el recorte dejaría el límite
+    # por encima de su centro y rompería `lower <= pred <= upper`.
     lower = np.where(pred >= 0.0, np.clip(lower, 0.0, None), lower)
     return lower, upper
 
 
 def empirical_coverage(y_true, lower, upper) -> float:
-    """Fraction of rows whose truth falls inside the band."""
+    """Fracción de filas cuya verdad cae dentro de la banda."""
     y_true = np.asarray(y_true, dtype=np.float64).ravel()
     return float(np.mean((y_true >= lower) & (y_true <= upper)))

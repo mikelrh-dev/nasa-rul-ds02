@@ -277,7 +277,7 @@ def _tab_flota(ctx: AppCtx) -> None:
                              type="primary"):
                     # No se escribe `cycle` aqui: el widget ya se instancio en esta
                     # pasada y Streamlit lo prohibe
-                    # (`StreamlitWidgetAlreadyInstantiatedError`): la pagina revienta.
+                    # (`StreamlitWidgetAlreadyInstantiatedError`): la página falla.
                     # Se deja la bandera y el bloque de escrituras diferidas la aplica
                     # antes de que el widget nazca.
                     st.session_state["_avance_flota"] = int(min(

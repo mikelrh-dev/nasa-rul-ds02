@@ -1,21 +1,24 @@
-"""DS02 maintenance decision-support surface.
+"""Superficie de apoyo a la decisión de mantenimiento DS02.
 
     streamlit run app/entrypoints/dashboard_ds02.py
 
-Four tabs over one cached frame: the fleet hangar, one engine in detail (RUL
-with its conformal band, alarms, physics and SHAP), the engines you bring, and
-the audit of how it was all computed. Everything is read from `app/cache/` (see
-`scripts/build/build_ui_cache.py`) and `models/ds02_manifest.json`; the frozen bundle is
-never loaded, so no TensorFlow import is needed and the app runs from a laptop
-without the 2.3 GB HDF5.
+Cuatro pestañas sobre un único frame cacheado: el hangar de la flota, un motor
+en detalle (RUL con su banda conformal, alarmas, física y SHAP), los motores que
+aporta el usuario y la auditoría de cómo se calculó todo. Todo se lee de
+`app/cache/` (ver `scripts/build/build_ui_cache.py`) y de
+`models/ds02_manifest.json`; el bundle congelado nunca se carga, así que no hace
+falta importar TensorFlow y la app corre en un portátil sin el HDF5 de 2.3 GB.
 
-Both rule passes run through `src/mia/`: the correction pass (R2b + R6) behind the
-opt-in toggle, and the decision pass (R1, R9, R8, R7) on every render.The maintenance state is therefore the engine's answer, decided on the conformal
-LOWER bound and not on the point estimate. Thresholds are ADR-013's 25 / 20 and
-are adjustable in the sidebar.
+Las dos pasadas de reglas pasan por `src/mia/`: la de corrección (R2b + R6)
+detrás del interruptor opcional y la de decisión (R1, R9, R8, R7) en cada
+render. El estado de mantenimiento es, por tanto, la respuesta del motor,
+decidida sobre el límite INFERIOR de la banda conformal y no sobre la estimación
+puntual. Los umbrales son los 25 / 20 de ADR-013 y se ajustan en la barra
+lateral.
 
-Colors, fonts and radii live in `.streamlit/config.toml`; the Plotly figures use
-the same tokens so the charts sit on the same surface as the widgets.
+Colores, tipografías y radios viven en `.streamlit/config.toml`; las figuras de
+Plotly usan los mismos tokens para que los gráficos queden sobre la misma
+superficie que los widgets.
 """
 from __future__ import annotations
 
@@ -99,9 +102,9 @@ def _active_registry_path():
         st.session_state["_registry_path_resuelta"] = True
         st.session_state["_registry_path"] = None
         return None
-    # Fallback válido (session_state/script ctx/default): silencioso a propósito.
+    # Respaldo válido (session_state/script ctx/default): silencioso por diseño.
     # Es diagnóstico interno, no aviso de usuario: un warning en grande aquí
-    # domina la primera pantalla y rompe la lectura de "Primera lectura".
+    # llenaría la primera pantalla y rompería la lectura de "Primera lectura".
     # Solo se pinta si el id es inválido (rama anterior).
     st.session_state["_registry_path_resuelta"] = True
     st.session_state["_registry_path"] = ruta
@@ -300,7 +303,7 @@ max_life = int(windows["cycle"].max())
 # ------------------------------------------------------- escrituras diferidas
 # Un handler no puede escribir en la clave de un widget que ya se instanció:
 # Streamlit lo prohíbe (`StreamlitWidgetAlreadyInstantiatedError`) y la app
-# revienta en pantalla. La solución es dejar una bandera y aplicarla aquí, antes
+# falla en pantalla. La solución es dejar una bandera y aplicarla aquí, antes
 # de crear los widgets: en la siguiente pasada el widget nace con el valor ya en
 # `session_state`. Sin esto, «Incorporar unidad» y «Cargar escenario de demo»
 # rompían la app aunque su lógica fuera correcta.

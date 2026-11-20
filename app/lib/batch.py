@@ -64,14 +64,14 @@ def _check_filas(n_filas: int, origen: str) -> None:
 
 
 def _size_bytes(archivo) -> int | None:
-    """Best-effort byte size of an uploaded file-like object without reading it."""
+    """Tamaño en bytes aproximado de un fichero subido, sin leerlo entero."""
     size = getattr(archivo, "size", None)
     if isinstance(size, (int, float)):
         return int(size)
     try:
         buffer = archivo.getbuffer()  # Streamlit UploadedFile
         return int(buffer.nbytes)
-    except Exception:  # noqa: BLE001 - best effort, falls through to nrows check
+    except Exception:  # noqa: BLE001 - intento mejor esfuerzo; cae al conteo de filas
         pass
     try:
         value = archivo.getvalue()

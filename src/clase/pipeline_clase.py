@@ -1,4 +1,4 @@
-"""Pipeline sklearn compartido del track de clase (PIA 3).
+"""Pipeline sklearn compartido del track de clase.
 
 Un solo `ColumnTransformer` para los 5 clásicos + MLP:
 - numéricas (19): cycle, alt, Mach, TRA, T2 + 14 sensores → StandardScaler

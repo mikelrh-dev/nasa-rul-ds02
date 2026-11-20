@@ -1,8 +1,8 @@
 """Persistencia DS02 sin modelos pesados: manifiesto, sha, allowlist y huella.
 
-`save_ensemble`/`build_manifest` de verdad exigen TF/Keras, asi que aqui solo
-se ejercita su guarda de entrada (el bundle equivocado se rechaza antes de
-escribir nada) y las funciones puras de verificacion con `tmp_path`.
+`save_ensemble`/`build_manifest` requieren TF/Keras, así que aquí solo se
+ejercita su guarda de entrada (el bundle equivocado se rechaza antes de escribir
+nada) y las funciones puras de verificación con `tmp_path`.
 """
 from __future__ import annotations
 

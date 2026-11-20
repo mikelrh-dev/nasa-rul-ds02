@@ -1,4 +1,4 @@
-"""RED test Fase 2.2: 5 clásicos + comparativa auditable (SAA 6/8/9-parcial)."""
+"""Test de la fase 2.2: 5 clásicos y comparativa auditable."""
 
 import pandas as pd
 
@@ -10,7 +10,7 @@ def test_comparativa_cinco_modelos_con_tiempos():
         assert col in comp.columns, f"falta {col}"
     assert (comp["tiempo_s"] > 0).all()
     assert (comp["rmse_train"] > 0).all()
-    # Nota contract-change (SAA test-una-vez): el test solo vive en la fila
+    # Nota de contrato: el test solo vive en la fila
     # del elegido; ver test_test_solo_lectura_final_del_elegido.
 
 

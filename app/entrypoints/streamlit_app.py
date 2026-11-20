@@ -1,4 +1,4 @@
-"""Entry-point de la app con el nombre que pide la rúbrica (`app/entrypoints/streamlit_app.py`).
+"""Punto de entrada de la app en la ruta esperada (`app/entrypoints/streamlit_app.py`).
 
 Uso::
 

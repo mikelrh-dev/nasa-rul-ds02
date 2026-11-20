@@ -1,4 +1,4 @@
-"""RED tests for the mejoras-streamlit change (P0+P1+P2)."""
+"""Tests de las mejoras de Streamlit."""
 import ast
 import os
 import re
@@ -40,7 +40,7 @@ def test_hash_cached_with_cache_data():
 def test_pdf_cached_with_cache_data():
     src = read_informe()
     assert "_informe_pdf_cached" in src
-    # decorator precedes the def
+    # el decorador precede a la definición
     assert re.search(r"@st\.cache_data[\s\S]*?def _informe_pdf_cached", src)
 
 
@@ -56,7 +56,7 @@ def test_tabs_fragmented():
             if fn.endswith(".py"):
                 blob += open(os.path.join(mod_dir, fn), encoding="utf-8").read()
     assert blob.count("@st.fragment") >= 6, blob.count("@st.fragment")
-    # each tab has a fragment-defined function
+    # cada pestaña tiene una función definida como fragmento
     # Las pestañas viven en `ui/`; el dashboard solo las invoca.
     for name in ("_tab_flota", "_tab_motor", "_tab_auditoria", "_tab_casos"):
         assert f"def {name}" in blob, name
@@ -83,7 +83,7 @@ def test_shap_waterfall_png_uses_tempfile():
     from app.lib import ui_shap
 
     sig = inspect.signature(ui_shap.shap_waterfall_png)
-    # default must not be the fixed /tmp path
+    # el valor por defecto no puede ser la ruta fija de /tmp
     assert sig.parameters["out_path"].default in (None, ""), sig.parameters["out_path"].default
     assert hasattr(ui_shap, "shap_waterfall_fig")
 
@@ -117,7 +117,7 @@ def test_dashboard_friendly_shap_message():
 
 def test_banner_aligned_no_pruebahangar():
     src = read_dash()
-    # the old separate caption must be gone
+    # el pie de foto separado antiguo ya no debe existir
     assert "Además, **" not in src
     # banner now counts wall cards: numerator includes twins
     assert "hangar_en_muro" in src or "len(tarjetas" in src
@@ -137,8 +137,7 @@ def test_pdf_generated_on_demand():
         for fn in os.listdir(mod_dir):
             if fn.endswith(".py"):
                 blob += open(os.path.join(mod_dir, fn), encoding="utf-8").read()
-    # generate button pattern: PDF builder only invoked behind a flag/button
+    # el generador de PDF solo se invoca desde un botón
     assert "_pdf_generado" in blob or "btn_gen_pdf" in blob or "Generar informe" in blob
-    # the unconditional call pattern `except Exception as exc:  # pragma: no cover` block
-    # that built PDF on every render must be replaced
+    # se sustituye el bloque que generaba el PDF en cada render
     assert "btn_gen_pdf" in blob

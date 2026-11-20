@@ -1,14 +1,14 @@
-"""Leakage-free preprocessing and window extraction.
+"""Preprocesado sin fuga y extracción de ventanas.
 
-Two things changed relative to the original notebook:
+Respecto al notebook original cambian dos cosas:
 
-1. `fit_preprocessing` is only ever called on the *fit units*. The scalers, the
-   degree-2 polynomial basis and the 14 residual ridges never see the holdout
-   unit, so the holdout is clean end to end and not merely clean for the model
-   weights.
-2. The cycle counter is optional (`use_cycle`) and there is a per-engine
-   healthy-baseline offset (`use_baseline_delta`), so the honest ablation can be
-   measured rather than asserted.
+1. `fit_preprocessing` solo se llama con las *unidades de ajuste*. Los
+   escaladores, la base polinómica de grado 2 y las 14 crestas de residuos
+   nunca ven la unidad reservada, así que esta queda limpia de extremo a extremo
+   y no solo para los pesos del modelo.
+2. El contador de ciclos es opcional (`use_cycle`) y existe un desplazamiento
+   de línea base sana por motor (`use_baseline_delta`), de modo que la ablación
+   honesta se mide en vez de afirmarse.
 """
 from __future__ import annotations
 
@@ -19,20 +19,21 @@ from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 
 from .residualizer import SensorResidualizer
 
-BASE_CYCLES = 3  # "first three cycles of life" define the healthy baseline
+BASE_CYCLES = 3  # los tres primeros ciclos de vida definen la línea base sana
 
 
 def fit_preprocessing(W_raw: np.ndarray, Xs_raw: np.ndarray) -> dict:
-    """Fit the scalers and the per-sensor residual ridges on ONE split only.
+    """Ajusta escaladores y crestas de residuos con UNA sola partición.
 
-    Parameters
+    Parámetros
     ----------
     W_raw, Xs_raw : np.ndarray
-        Regime and sensor matrices of the fit units (never the holdout/test).
+        Matrices de régimen y sensores de las unidades de ajuste (nunca la
+        reservada ni test).
 
-    Returns
-    -------
-    dict with `scaler`, `scaler_w`, `poly`, `ridges`, `res_scaler`, `residualizer`.
+    Devuelve
+    --------
+    dict con `scaler`, `scaler_w`, `poly`, `ridges`, `res_scaler` y `residualizer`.
     """
     X_full = np.hstack([W_raw, Xs_raw])
     scaler = StandardScaler().fit(X_full)
@@ -61,10 +62,10 @@ def fit_preprocessing(W_raw: np.ndarray, Xs_raw: np.ndarray) -> dict:
 
 
 def per_unit_baseline(res: np.ndarray, units: np.ndarray, cycles: np.ndarray) -> dict:
-    """Mean residualised sensor vector over each unit's first `BASE_CYCLES` cycles.
+    """Vector medio de residuos en los primeros `BASE_CYCLES` ciclos de cada unidad.
 
-    Causal by construction: it reads only that engine's own early life, which in
-    a real deployment is exactly the healthy-state calibration we would record.
+    Es causal por construcción: solo lee la vida temprana de ese motor, que en un
+    despliegue real es justo la calibración de estado sano que se registraría.
     """
     out = {}
     for unit in np.unique(units):
@@ -89,11 +90,11 @@ def build_windows(
     use_baseline_delta: bool = False,
     baselines: dict | None = None,
 ) -> dict:
-    """Cut `(window, channels)` sequences and the tabular window summary.
+    """Corta secuencias `(ventana, canales)` y el resumen tabular de ventana.
 
-    Returns a dict with `X_seq`, `X_tab`, `y`, `meta`, `X_raw`, `baselines`.
-    `X_raw` keeps the 18 raw channels so a reloaded artifact can be exercised
-    through its public `predict` contract.
+    Devuelve un dict con `X_seq`, `X_tab`, `y`, `meta`, `X_raw` y `baselines`.
+    `X_raw` conserva los 18 canales crudos para poder ejercitar un artefacto
+    recargado a través de su contrato público `predict`.
     """
     n_op = W_raw.shape[1]
     scaler = prep["scaler"]

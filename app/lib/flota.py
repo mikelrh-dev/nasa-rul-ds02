@@ -1,21 +1,24 @@
-"""Engine registry: one key and one label per engine, everywhere.
+"""Registro de motores: una clave y una etiqueta por motor en todas las vistas.
 
-Four views used to key the same engine four different ways: the wall used the
-display label, the twins the `engine_id`, the hangar `U<unit>` for cache and
-alta but the `engine_id` for twins, and the work orders `motor` or `"externa"`.
-An alta added in the sidebar was keyed `U-1000` and vanished on reload.
+Antes cada vista usaba una clave distinta para el mismo motor: el muro la
+etiqueta visible, los gemelos el `engine_id`, el hangar `U<unit>` para caché y
+altas pero el `engine_id` para gemelos, y las órdenes `motor` o `"externa"`. Un
+alta creada en la barra lateral quedaba con clave `U-1000` y desaparecía al
+recargar.
 
-This module is the single source of names. Every view resolves an engine
-through it, so the wall, the twin store, the hangar and the orders all agree.
+Este módulo es la única fuente de nombres. Todas las vistas resuelven un motor
+por aquí, así que el muro, el almacén de gemelos, el hangar y las órdenes
+coinciden.
 
-Named `flota`, not `motor`: `src/mia/motor.py` is the rules engine and
-`app/lib/rules.py` imports it as `from src.mia import motor as M`. Both packages sit on
-`sys.path` when the app runs, so the name would shadow the rules engine and the
-dashboard would import the registry where it expects `motor.motor`.
+Se llama `flota`, no `motor`, porque `src/mia/motor.py` es el motor de reglas y
+`app/lib/rules.py` lo importa como `from src.mia import motor as M`. Los dos
+paquetes están en `sys.path` cuando corre la app, así que ese nombre taparía el
+motor de reglas y el dashboard importaría el registro donde espera
+`motor.motor`.
 
-No es un módulo puro: importa `ui_data_loader` para `UNIT_LABELS` y para leer
-la caché en `registrar_alta`, y ese cargador importa Streamlit. No tiene efectos
-secundarios (no escribe), así que se puede testear con el runtime de Streamlit.
+No es un módulo puro: importa `ui_data_loader` para `UNIT_LABELS` y para leer la
+caché en `registrar_alta`, y ese cargador importa Streamlit. No tiene efectos
+secundarios (no escribe), así que se puede probar con el runtime de Streamlit.
 """
 from __future__ import annotations
 
@@ -26,25 +29,25 @@ from app.lib.alta import PREFIJO_ALTA
 from app.lib import ui_data_loader as L
 
 ALTAS_KEY = "altas"
-# PREFIJO_ALTA is owned by alta (single definition); re-exported here
-# so existing `flota.PREFIJO_ALTA` imports keep working.
+# PREFIJO_ALTA lo define alta (una sola definición); se reexporta aquí
+# para que sigan funcionando los imports existentes `flota.PREFIJO_ALTA`.
 
 
 def normalizar_matricula(texto) -> str:
-    """Matricula normalizada; vacia o corta es un error, no un valor por defecto.
+    """Matrícula normalizada; vacía o corta es un error, no un valor por defecto.
 
-    Reuses `twin.normalizar_id` rather than defining a second normaliser: two
-    normalisers are two places to fix the same bug.
+    Reutiliza `twin.normalizar_id` en vez de definir otro normalizador: dos
+    normalizadores son dos sitios donde arreglar el mismo fallo.
     """
     return T.normalizar_id(texto)
 
 
 def etiqueta(clave, registro: dict | None = None) -> str:
-    """Human label for a registry key.
+    """Etiqueta legible de una clave del registro.
 
-    Cache keys delegate to `L.UNIT_LABELS` and are never retyped here. Any other
-    key — an alta matricula or a twin id — is its own label, because the
-    operator typed it and that is what they recognise.
+    Las claves de caché delegan en `L.UNIT_LABELS` y no se reescriben aquí. Las
+demás claves (la matrícula de un alta o el id de un gemelo) son su propia
+etiqueta, porque las escribió el operador y son las que reconoce.
     """
     clave = str(clave)
     if clave.startswith("U") and clave[1:].isdigit():
@@ -54,12 +57,12 @@ def etiqueta(clave, registro: dict | None = None) -> str:
 
 
 def clave_de(unidad_float, registro: dict | None = None) -> str:
-    """Float unit -> registry key.
+    """Convierte una unidad float en su clave de registro.
 
-    Degrades to `f"U{int(u)}"` for any float absent from the registry, so the
-    cache keeps working without explicit entries: unit 14 becomes `U14`, which
-    is what the hangar already used. An alta's negative id resolves back to its
-    matricula, which is the whole point of the registry.
+    Si el float no está en el registro, cae a `f"U{int(u)}"`, así que la caché
+    sigue funcionando sin entradas explícitas: la unidad 14 pasa a `U14`, que es
+    lo que ya usaba el hangar. El id negativo de un alta vuelve a su matrícula,
+    que es justo el objetivo del registro.
     """
     unidad = float(unidad_float)
     if registro:
@@ -82,11 +85,11 @@ def unidad_de(clave, registro: dict | None = None) -> float:
 
 
 def _proximo_indice(registro: dict) -> int:
-    """Counter that only grows, so a removed id is never handed out again.
+    """Contador que solo crece, para no reutilizar nunca un id borrado.
 
-    `len(altas)` was the old source and it collided: remove the first of two and
-    the next alta reuses the second one's id. The counter is an explicit,
-    non-negative integer kept per alta, so removing one cannot move it back.
+    `len(altas)` era la fuente antigua y colisionaba: al quitar la primera de dos
+    altas, la siguiente reutilizaba el id de la segunda. El contador es un entero
+    no negativo guardado por alta, así que quitar una no lo hace retroceder.
     """
     altas = registro.get(ALTAS_KEY) or {}
     if not altas:
@@ -96,14 +99,15 @@ def _proximo_indice(registro: dict) -> int:
 
 def registrar_alta(registro: dict, matricula: str, unidad_cache: int,
                    ciclo: int) -> dict:
-    """Adds an alta with a fresh id and creates its twin.
+    """Añade un alta con id nuevo y crea su gemelo.
 
-    The twin is built from windows the cache already scored — `ventanas_de_alta`
-    plus `twin.make_twin` — so the engine appears in "Gemelos registrados" with
-    a saved series. No model call: the alta takes history that already exists.
+    El gemelo se construye con ventanas que la caché ya puntuó (`ventanas_de_alta`
+    más `twin.make_twin`), así que el motor aparece en "Gemelos registrados" con
+    su serie guardada. No se llama al modelo: el alta toma historial que ya
+    existe.
 
-    Raises `ValueError` when the unit has no windows up to `ciclo`, naming the
-    first scored cycle, and when the matricula is already registered.
+    Lanza `ValueError` si la unidad no tiene ventanas hasta `ciclo` (indicando el
+    primer ciclo puntuado) o si la matrícula ya está registrada.
     """
     clave = normalizar_matricula(matricula)
     altas = dict(registro.get(ALTAS_KEY) or {})
@@ -125,7 +129,7 @@ def registrar_alta(registro: dict, matricula: str, unidad_cache: int,
 
 
 def quitar_alta(registro: dict, matricula: str) -> dict:
-    """Removes an alta, its twin and its hangar record. The id it held is not recycled."""
+    """Quita un alta, su gemelo y su registro de hangar. Su id no se reutiliza."""
     clave = normalizar_matricula(matricula)
     altas = {k: v for k, v in (registro.get(ALTAS_KEY) or {}).items() if k != clave}
     nuevo = dict(registro)
@@ -139,5 +143,5 @@ def quitar_alta(registro: dict, matricula: str) -> dict:
 
 
 def cargar(ruta: str) -> dict:
-    """Reads the registry; missing/corrupt falls back (delegated to hangar)."""
+    """Lee el registro; si falta o está corrupto, delega el respaldo en hangar."""
     return HGR.load_json_dict(ruta)

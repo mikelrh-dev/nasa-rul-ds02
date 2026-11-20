@@ -2,7 +2,7 @@
 
 Reúne la procedencia del artefacto (SHA-256, manifiesto, caché), el contraste
 entre lectura cruda y corregida, la trazabilidad de las reglas y el informe PDF
-que se entrega a un tribunal. Es la sala que responde «¿de dónde sale este
+que se entrega a la revisión. Es la sala que responde «¿de dónde sale este
 número?» sin salir de la app.
 
 Los datos y los helpers llegan en el `AppCtx` que construye
@@ -97,7 +97,7 @@ def _tab_auditoria(ctx: AppCtx) -> None:
     u14_prov = provenance["counts"]["units"]["14"]
     fit_density = provenance["counts"]["fit_engine_rows_per_cycle"]
 
-    # Las tres hipótesis van plegadas: el tribunal ve primero la métrica limpia
+    # Las tres hipótesis van plegadas: la revisión ve primero la métrica limpia
     # (la barra del motor 14) y abre la justificación solo si la pregunta llega.
     with st.expander(
         "¿Por qué el motor 14? Hipótesis probadas y descartadas",
@@ -383,7 +383,7 @@ def _tab_auditoria(ctx: AppCtx) -> None:
                 st.error(f"bilstm_ds02.keras: discrepancia "
                          f"({_leido_bilstm[:12]} vs {_esp_bilstm[:12]})",
                          icon=":material/cancel:")
-        # El sello estaba en pantalla y nadie lo comprobaba: si el bundle se
+        # El sello estaba en pantalla y nada lo comprobaba: si el bundle se
         # reentrena y se sustituye sin reconstruir `app/cache/`, la superficie
         # sigue pintando predicciones bajo el sello viejo. Se mira en cada
         # render y **solo** se avisa cuando discrepan: con el sello en regla no

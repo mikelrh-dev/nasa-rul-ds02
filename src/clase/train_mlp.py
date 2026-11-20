@@ -1,10 +1,10 @@
-"""Fase 2.3 — MLP base + 3 experimentos + importancia del mejor clásico.
+"""Fase 2.3: MLP base, tres experimentos e importancia del mejor clásico.
 
-SAA 7: base + E1 capacidad / E2 reg-lr / E3 batch-early, cada uno con hipótesis.
-SAA 9-parcial: importancia por permutación sobre el mejor clásico (XGB) con
-200 filas de validación (fold-0). Todo con el `pre` compartido (sin fuga).
-SAA-8: la tabla trae train + validación (OOF de GroupKFold(3) por motor) y el
-test se evalúa UNA sola vez y solo para el elegido (por rmse_val).
+Se prueban base, E1 (capacidad), E2 (regularización) y E3 (batch), cada uno con
+su hipótesis. La importancia por permutación se mide sobre el mejor clásico
+(XGB) con 200 filas de validación (fold-0). Todo usa el `pre` compartido y sin
+fuga. La tabla trae train y validación (OOF de GroupKFold(3) por motor); el test
+se evalúa UNA sola vez y solo para el elegido por `rmse_val`.
 """
 
 from __future__ import annotations
@@ -45,8 +45,8 @@ EXPS = {
 
 ORDEN_MLP = {"base": 0, "E2_reg_lr": 1, "E3_batch": 2, "E1_capacidad": 3}
 CV_MLP = GroupKFold(n_splits=3)
-# E2 = elegido por rmse_val (7.3404) y rmse_test 7.72 en resultados/mlp_comparativa.csv.
-# Se persiste aparte para SHAP SAA-9 de 7 a 10; NO pisa mejor_modelo_clase.joblib (XGB).
+# E2 se eligió por rmse_val (7.3404) y rmse_test 7.72 en resultados/mlp_comparativa.csv.
+# Se guarda aparte para el SHAP del MLP; NO pisa mejor_modelo_clase.joblib (XGB).
 E2_MODEL_PATH = "models/mejor_modelo_clase_E2.joblib"
 # XGB de clase (mejor clásico): también guardado por SEC-JOBLIB-01.
 CLASE_MODEL_PATH = "models/mejor_modelo_clase.joblib"
@@ -137,8 +137,8 @@ def entrenar_mlp(verbose: bool = True) -> pd.DataFrame:
     comp.to_csv("resultados/mlp_comparativa.csv", index=False)
     if verbose:
         print("mejor (por rmse_val):", mejor)
-    # E2 persistido siempre (Pipeline completo), aunque no sea el 'mejor' numérico:
-    # es el modelo explicado en SAA-9 de 7 a 10. Ruta aparte del XGB.
+    # E2 se guarda siempre (Pipeline completo), aunque no sea el mejor numérico:
+    # es el modelo que se explica con SHAP. Va en una ruta aparte del XGB.
     joblib.dump(pipes["E2_reg_lr"], E2_MODEL_PATH)
     _registrar_checksum_e2()
     if verbose:

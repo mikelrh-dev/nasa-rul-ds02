@@ -207,8 +207,8 @@ def test_cruzar_75_ya_no_hunde_el_limite_superior():
 
     Con la banda C el tramo [75, inf) tiene 561 filas y su cuantil alto es
     negativo (el modelo sobreestima en RUL alta): el límite superior queda
-    pegado al punto a propósito, así que aquí se fija lo que la guarda
-    prometía de verdad: el inferior es continuo y la banda contiene al punto.
+    pegado al punto por diseño, así que aquí se fija lo que la guarda prometía:
+    el inferior es continuo y la banda contiene al punto.
     """
     cal = R.cargar_calibracion()
     bajo_antes, _ = R.banda_recalibrada(74.999, cal)
@@ -279,7 +279,7 @@ def test_el_macro_rmse_sigue_a_la_lectura_en_uso():
     corregido = UR.corregir_ventanas(crudo)
     assert macro_mostrado() == pytest.approx(
         L.global_metrics(corregido)["macro_rmse"], abs=0.006)
-    # Las dos lecturas difieren al redondear: el test distingue de verdad.
+    # Las dos lecturas difieren al redondear: el test las distingue.
     assert L.global_metrics(crudo)["macro_rmse"] - L.global_metrics(
         corregido)["macro_rmse"] > 0.01
 

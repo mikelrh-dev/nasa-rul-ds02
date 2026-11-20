@@ -1,8 +1,8 @@
-"""Contrato de documentacion y rubrica.
+"""Contrato de documentación y entrega.
 
-Bloquea las regressiones detectadas por la auditoria 2026-11-15:
-anclas de SAA-1/SAA-2/SAA-9 en el README raiz, umbrales publicados iguales a los
-de codigo (25/20), cifras multisemilla vigentes, pin de pyarrow y rutas vivas.
+Bloquea las regresiones detectadas por la auditoría del 2026-11-15: anclas en el
+README raíz, umbrales publicados iguales a los del código (25/20), cifras
+multisemilla vigentes, versión fijada de pyarrow y rutas vivas.
 """
 
 from __future__ import annotations

@@ -18,7 +18,7 @@ Qué aporta sobre el pipeline congelado:
 - el manifiesto guarda, junto a la métrica agregada, el reparto macro por motor:
   el error se audita desde el artefacto y no desde un documento.
 
-No reentrenar sin querer: TensorFlow en CPU no es determinista, así que una
+No reentrenar por accidente: TensorFlow en CPU no es determinista, así que una
 corrida nueva puede dar otra cifra y dejar el manifiesto desalineado con los
 notebooks. El manifiesto es la fuente de verdad del bundle instalado.
 """

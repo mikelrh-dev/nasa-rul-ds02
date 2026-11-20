@@ -1,9 +1,10 @@
-"""The sequential champion: 2-layer BiLSTM with triple temporal pooling.
+"""El campeón secuencial: BiLSTM de 2 capas con triple pooling temporal.
 
-The architecture is weight-order-compatible with the graph trained in the
-original notebook (2 x Bidirectional(LSTM(64)) -> last step + average + max ->
-Dense(32) -> Dense(1)); the only change is that the last-step slice is a
-registered Layer instead of a bare `Lambda`, so the model serialises by value.
+La arquitectura conserva el orden de pesos del grafo entrenado en el notebook
+original (2 x Bidirectional(LSTM(64)) -> último paso + media + máximo ->
+Dense(32) -> Dense(1)). El único cambio es que el corte del último paso es una
+capa registrada en vez de un `Lambda` suelto, así que el modelo se serializa por
+valor.
 """
 from __future__ import annotations
 
@@ -17,10 +18,10 @@ N_CHANNELS = 19  # 18 scaled signals + normalised cycle
 
 
 def build_champion_bilstm(input_shape=(50, N_CHANNELS), dense_units: int = 32, seed: int = 42):
-    """Compile the champion BiLSTM.
+    """Compila el BiLSTM campeón.
 
-    `input_shape` is `(window, channels)`; with the cycle channel included the
-    second dimension is 19, and dropping it yields 18.
+    `input_shape` es `(ventana, canales)`: con el canal de ciclo la segunda
+    dimensión es 19 y sin él queda en 18.
     """
     tf.keras.backend.clear_session()
     tf.random.set_seed(seed)

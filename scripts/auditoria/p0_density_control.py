@@ -1,21 +1,22 @@
-"""P0 - is the high-RUL bias caused by sampling density, or by engine life?
+"""P0: ¿el sesgo en RUL alta lo causa la densidad de muestreo o la vida del motor?
 
-Controlled experiment on `dev`, no model is refit and no test row is read.
+Experimento controlado sobre `dev`: no se reajusta ningún modelo ni se lee
+ninguna fila de test.
 
-Two engines (2 and 5) are re-windowed at two densities:
+Dos motores (2 y 5) se reventanan a dos densidades:
 
-* **natural** - every 100th raw row, i.e. the density the shipped models were
-  trained and scaled on (~114-125 rows/cycle);
-* **distorted** - a stride chosen so the engine shows ~20.6 rows/cycle, which is
-  unit 14's density. A 50-row window then spans ~2.4 flight cycles instead of
-  ~0.43.
+* **natural**: una fila cruda de cada 100, la densidad con la que se entrenaron y
+escalaron los modelos desplegados (~114-125 filas/ciclo);
+* **distorsionada**: un paso elegido para que el motor muestre ~20.6 filas/ciclo,
+  la densidad de la unidad 14. Una ventana de 50 filas abarca entonces ~2.4
+  ciclos de vuelo en lugar de ~0.43.
 
-Everything else is held fixed: same scaler (fitted on the fit units at stride
-100), same BiLSTM, same LightGBM, same meta-learners. So any change in the bias
-at `y > 65` is attributable to the row spacing alone. What survives at natural
-density is attributable to the engine's life length.
+Todo lo demás queda fijo: mismo escalador (ajustado en las unidades de fit con
+paso 100), mismo BiLSTM, mismo LightGBM y mismos meta-learners. Así, cualquier
+cambio del sesgo con `y > 65` se atribuye solo al espaciado de filas. Lo que
+sobrevive a densidad natural se atribuye a la duración de la vida del motor.
 
-Run:  python scripts/auditoria/p0_density_control.py
+Ejecutar:  python scripts/auditoria/p0_density_control.py
 """
 from __future__ import annotations
 
@@ -27,12 +28,12 @@ from ds02_rul.persistence import load_ensemble
 
 WINDOW = 50
 STEP = 2
-TARGET_DENSITY = 20.6  # rows/cycle, unit 14 at stride 100
+TARGET_DENSITY = 20.6  # filas/ciclo de la unidad 14 con paso 100
 UNITS = (2.0, 5.0, 10.0)
 
 
 def engine_rows(fh, unit: float):
-    """Return (row_slice, cycles) for one engine, read from the raw HDF5."""
+    """Devuelve (inicio, fin, cycles) de un motor, leído del HDF5 crudo."""
     A = fh["A_dev"][:]
     masks = A[:, 0] == unit
     idx = np.where(masks)[0]
@@ -47,7 +48,7 @@ def engine_rows(fh, unit: float):
 
 
 def build(fh, unit, step_raw, ens):
-    """Windows for one engine sampled every `step_raw` rows."""
+    """Ventanas de un motor muestreando una fila de cada `step_raw`."""
     start, stop, cycles = engine_rows(fh, unit)
     rows = np.arange(start, stop, step_raw)
     cyc = cycles[rows - start]

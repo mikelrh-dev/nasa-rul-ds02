@@ -1,4 +1,4 @@
-"""SHAP real sobre el track de clase (SAA-9: explainer/masker/fondo explícitos).
+"""SHAP real sobre el track de clase, con explainer, masker y fondo explícitos.
 
 Estrategia honesta y barata, SIN reentreno (v5):
 - Modelo: XGB ya entrenado en `models/mejor_modelo_clase.joblib` (Pipeline
@@ -77,7 +77,7 @@ def ejecutar_shap(
     from src.clase.train_clasicos import grupos_validacion
 
     # SEC-JOBLIB-01: checksum verificado ANTES de deserializar (sin checksum
-    # válido, RuntimeError sin tocar el pickle). Lazy a propósito: importar
+    # válido, RuntimeError sin tocar el pickle). Diferido a propósito: importar
     # este módulo no carga el modelo.
     from src.ds02_rul.persistence import verify_artifact_sha256
 

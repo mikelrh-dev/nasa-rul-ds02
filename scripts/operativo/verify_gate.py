@@ -1,21 +1,23 @@
 #!/usr/bin/env python
-"""Verification gate for the N-CMAPSS DS02 repo.
+"""Puerta de verificación del repositorio N-CMAPSS DS02.
 
-Run this before declaring any work in this repo done. It runs the pytest
-suite — which includes the Streamlit AppTest UI tests — and, in full mode,
-the three gates the docs require at close (rules evidence, OOF instrument
-and MLflow backfill). It exits non-zero when anything fails, so a green exit
-code is the only evidence the repo is clean.
+Ejecútala antes de dar por terminado cualquier trabajo en este repositorio.
+Lanza la suite de pytest —que incluye los tests de UI con Streamlit AppTest— y,
+en modo completo, las tres puertas que exige la documentación al cierre
+(evidencia de reglas, instrumento OOF y backfill de MLflow). Sale con código
+distinto de cero si algo falla, así que una salida verde es la única prueba de
+que el repositorio está limpio.
 
-The full run takes several minutes. Use --only for a targeted check while
-you work, and the full gate before you close. Gates are skipped with --only,
---list or --skip-gates; they need the tracked artifacts and a local mlruns/.
+La ejecución completa tarda varios minutos. Usa --only para comprobaciones
+puntuales mientras trabajas y la puerta completa antes de cerrar. Las puertas se
+omiten con --only, --list o --skip-gates; necesitan los artefactos versionados y
+un mlruns/ local.
 
-Usage:
-    python scripts/operativo/verify_gate.py                 # suite + gates
+Uso:
+    python scripts/operativo/verify_gate.py                 # suite + puertas
     python scripts/operativo/verify_gate.py --only tests/test_flota.py
-    python scripts/operativo/verify_gate.py --list          # show collected tests
-    python scripts/operativo/verify_gate.py --skip-gates    # pytest only
+    python scripts/operativo/verify_gate.py --list          # muestra los tests recogidos
+    python scripts/operativo/verify_gate.py --skip-gates    # solo pytest
 """
 from __future__ import annotations
 

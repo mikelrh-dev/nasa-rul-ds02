@@ -1,16 +1,15 @@
-"""Tests for incorporating N engines at once (`app/batch.py`).
+"""Tests de la incorporación de N motores a la vez (`app/lib/batch.py`).
 
-The batch is the one feature the plan says is missing: an operator brings N
-engines, the app scores all of them and returns one triage row each. The claims
-under test are the ones the plan calls verification:
+El lote es la función que faltaba: un operador trae N motores, la app los puntúa
+todos y devuelve una fila de triaje por motor. Se comprueba que:
 
-* N blocks produce N rows;
-* a block under 50 rows is rejected before the model is called;
-* the engine cap is applied with a visible warning, not a silent failure;
-* the batch never reports ground truth (the user brings the data, so there is
-  none) — prediction and band only, and it says so.
+* N bloques producen N filas;
+* un bloque de menos de 50 filas se rechaza antes de llamar al modelo;
+* el límite de motores se aplica con un aviso visible y no con un fallo silencioso;
+* el lote nunca informa verdad de referencia (el usuario trae los datos, así que
+  no la hay): solo predicción y banda, y lo indica.
 
-Run:  python -m pytest tests/test_ui_batch.py -v
+Ejecutar:  python -m pytest tests/test_ui_batch.py -v
 """
 from __future__ import annotations
 
@@ -38,7 +37,7 @@ UMBRAL = {"apto": 30.0, "hangar": 25.0}
 
 
 class _FakeUpload(io.BytesIO):
-    """Exactly what `st.UploadedFile` is: a `BytesIO` with a `.name`."""
+    """Lo que es exactamente `st.UploadedFile`: un `BytesIO` con `.name`."""
 
     def __init__(self, name: str, texto: str):
         super().__init__(texto.encode("utf-8"))
@@ -53,7 +52,7 @@ def _bloque(unit: int, position: float, matricula: str) -> dict:
 # --------------------------------------------------------------- splitting
 @needs_cache
 def test_bloques_de_csv_separan_por_unit_id():
-    """One CSV, several engines: `unit_id` is what separates the blocks."""
+    """Un CSV y varios motores: `unit_id` es lo que separa los bloques."""
     tabla, _ = INF.example_window()
     con_id = tabla.assign(unit_id=["MOTOR-A"] * 25 + ["MOTOR-B"] * 25)
     bloques = B.bloques_de_csv(con_id.to_csv(index=False))
@@ -85,7 +84,7 @@ def test_bloques_de_archivos_da_un_motor_por_archivo():
 # ----------------------------------------------------------------- preflight
 @needs_cache
 def test_un_bloque_corto_se_rechaza_antes_del_modelo():
-    """A 20-row block cannot form a window: the validator says so, not the model."""
+    """Un bloque de 20 filas no forma una ventana: lo rechaza el validador, no el modelo."""
     tabla, _ = INF.example_window()
     aviso = B.validar_bloque({"tabla": tabla.head(20), "matricula": "CORTO",
                               "fuente": "test"})
@@ -96,7 +95,7 @@ def test_un_bloque_corto_se_rechaza_antes_del_modelo():
 
 @needs_cache
 def test_validar_bloque_reutiliza_el_validador_de_ui_inference():
-    """One validator: the batch must not grow a second copy of the contract."""
+    """Un solo validador: el lote no debe duplicar el contrato."""
     tabla, _ = INF.example_window()
     assert B.validar_bloque({"tabla": tabla, "matricula": "X", "fuente": "t"})["ok"] is True
     assert B.validar_bloque({"tabla": tabla, "matricula": "X", "fuente": "t"}) == INF.preflight(tabla)
@@ -105,7 +104,7 @@ def test_validar_bloque_reutiliza_el_validador_de_ui_inference():
 # ----------------------------------------------------------------- scoring
 @needs_cache
 def test_n_bloques_producen_n_filas():
-    """The feature: three engines in, three triage rows out."""
+    """La función: entran tres motores y salen tres filas de triaje."""
     bloques = [
         _bloque(15, 0.05, "BATCH-0"),
         _bloque(11, 0.36, "BATCH-1"),
@@ -123,7 +122,7 @@ def test_n_bloques_producen_n_filas():
 
 @needs_cache
 def test_el_lote_no_muestra_ground_truth():
-    """The user brings the data: there is no truth, so no RMSE/MAE is invented."""
+    """El usuario trae los datos: no hay verdad, así que no se inventa RMSE/MAE."""
     bloques = [_bloque(14, 0.40, "BATCH-0")]
     resultado = B.puntuar_lote(bloques, UMBRAL, INF.get_ensemble())
 

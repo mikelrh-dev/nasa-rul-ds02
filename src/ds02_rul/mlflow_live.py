@@ -1,19 +1,19 @@
-"""Live MLflow tracking for notebook re-execution (mlflow-live-notebooks).
+"""Seguimiento MLflow en vivo para reejecutar notebooks (mlflow-live-notebooks).
 
-Live runs go to a *separate*, git-ignored text-only store: ``mlruns-live/``
-(override with ``MLFLOW_LIVE_STORE``). ``mlruns/`` is the published,
-git-versioned store: it holds exactly the 17 curated historic runs written by
-``scripts/operativo/backfill_mlflow.py --write``. Keeping both apart means
-re-running a notebook can never dirty the deliverable store.
+Las ejecuciones en vivo van a un almacén aparte, ignorado por git y solo de
+texto: ``mlruns-live/`` (se puede cambiar con ``MLFLOW_LIVE_STORE``). ``mlruns/``
+es el almacén publicado y versionado: contiene exactamente las 17 ejecuciones
+históricas curadas por ``scripts/operativo/backfill_mlflow.py --write``. Tenerlos
+separados evita que reejecutar un notebook ensucie el almacén de entrega.
 
-Live runs are tagged ``fuente=live_notebook`` so the historic backfill
-(``fuente=historico``) never counts, deletes or overwrites them.
+Las ejecuciones en vivo se etiquetan ``fuente=live_notebook`` para que el
+backfill histórico (``fuente=historico``) nunca las cuente, borre ni sobrescriba.
 
-Rules enforced here:
-- params via ``log_param``, metrics via ``log_metric``;
-- NaN/inf metrics are skipped, never logged (frozen-bundle timings in
-  ``puente_c`` are NaN by design: the bundle was not retrained);
-- no ``log_model``/autolog: binaries stay under ``models/``.
+Reglas que se aplican aquí:
+- parámetros con ``log_param`` y métricas con ``log_metric``;
+- las métricas NaN/inf se omiten, nunca se registran (los tiempos del bundle
+  congelado en ``puente_c`` son NaN a propósito: no se reentrenó);
+- nada de ``log_model`` ni autolog: los binarios se quedan en ``models/``.
 """
 from __future__ import annotations
 
@@ -33,9 +33,9 @@ RESULTADOS = _ROOT / "resultados"
 
 
 def _live_store() -> Path:
-    """Live store path: ``MLFLOW_LIVE_STORE`` if set, else ``mlruns-live/``.
+    """Ruta del almacén en vivo: ``MLFLOW_LIVE_STORE`` si existe o ``mlruns-live/``.
 
-    ``mlruns/`` (the git-versioned deliverable) is never used here.
+    Aquí nunca se usa ``mlruns/``, el almacén versionado de entrega.
     """
     override = os.environ.get("MLFLOW_LIVE_STORE")
     if override:
@@ -47,7 +47,7 @@ TIMING_FIELDS = ["run_key", "t_lgb_s", "t_bilstm_s", "tiempo_s", "fuente"]
 
 
 def clean_metric(value: Any) -> float | None:
-    """Return a finite float, or None for NaN/inf/non-numeric (skip logging)."""
+    """Devuelve un float finito o None para NaN/inf/no numérico (no se registra)."""
     try:
         number = float(value)
     except (TypeError, ValueError):
@@ -63,7 +63,7 @@ def clean_timing_value(value: Any) -> float | None:
 
 
 def setup_mlflow(tracking_uri: str | None = None, experiment: str = EXPERIMENT) -> str:
-    """Point MLflow at the live store and ensure the experiment exists."""
+    """Apunta MLflow al almacén en vivo y asegura que el experimento existe."""
     os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
     import mlflow
 
@@ -88,7 +88,7 @@ def _experiment_id(client, experiment: str = EXPERIMENT) -> str:
 
 
 def _sum_oof_seconds(timing: Any) -> float | None:
-    """Sum finite ``seconds`` from an OOF timing list; None if empty."""
+    """Suma los ``seconds`` finitos de una lista de tiempos OOF; None si está vacía."""
     if not isinstance(timing, (list, tuple)):
         return None
     secs = []
@@ -101,7 +101,7 @@ def _sum_oof_seconds(timing: Any) -> float | None:
 
 
 def timing_from_result(result: dict[str, Any] | None) -> dict[str, float | None]:
-    """Normalise any ``run_seed``/``puente_c``/OOF result to clean keys."""
+    """Normaliza cualquier resultado de ``run_seed``/``puente_c``/OOF a claves limpias."""
     if result is None:
         return {"t_lgb_s": None, "t_bilstm_s": None, "tiempo_s": None}
     if isinstance(result, (list, tuple)):
@@ -137,7 +137,7 @@ def log_live_run(
     notebook: str = "",
     experiment: str = EXPERIMENT,
 ) -> str:
-    """Create one live run: log_param + log_metric, NaN skipped, FINISHED."""
+    """Crea una ejecución en vivo: log_param + log_metric, NaN omitido, FINISHED."""
     client = _client()
     exp_id = _experiment_id(client, experiment)
     run_tags = {
@@ -173,7 +173,7 @@ def persist_timings(
     stem: str,
     out_dir: str | Path | None = None,
 ) -> tuple[Path, Path]:
-    """Persist only rows with a finite timing to ``tiempos_<stem>.json/.csv``."""
+    """Guarda solo las filas con tiempo finito en ``tiempos_<stem>.json/.csv``."""
     out = Path(out_dir) if out_dir is not None else RESULTADOS
     out.mkdir(parents=True, exist_ok=True)
     norm = []

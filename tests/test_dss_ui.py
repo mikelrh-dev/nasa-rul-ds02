@@ -1,14 +1,14 @@
-"""Tests for the DS02 decision-support surface.
+"""Tests de la superficie de decisión DS02.
 
-Four claims are checked, and each corresponds to a blocker found in the audit of
-the original UI plan:
+Se comprueban cuatro afirmaciones y cada una corresponde a un bloqueo
+detectado en la auditoría del diseño original de la UI:
 
-1. the triage thresholds behave (green is reachable, AOG is conservative);
-2. the cache holds what the frozen bundle predicts (counts, band invariant);
-3. the work order contains only grounded units and carries provenance;
-4. no FD001 artifact leaks into a DS02 surface.
+1. los umbrales de triaje se comportan (el verde es alcanzable, AOG es conservador);
+2. la caché contiene lo que predice el bundle congelado (recuentos, invariante de banda);
+3. la orden de trabajo solo incluye unidades fundamentadas y lleva procedencia;
+4. ningún artefacto FD001 se filtra a una superficie DS02.
 
-Run:  python -m pytest tests -q
+Ejecutar:  python -m pytest tests -q
 """
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ def test_triage_states_follow_the_lower_bound(lower, expected):
 
 
 def test_airworthy_state_is_reachable_on_this_band():
-    """The original plan's `L_inf >= 50` rule could never turn green."""
+    """La regla `L_inf >= 50` del diseño original nunca podía ponerse en verde."""
     assert L.classify(36.0) == L.AIRWORTHY
     assert L.classify(50.0) == L.AIRWORTHY
 
@@ -122,7 +122,7 @@ def test_metrics_are_recomputed_from_the_cache():
     assert live["mae"] == pytest.approx(float(np.mean(np.abs(p - y))), abs=1e-9)
     per_unit = L.per_unit_metrics(windows)
     assert live["macro_rmse"] == pytest.approx(float(per_unit["rmse"].mean()), abs=1e-9)
-    # The cache scores the shipped bundle: it must reproduce the manifest's record.
+    # La caché puntúa el bundle desplegado: debe reproducir el registro del manifiesto.
     recorded = L.get_manifest()["macro_rmse"]["per_unit_rmse"]
     for unit in (11, 14, 15):
         assert live["macro_rmse"] > 0
@@ -136,7 +136,7 @@ def test_mae_by_band_covers_every_row_once():
     windows = L.get_windows()
     bands = L.mae_by_band(windows)
     assert bands["windows"].sum() == len(windows)
-    # A band with no rows is allowed to have no MAE; a populated band is not.
+    # Una banda sin filas puede no tener MAE; una banda con filas, no.
     populated = bands[bands["windows"] > 0]
     assert not populated.empty
     assert populated["mae"].notna().all()
@@ -217,7 +217,7 @@ def test_ui_does_not_reimplement_the_model():
 
 @needs_cache
 def test_reading_the_ui_leaves_the_frozen_artifacts_untouched():
-    """`models/` is read-only: hashes before and after a full UI data pass."""
+    """`models/` es de solo lectura: hashes antes y después de un pase completo de datos de la UI."""
     import hashlib
 
     watched = [
@@ -338,7 +338,7 @@ def test_app_renders_headless_without_exception():
 
 @needs_cache
 def test_every_chart_and_grid_has_an_accessible_name():
-    """`alt=` is the accessible name: no chart or grid may ship without one."""
+    """`alt=` es el nombre accesible: ningún gráfico ni tabla puede salir sin él."""
     from streamlit.testing.v1 import AppTest
 
     app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=120)
@@ -353,7 +353,7 @@ def test_every_chart_and_grid_has_an_accessible_name():
 
 
 def test_theme_config_is_dark_and_parseable():
-    """The polished look lives in config.toml, not in injected CSS."""
+    """El acabado visual vive en config.toml, no en CSS inyectado."""
     import tomllib
 
     path = os.path.join(ROOT, ".streamlit", "config.toml")
@@ -377,7 +377,7 @@ def test_no_css_is_injected_into_the_app():
 
 @needs_cache
 def test_the_cycle_slider_drives_the_grounded_kpi():
-    """The simulator is interactive: moving the clock changes the fleet state."""
+    """El simulador es interactivo: mover el reloj cambia el estado de la flota."""
     from streamlit.testing.v1 import AppTest
 
     app = AppTest.from_file(os.path.join(APP, "entrypoints", "dashboard_ds02.py"), default_timeout=120)

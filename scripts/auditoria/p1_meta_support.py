@@ -1,16 +1,17 @@
-"""P1 - measure meta-layer variants on `dev` only, no test row is read.
+"""P1: mide variantes de la capa meta solo sobre `dev`, sin leer filas de test.
 
-The base models are frozen: their dev predictions are computed once and cached,
-so every variant differs *only* in the stacking layer. The meta is always fitted
-on the unit-16 rows, exactly as the shipped protocol does.
+Los modelos base están congelados: sus predicciones de dev se calculan una vez y
+se cachean, así que cada variante cambia *solo* en la capa de stacking. El meta
+se ajusta siempre sobre las filas de la unidad 16, igual que el protocolo
+desplegado.
 
-Caveat that is stated rather than hidden: engines 2/5/10/18/20 are in-sample for
-the base models (they are the fit units). That is the right instrument for a
-*meta-layer* comparison - the meta never saw these rows, and both the baseline
-and the candidate receive the same base predictions - but it is not a measure of
-how the base models generalise.
+Advertencia explícita: los motores 2/5/10/18/20 están dentro de muestra para los
+modelos base (son las unidades de fit). Es el instrumento correcto para comparar
+*capa meta* — el meta nunca vio esas filas y tanto la base como el candidato
+reciben las mismas predicciones base — pero no mide cómo generalizan los modelos
+base.
 
-Run:  python scripts/auditoria/p1_meta_support.py [--rebuild-cache]
+Ejecutar:  python scripts/auditoria/p1_meta_support.py [--rebuild-cache]
 """
 from __future__ import annotations
 
@@ -85,8 +86,8 @@ def evaluate(tag, p_meta, d, sel):
     y, units, cycles = d["y"][sel], d["units"][sel], d["cycles"][sel]
     ema = causal_ema_by_unit(p_meta, units, cycles, span=5)
     hi, lo = y > 65, y <= 62
-    # macro: every engine weighs the same, so a long-lived engine cannot
-    # dominate the pooled number (u5 alone holds 65 % of the dev y>65 rows).
+    # macro: cada motor pesa igual, para que un motor de vida larga no domine
+    # la cifra agrupada (u5 sola concentra el 65 % de las filas dev con y>65).
     macro = float(np.mean([rmse(ema[units == u], y[units == u]) for u in np.unique(units)]))
     return {
         "spec": tag,
@@ -126,7 +127,7 @@ def main():
     y_hold = d["y"][hold]
     Z_hold = np.column_stack([d["p_lstm"][hold], d["p_lgb"][hold]])
 
-    # trigger rate of the support gate: rows where the anchor clears the support
+    # tasa de disparo de la puerta de soporte: filas donde el ancla supera el soporte
     anchor = np.maximum(d["p_lstm"][sel], d["p_lgb"][sel])
     print(
         f"dev (5 motores): {sel.sum()} ventanas | soporte del meta = {y_hold.max():.0f} "
@@ -181,7 +182,7 @@ def main():
         )
         print(f"{r['spec']:30s} {cells}")
 
-    # ---- beta reselection under the winning spec, in the grouped OOF protocol
+    # ---- reselección de beta bajo la especificación ganadora, con el protocolo OOF agrupado
     print("\nbeta fuera de fold con la nueva especificación del meta:")
     for tag in ("M0 free 50/50 (enviado)", "M1 sum_to_one 50/50", "M7 convex",
                 "M8 convex + gate 2"):

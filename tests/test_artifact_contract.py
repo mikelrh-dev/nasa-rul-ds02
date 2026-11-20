@@ -1,11 +1,11 @@
-"""Contract tests for the DS02 artifact.
+"""Tests de contrato del artefacto DS02.
 
-These are the checks a consumer relies on: the bundle loads in a process that
-knows nothing about the training notebook, the shape is the DS02 shape, the
-graph carries no bare `Lambda`, and the predictions are unchanged by the
-re-packaging.
+Son las comprobaciones de las que depende quien consume el bundle: carga en un
+proceso que no sabe nada del notebook de entrenamiento, tiene la forma DS02, el
+grafo no lleva ningún `Lambda` suelto y las predicciones no cambian al
+reempaquetar.
 
-Run:  python -m pytest tests -q
+Ejecutar:  python -m pytest tests -q
 """
 from __future__ import annotations
 
@@ -70,12 +70,12 @@ def test_manifest_declares_ds02_shape():
 
 
 def test_manifest_pins_the_tabular_objective():
-    """The alpha=0.35 decision lives in code, so the artifact must record it.
+    """La decisión de alpha=0.35 vive en el código, así que el artefacto debe registrarla.
 
-    ADR-003 chose the asymmetric quantile objective and ADR-007 rejected the
-    median alternative; without this field the shipped bundle cannot be
-    audited against either record, and the metrics would be cited next to a
-    model whose objective nobody can verify.
+    ADR-003 eligió el objetivo cuantílico asimétrico y ADR-007 descartó la
+    alternativa de la mediana; sin este campo el bundle desplegado no se puede
+    auditar contra ninguno de los dos registros, y las métricas se citarían junto
+    a un modelo cuyo objetivo nadie puede verificar.
     """
     with open(os.path.join(MODELS, "ds02_manifest.json"), encoding="utf-8") as fh:
         manifest = json.load(fh)
@@ -142,11 +142,11 @@ def test_pooled_head_is_384_wide():
 
 
 def test_graph_rebuild_from_legacy_weights_is_exact():
-    """The `Lambda` -> `LastStepPooling` swap is weight-preserving.
+    """El cambio de `Lambda` a `LastStepPooling` conserva los pesos.
 
-    Rebuilds the graph from the arrays extracted out of the Python 3.10 artifact
-    and checks it reproduces the 3.10 reference predictions. This validates the
-    migration path independently of whatever is currently shipped.
+    Reconstruye el grafo con los arrays extraídos del artefacto de Python 3.10 y
+    comprueba que reproduce las predicciones de referencia de 3.10. Valida la
+    ruta de migración con independencia de lo que esté desplegado ahora.
     """
     from ds02_rul.model import build_champion_bilstm
 
@@ -167,7 +167,7 @@ def test_graph_rebuild_from_legacy_weights_is_exact():
 
 
 def test_reload_is_bit_identical_to_in_memory():
-    """Serialising through `.keras` + joblib must not perturb the output."""
+    """Serializar con `.keras` y joblib no debe alterar la salida."""
     from ds02_rul.persistence import load_ensemble
 
     ensemble = load_ensemble(os.path.join(MODELS, "ensemble.joblib"))

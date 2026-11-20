@@ -1,13 +1,13 @@
-"""Fase 2.2 — 5 clásicos de clase con GridSearchCV + GroupKFold(groups=unit).
+"""Fase 2.2: cinco clásicos con GridSearchCV y GroupKFold(groups=unit).
 
-SAA 6 (30%): regresión/Ridge, KNN, RF, XGB, SVR. Grids mínimos publicados.
-PIA 3: mismo `pre` de `src/clase/pipeline_clase.py` dentro de cada Pipeline
-(pre refit por fold, sin fuga). SVR sobre submuestra aleatoria de 5k
-(uniforme, semilla 42; O(n^2) en 52k imposible) — no estratificada. Guarda `resultados/comparativa.csv` y
-`models/mejor_modelo_clase.joblib` (mejor por rmse_val; desempate al simple).
-SAA-8: la tabla trae train + validación (medias out-of-fold del CV, sin
-coste extra: multimetric sobre los mismos fits). El test se evalúa UNA sola
-vez y solo para el elegido (SAA test-una-vez).
+Se prueban regresión/Ridge, KNN, RF, XGB y SVR con rejillas mínimas. Todos usan
+el mismo `pre` de `src/clase/pipeline_clase.py` dentro de cada Pipeline (reajuste
+por pliegue, sin fuga). SVR va sobre una submuestra aleatoria de 5k (uniforme,
+semilla 42; O(n^2) sobre 52k es inviable), no estratificada. Guarda
+`resultados/comparativa.csv` y `models/mejor_modelo_clase.joblib` (mejor por
+`rmse_val`; a igualdad gana el modelo más simple). La tabla trae train y
+validación (medias out-of-fold del CV, sin coste extra: multimétrica sobre los
+mismos ajustes). El test se evalúa UNA sola vez y solo para el elegido.
 """
 
 from __future__ import annotations
@@ -70,8 +70,8 @@ def grupos_validacion(g_tr, n_splits: int = 3,
                       fold: int = FOLD_VALIDACION) -> np.ndarray:
     """Índices de la partición `fold` del GroupKFold por motor.
 
-    Fuente única de "validación" para SHAP/permutación (SAA-9 v5:
-    validación, nunca test). Determinista: mismo split que el CV.
+    Es la fuente única de validación para SHAP y permutación: validación, nunca
+test. Determinista: usa el mismo split que el CV.
     """
     gkf = GroupKFold(n_splits=n_splits)
     _, va = list(gkf.split(np.zeros(len(g_tr)), groups=g_tr))[fold]
@@ -109,7 +109,7 @@ def entrenar_todo(sample_svm: int = SVR_MUESTRA, verbose: bool = True) -> pd.Dat
     """Entrena los 5 clásicos, elige por `rmse_val` y mide el test una vez.
 
     Escribe `resultados/comparativa.csv` y `models/mejor_modelo_clase.joblib`.
-    El test se predice solo para el elegido (SAA: una sola lectura).
+    El test se predice solo para el elegido: una sola lectura.
     """
     X_tr = pd.read_parquet("data/processed/X_train.parquet")
     y_tr = pd.read_parquet("data/processed/y_train.parquet").values.ravel().astype(float)

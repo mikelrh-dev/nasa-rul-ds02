@@ -1,13 +1,13 @@
-"""SHAP explainability for the frozen DS02 bundle (bundle C, seed 42).
+"""Explicabilidad SHAP del bundle DS02 congelado (bundle C, semilla 42).
 
-Computes TreeExplainer attributions over the LightGBM tabular branch of the
-hybrid ensemble.  The 93 tabular features are derived from raw cached rows
-using the same preprocessing that produced the bundle, so the explanation is
-consistent with what the model actually consumed.
+Calcula atribuciones con TreeExplainer sobre la rama tabular LightGBM del
+ensamble híbrido. Las 93 variables tabulares salen de filas crudas cacheadas con
+el mismo preprocesado que produjo el bundle, así que la explicación coincide con
+lo que consumió el modelo.
 
-Nothing is written: the model is read from ``models/``, the data from
-``app/cache/``.  Results are held by ``st.cache_data`` so repeated renders
-do not recompute.
+No se escribe nada: el modelo se lee de ``models/`` y los datos de
+``app/cache/``. Los resultados se guardan en ``st.cache_data`` para no
+recalcularlos en cada render.
 """
 from __future__ import annotations
 
@@ -20,10 +20,10 @@ from app.lib import ui_inference as INF  # noqa: E402
 
 
 def _derive_tabular_features(table: pd.DataFrame, ensemble) -> np.ndarray:
-    """Derive the 93 tabular features from a raw input table.
+    """Deriva las 93 variables tabulares de una tabla de entrada cruda.
 
-    Replicates ``src/ds02_rul.features.build_windows`` for a single window
-    ending at the last row of ``table``.  Returns shape (1, 93).
+    Replica ``src/ds02_rul.features.build_windows`` para una sola ventana que
+    termina en la última fila de ``table``. Devuelve forma (1, 93).
     """
     frame = INF.validate_table(table)
     order = INF.channel_order()
@@ -39,13 +39,13 @@ def _derive_tabular_features(table: pd.DataFrame, ensemble) -> np.ndarray:
             f"Se necesitan al menos {window_size} filas y llegaron {len(frame)}."
         )
 
-    # Preprocessing (same as build_windows)
+    # Preprocesado (igual que build_windows)
     X_full = np.hstack([W_raw, Xs_raw])
     X_scaled = ensemble.scaler.transform(X_full)
     W_scaled = ensemble.scaler_w.transform(W_raw)
     res = ensemble.residualizer.transform(W_scaled, Xs_raw)
 
-    # Last window
+    # Última ventana
     i = len(frame) - window_size
     op = W_scaled[i : i + window_size]
     xs = res[i : i + window_size]
@@ -68,28 +68,28 @@ def _derive_tabular_features(table: pd.DataFrame, ensemble) -> np.ndarray:
 
 @st.cache_data(show_spinner="Calculando SHAP (una sola vez)…", ttl=3600)
 def shap_top_features(unit: int, top_k: int = 10) -> pd.DataFrame:
-    """Top-k features by mean |SHAP| for the given unit's last window.
+    """Top-k de variables por media de |SHAP| para la última ventana de la unidad.
 
-    Returns a DataFrame with columns ``feature`` and ``mean_abs_shap``.
+    Devuelve un DataFrame con las columnas ``feature`` y ``mean_abs_shap``.
     """
     import shap
 
     ensemble = INF.get_ensemble()
     lgb = ensemble.lgb_standalone
 
-    # Build a single window from cached rows
+    # Construye una sola ventana a partir de las filas cacheadas
     rows_frame = L.get_rows()
     frame = rows_frame[rows_frame["unit"] == int(unit)].reset_index(drop=True)
     if len(frame) < ensemble.window_size:
         raise ValueError(f"Unidad {unit} no tiene suficientes filas.")
 
-    # Use the last window_size rows
+    # Usa las últimas window_size filas
     chunk = frame.iloc[-ensemble.window_size :].copy()
     table = chunk[["cycle"] + INF.channel_order()].reset_index(drop=True)
 
     X_tab = _derive_tabular_features(table, ensemble)
 
-    # Feature names from block structure (93 features total)
+    # Nombres de variables según la estructura de bloques (93 en total)
     op_names = L.get_provenance()["source"]["op_names"]
     sensor_names = L.get_provenance()["source"]["sensor_names"]
     feature_names = ["cyc_norm"]
@@ -114,12 +114,12 @@ def shap_top_features(unit: int, top_k: int = 10) -> pd.DataFrame:
         f"Expected {X_tab.shape[1]} names, got {len(feature_names)}"
     )
 
-    # TreeExplainer (exact for LightGBM)
+    # TreeExplainer (exacto para LightGBM)
     explainer = shap.TreeExplainer(lgb)
     sv = explainer.shap_values(X_tab)
     sv = np.asarray(sv).reshape(-1)
 
-    # Top-k by mean |SHAP|
+    # Top-k por media de |SHAP|
     media = np.abs(sv)
     order_idx = np.argsort(media)[::-1][:top_k]
     result = pd.DataFrame({
@@ -154,11 +154,11 @@ def _con_claves(solver_sha: str, rows_sha: str) -> tuple[str, str]:
 def shap_waterfall_data(
     unit: int, solver_sha: str = "", rows_sha: str = ""
 ) -> tuple[np.ndarray, np.ndarray, float, list[str]]:
-    """Return SHAP values, feature values, base value, and feature names for a waterfall.
+    """Devuelve valores SHAP, valores de variables, valor base y nombres para el waterfall.
 
-    Used for per-prediction explanation in the dashboard. Envuelve al
+    Se usa para explicar una predicción concreta en el dashboard. Envuelve a
     `_shap_waterfall_data_cached` (ttl 3600), así que la clave es siempre
-    (unit, solver_sha, rows_sha) aunque el llamador no pase los shas.
+    (unit, solver_sha, rows_sha) aunque quien llama no pase los shas.
     """
     solver_sha, rows_sha = _con_claves(solver_sha, rows_sha)
     return _shap_waterfall_data_cached(unit, solver_sha, rows_sha)
@@ -214,11 +214,11 @@ def _shap_waterfall_data_cached(
 def shap_waterfall_fig(
     unit: int, max_display: int = 12, solver_sha: str = "", rows_sha: str = ""
 ):
-    """Plotly waterfall figure for the given unit's last window.
+    """Figura waterfall de Plotly para la última ventana de la unidad indicada.
 
-    The dashboard renders this figure directly: no file on disk, no fixed temp
-    path, and the chart inherits the app's dark theme via `chart_layout`.
-    Envuelve al `_shap_waterfall_fig_cached` (ttl 3600): la clave es
+    El dashboard la dibuja directamente: sin fichero en disco, sin ruta temporal
+    fija, y el gráfico hereda el tema oscuro de la app vía `chart_layout`.
+    Envuelve a `_shap_waterfall_fig_cached` (ttl 3600): la clave es
     (unit, max_display, solver_sha, rows_sha).
     """
     solver_sha, rows_sha = _con_claves(solver_sha, rows_sha)
@@ -253,11 +253,11 @@ def _shap_waterfall_fig_cached(
 
 
 def shap_waterfall_png(unit: int, out_path: str | None = None) -> str:
-    """Generate a SHAP waterfall plot PNG for the given unit's last window.
+    """Genera un PNG del waterfall SHAP para la última ventana de la unidad.
 
-    Returns the path to the saved PNG.  Uses matplotlib Agg backend. When no
-    `out_path` is given, a private temp file is created with `tempfile`
-    (never a fixed shared path).
+    Devuelve la ruta del PNG guardado. Usa el backend Agg de matplotlib. Si no se
+    pasa `out_path`, crea un fichero temporal privado con `tempfile` (nunca una
+    ruta fija compartida).
     """
     import tempfile
 

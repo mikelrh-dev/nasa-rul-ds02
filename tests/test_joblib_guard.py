@@ -44,7 +44,7 @@ def test_sitio_guardado_antes_del_load(fichero, key):
 
 
 def _veneno(path):
-    """Bytes que NO son un pickle: si el guard falla, joblib.load revienta."""
+    """Bytes que NO son un pickle: si la guarda falla, joblib.load se rompe."""
     with open(path, "wb") as fh:
         fh.write(b"no-es-un-pickle-" * 8)
     return path

@@ -1,9 +1,9 @@
-"""Metrics for RUL evaluation.
+"""Métricas para evaluar RUL.
 
-`calculate_nasa_score` is a SUM over rows, not a mean: its magnitude scales with
-the number of scored windows and is only comparable between models evaluated on
-the same rows. The DS02 path applies no 125-cycle clamp (that clamp exists only
-in the legacy C-MAPSS pipeline).
+`calculate_nasa_score` es una SUMA sobre filas, no una media: su magnitud crece
+con el número de ventanas puntuadas y solo es comparable entre modelos evaluados
+sobre las mismas filas. La ruta DS02 no aplica el recorte de 125 ciclos (ese
+recorte existe solo en el pipeline antiguo de C-MAPSS).
 """
 from __future__ import annotations
 
@@ -29,12 +29,12 @@ def regression_metrics(y_true, y_pred) -> dict:
 
 
 def macro_rmse(y_true, y_pred, units) -> dict:
-    """Mean of the per-engine RMSEs, each engine weighing 1/n regardless of size.
+    """Media de los RMSE por motor, cada uno pesando 1/n sin importar su tamaño.
 
-    The window-weighted RMSE is dominated by the engine with the most windows.
-    Reporting both is the point: on the deployed bundle the weighted figure
-    (4.3382) is kinder than the macro one (5.0153) because the worst engine is
-    also the smallest.
+    El RMSE ponderado por ventanas lo domina el motor con más ventanas. Reportar
+    ambos es el objetivo: en el bundle desplegado la cifra ponderada (4.3382) es
+    más benévola que la macro (5.0153) porque el peor motor es también el más
+    pequeño.
     """
     y_true = np.asarray(y_true, dtype=np.float64).ravel()
     y_pred = np.asarray(y_pred, dtype=np.float64).ravel()
@@ -54,7 +54,7 @@ def macro_rmse(y_true, y_pred, units) -> dict:
 
 
 def evaluate_predictions(y_true, y_pred, model_name: str = "Modelo") -> dict:
-    """Return RMSE / MAE / R2 / NASA as a flat dict, rounded for display."""
+    """Devuelve RMSE / MAE / R2 / NASA en un dict plano, redondeado para mostrar."""
     raw = regression_metrics(y_true, y_pred)
     return {
         "Modelo": model_name,

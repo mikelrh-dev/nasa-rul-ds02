@@ -1,21 +1,21 @@
-"""How much of the hybrid's score comes from the cycle counter alone?
+"""¿Cuánto de la puntuación del híbrido viene solo del contador de ciclos?
 
-This exists because the shipped meta-learner turned out to put essentially all of
-its weight on `cyc_norm`:
+El script existe porque el meta-learner desplegado resultó poner prácticamente
+todo su peso en `cyc_norm`:
 
-    ridge coef  [p_lstm, p_lgb, cyc_norm] = [0.0019, 0.0124, -98.4065]
-    lgb_meta feature_importances          = [0, 0, 720]
+    coef ridge  [p_lstm, p_lgb, cyc_norm] = [0.0019, 0.0124, -98.4065]
+    importancias lgb_meta                 = [0, 0, 720]
 
-With `beta = 1.0` the final prediction is therefore `p_meta`, and `p_meta` is a
-linear function of the cycle counter. That is not an ensemble; it is a clock.
+Con `beta = 1.0` la predicción final es por tanto `p_meta`, y `p_meta` es una
+función lineal del contador de ciclos. Eso no es un ensamble; es un reloj.
 
-This script measures the consequences on the test units, so the claim lives in a
-number instead of an argument:
+El script mide las consecuencias sobre las unidades de test, para que la
+afirmación sea un número y no un argumento:
 
-  * the hybrid as shipped (cycle available to every component);
-  * the hybrid with the cycle counter removed from the base models AND from the
-    meta-features;
-  * two trivial baselines — OLS on `cycle` alone, and a constant — as the floor.
+  * el híbrido tal como se despliega (ciclo disponible para todos los componentes);
+  * el híbrido con el contador de ciclos quitado de los modelos base Y de las
+    meta-características;
+  * dos líneas base triviales — OLS solo con `cycle` y una constante — como suelo.
 
     python scripts/auditoria/ablate_meta_cycle.py
 """
@@ -139,7 +139,7 @@ def main() -> int:
 
     delta = m_n["RMSE"] - m_c["RMSE"]
     results["delta_rmse_no_cycle"] = round(float(delta), 4)
-    # The conclusion is derived from the numbers above, never written in advance.
+    # La conclusión se deriva de los números anteriores, nunca se escribe de antemano.
     results["conclusion"] = (
         f"Removing cyc_norm from every component changes RMSE by {delta:+.3f} "
         f"({m_c['RMSE']:.3f} -> {m_n['RMSE']:.3f}), MAE from {m_c['MAE']:.3f} to "

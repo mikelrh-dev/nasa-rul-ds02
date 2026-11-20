@@ -1,15 +1,16 @@
-"""Hangar lifecycle as a pure state machine.
+"""Ciclo de vida del hangar como máquina de estados pura.
 
-The rules engine (`src/mia/`) answers one question: *is this unit groundable?* This
-module answers the next one: *what happened to it afterwards?* Keeping them apart
-matters — the rule engine's figures are reproduced by the evidence gate, while the
-hangar is operational bookkeeping that no gate measures.
+El motor de reglas (`src/mia/`) responde una pregunta: *¿esta unidad puede volar?*
+Este módulo responde la siguiente: *¿qué le pasó después?* Separarlos importa:
+las cifras del motor de reglas las reproduce la compuerta de evidencias, mientras
+que el hangar es contabilidad operativa que ninguna compuerta mide.
 
-A record stores the decision that **opened** it, with the thresholds in force at
-that moment. Moving a slider later must not rewrite history, so `revision()` can
-say both things at once: what the record says, and what today's policy would say.
+Un registro guarda la decisión que lo **abrió**, con los umbrales vigentes en ese
+momento. Mover un deslizador después no debe reescribir la historia, así que
+`revision()` puede decir las dos cosas a la vez: lo que dice el registro y lo que
+diría la política actual.
 
-No Streamlit here: the module is imported by the dashboard and asserted by tests.
+Aquí no hay Streamlit: el dashboard importa el módulo y los tests lo comprueban.
 """
 from __future__ import annotations
 

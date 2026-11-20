@@ -1,4 +1,4 @@
-"""SHAP sobre el MLP elegido E2 (SAA-9 de 7 a 10).
+"""SHAP sobre el MLP elegido E2.
 
 E2_reg_lr (alpha=1e-2, hidden (128,64)): elegido por rmse_val 7.3404 y
 rmse_test 7.72 en `resultados/mlp_comparativa.csv`. Persistido como Pipeline

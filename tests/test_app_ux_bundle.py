@@ -82,7 +82,7 @@ def test_six_decision_rules():
 def test_sandbox_helper_includes_sensor():
     src = open(os.path.join(APP, "lib", "sandbox.py"), encoding="utf-8").read()
     assert "sensor" in src
-    # the cached helper signature carries the sensor so the key changes with it
+    # la firma del helper cacheado incluye el sensor para que la clave cambie con él
     assert "sensor" in src.split("def _sandbox_puntua_cached")[1].split(")")[0]
 
 

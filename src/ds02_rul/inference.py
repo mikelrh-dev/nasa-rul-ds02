@@ -1,9 +1,9 @@
-"""Raw window extraction for inference.
+"""Extracción de ventanas crudas para inferencia.
 
-`HybridStackingEnsemble.predict` takes *raw* `(n, window, 18)` windows and does
-its own scaling and residualisation internally, using the objects stored in the
-artifact. That means inference never needs the training-time preprocessing
-bundle — only the raw channels, which is exactly what a live feed provides.
+`HybridStackingEnsemble.predict` recibe ventanas *crudas* `(n, ventana, 18)` y
+hace dentro su propio escalado y residualización con los objetos guardados en el
+artefacto. Por eso la inferencia no necesita el paquete de preprocesado del
+entrenamiento: solo los canales crudos, que es justo lo que da un flujo en vivo.
 """
 from __future__ import annotations
 
@@ -12,10 +12,10 @@ import pandas as pd
 
 
 def raw_windows(W, Xs, units, cycles, window: int = 50, step: int = 1):
-    """Cut raw `(n, window, n_channels)` windows aligned to each unit's cycles.
+    """Corta ventanas crudas `(n, ventana, n_canales)` alineadas con cada unidad.
 
-    Returns `(X_raw, cycles_end, units_end, meta)` where the last three describe
-    the window's final row, matching the training-time target convention.
+    Devuelve `(X_raw, cycles_end, units_end, meta)`, donde los tres últimos
+    describen la fila final de la ventana, igual que el objetivo en entrenamiento.
     """
     W = np.asarray(W, dtype=np.float32)
     Xs = np.asarray(Xs, dtype=np.float32)
@@ -52,7 +52,7 @@ def raw_windows(W, Xs, units, cycles, window: int = 50, step: int = 1):
 
 
 def windows_for_unit(W, Xs, units, cycles, unit: float, window: int = 50, step: int = 1):
-    """Raw windows belonging to a single engine, ordered by cycle."""
+    """Ventanas crudas de un solo motor, ordenadas por ciclo."""
     X, cyc, uni, meta = raw_windows(W, Xs, units, cycles, window, step)
     mask = uni == float(unit)
     if not mask.any():

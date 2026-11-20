@@ -1,30 +1,30 @@
-"""FastAPI surface over the DS02 artifact.
+"""Superficie FastAPI sobre el artefacto DS02.
 
     uvicorn app.services.api:app --host 127.0.0.1 --port 8000
     curl -X POST localhost:8000/predict -H 'content-type: application/json' \\
          -d '{"unit": 11, "window": 0}'
 
-P1 hardening:
-- The artifact SHA-256 is verified by `ds02_rul.persistence.load_ensemble`
-  (against `models/ds02_manifest.json` and `app/cache/cache_manifest.json`)
-  before any deserialization; mismatch raises `RuntimeError`.
-- `DS02_ARTIFACT` is allowlisted: it must resolve inside the repository
-  (`resolve_within_repo`). Free absolute paths outside the repo are refused.
-- `docs_url`/`redoc_url`/`openapi_url` are disabled in production
-  (`ENVIRONMENT=production` or `prod`).
-- CORS is localhost-only; security headers are set on every response.
-- `/predict` and `/units` require an API key when `DS02_API_KEY` is set
-  (`X-API-Key` header via `Depends`, compared with `hmac.compare_digest`).
-  A fixed-window rate limit of 10 requests/minute per client IP applies
-  with or without an API key, so authenticated writes are throttled too.
-- `/health` stays public (200 without credentials) as a liveness contract.
-- `PredictRequest` validates `unit`/`window` with `ge`/`le` and rejects
-  NaN/Inf via an explicit validator (pydantic allows them by default).
+Refuerzos de seguridad:
+- `ds02_rul.persistence.load_ensemble` verifica el SHA-256 del artefacto contra
+  `models/ds02_manifest.json` y `app/cache/cache_manifest.json` antes de
+  deserializar; si no coincide, lanza `RuntimeError`.
+- `DS02_ARTIFACT` está en lista blanca: debe resolver dentro del repositorio
+  (`resolve_within_repo`). Las rutas absolutas de fuera se rechazan.
+- `docs_url`, `redoc_url` y `openapi_url` se desactivan en producción
+  (`ENVIRONMENT=production` o `prod`).
+- CORS solo para localhost; las cabeceras de seguridad se añaden a cada respuesta.
+- `/predict` y `/units` piden API key cuando existe `DS02_API_KEY` (cabecera
+  `X-API-Key` vía `Depends`, comparada con `hmac.compare_digest`). El límite de
+  10 peticiones por minuto y por IP se aplica con o sin key, así que las
+  escrituras autenticadas también van limitadas.
+- `/health` sigue siendo público (200 sin credenciales) como contrato de vida.
+- `PredictRequest` valida `unit`/`window` con `ge`/`le` y rechaza NaN/Inf con un
+  validador explícito (pydantic los acepta por defecto).
 
-Deployment note: never expose this service on `0.0.0.0` with plain HTTP.
-Bind `0.0.0.0` only behind a TLS-terminating reverse proxy (e.g. nginx,
-Caddy, or a cloud load balancer) that adds TLS and ideally authentication.
-For local/standalone use bind `127.0.0.1`; there is no container image by design.
+Nota de despliegue: nunca expongas este servicio en `0.0.0.0` con HTTP plano.
+Usa `0.0.0.0` solo detrás de un proxy inverso que termine TLS (nginx, Caddy o
+un balanceador cloud) y añada TLS y, a ser posible, autenticación. Para uso
+local, enlaza `127.0.0.1`; no hay imagen de contenedor por diseño.
 """
 from __future__ import annotations
 
@@ -48,8 +48,8 @@ from ds02_rul.inference import windows_for_unit  # noqa: E402
 from ds02_rul.persistence import load_ensemble, resolve_within_repo  # noqa: E402
 
 REPO_ROOT = str(_paths.ROOT)
-# Allowlist: env may only point inside the repo (relative to repo root or
-# absolute-under-repo). Anything else is refused at import time.
+# Lista blanca: la variable de entorno solo puede apuntar dentro del repo
+# (relativa a la raíz o absoluta bajo ella). Cualquier otra cosa se rechaza al importar.
 ARTIFACT = resolve_within_repo(
     os.environ.get("DS02_ARTIFACT", os.path.join("models", "ensemble.joblib")),
     base=REPO_ROOT,
@@ -62,7 +62,7 @@ _API_KEY = os.environ.get("DS02_API_KEY", "").strip() or None
 
 log = logging.getLogger(__name__)
 
-# In-memory fixed-window rate limiter (no extra dependency): 10/min per IP.
+# Limitador de tasa en memoria por ventana fija (sin dependencias extra): 10/min por IP.
 _RATE_LIMIT_PER_MIN = 10
 _RATE_WINDOW_S = 60.0
 _rate_lock = threading.Lock()
@@ -70,7 +70,7 @@ _rate_hits: dict[str, list[float]] = {}
 
 
 def _client_ip(request: Request) -> str:
-    """Client IP for the rate limiter (host, or 'unknown' if absent)."""
+    """IP del cliente para el limitador (el host o 'unknown' si falta)."""
     if request.client is not None:
         return request.client.host
     return "unknown"
@@ -89,12 +89,12 @@ def _check_rate_limit(request: Request) -> None:
 
 
 def _protect(request: Request, x_api_key: str | None = None) -> None:
-    """API-key auth when configured, plus in-memory rate limiting always.
+    """Autenticación por API key si está configurada y límite en memoria siempre.
 
-    The key is compared with `hmac.compare_digest` (constant-time).
-    The 10/min per-IP limiter runs after successful auth with or
-    without a configured key, so authenticated writes (POST /predict)
-    are throttled the same as unauthenticated ones.
+    La clave se compara con `hmac.compare_digest` (tiempo constante). El límite
+    de 10/min por IP corre tras la autenticación, con o sin clave configurada,
+    así que las escrituras autenticadas (POST /predict) se limitan igual que las
+    anónimas.
     """
     if _API_KEY is not None:
         if not x_api_key or not hmac.compare_digest(x_api_key, _API_KEY):
@@ -106,22 +106,22 @@ def require_api_key(
     request: Request,
     x_api_key: str | None = Header(default=None, alias="X-API-Key"),
 ) -> None:
-    """`Depends` guard for `/predict` and `/units`.
+    """Guarda `Depends` para `/predict` y `/units`.
 
-    If `DS02_API_KEY` is set, requires a matching `X-API-Key` header
-    (compared with `hmac.compare_digest`). The 10/min per-IP rate
-    limit applies in every case, with or without a key.
+    Si existe `DS02_API_KEY`, exige una cabecera `X-API-Key` que coincida
+    (comparada con `hmac.compare_digest`). El límite de 10/min por IP se aplica
+    siempre, con o sin clave.
     """
     _protect(request, x_api_key)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    """Loads and verifies the ensemble artifact on startup, clears on shutdown."""
-    # load_ensemble verifies the SHA-256 against the manifests before
-    # deserializing; on mismatch it raises RuntimeError and startup aborts.
+    """Carga y verifica el artefacto al arrancar, y lo limpia al apagar."""
+    # load_ensemble verifica el SHA-256 contra los manifiestos antes de
+    # deserializar; si no coincide, lanza RuntimeError y el arranque se aborta.
     STATE["ensemble"] = load_ensemble(ARTIFACT)
-    STATE["raw"] = None  # lazily loaded; the HDF5 is 2.3 GB
+    STATE["raw"] = None  # carga diferida; el HDF5 pesa 2.3 GB
     yield
     STATE.clear()
 
@@ -135,7 +135,7 @@ app = FastAPI(
     openapi_url=None if _IS_PROD else "/openapi.json",
 )
 
-# CORS: localhost only, no wildcard origins.
+# CORS: solo localhost, sin orígenes comodín.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -152,7 +152,7 @@ app.add_middleware(
 
 @app.middleware("http")
 async def _security_headers(request: Request, call_next):  # noqa: ANN001, ANN202
-    """Adds the security headers to every response."""
+    """Añade las cabeceras de seguridad a cada respuesta."""
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
@@ -170,15 +170,15 @@ class PredictRequest(BaseModel):
     @field_validator("unit")
     @classmethod
     def _unit_must_be_finite(cls, value: float) -> float:
-        """Rejects NaN/Inf in the unit field."""
-        # Pydantic/float accepts NaN and Inf by default; reject them here.
+        """Rechaza NaN/Inf en el campo de unidad."""
+        # Pydantic y float aceptan NaN e Inf por defecto; aquí se rechazan.
         if not math.isfinite(float(value)):
             raise ValueError("unit must be a finite number (NaN/Inf rejected)")
         return float(value)
 
 
 def _raw():
-    """Lazily loads the raw DS02 data (HDF5 is ~2.3 GB)."""
+    """Carga los datos crudos DS02 de forma diferida (el HDF5 pesa ~2.3 GB)."""
     if STATE.get("raw") is None:
         STATE["raw"] = load_ds02(stride=100)
     return STATE["raw"]
@@ -186,7 +186,7 @@ def _raw():
 
 @app.get("/health")
 def health() -> dict:
-    """Health check: artifact loaded, with its config."""
+    """Comprobación de salud: artefacto cargado y su configuración."""
     ensemble = STATE.get("ensemble")
     if ensemble is None:
         raise HTTPException(status_code=503, detail="artifact not loaded")
@@ -203,14 +203,14 @@ def health() -> dict:
 
 @app.get("/units")
 def units(_auth: None = Depends(require_api_key)) -> dict:
-    """Lists the test engine ids available for scoring."""
+    """Lista los ids de motores de test disponibles para puntuar."""
     raw = _raw()
     return {"test_units": sorted(float(u) for u in np.unique(raw["A_test"][:, 0]))}
 
 
 @app.post("/predict", response_model=None)
 def predict(req: PredictRequest, _auth: None = Depends(require_api_key)) -> dict:
-    """Scores one window (or the whole trajectory, if all_windows) for an engine."""
+    """Puntúa una ventana o toda la trayectoria de un motor si `all_windows`."""
     ensemble = STATE.get("ensemble")
     if ensemble is None:
         raise HTTPException(status_code=503, detail="artifact not loaded")

@@ -92,7 +92,7 @@ def test_migracion_count_mismatch_aborta_sin_parcial(tmp_path, monkeypatch):
 
     def mala(ruta, data):
         with open(ruta, "w", encoding="utf-8") as fh:
-            json.dump(_reg(), fh)  # pierde 1 hangar a propósito
+            json.dump(_reg(), fh)    # pierde 1 hangar de forma intencionada
 
     monkeypatch.setattr(HGR, "atomic_save_json", mala)
     with pytest.raises(ValueError, match="migración abortada"):

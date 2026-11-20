@@ -1,4 +1,4 @@
-"""RED SAA-9: SHAP con explainer/masker/fondo explícitos sobre el track de clase."""
+"""SHAP con explainer, masker y fondo explícitos sobre el track de clase."""
 
 import numpy as np
 

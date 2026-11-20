@@ -1,12 +1,12 @@
-"""Training and evaluation orchestration.
+"""Orquestación del entrenamiento y la evaluación.
 
-Kept in the package (not in notebook cells) so the notebook stays readable and
-the protocol is testable. Two properties matter here:
+Vive en el paquete (no en celdas del notebook) para que el notebook siga legible
+y el protocolo sea testeable. Aquí importan dos propiedades:
 
-* preprocessing is fitted on the *fit units only*, and inside each cross-
-  validation fold it is fitted again on that fold's training units;
-* the Keras model never sees the holdout or the test units, not even through a
-  scaler mean.
+* el preprocesado se ajusta solo con las *unidades de ajuste*, y dentro de cada
+  pliegue de validación cruzada se reajusta con las unidades de ese pliegue;
+* el modelo Keras nunca ve la unidad reservada ni las de test, ni siquiera a
+  través de una media del escalador.
 """
 from __future__ import annotations
 
@@ -20,13 +20,13 @@ from .features import build_windows, fit_preprocessing
 from .metrics import calculate_nasa_score, evaluate_predictions
 from .model import build_champion_bilstm
 
-# The median (alpha=0.50) was tried and REJECTED on the confirmatory test read,
-# even though it won on grouped out-of-fold dev by a wide margin (branch 9.11 ->
-# 8.18 RMSE, hybrid 13.15 -> 12.09). On test, holding the BiLSTM fixed, it costs
-# the branch 7.11 -> 9.12 and the hybrid 4.24 -> 4.59: dev engines are long-lived
-# and under-predicted, test engines are shorter, so raising the quantile helps the
-# regime that dev over-represents and hurts the one test is. The dev gate cannot
-# arbitrate this, which is the finding recorded in ADR-007.
+# La mediana (alpha=0.50) se probó y se DESCARTÓ en la lectura confirmatoria de
+# test, aunque ganaba por mucho en dev out-of-fold agrupado (rama 9.11 -> 8.18
+# de RMSE, híbrido 13.15 -> 12.09). En test, con el BiLSTM fijo, cuesta a la rama
+# 7.11 -> 9.12 y al híbrido 4.24 -> 4.59: los motores de dev son longevos y se
+# subestiman, los de test son más cortos, así que subir el cuantil ayuda al
+# régimen sobrerrepresentado en dev y perjudica al de test. La compuerta de dev
+# no puede arbitrar esto; el hallazgo está en ADR-007.
 LGB_PARAMS = dict(
     objective="quantile",
     alpha=0.35,
@@ -49,7 +49,7 @@ def make_lgbm(seed: int) -> LGBMRegressor:
 
 
 def fit_bilstm(X_seq, y, fit_idx, val_idx, seed: int, epochs: int = 22, batch_size: int = 128):
-    """Train the champion with early stopping on a genuinely held-out unit."""
+    """Entrena el campeón con parada temprana sobre una unidad reservada real."""
     import tensorflow as tf
     from keras import callbacks
 
@@ -77,7 +77,7 @@ def fit_bilstm(X_seq, y, fit_idx, val_idx, seed: int, epochs: int = 22, batch_si
 
 
 def _row(units, cycles, y, pred, name):
-    """Metrics plus the EMA-smoothed variant of the same predictions."""
+    """Métricas de las predicciones y de su versión suavizada con EMA."""
     from .smoothing import causal_ema_by_unit
 
     smoothed = causal_ema_by_unit(pred, units, cycles, span=5)
@@ -90,7 +90,7 @@ def run_seed(raw: dict, seed: int, fit_units, holdout_units, test_units,
              window: int = 50, step_train: int = 3, step_test: int = 2,
              epochs: int = 22, use_cycle: bool = True,
              use_baseline_delta: bool = False) -> dict:
-    """Full pipeline for one seed. Returns models, predictions and metrics."""
+    """Pipeline completo para una semilla. Devuelve modelos, predicciones y métricas."""
     A_tr, A_te = raw["A_train"], raw["A_test"]
     W_tr, Xs_tr = raw["W_train"], raw["Xs_train"]
     W_te, Xs_te = raw["W_test"], raw["Xs_test"]
@@ -100,7 +100,7 @@ def run_seed(raw: dict, seed: int, fit_units, holdout_units, test_units,
     fit_row_mask = np.isin(units_tr, fit_units)
     hold_row_mask = np.isin(units_tr, holdout_units)
 
-    # ---- preprocessing fitted on the fit units ONLY
+    # ---- preprocesado ajustado SOLO con las unidades de ajuste
     prep = fit_preprocessing(W_tr[fit_row_mask], Xs_tr[fit_row_mask])
 
     dev = build_windows(
@@ -118,14 +118,14 @@ def run_seed(raw: dict, seed: int, fit_units, holdout_units, test_units,
     fit_idx = np.where(np.isin(dev_units, fit_units))[0]
     hold_idx = np.where(np.isin(dev_units, holdout_units))[0]
 
-    # ---- tabular branch
+    # ---- rama tabular
     t0 = time.perf_counter()
     lgbm = make_lgbm(seed).fit(dev["X_tab"][fit_idx], dev["y"][fit_idx])
     t_lgb = time.perf_counter() - t0
     p_lgb_hold = lgbm.predict(dev["X_tab"][hold_idx])
     p_lgb_test = lgbm.predict(test["X_tab"])
 
-    # ---- sequential branch
+    # ---- rama secuencial
     t0 = time.perf_counter()
     model, history = fit_bilstm(
         dev["X_seq"], dev["y"], fit_idx, hold_idx, seed=seed, epochs=epochs
@@ -161,12 +161,13 @@ def run_seed(raw: dict, seed: int, fit_units, holdout_units, test_units,
 def oof_base_predictions(raw: dict, dev_units, n_splits: int = 3, seed: int = 42,
                          window: int = 50, step_train: int = 3, epochs: int = 15,
                          use_cycle: bool = True) -> dict:
-    """Out-of-fold base predictions over the dev units, refitting per fold.
+    """Predicciones base out-of-fold sobre las unidades de dev, reajustando por pliegue.
 
-    Each fold refits the scalers, the polynomial basis and the 14 residual
-    ridges on that fold's training units, so the scored units never contributed
-    to any transform. The window grid is identical across folds (same units,
-    same step), so the predictions line up row for row.
+    Cada pliegue reajusta los escaladores, la base polinómica y las 14 crestas de
+    residuos con sus unidades de entrenamiento, así que las unidades puntuadas no
+    aportaron a ninguna transformación. La rejilla de ventanas es igual entre
+    pliegues (mismas unidades y mismo paso), así que las predicciones coinciden
+    fila a fila.
     """
     A_tr = raw["A_train"]
     W_tr, Xs_tr = raw["W_train"], raw["Xs_train"]
@@ -237,7 +238,7 @@ def oof_base_predictions(raw: dict, dev_units, n_splits: int = 3, seed: int = 42
 
 
 def seed_summary(rows: list) -> pd.DataFrame:
-    """Mean ± standard deviation across seeds, plus the per-seed values."""
+    """Media ± desviación típica entre semillas, además de los valores por semilla."""
     frame = pd.DataFrame(rows)
     agg = (
         frame.groupby("Modelo")[["RMSE", "MAE", "R2", "NASA_Score"]]
@@ -251,15 +252,15 @@ def seed_summary(rows: list) -> pd.DataFrame:
 def ablation_table(raw: dict, seeds=(42,), window: int = 50, step_train: int = 3,
                    step_test: int = 2, epochs: int = 22, fit_units=None,
                    holdout_units=None, include_bilstm: bool = True) -> pd.DataFrame:
-    """Measure — not assert — what the cycle counter and the baseline delta buy.
+    """Mide, sin darlo por hecho, lo que aportan el contador de ciclos y el delta base.
 
-    The tabular variants are seconds each; the BiLSTM variants are the expensive
-    part and are gated by `include_bilstm`.
+    Las variantes tabulares tardan segundos; las del BiLSTM son la parte cara y
+    quedan controladas por `include_bilstm`.
 
-    Each row carries branch timings measured with `time.perf_counter()` by
-    `run_seed`: LGBM rows carry `t_lgb_s` (= `tiempo_s`), BiLSTM rows carry
-    `t_bilstm_s` (= `tiempo_s`), and the EMA row carries no time (smoothing
-    retrains nothing).
+    Cada fila lleva los tiempos de rama medidos con `time.perf_counter()` en
+    `run_seed`: las filas de LGBM llevan `t_lgb_s` (= `tiempo_s`), las de BiLSTM
+    `t_bilstm_s` (= `tiempo_s`) y la de EMA no lleva tiempo porque suavizar no
+    reentrena nada.
     """
     rows = []
     variants = [

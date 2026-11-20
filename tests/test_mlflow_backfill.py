@@ -1,10 +1,11 @@
-"""The MLflow store is real, complete and text-only.
+"""El almacén de MLflow es real, completo y solo de texto.
 
-These tests read `mlruns/` from disk with a file tracking URI: no server, no
-network, no notebook execution. The store is produced by
-`scripts/operativo/backfill_mlflow.py --write` and must contain exactly the 17 measured
-runs (9 row grain, 4 window grain and the 4 cyc_norm ablation variants). A
-missing or duplicated run fails the test; nothing is skipped.
+Estos tests leen `mlruns/` del disco con un URI de seguimiento de ficheros: sin
+servidor, sin red y sin ejecutar notebooks. El almacén lo produce
+`scripts/operativo/backfill_mlflow.py --write` y debe contener exactamente las 17
+ejecuciones medidas (9 con grano de fila, 4 con grano de ventana y las 4
+variantes de la ablación de cyc_norm). Una ejecución que falte o esté duplicada
+hace fallar el test; no se omite nada.
 """
 from __future__ import annotations
 
@@ -19,15 +20,15 @@ from pathlib import Path
 
 import pytest
 
-# MLflow 3.18 refuses the filesystem store unless this opt-out is explicit.
+# MLflow 3.18 rechaza el almacén de ficheros si no se activa esta opción.
 os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
 
 from mlflow.tracking import MlflowClient  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 STORE = ROOT / "mlruns"
-# Experiment dir of `ds02-clase` in the file store (the only one, besides
-# `0` for Default and `models/`, that ships in git).
+# Directorio del experimento `ds02-clase` en el almacén de ficheros (el único,
+# aparte de `0` para Default y `models/`, que va en git).
 EXPERIMENT_DIR = STORE / "456179934766753270"
 EXPORT = ROOT / "docs" / "evidencia" / "mlflow" / "comparativa.csv"
 
@@ -116,10 +117,10 @@ def test_production_run_is_traceable_to_the_manifest(runs):
 
 
 def test_ablation_registers_the_four_variants(runs):
-    """The cyc_norm ablation is compared in MLflow, not just in the notebook.
+    """La ablación de cyc_norm se compara en MLflow, no solo en el notebook.
 
-    One run per variant, always the BiLSTM+EMA5 (the best model in all four).
-    Values are the measured ones from the 2026-11-09 17:22 session of nb03.
+    Una ejecución por variante, siempre BiLSTM+EMA5 (el mejor modelo en las
+    cuatro). Los valores son los medidos en la sesión del 2026-11-09 17:22 de nb03.
     """
     expected = {
         "cyc_norm OFF": 5.878,
@@ -190,8 +191,9 @@ def test_check_exits_zero():
 
 
 def test_notebooks_instrument_mlflow_live():
-    """NB01-07 DO write to MLflow live (mlflow-live-notebooks): header in
-    cell 0 + a live-log cell per notebook; backfill runs stay historic."""
+    """Los NB01-07 sí escriben en MLflow en vivo: cabecera en la celda 0 y una
+    celda de registro por notebook; el backfill sigue siendo histórico.
+    """
     for path in sorted((ROOT / "notebooks").glob("0*.ipynb")):
         text = path.read_text(encoding="utf-8")
         assert "setup_mlflow" in text, f"{path.name} sin cabecera MLflow"
@@ -205,19 +207,20 @@ def test_backfill_runs_are_historic(runs):
 
 
 def test_live_runs_do_not_break_historic_check():
-    # historic_runs must ignore fuente=live_notebook runs by construction;
-    # covered statically here, dynamically by --check on a store with only
-    # historic runs (17) — a live run would not change the historic count.
+    # historic_runs ignora por construcción las ejecuciones con
+    # fuente=live_notebook; aquí se cubre de forma estática y con --check sobre
+    # un almacén solo histórico (17): una ejecución en vivo no cambiaría el recuento.
     specs = MOD.build_specs()
     assert all(spec["tags"].get("fuente") == "historico" for spec in specs)
 
 
 def test_store_is_historic_only_on_disk():
-    """The versioned store holds the 17 curated runs and nothing else.
+    """El almacén versionado tiene las 17 ejecuciones curadas y nada más.
 
-    Live notebook tracking writes to the git-ignored `mlruns-live/`, so
-    `mlruns/` must have exactly 17 active run dirs: no `live__*` leftovers and
-    no tombstones (`lifecycle_stage: deleted`). Read from disk, no server.
+    El seguimiento en vivo de los notebooks escribe en `mlruns-live/`, que está
+    en gitignore, así que `mlruns/` debe tener exactamente 17 directorios de
+    ejecución activos: sin restos `live__*` y sin lápidas (`lifecycle_stage: deleted`).
+    Se lee del disco, sin servidor.
     """
     assert EXPERIMENT_DIR.is_dir(), f"falta {EXPERIMENT_DIR}"
     run_dirs = [p for p in EXPERIMENT_DIR.iterdir()

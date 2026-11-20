@@ -1,14 +1,15 @@
-"""Grouped out-of-fold selection of the shrinkage factor `beta`.
+"""Selección agrupada out-of-fold del factor de contracción `beta`.
 
-The original notebook fitted the meta-learners on the unit-16 rows and then
-scored the `beta` grid on those same rows, which is why it reported a validation
-RMSE of 0.308 against the BiLSTM's 4.221 and drove `beta` to the grid maximum.
-Here every scored unit is scored by meta-learners that were fitted on the other
-units only.
+El notebook original ajustaba los meta-aprendices con las filas de la unidad 16 y
+luego puntuaba la rejilla de `beta` sobre esas mismas filas. Por eso reportaba un
+RMSE de validación de 0.308 frente al 4.221 del BiLSTM y llevaba `beta` al máximo
+de la rejilla. Aquí cada unidad puntuada lo está por meta-aprendices ajustados
+solo con las demás unidades.
 
-Phase A is expensive (one base-model fit per held-out group) and is supplied by
-the caller: `select_beta_grouped` consumes already-computed out-of-fold
-predictions. That keeps the compute budget explicit and avoids a hidden refit.
+La fase A es cara (un ajuste del modelo base por grupo reservado) y la aporta
+quien llama: `select_beta_grouped` consume predicciones out-of-fold ya
+calculadas. Así el coste computacional queda explícito y no hay reajustes
+ocultos.
 """
 from __future__ import annotations
 
@@ -28,33 +29,32 @@ RIDGE_ALPHAS = np.logspace(-2, 3, 20)
 
 @dataclass(frozen=True)
 class MetaSpec:
-    """How the stacking layer is built and applied.
+    """Cómo se construye y se aplica la capa de stacking.
 
-    The shipped protocol (`MetaSpec()`) is the 50/50 average of a free
-    `RidgeCV` and a shallow `LGBMRegressor` over `[p_lstm, p_lgb]`. The fields
-    below exist so the alternatives are measurable instead of argued about.
+    El protocolo desplegado (`MetaSpec()`) es la media 50/50 de un `RidgeCV`
+    libre y un `LGBMRegressor` poco profundo sobre `[p_lstm, p_lgb]`. Los campos
+    existen para poder medir las alternativas en vez de discutirlas.
 
     level_mode : "free" | "sum_to_one" | "convex"
-        `free` keeps the fitted coefficients, which shrink (their sum was
-        0.894 on the shipped artifact). That shrink is optimal *inside* the
-        meta's support and a bias outside it, so `sum_to_one` rescales the
-        ridge coefficients to sum to 1 and refits the intercept, removing the
-        attenuation while keeping the learned split between the branches.
-        `convex` goes further and removes the intercept: the meta becomes a
-        learned convex mix of the two branches, so it *cannot* shift the level.
-        That matters because the shipped meta carries an intercept fitted on
-        unit 16's own bias, and a level shift learned on one engine does not
-        transfer (the same failure mode as the rejected OOF-pooled meta).
+        `free` conserva los coeficientes ajustados, que se contraen (sumaban
+        0.894 en el artefacto desplegado). Esa contracción es óptima dentro del
+        soporte del meta y sesgada fuera, así que `sum_to_one` reescala los
+        coeficientes de la cresta para que sumen 1 y reajusta el intercepto:
+        quita la atenuación sin perder el reparto aprendido entre ramas.
+        `convex` quita también el intercepto, de modo que el meta pasa a ser una
+        mezcla convexa aprendida y no puede mover el nivel. Importa porque el
+        meta desplegado lleva un intercepto ajustado con el sesgo de la unidad
+        16, y ese desplazamiento no se traslada a otros motores.
     use_discrepancy : bool
-        Add `relu(p_lgb - p_lstm)` as a third meta-feature, so the meta can see
-        *how far* the asymmetric quantile branch diverges from the BiLSTM.
+        Añade `relu(p_lgb - p_lstm)` como tercera meta-variable, para que el meta
+        vea cuánto se separa la rama cuantílica asimétrica del BiLSTM.
     support_gate : float
-        Ramp width, in cycles, over which the meta prediction is handed back to
-        `max(p_lstm, p_lgb)` as `max(p_lstm, p_lgb)` exceeds the largest target
-        the meta was fitted on. `0.0` disables the gate.
+        Ancho de rampa, en ciclos, con el que la predicción del meta vuelve a
+        `max(p_lstm, p_lgb)` cuando este supera el mayor objetivo con el que se
+        ajustó. `0.0` desactiva la compuerta.
     blend_lgb : float
-        Weight of the tree meta in the 50/50 reconciliation. `0.0` uses the
-        (level-restored) ridge alone.
+        Peso del meta de árboles en la reconciliación 50/50. `0.0` usa solo la
+        cresta con el nivel restaurado.
     """
 
     level_mode: str = "free"
@@ -72,7 +72,7 @@ class MetaSpec:
 
 
 def meta_design(p_lstm, p_lgb, spec: MetaSpec = MetaSpec()) -> np.ndarray:
-    """Build the meta design matrix for one spec."""
+    """Construye la matriz de diseño del meta para una especificación."""
     p_lstm = np.asarray(p_lstm, dtype=np.float64).ravel()
     p_lgb = np.asarray(p_lgb, dtype=np.float64).ravel()
     cols = [p_lstm, p_lgb]
@@ -82,11 +82,11 @@ def meta_design(p_lstm, p_lgb, spec: MetaSpec = MetaSpec()) -> np.ndarray:
 
 
 def fit_meta(Z, y, spec: MetaSpec = MetaSpec(), seed: int = 42) -> dict:
-    """Fit the meta-learners under `spec`, recording the support they saw.
+    """Ajusta los meta-aprendices con `spec` y guarda el soporte que vieron.
 
-    `support` is the largest target in the fitting rows: above it the meta is
-    extrapolating, and the support gate (when enabled) hands the prediction back
-    to the base branches there.
+    `support` es el mayor objetivo de las filas de ajuste: por encima de él el
+    meta extrapola y, si la compuerta está activa, la predicción vuelve a las
+    ramas base.
     """
     from lightgbm import LGBMRegressor
 
@@ -126,7 +126,7 @@ def fit_meta(Z, y, spec: MetaSpec = MetaSpec(), seed: int = 42) -> dict:
 
 
 def predict_meta(meta: dict, p_lstm, p_lgb) -> np.ndarray:
-    """Apply a fitted meta to two base predictions, honouring its spec."""
+    """Aplica un meta ya ajustado a dos predicciones base según su spec."""
     spec: MetaSpec = meta["spec"]
     Z = meta_design(p_lstm, p_lgb, spec)
     p_meta = (1.0 - spec.blend_lgb) * np.asarray(meta["ridge"].predict(Z)).ravel()
@@ -144,7 +144,7 @@ def predict_meta(meta: dict, p_lstm, p_lgb) -> np.ndarray:
 
 
 def grouped_folds(units, n_splits: int = 3, seed: int = 42):
-    """Balanced grouped folds over unique units, deterministic for a seed."""
+    """Pliegues agrupados y equilibrados por unidad, deterministas con semilla."""
     units = np.asarray(units)
     unique = np.unique(units)
     rng = np.random.RandomState(seed)
@@ -159,15 +159,15 @@ def grouped_folds(units, n_splits: int = 3, seed: int = 42):
 
 
 def fit_meta_learners(Z, y, seed: int = 42):
-    """Fit the two meta-learners on a `[p_lstm, p_lgb]` design.
+    """Ajusta los dos meta-aprendices sobre un diseño `[p_lstm, p_lgb]`.
 
-    Used by the pipeline with the unit-16 rows. Pooling the five fit engines'
-    out-of-fold vector into this same function was measured and **rejected**: the
-    pooled fit learns a level prior from the long-lived dev engines (RUL up to 88)
-    that does not transfer to the shorter test engines. On unit 16 it predicts a
-    mean of 39.9 against a true 31.5 and RMSE grows monotonically with `beta`
-    (4.04 at 0, 10.17 at 1). Kept because it is the instrument that made that
-    negative result reproducible — see `docs/evidencia/informes/informe-2026-10-21-motor16-vs-oof.md`.
+    El pipeline lo usa con las filas de la unidad 16. Se midió juntar el vector
+    out-of-fold de los cinco motores de ajuste y el resultado se **descartó**: el
+    ajuste agrupado aprende un nivel de los motores largos de dev (RUL hasta 88)
+    que no se traslada a los motores cortos de test. En la unidad 16 predice una
+    media de 39.9 frente a un real de 31.5 y el RMSE crece con `beta` (4.04 en 0,
+    10.17 en 1). Se conserva porque es el instrumento que hizo reproducible ese
+    resultado negativo; ver `docs/evidencia/informes/informe-2026-10-21-motor16-vs-oof.md`.
     """
     from lightgbm import LGBMRegressor
 
@@ -182,7 +182,7 @@ def fit_meta_learners(Z, y, seed: int = 42):
 
 
 def meta_predict(ridge, lgbm, Z) -> np.ndarray:
-    """The fixed 50/50 reconciliation of the two meta-learners."""
+    """Reconciliación fija 50/50 de los dos meta-aprendices."""
     Z = np.asarray(Z, dtype=np.float64)
     return 0.5 * np.asarray(ridge.predict(Z)).ravel() + 0.5 * np.asarray(
         lgbm.predict(Z)
@@ -191,12 +191,12 @@ def meta_predict(ridge, lgbm, Z) -> np.ndarray:
 
 def score_beta_holdout(p_meta, p_lstm, y, units, cycles, beta_grid=BETA_GRID,
                        span: int = 5) -> dict:
-    """Score the `beta` grid on rows that the meta-learner did not train on.
+    """Puntúa la rejilla de `beta` en filas que el meta no vio al ajustarse.
 
-    This is the scorer for the rejected OOF-pooled design: the pooled meta never
-    saw unit 16, so unit 16 was the honest place to score it. With the shipped
-    protocol the meta is fitted on unit 16 itself, so the grid is scored by
-    grouped out-of-fold folds instead (`select_beta_grouped`).
+    Es el evaluador del diseño agrupado que se descartó: ese meta nunca vio la
+    unidad 16, así que era el lugar honesto para puntuarlo. Con el protocolo
+    desplegado el meta se ajusta con la propia unidad 16, así que la rejilla se
+    puntúa con pliegues agrupados (`select_beta_grouped`).
     """
     p_meta = np.asarray(p_meta, dtype=np.float64).ravel()
     p_lstm = np.asarray(p_lstm, dtype=np.float64).ravel()
@@ -243,12 +243,12 @@ def select_beta_grouped(
     use_cycle_feature: bool = True,
     meta_spec: MetaSpec | None = None,
 ) -> dict:
-    """Select `beta` out-of-fold and report the per-fold spread.
+    """Selecciona `beta` out-of-fold y reporta la dispersión por pliegue.
 
-    The meta-learners that score a fold are fitted on the *other* folds only, so
-    the criterion is never evaluated on rows that fitted the meta-learner. When
-    `meta_spec` is given, each fold fits and applies exactly that spec, so the
-    `beta` that is selected is the one implied by the meta actually shipped.
+    Los meta-aprendices que puntúan un pliegue se ajustan solo con los *otros*
+    pliegues, así que el criterio nunca se evalúa en filas que ajustaron el meta.
+    Si se pasa `meta_spec`, cada pliegue ajusta y aplica exactamente esa spec, de
+    modo que el `beta` elegido es el que implica el meta que se despliega.
     """
     from lightgbm import LGBMRegressor
 
@@ -342,9 +342,9 @@ def select_beta_grouped(
         "iqr": float(np.subtract(*np.percentile(betas, [75, 25]))) if betas.size else None,
         "n_folds": int(betas.size),
     }
-    # Out-of-fold predictions under the selected beta, ready to calibrate a
-    # prediction band. Every row here was scored by a meta-learner fitted on the
-    # other engines, so the residuals are not the meta's own fit.
+    # Predicciones out-of-fold con el beta elegido, listas para calibrar una
+    # banda. Cada fila la puntuó un meta ajustado con los otros motores, así que
+    # los residuos no vienen del ajuste del propio meta.
     calib = None
     if oof_idx:
         idx = np.concatenate(oof_idx)
@@ -370,10 +370,11 @@ def in_sample_beta_diagnostic(
     units, cycles, y, pred_lstm, pred_lgb, beta_grid=BETA_GRID, span: int = 5,
     use_cycle_feature: bool = True,
 ) -> dict:
-    """Reproduce the legacy protocol on ONE unit to expose its in-sample bias.
+    """Reproduce el protocolo antiguo en UNA unidad para mostrar su sesgo.
 
-    Diagnostic only: it fits the meta-learners and scores the grid on the same
-    rows. Kept so the defect stays reproducible instead of living in prose.
+    Solo diagnóstico: ajusta los meta-aprendices y puntúa la rejilla sobre las
+    mismas filas. Se conserva para que el defecto siga siendo reproducible y no
+    viva solo en la documentación.
     """
     from lightgbm import LGBMRegressor
 

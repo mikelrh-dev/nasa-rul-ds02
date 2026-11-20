@@ -11,7 +11,7 @@ tests. No borrar: el README de `src/clase/` las documenta como pasos.
 
     unit, cycle, alt, Mach, TRA, T2, 14 sensores, RUL + fase_vuelo
 
-Pasos (documentados para SAA 5):
+Pasos del proceso:
 1. `build_clase_frame(raw)` — DataFrame desde `load_ds02` (train=dev, test=test).
 2. `inyectar_nulos_mar` — MAR ~2% SOLO en T30 cuando alt>27_000 y Mach>0.68
    (crucero alto DS02; el 30k/0.8 teorico no existe: Mach max 0.74).

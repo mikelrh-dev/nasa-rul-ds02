@@ -56,8 +56,8 @@ def main() -> int:
     with open(destino, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(raiz + "\n")
 
-    # Prints en ASCII a proposito: la consola de Windows (cp1252) revienta con
-    # '->' unicode y el script moria despues de escribir el .pth.
+    # Los mensajes van en ASCII a propósito: la consola de Windows (cp1252) falla
+    # con '->' unicode y el script terminaba después de escribir el .pth.
     print(f"OK: {destino}")
     print(f"    raiz del repo = {raiz}")
     print("    Siguiente paso en VS Code: Ctrl+Shift+P -> "

@@ -1,31 +1,32 @@
-"""Freeze the OOF instrument the shipped band was fitted on, as a versioned npz.
+"""Congela como npz versionado el instrumento OOF con el que se ajustó la banda desplegada.
 
-`mia/calibracion_banda.json` was re-frozen on 2026-11-04 (commit `d02ff2d`) from
-the bundle-C selection stored in `notebooks/artifacts_c/nb2_selection.joblib`.
-That joblib is gitignored, so the band's own evidence was invisible to a clone:
-`freeze_rules_evidence.py` could only rebuild a *different* instrument from
-`_p1_oof_cache.npz` and reported drift that was never in the JSON.
+`mia/calibracion_banda.json` se volvió a congelar el 2026-11-04 (commit `d02ff2d`)
+a partir de la selección de bundle C guardada en
+`notebooks/artifacts_c/nb2_selection.joblib`. Ese joblib está en gitignore, así
+que la evidencia de la banda era invisible en un clon:
+`freeze_rules_evidence.py` solo podía reconstruir un instrumento *distinto* desde
+`_p1_oof_cache.npz` e informaba una deriva que nunca estuvo en el JSON.
 
-This script derives the calibration rows once and writes them to
-`mia/instrumento_oof.npz`, which is tracked. The derivation is not a freedom:
+Este script deriva una vez las filas de calibración y las escribe en
+`mia/instrumento_oof.npz`, que sí está versionado. La derivación no es libre:
 
-    oof_calib (52 341 step-1 rows; units 2/5/10/16/18/20)
-      -> pure units 2/5/10/18/20                       44 737 rows
-      -> every third row per unit, in cycle order       14 915 rows
-      -> EMA5 over pred_meta, recomputed on that reduced series
-      -> stored as `pred_ema`  (the gate applies PAVA itself)
+    oof_calib (52 341 filas de paso 1; unidades 2/5/10/16/18/20)
+      -> unidades puras 2/5/10/18/20                   44 737 filas
+      -> una de cada tres filas por unidad, en orden de ciclo   14 915 filas
+      -> EMA5 sobre pred_meta, recalculada sobre esa serie reducida
+      -> se guarda como `pred_ema`  (la puerta aplica PAVA por su cuenta)
 
-The order matters and is measured, not assumed. Smoothing the step-1 series and
-then subsampling gives bins `[5139, 6145, 3084, 547]` and `q_low` `-4.2639` in
-bin 0; the reduction and then the smoothing gives `[5125, 6094, 3135, 561]` and
-`-4.3621`, which is what `calibracion_banda.json` records. Only the second
-reproduces the frozen band at its committed 4 decimals.
+El orden importa y está medido, no supuesto. Suavizar la serie de paso 1 y luego
+submuestrear da bins `[5139, 6145, 3084, 547]` y `q_low` `-4.2639` en el bin 0;
+reducir y después suavizar da `[5125, 6094, 3135, 561]` y `-4.3621`, que es lo
+que registra `calibracion_banda.json`. Solo la segunda reproduce la banda
+congelada con sus 4 decimales registrados.
 
-    python scripts/auditoria/freeze_oof_instrument.py --write   # derive and write the npz
-    python scripts/auditoria/freeze_oof_instrument.py --check   # verify it against the JSON
+    python scripts/auditoria/freeze_oof_instrument.py --write   # deriva y escribe el npz
+    python scripts/auditoria/freeze_oof_instrument.py --check   # lo verifica contra el JSON
 
-Exit codes: `0` the band reproduces; `2` usage; `3` input (joblib or npz absent);
-`4` the derived band disagrees with `calibracion_banda.json`.
+Códigos de salida: `0` la banda se reproduce; `2` uso; `3` entrada (falta el
+joblib o el npz); `4` la banda derivada no coincide con `calibracion_banda.json`.
 """
 from __future__ import annotations
 
@@ -41,7 +42,7 @@ import pandas as pd
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "scripts", "auditoria"))
 
-import freeze_rules_evidence as G  # noqa: E402  (same band code the gate runs)
+import freeze_rules_evidence as G  # noqa: E402  (el mismo código de banda que ejecuta la puerta)
 
 JOBLIB = os.path.join(ROOT, "notebooks", "artifacts_c", "nb2_selection.joblib")
 OUT = G.INSTRUMENT
@@ -55,7 +56,7 @@ EXIT_DRIFT = 4
 
 
 def _reduced_grid(units: np.ndarray, order: int = STEP) -> np.ndarray:
-    """Positions of every `order`-th row per unit, in the order given."""
+    """Posiciones de cada fila múltiplo de `order` por unidad, en el orden recibido."""
     keep = []
     for unit in np.unique(units):
         idx = np.where(units == unit)[0]
@@ -64,7 +65,7 @@ def _reduced_grid(units: np.ndarray, order: int = STEP) -> np.ndarray:
 
 
 def _ema_by_unit(values: np.ndarray, units: np.ndarray, span: int = SPAN) -> np.ndarray:
-    """Causal EMA over each unit's series, exactly as `stacking` computes it."""
+    """EMA causal sobre la serie de cada unidad, igual que la calcula `stacking`."""
     out = np.empty_like(values)
     for unit in np.unique(units):
         idx = np.where(units == unit)[0]
@@ -73,7 +74,7 @@ def _ema_by_unit(values: np.ndarray, units: np.ndarray, span: int = SPAN) -> np.
 
 
 def derive(joblib_path: str = JOBLIB) -> dict:
-    """Rebuild the 14 915 calibration rows from the bundle-C selection."""
+    """Reconstruye las 14 915 filas de calibración desde la selección de bundle C."""
     if not os.path.exists(joblib_path):
         raise G.InputError("missing notebook artifact",
                            f"{joblib_path} (bundle C selection)")
@@ -96,7 +97,7 @@ def derive(joblib_path: str = JOBLIB) -> dict:
     if not pure.any():
         raise G.InputError("empty instrument", "no rows in the pure unit mask")
 
-    # Cycle order first: the step-3 grid and the EMA are both order-dependent.
+    # Primero el orden de ciclo: tanto la rejilla de paso 3 como la EMA dependen del orden.
     order = np.lexsort((cycles[pure], units[pure]))
     units, cycles = units[pure][order], cycles[pure][order]
     y_true, meta = y_true[pure][order], meta[pure][order]
@@ -118,7 +119,7 @@ def derive(joblib_path: str = JOBLIB) -> dict:
 
 
 def fit_from(arrays: dict) -> dict:
-    """Fit the band from a frozen instrument, applying the shipped correction."""
+    """Ajusta la banda desde un instrumento congelado aplicando la corrección desplegada."""
     positions = G._ordered_positions(arrays["units"], arrays["cycles"])
     corrected = G._per_unit(positions, arrays["pred_ema"], G.REGLAS.pava_causal_no_creciente)
     return G.CONFORMAL.fit_conformal(
@@ -133,7 +134,7 @@ def _committed() -> dict:
 
 
 def compare(fit: dict, committed: dict) -> list[str]:
-    """Every recorded field of the band must reproduce at its own precision."""
+    """Cada campo registrado de la banda debe reproducirse con su propia precisión."""
     problems = []
     for have, want in zip(committed.get("bins", []), fit["bins"]):
         if have.get("n") != want["n"]:

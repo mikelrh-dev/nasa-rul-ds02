@@ -1,44 +1,47 @@
-"""Re-derive the rules-layer evidence and fail on any drift (RULES-06).
+"""Recalcula la evidencia de la capa de reglas y falla ante cualquier deriva (RULES-06).
 
     python scripts/auditoria/freeze_rules_evidence.py [--check | --write] [--instrument | --cache PATH]
 
-By default it verifies the shipped band against `mia/instrumento_oof.npz`, the
-tracked 14 915-row instrument the band was fitted on (see ADR-012): pure units
-`[2, 5, 10, 18, 20]`, the shipped causal isotonic correction, the conformal band
-and the recorded quantiles, compared at the precision
-`mia/calibracion_banda.json` records — never at the DSS's live-rerun tolerance.
-The OOF table is *reported* on this path, not asserted: it was measured on a
-cache git ignores, so printing it as a contract would assert a figure nobody can
-reproduce.
+Por defecto verifica la banda desplegada contra `mia/instrumento_oof.npz`, el
+instrumento versionado de 14 915 filas con el que se ajustó la banda (ver
+ADR-012): unidades puras `[2, 5, 10, 18, 20]`, la corrección isotónica causal
+desplegada, la banda conforme y los cuantiles registrados, comparados con la
+precisión que guarda `mia/calibracion_banda.json`, nunca con la tolerancia de
+reejecución en vivo del DSS. En esta ruta la tabla OOF se *informa*, no se
+exige: se midió sobre una caché que git ignora, así que imprimirla como
+contrato afirmaría una cifra que nadie puede reproducir.
 
-`--cache PATH` is the development path: rebuild the instrument from that
-out-of-fold cache (step-1 rows), which is where the table comes from. On the
-current tree it exits 5 — the base refit is not bit deterministic, and saying so
-is the point. `--instrument` forces the default path explicitly.
+`--cache PATH` es la ruta de desarrollo: reconstruye el instrumento desde esa
+caché out-of-fold (filas de paso 1), que es de donde sale la tabla. Sobre el
+árbol actual sale con 5 porque el reajuste base no es determinista bit a bit, y
+señalarlo es justamente el objetivo. `--instrument` fuerza explícitamente la
+ruta por defecto.
 
-Exit codes, so CI can tell the three failures apart:
+Códigos de salida, para que CI distinga los tres fallos:
 
-* `0` every check passed and the table was printed;
-* `2` usage error (`--check` with `--write`; argparse's own code, not remapped);
-* `3` input error — cache absent, unreadable, incomplete or non-finite;
-* `4` drift — a figure, the pure-mask size or a rows-changed count moved;
-* `5` contract — a shipped function lost a parameter or a key, or the frozen
-  JSON no longer satisfies RULES-05.
+* `0` todas las comprobaciones pasan y la tabla se imprime;
+* `2` error de uso (`--check` con `--write`; código propio de argparse, sin remapear);
+* `3` error de entrada — caché ausente, ilegible, incompleta o con no finitos;
+* `4` deriva — cambió una cifra, el tamaño de la máscara pura o un recuento de filas;
+* `5` contrato — una función desplegada perdió un parámetro o una clave, o el JSON
+  congelado ya no cumple RULES-05.
 
-`--check` is the default and `--write` is explicit: a verification command that
-mutates a frozen artifact by accident is a trap. `--write` re-freezes
-`mia/calibracion_banda.json` only, from the module constant, and only for fields
-outside tolerance; on a matching tree it prints `no change` and opens no file.
-When a **recorded figure** drifted it exits 4 and opens no file at all: freezing
-first and reporting afterwards would leave the artifact repaired on a run that
-failed.
+`--check` es el modo por defecto y `--write` es explícito: un comando de
+verificación que muta un artefacto congelado por accidente es una trampa.
+`--write` vuelve a congelar solo `mia/calibracion_banda.json`, desde la constante
+del módulo y únicamente en los campos fuera de tolerancia; sobre un árbol que
+coincide imprime `no change` y no abre ningún fichero. Si deriva una **cifra
+registrada**, sale con 4 y no abre nada: congelar primero e informar después
+dejaría el artefacto reparado en una ejecución fallida.
 
-The word "skip" never appears in the output. A missing instrument is a failure,
-not a reason to pass — the test suite takes the opposite policy on purpose.
+La palabra "skip" nunca aparece en la salida. Un instrumento ausente es un
+fallo, no un motivo para pasar; la suite de tests toma la política contraria a
+propósito.
 
-The package `ds02_rul` imports Keras at import time through `pooling.py`, so the
-three submodules the gate needs are loaded against an explicit namespace
-package: same shipped code, no TensorFlow in a process that only reads a cache.
+El paquete `ds02_rul` importa Keras en tiempo de importación a través de
+`pooling.py`, así que los tres submódulos que necesita la puerta se cargan contra
+un paquete de espacio de nombres explícito: el mismo código desplegado, sin
+TensorFlow en un proceso que solo lee una caché.
 """
 from __future__ import annotations
 
@@ -60,14 +63,14 @@ MIA = os.path.join(SRC, "mia")
 
 REQUIRED_KEYS = ("units", "cycles", "y", "p_lstm", "p_lgb")
 PURE_UNITS = (2.0, 5.0, 10.0, 18.0, 20.0)
-# The band in `calibracion_banda.json` was fitted on a selection that git
-# ignores (`nb2_selection.joblib`), so the rows are frozen here instead: the
-# band's own evidence must survive a clone.
+# La banda de `calibracion_banda.json` se ajustó sobre una selección que git
+# ignora (`nb2_selection.joblib`), así que las filas se congelan aquí: la
+# evidencia de la propia banda debe sobrevivir a un clon.
 INSTRUMENT_KEYS = ("units", "cycles", "y", "pred_ema")
 INSTRUMENT = os.path.join(MIA, "instrumento_oof.npz")
-# What the frozen instrument can speak for by itself. The OOF table below was
-# measured on a different, absent cache and cannot be re-derived from these
-# rows, so it is reported, not asserted, on this path.
+# Lo que el instrumento congelado puede afirmar por sí solo. La tabla OOF de
+# abajo se midió sobre otra caché ausente y no se puede recalcular desde estas
+# filas, así que en esta ruta se informa y no se exige.
 INSTRUMENT_EXPECTED = {"pure_rows": 14915}
 PROCEDENCIA_FIELDS = ("metodo", "filas_calibracion", "unidades_calibracion",
                       "excluida", "instrumento", "cache_origen", "regla_correccion")
@@ -81,8 +84,8 @@ EXIT_CONTRACT = 5
 REBUILD = "python scripts/auditoria/p1_oof_cache.py   (needs the DS02 HDF5 and the base models)"
 POLICY = "RULES-06 — a missing instrument fails the gate; it never degrades to a no-op"
 
-# Recorded evidence. The test columns are NOT recomputed: the cache holds
-# development/OOF rows only, so they stay anchored by the manifest and app/cache.
+# Evidencia registrada. Las columnas de test NO se recalculan: la caché solo
+# contiene filas de desarrollo/OOF, así que quedan ancladas al manifiesto y a app/cache.
 EXPECTED = {
     "rmse_baseline": 9.491,
     "nasa_baseline": 19257.1,
@@ -98,9 +101,9 @@ EXPECTED = {
     "pure_rows": 14915,
 }
 
-# Half-unit-in-the-last-place from the committed decimals, plus 1e-9. Integers
-# and the envelope identity are exact. `5e-3` belongs to the non-deterministic
-# BiLSTM path and would hide a real drift here.
+# Media unidad del último decimal de los valores registrados, más 1e-9. Los
+# enteros y la identidad de la envolvente son exactos. `5e-3` corresponde a la
+# ruta BiLSTM no determinista y ocultaría una deriva real aquí.
 TOLERANCE = {
     "rmse_baseline": 5e-4,
     "nasa_baseline": 5e-2,
@@ -144,7 +147,7 @@ V3 min(prefix PAVA)             10.737    21053.0       3.964      1906.6       
 
 
 class InputError(Exception):
-    """A cache that cannot be verified: absent, unreadable, incomplete, non-finite."""
+    """Una caché que no se puede verificar: ausente, ilegible, incompleta o con no finitos."""
 
     def __init__(self, kind: str, detail: str):
         super().__init__(f"{kind}: {detail}")
@@ -153,16 +156,16 @@ class InputError(Exception):
 
 
 class ContractError(Exception):
-    """The shipped code or the frozen JSON no longer honours its contract."""
+    """El código desplegado o el JSON congelado ya no cumple su contrato."""
 
 
 # --------------------------------------------------------------- imports
 def _submodule(name: str):
-    """Import `ds02_rul.<name>` without running the package `__init__`.
+    """Importa `ds02_rul.<name>` sin ejecutar el `__init__` del paquete.
 
-    `ds02_rul/__init__.py` pulls `pooling`, which imports Keras. The gate needs
-    only `stacking`, `conformal` and `metrics`, so the package namespace is
-    registered explicitly and the `__init__` never executes.
+    `ds02_rul/__init__.py` arrastra `pooling`, que importa Keras. La puerta solo
+    necesita `stacking`, `conformal` y `metrics`, así que el espacio de nombres
+    del paquete se registra explícitamente y el `__init__` nunca se ejecuta.
     """
     if "ds02_rul" not in sys.modules:
         package = types.ModuleType("ds02_rul")
@@ -172,15 +175,15 @@ def _submodule(name: str):
 
 
 def _import_mia():
-    """Load `mia/reglas.py` by its canonical dotted path, from the repo root.
+    """Carga `mia/reglas.py` por su ruta canónica, desde la raíz del repo.
 
-    This used to insert `src/mia` on `sys.path` and import the bare name
-    `reglas`. That name is ambiguous: whichever of `src` and `src/mia` sits
-    first wins, so the gate could measure a different module depending on the
-    import order (it did, through a facade that has since been deleted).
-    Importing `src.mia.reglas` makes the canonical module win regardless of
-    `sys.path` order, and keeps one module object per process instead of one
-    per import style.
+    Antes se insertaba `src/mia` en `sys.path` y se importaba el nombre desnudo
+    `reglas`. Ese nombre es ambiguo: gana el primero que aparezca entre `src` y
+    `src/mia`, así que la puerta podía medir un módulo distinto según el orden de
+    importación (así ocurrió, a través de una fachada ya eliminada). Importar
+    `src.mia.reglas` hace que gane siempre el módulo canónico, sea cual sea el
+    orden de `sys.path`, y mantiene un solo objeto de módulo por proceso en vez
+    de uno por estilo de importación.
     """
     if ROOT not in sys.path:
         sys.path.insert(0, ROOT)
@@ -195,23 +198,24 @@ REGLAS = _import_mia()
 
 # ---------------------------------------------------------------- input
 def load_cache(path: str) -> dict:
-    """Load and validate the five OOF arrays.
+    """Carga y valida los cinco arrays OOF.
 
-    Every failure is an `InputError`, never an empty result: the caller reports
-    the named cause and exits 3. Finite values and equal lengths are part of the
-    contract — a NaN would silently poison every figure downstream.
+    Todo fallo es un `InputError`, nunca un resultado vacío: quien llama informa
+    la causa concreta y sale con 3. Los valores finitos y las longitudes iguales
+    forman parte del contrato; un NaN envenenaría en silencio todas las cifras
+    posteriores.
     """
     if not os.path.exists(path):
         raise InputError("missing instrument", path)
     try:
         with np.load(path) as data:
             present = set(data.keys())
-            # Base predictions rebuild the instrument; a frozen instrument is
-            # the rebuilt rows themselves, production-ready for the band.
+            # Las predicciones base reconstruyen el instrumento; un instrumento
+            # congelado son las propias filas reconstruidas, listas para la banda.
             keys = REQUIRED_KEYS if set(REQUIRED_KEYS) <= present else INSTRUMENT_KEYS
             missing = [key for key in keys if key not in present]
             arrays = {key: np.asarray(data[key]) for key in keys if key in present}
-    except Exception as exc:  # corrupt zip, wrong dtype, permission denied
+    except Exception as exc:  # zip corrupto, dtype incorrecto, permiso denegado
         raise InputError("unreadable instrument", f"{path}: {exc}") from exc
 
     if missing:
@@ -227,7 +231,7 @@ def load_cache(path: str) -> dict:
 
 
 def report_input_error(error: InputError, stream) -> None:
-    """Say what is missing, how to rebuild it and which rule makes it fatal."""
+    """Indica qué falta, cómo reconstruirlo y qué regla lo hace fatal."""
     print("freeze-rules-evidence: cannot verify", file=stream)
     print(f"  {error.kind}: {error.detail}", file=stream)
     print(f"  rebuild it with:    {REBUILD}", file=stream)
@@ -236,10 +240,10 @@ def report_input_error(error: InputError, stream) -> None:
 
 # ------------------------------------------------------------- recompute
 def _ordered_positions(units, cycles):
-    """Per-unit positions ordered by `cycles`, stable so ties keep row order.
+    """Posiciones por unidad ordenadas por `cycles`, estables para conservar el orden de fila en empates.
 
-    The OOF cache has no `start_index`; imitating the UI's `(cycle, start_index)`
-    lexsort would pretend to a granularity this artifact does not carry.
+    La caché OOF no tiene `start_index`; imitar el lexsort `(cycle, start_index)`
+    de la UI fingiría una granularidad que este artefacto no tiene.
     """
     positions = {}
     for unit in np.unique(units):
@@ -249,7 +253,7 @@ def _ordered_positions(units, cycles):
 
 
 def _per_unit(positions, serie, fn):
-    """Apply `fn` to each unit's ordered series, scattering back to row order."""
+    """Aplica `fn` a la serie ordenada de cada unidad y devuelve al orden de fila."""
     out = np.empty(len(serie), dtype=np.float64)
     for idx in positions.values():
         out[idx] = fn(serie[idx])
@@ -270,7 +274,7 @@ def _max_positive_increment(positions, serie) -> float:
 
 
 def _require_api() -> None:
-    """Exit 5 if the shipped functions lost a parameter or a key."""
+    """Sale con 5 si las funciones desplegadas perdieron un parámetro o una clave."""
     import inspect
 
     needed = {
@@ -290,11 +294,11 @@ def _require_api() -> None:
 
 
 def recompute(cache: dict) -> dict:
-    """Rebuild the instrument and every figure RULES-06 makes checkable."""
+    """Reconstruye el instrumento y cada cifra que RULES-06 hace comprobable."""
     if cache.get("_mode") == "instrument":
-        # The rows arrive already reduced and smoothed. Re-deriving them here
-        # would build a different instrument, which is the defect this path
-        # exists to remove, not to repeat.
+        # Las filas llegan ya reducidas y suavizadas. Recalcularlas aquí
+        # construiría otro instrumento, que es el defecto que esta ruta existe
+        # para eliminar, no para repetir.
         calib, beta, folds = cache, float(cache.get("beta", 1.0)), 0
     else:
         _require_api()
@@ -375,7 +379,7 @@ def _load_committed() -> dict:
 
 
 def _check_frozen_contract(committed: dict, fit: dict) -> list[str]:
-    """Structural violations of RULES-05 — always exit 5, never a tolerance."""
+    """Violaciones estructurales de RULES-05: siempre exit 5, nunca una tolerancia."""
     problems = []
     for key, want in (("method", fit["method"]), ("debias", fit["debias"]),
                       ("target_coverage", fit["target_coverage"]),
@@ -420,7 +424,7 @@ def _check_frozen_contract(committed: dict, fit: dict) -> list[str]:
 
 
 def _quantile_drifts(committed: dict, fit: dict) -> list[tuple[str, float, float]]:
-    """Numeric drift of the recomputed quantiles, at 5e-5."""
+    """Deriva numérica de los cuantiles recalculados, a 5e-5."""
     drifts = []
     for index, (have, want) in enumerate(zip(committed.get("bins", []), fit["bins"])):
         for key in ("q_low", "q_high"):
@@ -434,7 +438,7 @@ def _quantile_drifts(committed: dict, fit: dict) -> list[tuple[str, float, float
 
 
 def _write_frozen(committed: dict, fit: dict) -> list[str]:
-    """Re-freeze every recomputable calibration field; report what moved."""
+    """Vuelve a congelar los campos recalculables de calibración e informa lo que cambió."""
     payload = copy.deepcopy(committed)
     changes = []
     for key, want in (("method", fit["method"]), ("debias", fit["debias"]),
@@ -461,7 +465,7 @@ def _write_frozen(committed: dict, fit: dict) -> list[str]:
 
 # -------------------------------------------------------------- compare
 def _compare(observed: dict, expected: dict) -> list[str]:
-    """Compare only the figures this instrument can speak for."""
+    """Compara solo las cifras de las que este instrumento puede responder."""
     failures = []
     for field, tolerance in TOLERANCE.items():
         if field not in expected:
@@ -497,15 +501,15 @@ def _print_check_block(observed: dict, expected: dict, stream) -> None:
               f"{'ok' if ok else 'DRIFT'}", file=stream)
 
 
-# ------------------------------------------------------------------ run
+# ----------------------------------------------------------------- ejecución
 def run(expected: dict | None = None, cache: str | None = None,
         write: bool = False, stream=None, instrument: bool = False) -> int:
-    """Run the gate and return its exit code (never raises on bad input).
+    """Ejecuta la puerta y devuelve su código de salida (nunca lanza por entrada inválida).
 
-    `instrument=True` verifies the frozen band from `mia/instrumento_oof.npz`
-    instead of the OOF cache. The two paths answer different questions: the
-    cache re-derives an instrument, the frozen npz repeats the derivation the
-    shipped band actually came from.
+    `instrument=True` verifica la banda congelada desde `mia/instrumento_oof.npz`
+    en lugar de la caché OOF. Las dos rutas responden preguntas distintas: la
+    caché recalcula un instrumento y el npz congelado repite la derivación de la
+    que salió realmente la banda desplegada.
     """
     stream = sys.stdout if stream is None else stream
     if instrument:
@@ -544,8 +548,8 @@ def run(expected: dict | None = None, cache: str | None = None,
     failures = _compare(observed, expected)
 
     if write and failures:
-        # Verify before freezing: a gate that repairs the file it validates turns
-        # a failed check into a passing one on the second run.
+        # Verificar antes de congelar: una puerta que repara el fichero que valida
+        # convierte una comprobación fallida en aprobada a la segunda ejecución.
         print("", file=stream)
         print("freeze-rules-evidence: recorded figures drift; refusing to re-freeze",
               file=stream)
@@ -602,8 +606,8 @@ def main(argv=None) -> int:
         return run(instrument=True, write=args.write)
     if args.cache is not None:
         return run(cache=args.cache, write=args.write)
-    # Default: the tracked instrument. A clone must verify the band without the
-    # notebook artifact and without re-running a nondeterministic base refit.
+    # Por defecto, el instrumento versionado. Un clon debe verificar la banda sin
+    # el artefacto del notebook y sin repetir un reajuste base no determinista.
     if os.path.exists(INSTRUMENT):
         return run(instrument=True, write=args.write)
     return run(write=args.write)

@@ -1,17 +1,16 @@
-"""Artifact persistence: native `.keras` for the graph, `joblib` for the rest.
+"""Persistencia de artefactos: `.keras` nativo para el grafo y `joblib` para el resto.
 
-Two invariants this module enforces:
+Este módulo garantiza tres cosas:
 
-* the Keras graph is written with `model.save(...)` in the native format and is
-  **not** embedded in the joblib payload, so the pickle never carries marshalled
-  bytecode;
-* every artifact is accompanied by a manifest that records what produced it, so
-  a DS02 bundle can never be silently replaced by a differently-shaped one.
-* **never deserialize before verifying**: `load_ensemble` / `load_bilstm`
-  compute the SHA-256 of the file and compare it against the manifest
-  (`models/ds02_manifest.json` and `app/cache/cache_manifest.json`) *before*
-  any `joblib.load` / `keras.models.load_model`. On mismatch they raise
-  `RuntimeError` without touching the pickle. No `eval`/`exec` is used.
+* el grafo Keras se guarda con `model.save(...)` en formato nativo y **no** se
+  mete dentro del joblib, así que el pickle no lleva bytecode serializado;
+* cada artefacto tiene un manifiesto que registra qué lo produjo, para que un
+  bundle DS02 no pueda sustituirse por otro con distinta forma sin avisar;
+* **nunca se deserializa sin verificar**: `load_ensemble` y `load_bilstm`
+  calculan el SHA-256 del fichero y lo comparan con el manifiesto
+  (`models/ds02_manifest.json` y `app/cache/cache_manifest.json`) *antes* de
+  llamar a `joblib.load` o `keras.models.load_model`. Si no coincide, lanzan
+  `RuntimeError` sin tocar el pickle. No se usa `eval` ni `exec`.
 """
 from __future__ import annotations
 
@@ -30,7 +29,7 @@ MANIFEST_FILE = "ds02_manifest.json"
 EXPECTED_N_FEATURES = 18
 EXPECTED_N_OP = 4
 
-# Repo root: src/ds02_rul/persistence.py -> repo root is three levels up.
+# Raíz del repo: src/ds02_rul/persistence.py está tres niveles por debajo.
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _MANIFEST_CANDIDATES_DS02 = [
     os.path.join(REPO_ROOT, "models", MANIFEST_FILE),
@@ -48,16 +47,16 @@ def sha256_of(path: str) -> str:
 
 
 def _expected_hashes(path: str, key: str) -> tuple[list[str], list[str]]:
-    """Collect expected SHA-256 values for `key` from repo/sibling manifests.
+    """Recoge los SHA-256 esperados para `key` de los manifiestos del repo y vecinos.
 
-    Returns (hashes, manifest_paths_found). No deserialization happens here:
-    manifests are plain JSON, read with `json.load` only.
+    Devuelve (hashes, manifest_paths_found). Aquí no se deserializa nada: los
+    manifiestos son JSON plano y se leen solo con `json.load`.
     """
     candidates: list[str] = []
     sibling = os.path.join(os.path.dirname(os.path.abspath(path)), MANIFEST_FILE)
     candidates.append(sibling)
     candidates.extend(_MANIFEST_CANDIDATES_DS02)
-    # cache_manifest.json may sit next to the artifact too (app/cache layout).
+    # cache_manifest.json también puede estar junto al artefacto (estructura de app/cache).
     sibling_cache = os.path.join(os.path.dirname(os.path.abspath(path)), "cache_manifest.json")
     candidates.append(sibling_cache)
 
@@ -74,8 +73,8 @@ def _expected_hashes(path: str, key: str) -> tuple[list[str], list[str]]:
         except (OSError, ValueError) as exc:
             raise RuntimeError(f"refusing to load {path!r}: cannot read manifest {manifest_path!r}: {exc}") from exc
         found.append(manifest_path)
-        # ds02_manifest.json stores `artifacts.<key>_sha256`; cache_manifest.json
-        # stores `artifact.<key>_sha256`. Accept both layouts.
+        # ds02_manifest.json guarda `artifacts.<key>_sha256` y cache_manifest.json
+        # guarda `artifact.<key>_sha256`. Se aceptan las dos estructuras.
         for container in (manifest.get("artifacts") or {}, manifest.get("artifact") or {}):
             value = container.get(key)
             if isinstance(value, str) and value:
@@ -84,11 +83,11 @@ def _expected_hashes(path: str, key: str) -> tuple[list[str], list[str]]:
 
 
 def verify_artifact_sha256(path: str, key: str) -> str:
-    """Verify `path` against the manifest BEFORE any deserialization.
+    """Verifica `path` contra el manifiesto ANTES de deserializar.
 
-    Raises `RuntimeError` (without deserializing) when no manifest is found or
-    when the computed hash does not match *every* expected hash recorded.
-    Returns the verified digest.
+    Lanza `RuntimeError` (sin deserializar) si no encuentra manifiesto o si el
+    hash calculado no coincide con *todos* los esperados. Devuelve el digest
+    verificado.
     """
     hashes, found = _expected_hashes(path, key)
     if not found:
@@ -114,10 +113,11 @@ def verify_artifact_sha256(path: str, key: str) -> str:
 
 
 def resolve_within_repo(path: str, base: str | None = None) -> str:
-    """Allowlist: `path` must resolve inside the repo (or `base`).
+    """Lista blanca: `path` debe resolver dentro del repo (o de `base`).
 
-    Used for externally configured artifact paths (e.g. `DS02_ARTIFACT`) so an
-    environment variable cannot point the loader at an arbitrary host file.
+    Se usa para rutas de artefacto configurables desde fuera (por ejemplo
+    `DS02_ARTIFACT`), de modo que una variable de entorno no pueda apuntar el
+    cargador a un fichero arbitrario del sistema.
     """
     root = os.path.abspath(base or REPO_ROOT)
     candidate = os.path.abspath(path if os.path.isabs(path) else os.path.join(root, path))
@@ -129,7 +129,7 @@ def resolve_within_repo(path: str, base: str | None = None) -> str:
 
 
 def build_manifest(ensemble, metrics: dict, seed: int, dataset: str = "DS02", **extra) -> dict:
-    """Assemble the provenance record for a completed run."""
+    """Compone el registro de procedencia de una ejecución terminada."""
     import keras
     import lightgbm
     import sklearn
@@ -147,10 +147,10 @@ def build_manifest(ensemble, metrics: dict, seed: int, dataset: str = "DS02", **
         "keras": keras.__version__,
         "sklearn": sklearn.__version__,
         "lightgbm": extra.pop("lightgbm", lightgbm.__version__),
-        # The tabular branch's objective is a decision with its own record
-        # (ADR-003, and ADR-007 for the rejected median experiment). Read it off
-        # the fitted estimator so the shipped bundle can be audited instead of
-        # trusted: the label in the notebook is prose, this is the artifact.
+        # El objetivo de la rama tabular es una decisión con su propio registro
+        # (ADR-003, y ADR-007 para el experimento de la mediana descartado). Se
+        # lee del estimador ajustado para poder auditar el bundle en vez de
+        # confiar en él: la etiqueta del notebook es prosa, esto es el artefacto.
         "lgb_objective": {
             "objective": lgb_params.get("objective"),
             "alpha": lgb_params.get("alpha"),
@@ -164,13 +164,13 @@ def build_manifest(ensemble, metrics: dict, seed: int, dataset: str = "DS02", **
             "lgb_n_features": int(ensemble.lgb_standalone.n_features_in_),
             "bilstm_input_shape": [d if d is not None else None for d in model.input_shape],
             "bilstm_params": int(model.count_params()),
-            # The meta-learner's width is the whole point of the cycle-ablation
-            # revision: 2 columns means [p_lstm, p_lgb], 3 means the clock is back.
+            # El ancho del meta-aprendiz es la clave de la revisión de ablación
+            # del ciclo: 2 columnas son [p_lstm, p_lgb] y 3 devuelven el reloj.
             "meta_features": int(ensemble.ridge_meta.n_features_in_),
         },
-        # The calibrated prediction band travels with the bundle. The rows that
-        # taught the meta-learner are recorded separately as `meta_protocol`,
-        # which the notebook passes in.
+        # La banda de predicción calibrada viaja con el bundle. Las filas con
+        # las que se ajustó el meta-aprendiz se registran aparte en
+        # `meta_protocol`, que pasa el notebook.
         "conformal": getattr(ensemble, "conformal", None),
         "inference_contract": {
             "window_size": int(ensemble.window_size),
@@ -186,7 +186,7 @@ def build_manifest(ensemble, metrics: dict, seed: int, dataset: str = "DS02", **
 
 
 def assert_ds02_artifact(ensemble) -> None:
-    """Abort the save if the bundle is not the DS02 shape it claims to be."""
+    """Cancela el guardado si el bundle no tiene la forma DS02 que declara."""
     n_features = int(getattr(ensemble.scaler, "n_features_in_", -1))
     if n_features != EXPECTED_N_FEATURES:
         raise ValueError(
@@ -200,9 +200,9 @@ def assert_ds02_artifact(ensemble) -> None:
 
 
 def save_ensemble(ensemble, out_dir: str = ".", manifest: dict | None = None) -> dict:
-    """Write the bundle, the scaler and the native Keras model.
+    """Escribe el bundle, el escalador y el modelo Keras nativo.
 
-    Returns a dict of written paths and their hashes.
+    Devuelve un diccionario con las rutas escritas y sus hashes.
     """
     os.makedirs(out_dir, exist_ok=True)
     assert_ds02_artifact(ensemble)
@@ -214,7 +214,7 @@ def save_ensemble(ensemble, out_dir: str = ".", manifest: dict | None = None) ->
     scaler_path = os.path.join(out_dir, SCALER_FILE)
     joblib.dump(ensemble.scaler, scaler_path)
 
-    # The graph is referenced by path, never pickled into the bundle.
+    # El grafo se referencia por ruta; nunca se serializa dentro del bundle.
     detached = _detached_copy(ensemble, bilstm_path)
     ensemble_path = os.path.join(out_dir, ENSEMBLE_FILE)
     joblib.dump(detached, ensemble_path)
@@ -247,10 +247,10 @@ def save_ensemble(ensemble, out_dir: str = ".", manifest: dict | None = None) ->
 
 
 def _detached_copy(ensemble, bilstm_path: str):
-    """Clone the ensemble with the Keras model swapped for its path.
+    """Clona el ensamble cambiando el modelo Keras por su ruta.
 
-    Avoids pickling a live Keras graph (which is what made the legacy artifact
-    version-bound) while keeping every fitted estimator.
+    Evita serializar un grafo Keras vivo (lo que ataba el artefacto antiguo a
+    una versión concreta) y conserva todos los estimadores ajustados.
     """
     from .ensemble import HybridStackingEnsemble
 
@@ -262,11 +262,11 @@ def _detached_copy(ensemble, bilstm_path: str):
 
 
 def load_bilstm(path: str = BILSTM_FILE):
-    """Load the native Keras graph, registering the custom pooling layer first.
+    """Carga el grafo Keras nativo registrando antes la capa de pooling propia.
 
-    Keras resolves a custom layer by name at deserialisation time, so the module
-    that defines it must already be imported. Importing `.pooling` here runs its
-    `register_keras_serializable` decorator and makes the load order-proof.
+    Keras resuelve una capa propia por nombre al deserializar, así que el módulo
+    que la define ya debe estar importado. Importar `.pooling` aquí ejecuta su
+    decorador `register_keras_serializable` y hace que el orden no importe.
     """
     import keras
 
@@ -277,21 +277,20 @@ def load_bilstm(path: str = BILSTM_FILE):
             f"BiLSTM artifact not found at {path!r}. Save it with "
             "ds02_rul.persistence.save_ensemble (writes bilstm_ds02.keras)."
         )
-    # SHA-256 verified BEFORE any deserialization: refuse tampered graphs.
+    # SHA-256 verificado ANTES de deserializar: se rechazan grafos manipulados.
     verify_artifact_sha256(path, "bilstm_sha256")
     return keras.models.load_model(path, compile=False)
 
 
 def load_ensemble(path: str = ENSEMBLE_FILE):
-    """Load a bundle and re-attach its native Keras graph.
+    """Carga un bundle y vuelve a engancharle su grafo Keras nativo.
 
-    Security (P1): the SHA-256 of `path` is verified against
-    `models/ds02_manifest.json` and `app/cache/cache_manifest.json`
-    (plus a sibling manifest next to the artifact) **before** `joblib.load`.
-    On mismatch `RuntimeError` is raised and the pickle is never
-    deserialized. No `eval`/`exec` is used. This check is what
-    `app/ui_inference.get_ensemble` and `app/api.py` rely on — they both
-    go through this function.
+    Seguridad: el SHA-256 de `path` se verifica contra
+    `models/ds02_manifest.json` y `app/cache/cache_manifest.json` (y un
+    manifiesto vecino al artefacto) **antes** de `joblib.load`. Si no coincide
+    se lanza `RuntimeError` y el pickle no se deserializa. No se usa `eval` ni
+    `exec`. De esta comprobación dependen `app/ui_inference.get_ensemble` y
+    `app/api.py`, que pasan por esta función.
     """
     if not os.path.exists(path):
         raise FileNotFoundError(f"ensemble artifact not found at {path!r}")
@@ -313,7 +312,7 @@ def write_manifest(path: str, manifest: dict) -> None:
 
 
 def data_fingerprint(arrays: dict) -> str:
-    """Stable hash of the ingested shapes plus per-unit boundary rows."""
+    """Hash estable de las formas ingeridas y las filas de frontera por unidad."""
     digest = hashlib.sha256()
     for key in sorted(arrays):
         value = np.asarray(arrays[key])

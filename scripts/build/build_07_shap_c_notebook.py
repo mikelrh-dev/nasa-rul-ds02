@@ -1,29 +1,29 @@
-"""Build `notebooks/07_shap_c_bundle_c.ipynb` (SHAP por ramas sobre el bundle C).
+"""Construye `notebooks/07_shap_c_bundle_c.ipynb` (SHAP por ramas sobre el bundle C).
 
-Pure `nbformat` emitter: writes cells as verbatim strings, executes nothing,
-does not read the dataset and writes no artifacts. The notebook is a build
-output; edit this file, never the `.ipynb`.
+Emisor puro de `nbformat`: escribe las celdas como cadenas literales, no ejecuta
+nada, no lee el dataset y no genera artefactos. El notebook es una salida de
+construcción; edita este fichero, nunca el `.ipynb`.
 
-The notebook is thin on purpose: it only calls `ejecutar_shap_c`
-(`src/ds02_rul/shap_c.py`, Fase 6) with the frozen bundle C
-(`models/ensemble.joblib`, seed 42, read-only) and displays what the call
-leaves in `resultados/shap_bundle_C/`. No retraining happens here, and
-`models/` plus NB01-06 are never touched.
+El notebook es fino a propósito: solo llama a `ejecutar_shap_c`
+(`src/ds02_rul/shap_c.py`, Fase 6) con el bundle C congelado
+(`models/ensemble.joblib`, semilla 42, solo lectura) y muestra lo que la llamada
+deja en `resultados/shap_bundle_C/`. Aquí no se reentrena nada y no se tocan
+`models/` ni los NB01-06.
 
-Execution (do it once the notebook is built)::
+Ejecución (una vez construido el notebook)::
 
     PYTHONHASHSEED=42 TF_NUM_INTEROP_THREADS=1 TF_NUM_INTRAOP_THREADS=1 \\
     OMP_NUM_THREADS=1 .venv/Scripts/python.exe -m nbconvert --to notebook \\
     --execute --inplace --ExecutePreprocessor.kernel_name=ds02-venv \\
     --ExecutePreprocessor.timeout=3600 notebooks/07_shap_c_bundle_c.ipynb
 
-`PYTHONHASHSEED` must be set on the launching process (it cannot be fixed
-from inside the kernel); TF single-thread env vars are also set in the first
-cell, before anything imports TensorFlow (lazy-load: TF only loads inside
-`ejecutar_shap_c`). Jupyter NotebookLM-style markdown export
-(`notebooksMD/`) is NOT done by this builder — the repo's builders never
-export markdown either; generate it by hand with
-`.venv/Scripts/python.exe -m nbconvert --to markdown` if needed.
+`PYTHONHASHSEED` debe fijarse en el proceso que lanza la ejecución (no se puede
+cambiar desde dentro del kernel); las variables de un solo hilo de TF también se
+fijan en la primera celda, antes de que nada importe TensorFlow (carga
+perezosa: TF solo se importa dentro de `ejecutar_shap_c`). Este constructor NO
+hace exportación markdown tipo Jupyter (`notebooksMD/`), igual que el resto de
+constructores del repo; si hace falta, genérala a mano con
+`.venv/Scripts/python.exe -m nbconvert --to markdown`.
 """
 from __future__ import annotations
 

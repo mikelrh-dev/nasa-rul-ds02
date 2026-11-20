@@ -1,15 +1,15 @@
-"""Re-package the legacy DS02 artifact into a portable bundle (no training).
+"""Reempaqueta el artefacto DS02 heredado en un bundle portable (sin entrenar).
 
-Run with **Python 3.10** — the interpreter that wrote the original file. It:
+Ejecutar con **Python 3.10**, el intérprete que escribió el fichero original:
 
-1. loads the legacy `ensemble.joblib` through a `__main__` shim,
-2. rebuilds the BiLSTM graph with `LastStepPooling` and transfers the weights,
-3. asserts the rebuilt graph predicts identically to the legacy model,
-4. wraps the legacy fitted estimators in the module-qualified
-   `ds02_rul.HybridStackingEnsemble` and writes the portable bundle
-   (`ensemble.joblib` without the graph, `bilstm_ds02.keras`, `scaler.joblib`,
+1. carga el `ensemble.joblib` heredado mediante un shim de `__main__`,
+2. reconstruye el grafo BiLSTM con `LastStepPooling` y transfiere los pesos,
+3. comprueba que el grafo reconstruido predice igual que el modelo heredado,
+4. envuelve los estimadores ajustados heredados en
+   `ds02_rul.HybridStackingEnsemble` y escribe el bundle portable
+   (`ensemble.joblib` sin el grafo, `bilstm_ds02.keras`, `scaler.joblib`,
    `ds02_manifest.json`),
-5. records reference predictions so a 3.12 process can prove parity.
+5. guarda predicciones de referencia para que un proceso 3.12 pueda probar la paridad.
 
     python310 scripts/repackage_artifact.py
 """
@@ -64,7 +64,7 @@ def main() -> int:
     n_channels = int(state["bilstm_model"].input_shape[-1])
     print(f"legacy: n_op={n_op} window={window} channels={n_channels} params={state['bilstm_model'].count_params()}")
 
-    # --- 1. rebuild the graph without the Lambda and transfer weights
+    # --- 1. reconstruir el grafo sin la Lambda y transferir los pesos
     rebuilt = build_champion_bilstm(input_shape=(window, n_channels), dense_units=32, seed=42)
     rebuilt.set_weights(state["bilstm_model"].get_weights())
     print(f"rebuilt: params={rebuilt.count_params()} layers={[l.__class__.__name__ for l in rebuilt.layers]}")
@@ -77,9 +77,10 @@ def main() -> int:
     print(f"BiLSTM parity vs legacy: {y_new.tolist()} max|diff|={diff:.3e}")
     assert diff < 1e-5, f"weights did not transfer losslessly (max diff {diff})"
 
-    # --- 2. wrap the legacy fitted estimators in the portable class
-    # `residualizer` was pickled as `__main__.SensorResidualizer`, so it unpickled
-    # as the bootstrap stub; re-wrap its state in the real class.
+    # --- 2. envolver los estimadores heredados en la clase portable
+    # `residualizer` se serializó como `__main__.SensorResidualizer`, así que se
+    # desserializó como el esbozo de arranque; vuelve a envolver su estado en la
+    # clase real.
     legacy_res = state["residualizer"].__dict__
     residualizer = SensorResidualizer(
         legacy_res["poly"], legacy_res["ridges"], legacy_res["res_scaler"]
@@ -103,7 +104,7 @@ def main() -> int:
         ema_span=int(state["ema_span"]),
     )
 
-    # --- 3. reference predictions through the public predict() contract
+    # --- 3. predicciones de referencia a través del contrato público predict()
     rng = np.random.RandomState(1)
     mean, scale = state["scaler"].mean_, state["scaler"].scale_
     x_raw = (rng.randn(6, window, mean.shape[0]) * scale + mean).astype(np.float32)
@@ -134,7 +135,7 @@ def main() -> int:
             indent=2,
         )
 
-    # --- 4. persist the portable bundle
+    # --- 4. persistir el bundle portable
     metrics = {"repackage": "legacy_weights_transferred", "max_abs_diff_bilstm": diff}
     manifest = build_manifest(
         ensemble,
@@ -152,14 +153,14 @@ def main() -> int:
     written = save_ensemble(ensemble, OUT_DIR, manifest)
     print(json.dumps(written, indent=2))
 
-    # root-level copies keep the documented artifact locations valid
+    # las copias en la raíz mantienen válidas las rutas documentadas del artefacto
     import shutil
 
     shutil.copyfile(os.path.join(OUT_DIR, "ensemble.joblib"), "ensemble.joblib")
     shutil.copyfile(os.path.join(OUT_DIR, "scaler.joblib"), "scaler.joblib")
     print("copied ensemble.joblib and scaler.joblib to the repo root")
 
-    # --- 5. keras native round-trip inside this interpreter
+    # --- 5. ida y vuelta nativa de keras en este mismo intérprete
     reloaded = keras.models.load_model(os.path.join(OUT_DIR, "bilstm_ds02.keras"), compile=False)
     y_rt = reloaded.predict(x_fixed, verbose=0).ravel()
     rt_diff = float(np.max(np.abs(y_rt - y_ref)))

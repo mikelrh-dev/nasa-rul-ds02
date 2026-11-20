@@ -1,12 +1,12 @@
-"""Interaction tests: the two star buttons must not break the app.
+"""Tests de interacción: los dos botones de alta no deben romper la app.
 
-The logic behind C1 (alta) was correct and covered by
-`tests/test_ui_alta.py`. What was missing is a test that *presses* the button.
-Both broke with `StreamlitWidgetAlreadyInstantiatedError` because the handler
-wrote to a session-state key owned by an already-instantiated widget. The 152
-green tests never saw it: `AppTest` renders the page but clicks nothing.
+La lógica de C1 (alta) era correcta y estaba cubierta por
+`tests/test_ui_alta.py`. Faltaba un test que *pulsara* el botón. Ambos fallaban
+con `StreamlitWidgetAlreadyInstantiatedError` porque el handler escribía en una
+clave de `session_state` que pertenecía a un widget ya instanciado. Los 152
+tests en verde no lo vieron: `AppTest` renderiza la página pero no pulsa nada.
 
-Run:  python -m pytest tests/test_dss_interaction.py -v
+Ejecutar:  python -m pytest tests/test_dss_interaction.py -v
 """
 from __future__ import annotations
 
@@ -69,7 +69,7 @@ def _slider_ciclo(app):
 
 
 def _selector_unidad(app):
-    """The sidebar's unit picker (the first `segmented_control` is the data mode)."""
+    """Selector de unidad de la barra lateral (el primer `segmented_control` es el modo de datos)."""
     for control in app.segmented_control:
         if (control.proto.label or "").startswith("Unidad de test"):
             return control
@@ -78,7 +78,7 @@ def _selector_unidad(app):
 
 @needs_cache
 def test_incorporar_unidad_no_rompe_la_app():
-    """C1: alta individual. Pressing it must not raise, and the unit must appear."""
+    """C1: alta individual. Pulsarlo no debe lanzar error y la unidad debe aparecer."""
     app = _app()
     app.run()
     assert not app.exception
@@ -96,9 +96,9 @@ def test_incorporar_unidad_no_rompe_la_app():
 def test_el_alta_crea_el_gemelo_y_el_motor_sobrevive_un_recargo():
     """El alta con unidad y ciclo libres crea su gemelo y persiste.
 
-    Antes el alta vivia solo en `session_state` y desaparecia al recargar: el
-    motor se perdia y el usuario creia haber hecho algo mal. Y no creaba gemelo,
-    asi que no aparecia en «Gemelos registrados».
+    Antes el alta vivía solo en `session_state` y desaparecía al recargar: el
+    motor se perdía y el usuario creía haber hecho algo mal. Tampoco creaba
+    gemelo, así que no aparecía en «Gemelos registrados».
     """
     app = _app()
     app.run()
@@ -346,10 +346,10 @@ def test_el_informe_de_auditoria_es_un_pdf_descargable():
 
     Congela las dos tablas de auditoría (precisión por tramo y alarma vs.
     verdad) con la huella del artefacto. El test valida el binario, no solo el
-    botón: un PDF truncado sería una promesa incumplida ante el tribunal.
+    botón: un PDF truncado sería una promesa incumplida ante el comité.
 
-    P1 (mejoras-streamlit): el PDF se genera al pulsar «Generar informe», no en
-    cada render; el test pulsa ese botón antes de buscar la descarga.
+    El PDF se genera al pulsar «Generar informe», no en cada render; el test
+    pulsa ese botón antes de buscar la descarga.
     """
     app = _app()
     app.run()

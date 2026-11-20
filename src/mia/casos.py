@@ -7,7 +7,7 @@ esa misma unidad (`app/cache/ds02_windows.parquet`), en orden de ciclo. El
 historial es lo que hace posible la corrección isotónica causal: sin pasado no
 hay tendencia que imponer.
 
-El caso de seguridad es sintetico a proposito: lleva un dato imposible y un
+El caso de seguridad es sintético por diseño: lleva un dato imposible y un
 punto valido, de modo que si la regla de seguridad no ganara, las de estado
 decidirian igual.
 

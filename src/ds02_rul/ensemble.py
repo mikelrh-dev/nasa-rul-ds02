@@ -1,9 +1,10 @@
-"""Inference bundle: BiLSTM + tabular LightGBM + meta-learner + causal EMA.
+"""Bundle de inferencia: BiLSTM + LightGBM tabular + meta-aprendiz + EMA causal.
 
-The class lives here (not in a notebook) so that `joblib` records a
-module-qualified name and the artifact can be loaded by any process. The Keras
-graph is deliberately *not* pickled inside the bundle; it is persisted natively
-as `.keras` and attached at load time by `ds02_rul.persistence.load_ensemble`.
+La clase vive aquí (no en un notebook) para que `joblib` guarde un nombre
+cualificado por módulo y el artefacto pueda cargarse desde cualquier proceso. El
+grafo Keras no se serializa dentro del bundle a propósito: se guarda de forma
+nativa como `.keras` y se engancha al cargar con
+`ds02_rul.persistence.load_ensemble`.
 """
 from __future__ import annotations
 
@@ -21,29 +22,30 @@ PARADIGM = (
 
 
 class HybridStackingEnsemble:
-    """BiLSTM champion + tabular challenger reconciled by a learned meta-learner.
+    """BiLSTM campeón + rama tabular reconciliados por un meta-aprendiz.
 
-    Parameters
+    Parámetros
     ----------
-    bilstm_model : keras.Model or None
-        Attached directly, or resolved lazily from `bilstm_path`.
+    bilstm_model : keras.Model o None
+        Se engancha directamente o se resuelve de forma perezosa desde
+        `bilstm_path`.
     lgb_standalone : lightgbm.LGBMRegressor
-        Tabular branch over the 92/93-column window summary.
-    ridge_meta, lgb_meta : estimators
-        Meta-learners over `[pred_lstm, pred_lgb]`. The clock is deliberately not
-        offered to this layer: with `cyc_norm` available it carried ~100 % of
-        the weight and the "ensemble" was reading a counter.
-    conformal : dict or None
-        Calibrated prediction band (see `ds02_rul.conformal`). When present,
-        `predict_interval` returns `(point, lower, upper)`.
+        Rama tabular sobre el resumen de ventana de 92/93 columnas.
+    ridge_meta, lgb_meta : estimadores
+        Meta-aprendices sobre `[pred_lstm, pred_lgb]`. El reloj no se le ofrece a
+        esta capa a propósito: con `cyc_norm` disponible se llevaba casi el 100 %
+        del peso y el "ensamble" estaba leyendo un contador.
+    conformal : dict o None
+        Banda de predicción calibrada (ver `ds02_rul.conformal`). Si existe,
+        `predict_interval` devuelve `(punto, inferior, superior)`.
     residualizer : SensorResidualizer
     scaler : sklearn.preprocessing.StandardScaler
-        Fitted on the 18 raw channels.
+        Ajustado sobre los 18 canales crudos.
     scaler_w : sklearn.preprocessing.StandardScaler
-        Regime scaler. Persisted for provenance; the inference path derives the
-        regime block from the global `scaler`, which is numerically identical.
+        Escalador de régimen. Se guarda por trazabilidad; la inferencia deriva el
+        bloque de régimen del `scaler` global, que es numéricamente idéntico.
     n_op : int
-        Number of operational channels (4 on DS02).
+        Número de canales operativos (4 en DS02).
     """
 
     def __init__(
@@ -80,7 +82,7 @@ class HybridStackingEnsemble:
 
     # ------------------------------------------------------------------ model
     def _resolve_model(self):
-        """Return the Keras model, loading it from `bilstm_path` on first use."""
+        """Devuelve el modelo Keras y lo carga de `bilstm_path` la primera vez."""
         if self.bilstm_model is None:
             if not self.bilstm_path:
                 raise RuntimeError(
@@ -99,12 +101,12 @@ class HybridStackingEnsemble:
 
     # ---------------------------------------------------------------- predict
     def predict(self, X_raw_windows, cycles, units=None) -> np.ndarray:
-        """Score raw `(n, window, 18)` windows and return RUL per window.
+        """Puntúa ventanas crudas `(n, ventana, 18)` y devuelve una RUL por ventana.
 
-        `units` must identify the engine of each window. Omitting it collapses
-        every window into a single EMA series, which smooths across unrelated
-        engines and produces plausible-looking but wrong numbers; a warning is
-        emitted so the caller cannot do it by accident.
+        `units` debe identificar el motor de cada ventana. Si se omite, todas las
+        ventanas caen en una sola serie EMA, que suaviza entre motores distintos
+        y produce números creíbles pero incorrectos; se emite un aviso para que
+        no ocurra por accidente.
         """
         X_raw_windows = np.asarray(X_raw_windows, dtype=np.float64)
         n = X_raw_windows.shape[0]
@@ -139,8 +141,8 @@ class HybridStackingEnsemble:
         tab = self._tabular(X_scaled, cycles)
         p_lgb = np.asarray(self.lgb_standalone.predict(tab)).ravel()
 
-        # The meta-learner may or may not have been trained with the cycle
-        # feature; respect whatever width it was fitted on rather than assuming.
+        # El meta-aprendiz puede haberse entrenado con la variable de ciclo o
+        # sin ella; se respeta el ancho con el que se ajustó en vez de suponerlo.
         n_meta = int(getattr(self.ridge_meta, "n_features_in_", 3) or 3)
         columns = [p_lstm, p_lgb]
         if n_meta >= 3:
@@ -159,11 +161,11 @@ class HybridStackingEnsemble:
         return np.clip(p, 0.0, None)
 
     def predict_interval(self, X_raw_windows, cycles, units=None):
-        """Point prediction plus its calibrated band.
+        """Predicción puntual más su banda calibrada.
 
-        Separate from `predict` on purpose: the point-estimate contract used by
-        the API and the tests stays byte-for-byte what it was, and a caller that
-        wants uncertainty opts in.
+        Está separada de `predict` a propósito: el contrato de estimación puntual
+        que usan la API y los tests no cambia, y quien quiera incertidumbre la
+        pide explícitamente.
         """
         from .conformal import apply_conformal
 
@@ -178,7 +180,7 @@ class HybridStackingEnsemble:
 
     # --------------------------------------------------------------- internals
     def _sequence(self, X_scaled: np.ndarray, cycles: np.ndarray, input_shape) -> np.ndarray:
-        """Attach the normalised-cycle channel when the graph expects it."""
+        """Añade el canal de ciclo normalizado cuando el grafo lo espera."""
         expected = input_shape[-1]
         if expected == X_scaled.shape[2]:
             return X_scaled
@@ -191,10 +193,10 @@ class HybridStackingEnsemble:
         return np.concatenate([X_scaled, cyc], axis=2)
 
     def _tabular(self, X_scaled: np.ndarray, cycles: np.ndarray) -> np.ndarray:
-        """Rebuild the window summary exactly as the tabular branch was trained."""
+        """Reconstruye el resumen de ventana igual que se entrenó la rama tabular."""
         W_win = X_scaled[:, :, : self.n_op]
         Xs_win = X_scaled[:, :, self.n_op :]
-        # The residual models were fitted on raw sensors; undo the global scaling.
+        # Los modelos de residuos se ajustaron con sensores crudos; se deshace el escalado global.
         Xs_raw = (
             Xs_win.astype(np.float64) * self.scaler.scale_[self.n_op :]
             + self.scaler.mean_[self.n_op :]

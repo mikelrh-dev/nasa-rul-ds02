@@ -1,4 +1,4 @@
-"""Tests del pipeline compartido (PIA 3): mismo pre para todos, 1 caso nuevo."""
+"""Tests del pipeline compartido: mismo pre para todos y un caso nuevo."""
 
 import pandas as pd
 from sklearn.linear_model import Ridge

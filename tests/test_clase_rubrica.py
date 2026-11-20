@@ -39,7 +39,7 @@ def test_el_campeon_desplegado_es_el_bundle_c():
 
 
 def test_tres_campeones_no_se_confunden():
-    """SAA-9: el alias es el mejor clásico, E2 el mejor de fila y C el desplegado."""
+    """El alias es el mejor clásico, E2 el mejor de fila y C el desplegado."""
     import json
 
     import joblib

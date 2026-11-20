@@ -1,17 +1,17 @@
-"""Read-only data layer for the DS02 decision-support surface.
+"""Capa de datos de solo lectura para la superficie de decisión DS02.
 
-Everything the UI draws comes from `app/cache/` (`scripts/build/build_ui_cache.py`) and
-`models/ds02_manifest.json`. This module imports pandas and streamlit only —
-never TensorFlow — so the app starts in milliseconds and runs on a machine that
-has neither the 2.3 GB HDF5 nor a GPU.
+Todo lo que dibuja la UI sale de `app/cache/` (`scripts/build/build_ui_cache.py`)
+y de `models/ds02_manifest.json`. Este módulo solo importa pandas y streamlit,
+nunca TensorFlow, así que la app arranca en milisegundos y corre en una máquina
+sin el HDF5 de 2.3 GB y sin GPU.
 
-Two rules this module exists to enforce:
+Este módulo existe para hacer cumplir dos reglas:
 
-* `models/` is opened read-only. The only files read there are the manifest and
-  (through the cache's provenance) the recorded artifact hash.
-* No metric is hardcoded. Every figure is recomputed from the cached predictions
-  and their ground truth; the manifest is surfaced separately, as the frozen
-  contract it is.
+* `models/` se abre en solo lectura. Los únicos ficheros que se leen allí son el
+  manifiesto y, a través de la procedencia de la caché, el hash registrado.
+* Ninguna métrica está escrita a mano. Cada cifra se recalcula desde las
+  predicciones cacheadas y su verdad; el manifiesto se muestra aparte, como el
+  contrato congelado que es.
 """
 from __future__ import annotations
 
@@ -76,9 +76,9 @@ ACTIONS = {
     SIN_DECISION: "No se decide: corrige el dato imposible y vuelve a evaluar.",
 }
 
-# The dataset declares these names in the HDF5 (`W_var`, `X_s_var`). They are
-# N-CMAPSS names, not the FD001 `s1 … s21` labels — mixing the two would be a
-# silent dataset swap in a presentation about DS02.
+# El dataset declara estos nombres en el HDF5 (`W_var`, `X_s_var`). Son nombres
+# de N-CMAPSS, no las etiquetas `s1 … s21` de FD001; mezclarlos sería cambiar
+# de dataset en silencio en una presentación sobre DS02.
 CHANNEL_LABELS = {
     "alt": "alt · altitud (ft)",
     "Mach": "Mach · adimensional",
@@ -222,7 +222,7 @@ def drift_por_rul(channels: list[str], bin_width: int = 10):
 # --------------------------------------------------------------------- readers
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_windows() -> pd.DataFrame:
-    """One row per scored window, straight from the cache (no model load)."""
+    """Una fila por ventana puntuada, directamente de la caché (sin cargar el modelo)."""
     frame = pd.read_parquet(WINDOWS_PATH)
     frame["unit"] = frame["unit"].astype(int)
     frame["cycle"] = frame["cycle"].astype(int)
@@ -231,7 +231,7 @@ def get_windows() -> pd.DataFrame:
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_rows() -> pd.DataFrame:
-    """One row per downsampled telemetry row, with the real DS02 channel names."""
+    """Una fila por fila de telemetría submuestreada, con los nombres reales de DS02."""
     frame = pd.read_parquet(ROWS_PATH)
     frame["unit"] = frame["unit"].astype(int)
     frame["cycle"] = frame["cycle"].astype(int)
@@ -251,7 +251,7 @@ def get_provenance() -> dict:
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_manifest() -> dict:
-    """The frozen artifact contract, read for display only."""
+    """El contrato congelado del artefacto, leído solo para mostrarlo."""
     with open(MANIFEST_PATH, encoding="utf-8") as fh:
         return json.load(fh)
 
@@ -371,18 +371,18 @@ def _sha256_cached(path: str, _size: int, _mtime_ns: int) -> str | None:
 
 
 def artifact_hash_check(provenance: dict) -> dict:
-    """Compare the recorded ensemble hash with models/ensemble.joblib on disk.
+    """Compara el hash registrado del ensamble con `models/ensemble.joblib` en disco.
 
-    Returns {"checked": bool, "ok": bool, "esperado": str|None, "leido": str|None}
-    with the full hex digests. Any unreadable input (missing artifact, truncated
-    manifest, unreadable file) returns checked=False instead of raising, because
-    a stale cache must warn the operator, never crash the render.
+    Devuelve {"checked": bool, "ok": bool, "esperado": str|None, "leido": str|None}
+    con los digests hexadecimales completos. Cualquier entrada ilegible (artefacto
+    ausente, manifiesto truncado, fichero ilegible) devuelve checked=False en vez
+    de lanzar: una caché obsoleta debe avisar al operador, nunca romper el render.
 
-    Why this exists: `app/cache/cache_manifest.json` records
-    `artifact.ensemble_sha256` and the surface displays it, but nothing compared
-    it with the bundle actually on disk. Retrain and replace
-    `models/ensemble.joblib` without rebuilding the cache and the screen keeps
-    showing predictions of the new bundle under the seal of the old one.
+    Existe porque `app/cache/cache_manifest.json` guarda
+    `artifact.ensemble_sha256` y la superficie lo muestra, pero nada lo comparaba
+    con el bundle que hay realmente en disco. Si se reentrena y se sustituye
+    `models/ensemble.joblib` sin rehacer la caché, la pantalla sigue enseñando
+    predicciones del bundle nuevo bajo el sello del antiguo.
     """
     try:
         artifact = (provenance or {}).get("artifact") or {}
@@ -411,11 +411,12 @@ def artifact_hash_check(provenance: dict) -> dict:
 # ---------------------------------------------------------------------- policy
 def classify(lower: float, airworthy: float = DEFAULT_AIRWORTHY,
              aog: float = DEFAULT_AOG) -> str:
-    """Maintenance state from the conformal LOWER bound, never the point estimate.
+    """Estado de mantenimiento desde el límite INFERIOR conformal, no desde el punto.
 
-    The threshold pair is a decision, not a default: see ADR-013. A rule whose
-    airworthy band starts above the largest achievable lower bound (≈ 36 on this
-    split) would never turn green, which is why the defaults are 25 / 20.
+    El par de umbrales es una decisión, no un valor por defecto: ver ADR-013. Una
+    regla cuyo rango apto empiece por encima del mayor límite inferior alcanzable
+    (≈ 36 en esta partición) nunca se pondría en verde; por eso los valores por
+    defecto son 25 / 20.
     """
     if not aog < airworthy:
         raise ValueError(
@@ -431,11 +432,11 @@ def classify(lower: float, airworthy: float = DEFAULT_AIRWORTHY,
 
 # ---------------------------------------------------------------------- curves
 def unit_curve(windows: pd.DataFrame, unit: int) -> pd.DataFrame:
-    """Per-cycle series for one engine.
+    """Serie por ciclo de un motor.
 
-    The model scores a window every `step` rows, so a cycle carries many
-    predictions. The chart draws the mean and the panel decides on the worst
-    (lowest) lower bound; both are kept so the difference stays visible.
+    El modelo puntúa una ventana cada `step` filas, así que un ciclo lleva varias
+    predicciones. El gráfico dibuja la media y el panel decide con el peor límite
+    inferior (el más bajo); se conservan ambos para que la diferencia se vea.
     """
     frame = windows[windows["unit"] == int(unit)]
     if frame.empty:
@@ -476,12 +477,12 @@ def _state_at_cycle(at_cycle: pd.DataFrame, lower: float,
 def fleet_snapshot(windows: pd.DataFrame, cycle: int,
                    airworthy: float = DEFAULT_AIRWORTHY,
                    aog: float = DEFAULT_AOG) -> pd.DataFrame:
-    """Every unit at the simulated cycle, clamped to its own scored range.
+    """Todas las unidades en el ciclo simulado, recortadas a su rango puntuado.
 
-    Clamping is not extrapolation: an engine that stopped at cycle 59 is reported
-    at 59 when the fleet clock reads 76, and an engine whose first scored cycle
-    is later than the clock is reported as having no data yet rather than being
-    given a state it has not earned.
+    Recortar no es extrapolar: un motor que se quedó en el ciclo 59 se reporta en
+    59 aunque el reloj de la flota marque 76, y un motor cuyo primer ciclo
+    puntuado es posterior al reloj se reporta como sin datos todavía, en vez de
+    asignarle un estado que no ha ganado.
     """
     rows = []
     for unit in sorted(windows["unit"].unique()):
@@ -527,7 +528,7 @@ def fleet_snapshot(windows: pd.DataFrame, cycle: int,
 
 # --------------------------------------------------------------------- metrics
 def per_unit_metrics(windows: pd.DataFrame) -> pd.DataFrame:
-    """RMSE / MAE / bias per engine, recomputed from the cached windows."""
+    """RMSE / MAE / sesgo por motor, recalculados desde las ventanas cacheadas."""
     rows = []
     for unit in sorted(windows["unit"].unique()):
         frame = windows[windows["unit"] == unit]
@@ -544,7 +545,7 @@ def per_unit_metrics(windows: pd.DataFrame) -> pd.DataFrame:
 
 
 def global_metrics(windows: pd.DataFrame) -> dict:
-    """Window-weighted metrics plus the per-engine macro-RMSE and R2."""
+    """Métricas ponderadas por ventana más el macro-RMSE y R2 por motor."""
     y = windows["y_true"].to_numpy()
     p = windows["pred"].to_numpy()
     per_unit = per_unit_metrics(windows)
@@ -569,7 +570,7 @@ BAND_EDGES = (0.0, 25.0, 50.0, 75.0, np.inf)
 
 
 def mae_by_band(windows: pd.DataFrame) -> pd.DataFrame:
-    """MAE per TRUE-RUL band — the cut the reports use, not the predicted one."""
+    """MAE por tramo de RUL REAL: el corte que usan los informes, no el predicho."""
     y = windows["y_true"].to_numpy()
     p = windows["pred"].to_numpy()
     rows = []
@@ -585,7 +586,7 @@ def mae_by_band(windows: pd.DataFrame) -> pd.DataFrame:
 
 
 def critical_zone_mae(windows: pd.DataFrame, threshold: float = DEFAULT_AOG) -> float:
-    """MAE where the true RUL is below the AOG threshold — the decision zone."""
+    """MAE donde la RUL real queda bajo el umbral AOG: la zona de decisión."""
     mask = windows["y_true"] < threshold
     if not mask.any():
         return float("nan")
@@ -596,16 +597,16 @@ def critical_zone_mae(windows: pd.DataFrame, threshold: float = DEFAULT_AOG) -> 
 
 def first_alarm_cycle(curve: pd.DataFrame, aog: float = DEFAULT_AOG,
                       statistic: str = "lower_min") -> tuple[int | None, int | None]:
-    """Cycles where the lower bound crosses AOG, and where truth crosses it.
+    """Ciclos en los que el límite inferior cruza AOG, y en los que cruza la verdad.
 
-    Reported together so a reader can see how early the alarm fires rather than
-    being told the band is "conservative".
+    Se reportan juntos para que el lector vea con cuánta antelación salta la
+    alarma, en vez de que le digan que la banda es "conservadora".
 
-    The statistic defaults to the cycle's **lowest** lower bound, which is the
-    same one `fleet_snapshot` uses to decide: the alarm and the state must not
-    answer "did it cross?" with different numbers. The mean is still available
-    for a chart line, but a mean that stays above the threshold while the worst
-    window is below it would hide the decision the operator is looking at.
+    La estadística por defecto es el **menor** límite inferior del ciclo, el mismo
+    que usa `fleet_snapshot` para decidir: la alarma y el estado no pueden
+    responder "¿cruzó?" con números distintos. La media sigue disponible para una
+    línea del gráfico, pero una media que se queda por encima del umbral mientras
+    la peor ventana está por debajo ocultaría la decisión que mira el operador.
     """
     column = statistic if statistic in curve.columns else "lower"
     below = curve[curve[column] < aog]
@@ -621,12 +622,12 @@ def work_order(snapshot: pd.DataFrame, provenance: dict,
                aog: float = DEFAULT_AOG,
                banda: str = "artefacto (models/ds02_manifest.json)",
                correccion: str | None = None) -> dict:
-    """JSON-ready order for the units grounded at the simulated cycle.
+    """Orden lista para JSON de las unidades retenidas en el ciclo simulado.
 
-    The document states which reading produced it: `banda` names the calibration
-    that set the limits and `correccion` the passes that moved the point. Without
-    them an order built with the rules layer on is indistinguishable from one
-    built on the raw cache.
+    El documento declara qué lectura lo produjo: `banda` nombra la calibración
+    que fijó los límites y `correccion` las pasadas que movieron el punto. Sin
+    eso, una orden creada con la capa de reglas activa no se distingue de otra
+    creada sobre la caché cruda.
     """
     blocked = snapshot[snapshot["state"] == AOG]
     units = []
@@ -670,7 +671,7 @@ def work_order(snapshot: pd.DataFrame, provenance: dict,
 
 
 def work_order_csv(order: dict) -> str:
-    """Flat CSV companion to the JSON order (header only when nothing is blocked)."""
+    """CSV plano que acompaña a la orden JSON (solo cabecera si no hay bloqueos)."""
     columns = ["unidad", "estado", "regla", "ciclo_simulado", "ciclo_evaluado",
                "rul_estimada", "limite_inferior", "limite_superior", "rul_real",
                "motivo", "accion"]
@@ -722,7 +723,7 @@ def parte_disponibilidad(snapshot: pd.DataFrame, provenance: dict,
 
 
 def thresholds_from(airworthy: float, aog: float) -> dict:
-    """Validate the operator's thresholds before they reach the policy."""
+    """Valida los umbrales del operador antes de que lleguen a la política."""
     if not (0.0 <= aog < airworthy):
         raise ValueError(
             f"umbral inválido: se requiere 0 <= hangar < apto, recibido "
