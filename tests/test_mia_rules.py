@@ -119,7 +119,7 @@ def test_la_envolvente_monotono_es_el_running_min():
 
 
 def test_el_extremo_puede_subir_y_no_es_monotono_estricto():
-    """Dicho sin rodeos: esta regla no garantiza una secuencia no creciente."""
+    """En términos claros: esta regla no garantiza una secuencia no creciente."""
     ajuste = R.pava_causal_no_creciente([1.0, 2.0, 3.0, 0.5])
     np.testing.assert_allclose(ajuste, [1.0, 1.5, 2.0, 0.5])
     assert np.max(np.diff(ajuste)) > 0.0
@@ -232,8 +232,3 @@ def test_la_cobertura_pura_es_la_nominal():
         cal = json.load(fh)
     lower, upper = apply_conformal(corregido, cal)
     assert empirical_coverage(verdad, lower, upper) == pytest.approx(0.90, abs=0.01)
-
-
-def test_el_informe_queda_en_el_repositorio():
-    """El informe de medición es parte del entregable."""
-    assert os.path.exists(os.path.join(ROOT, "docs/evidencia/informes/informe-2026-10-21-reglas-oof.md"))

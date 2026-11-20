@@ -178,6 +178,8 @@ docs/chuleta-defensa.md
 docs/*
 !docs/assets/
 !docs/evidencia/
+# informes de medición: fuera del entregable; si se regeneran, solo en local
+docs/evidencia/informes/
 !docs/presentacion/
 docs/presentacion/*
 !docs/presentacion/*.pdf
